@@ -182,6 +182,58 @@
             }
         };
     }
+
+
+
+// Ajouter dans vendor-dashboard.html après la fonction viewStats
+
+function openSellRequest(shopId) {
+    const shop = shops.find(s => s.id === shopId);
+    if (!shop) return;
+    if (shop.rating < 3) {
+        alert("Votre boutique doit avoir au moins 3 étoiles pour être éligible à la vente");
+        return;
+    }
+    
+    const modal = document.createElement('div'); modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-card">
+            <h3>Demander la vente de ${escapeHtml(shop.name)}</h3>
+            <div class="info-box" style="margin:16px 0;">
+                <strong>Note actuelle:</strong> ${shop.rating || 0}/5<br>
+                <strong>Produits:</strong> ${shop.products?.length || 0}<br>
+                <strong>Valorisation estimée:</strong> ${Math.floor((shop.products?.length||0)*75000 + (shop.rating||0)*150000).toLocaleString()} FCFA
+            </div>
+            <div class="form-group"><label>Prix souhaité (FCFA)</label><input type="number" id="sellPrice"></div>
+            <div class="form-group"><label>Raison</label><select id="sellReason"><option value="retraite">Retraite</option><option value="expansion">Recherche financement</option><option value="autre">Autre</option></select></div>
+            <div class="form-group"><label>Informations</label><textarea id="sellInfo" rows="2"></textarea></div>
+            <button class="btn-submit" onclick="submitSellRequest(${shop.id})">Envoyer la demande</button>
+            <button onclick="this.closest('.modal').remove()" style="margin-top:8px;">Annuler</button>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
+function submitSellRequest(shopId) {
+    const price = parseInt(document.getElementById('sellPrice').value);
+    if (!price || price < 50000) { alert("Prix invalide"); return; }
+    const shop = shops.find(s => s.id === shopId);
+    const request = {
+        id: 'SALE-' + Date.now(),
+        shopId, shopName: shop.name, sellerEmail: currentUser.email,
+        price, reason: document.getElementById('sellReason').value,
+        info: document.getElementById('sellInfo').value,
+        date: new Date().toISOString(), status: 'pending'
+    };
+    let sales = JSON.parse(localStorage.getItem('ouenze_sale_requests') || '[]');
+    sales.push(request);
+    localStorage.setItem('ouenze_sale_requests', JSON.stringify(sales));
+    alert("Demande envoyée ! Notre équipe vous contactera.");
+    document.querySelector('.modal')?.remove();
+}
+
+// Ajouter un bouton dans renderShop
+// <button class="btn-sm btn-warning" onclick="openSellRequest(${shop.id})">💰 Vendre boutique</button>
+
     
     function openRestock() { alert("Selectionnez un produit pour augmenter le stock"); }
     function openRestockToShop(shopId) { alert("Fonctionnalite de ravitaillement a venir"); }
