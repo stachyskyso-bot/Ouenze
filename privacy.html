@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze | Politique de confidentialité</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .auth-btn { padding: 8px 18px; border-radius: 40px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+        .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; }
+        .nav-links { display: flex; gap: 28px; padding: 10px 0; }
+        .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 13px; font-weight: 500; cursor: pointer; }
+        .nav-links a.active { color: var(--primary); font-weight: 600; }
+        
+        .main { max-width: 1200px; margin: 48px auto; padding: 0 24px; }
+        .page-card { background: var(--white); border-radius: 28px; border: 1px solid var(--gray-200); padding: 48px; }
+        .page-header { text-align: center; margin-bottom: 40px; }
+        .page-header h1 { font-size: 32px; font-weight: 700; color: var(--gray-900); margin-bottom: 12px; }
+        .page-header p { color: var(--gray-500); font-size: 16px; }
+        .page-header i { font-size: 48px; color: var(--primary); margin-bottom: 16px; display: inline-block; }
+        
+        .section { margin-bottom: 32px; }
+        .section h2 { font-size: 20px; font-weight: 600; color: var(--gray-800); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--gray-200); }
+        .section p { color: var(--gray-600); line-height: 1.6; margin-bottom: 12px; }
+        .section ul { margin-left: 24px; margin-bottom: 16px; color: var(--gray-600); line-height: 1.6; }
+        .section li { margin-bottom: 8px; }
+        .highlight { background: var(--gray-100); padding: 20px; border-radius: 16px; margin: 20px 0; border-left: 4px solid var(--primary); }
+        .last-updated { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--gray-200); color: var(--gray-500); font-size: 12px; }
+        
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
+        
+        @media (max-width: 700px) {
+            .page-card { padding: 24px; }
+            .page-header h1 { font-size: 24px; }
+            .section h2 { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
+    <div class="header-actions" id="headerActions"></div>
+</div>
+<div class="nav-row">
+    <div class="nav-container">
+        <div class="nav-links">
+                <a onclick="showHomePage()" class="active">Accueil</a>
+                <a onclick="showHomePage()">Boutiques</a>
+                <a onclick="showCart()">Panier (<span id="cartCountHeader">0</span>)</a>
+                <a onclick="showMyOrders()">Mes commandes</a>
+                <a onclick="goToVendorDashboard()" id="vendorLink" style="display:none;">Ma boutique</a>
+            </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn" style="background:none;border:none;padding:10px 0;font-size:13px;cursor:pointer;color:var(--gray-500);"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent" style="position:absolute;top:100%;right:0;background:var(--white);min-width:200px;border:1px solid var(--gray-200);border-radius:12px;opacity:0;visibility:hidden;transition:0.2s;z-index:100;">
+                <a href="about.html">À propos</a>
+                <a href="privacy.html">Confidentialité</a>
+                <a href="help.html">Aide</a>
+                <a href="tracking.html">Livraison</a>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <div class="page-card">
+        <div class="page-header">
+            <i class="fas fa-shield-alt"></i>
+            <h1>Politique de confidentialité</h1>
+            <p>Comment nous protégeons vos données personnelles</p>
+        </div>
+        
+        <div class="section">
+            <h2>1. Collecte des informations</h2>
+            <p>Nous collectons les informations que vous nous fournissez directement, notamment lors de :</p>
+            <ul>
+                <li>La création de votre compte (nom, email, adresse, numéro de téléphone)</li>
+                <li>La création d'une boutique (informations professionnelles, coordonnées bancaires)</li>
+                <li>La passation d'une commande (adresse de livraison, mode de paiement)</li>
+                <li>La communication avec notre service client</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>2. Utilisation des données</h2>
+            <p>Vos informations sont utilisées pour :</p>
+            <ul>
+                <li>Traiter vos commandes et assurer la livraison</li>
+                <li>Gérer votre compte et votre boutique</li>
+                <li>Vous informer sur l'état de vos commandes</li>
+                <li>Améliorer nos services et personnaliser votre expérience</li>
+                <li>Assurer la sécurité des transactions</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>3. Paiements sécurisés</h2>
+            <p>Tous les paiements sont traités via notre système de séquestre. Les informations de carte bancaire ne sont pas stockées sur nos serveurs. Les transactions sont cryptées conformément aux normes PCI DSS.</p>
+            <div class="highlight">
+                <i class="fas fa-lock" style="margin-right: 8px; color: var(--primary);"></i>
+                <strong>Garantie anti-escroquerie :</strong> En cas de fraude avérée, vous êtes intégralement remboursé. Toutes les transactions sont vérifiées par notre équipe.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>4. Partage des informations</h2>
+            <p>Nous ne partageons vos informations qu'avec :</p>
+            <ul>
+                <li>Les vendeurs chez qui vous passez commande (uniquement les informations nécessaires à la livraison)</li>
+                <li>Les prestataires de livraison (adresse, nom, téléphone)</li>
+                <li>Les autorités légales si la loi l'exige</li>
+            </ul>
+            <p>Nous ne vendons jamais vos données personnelles à des tiers.</p>
+        </div>
+        
+        <div class="section">
+            <h2>5. Cookies et technologies de suivi</h2>
+            <p>Notre site utilise des cookies pour :</p>
+            <ul>
+                <li>Maintenir votre session de connexion</li>
+                <li>Mémoriser les articles dans votre panier</li>
+                <li>Analyser l'utilisation du site pour l'améliorer</li>
+            </ul>
+            <p>Vous pouvez désactiver les cookies dans les paramètres de votre navigateur, mais certaines fonctionnalités pourraient être limitées.</p>
+        </div>
+        
+        <div class="section">
+            <h2>6. Vos droits</h2>
+            <p>Conformément à la législation en vigueur, vous disposez des droits suivants :</p>
+            <ul>
+                <li>Accès à vos données personnelles</li>
+                <li>Rectification des informations inexactes</li>
+                <li>Suppression de votre compte et de vos données</li>
+                <li>Opposition au traitement de vos données</li>
+                <li>Portabilité de vos données</li>
+            </ul>
+            <p>Pour exercer ces droits, contactez-nous à <a href="mailto:contact@ouenze.cg" style="color: var(--primary);">contact@ouenze.cg</a></p>
+        </div>
+        
+        <div class="section">
+            <h2>7. Sécurité des données</h2>
+            <p>Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles pour protéger vos données :</p>
+            <ul>
+                <li>Cryptage SSL/TLS pour toutes les transmissions de données</li>
+                <li>Accès restreint aux données personnelles</li>
+                <li>Sauvegardes régulières et sécurisées</li>
+                <li>Surveillance continue des accès</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>8. Conservation des données</h2>
+            <p>Vos données sont conservées pendant la durée de votre compte actif. Après suppression de votre compte, certaines données peuvent être conservées pour des obligations légales (facturation, preuves de transaction) pendant la durée requise par la loi congolaise.</p>
+        </div>
+        
+        <div class="section">
+            <h2>9. Modifications de la politique</h2>
+            <p>Nous pouvons modifier cette politique de confidentialité. Toute modification sera publiée sur cette page avec une date de mise à jour. Nous vous encourageons à consulter régulièrement cette page.</p>
+        </div>
+        
+        <div class="last-updated">
+            Dernière mise à jour : 28 mars 2024
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <p>© 2024 Ouenze Marketplace - Brazzaville, Congo | <a href="privacy.html" style="color:var(--primary);">Confidentialité</a> | <a href="help.html" style="color:var(--primary);">Aide</a> | <a href="about.html" style="color:var(--primary);">À propos</a></p>
+</div>
+
+<script>
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (currentUser) {
+            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+        } else {
+            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button>`;
+        }
+    }
+    
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('ouenze_current_user');
+        updateHeaderUI();
+        window.location.href = 'index.html';
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        updateHeaderUI();
+        const dropBtn = document.getElementById('dropdownBtn');
+        const dropCont = document.getElementById('dropdownContent');
+        if(dropBtn) {
+            dropBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropCont.classList.toggle('show');
+                dropCont.style.opacity = dropCont.classList.contains('show') ? '1' : '0';
+                dropCont.style.visibility = dropCont.classList.contains('show') ? 'visible' : 'hidden';
+            });
+            window.addEventListener('click', () => {
+                dropCont.classList.remove('show');
+                dropCont.style.opacity = '0';
+                dropCont.style.visibility = 'hidden';
+            });
+        }
+    });
+</script>
+</body>
+</html>

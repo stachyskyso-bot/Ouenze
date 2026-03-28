@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze | Centre d'aide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .auth-btn { padding: 8px 18px; border-radius: 40px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+        .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; }
+        .nav-links { display: flex; gap: 28px; padding: 10px 0; }
+        .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 13px; font-weight: 500; cursor: pointer; }
+        .nav-links a.active { color: var(--primary); font-weight: 600; }
+        
+        .main { max-width: 1200px; margin: 48px auto; padding: 0 24px; }
+        .page-card { background: var(--white); border-radius: 28px; border: 1px solid var(--gray-200); padding: 48px; }
+        .page-header { text-align: center; margin-bottom: 40px; }
+        .page-header h1 { font-size: 32px; font-weight: 700; color: var(--gray-900); margin-bottom: 12px; }
+        .page-header p { color: var(--gray-500); font-size: 16px; }
+        .page-header i { font-size: 48px; color: var(--primary); margin-bottom: 16px; display: inline-block; }
+        
+        .search-help { margin-bottom: 48px; }
+        .search-box { display: flex; max-width: 600px; margin: 0 auto; background: var(--gray-100); border-radius: 60px; border: 1px solid var(--gray-200); overflow: hidden; }
+        .search-box input { flex: 1; padding: 14px 20px; border: none; outline: none; background: transparent; font-size: 14px; }
+        .search-box button { background: var(--primary); border: none; padding: 0 24px; color: white; cursor: pointer; font-size: 16px; }
+        
+        .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; margin-bottom: 48px; }
+        .faq-category { background: var(--gray-100); border-radius: 20px; padding: 24px; }
+        .faq-category h3 { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--primary); }
+        .faq-item { margin-bottom: 16px; border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; }
+        .faq-question { font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .faq-question:hover { color: var(--primary); }
+        .faq-answer { display: none; margin-top: 8px; color: var(--gray-600); font-size: 14px; line-height: 1.5; padding-left: 12px; border-left: 2px solid var(--primary); }
+        .faq-answer.show { display: block; }
+        
+        .contact-section { background: var(--gray-100); border-radius: 20px; padding: 32px; text-align: center; margin-top: 32px; }
+        .contact-section h3 { font-size: 20px; margin-bottom: 16px; }
+        .contact-buttons { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+        .contact-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--primary); color: white; border-radius: 40px; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .contact-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .contact-btn.whatsapp { background: #25D366; }
+        .contact-btn.whatsapp:hover { background: #20b859; }
+        
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
+        
+        @media (max-width: 700px) {
+            .page-card { padding: 24px; }
+            .page-header h1 { font-size: 24px; }
+            .faq-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
+    <div class="header-actions" id="headerActions"></div>
+</div>
+<div class="nav-row">
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="index.html">Accueil</a>
+            <a href="index.html">Boutiques</a>
+            
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn" style="background:none;border:none;padding:10px 0;font-size:13px;cursor:pointer;color:var(--gray-500);"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent" style="position:absolute;top:100%;right:0;background:var(--white);min-width:200px;border:1px solid var(--gray-200);border-radius:12px;opacity:0;visibility:hidden;transition:0.2s;z-index:100;">
+                <a href="about.html">À propos</a>
+                <a href="privacy.html">Confidentialité</a>
+                <a href="help.html">Aide</a>
+                <a href="tracking.html">Livraison</a>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <div class="page-card">
+        <div class="page-header">
+            <i class="fas fa-question-circle"></i>
+            <h1>Centre d'aide</h1>
+            <p>Comment pouvons-nous vous aider ?</p>
+        </div>
+        
+        <div class="search-help">
+            <div class="search-box">
+                <input type="text" id="searchFaq" placeholder="Rechercher dans l'aide...">
+                <button onclick="searchFaq()"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+        
+        <div class="faq-grid">
+            <div class="faq-category">
+                <h3><i class="fas fa-user"></i> Compte et inscription</h3>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment créer un compte ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Cliquez sur "Inscription" en haut à droite. Remplissez vos informations personnelles, validez votre email avec le code reçu, puis choisissez votre type de compte (client ou vendeur).</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">J'ai oublié mon mot de passe <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Cliquez sur "Mot de passe oublié" sur la page de connexion. Un lien de réinitialisation vous sera envoyé par email.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment devenir vendeur ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Lors de l'inscription, choisissez "Vendeur". Vous devrez fournir vos coordonnées bancaires. Un email avec un lien de création de boutique vous sera envoyé.</div>
+                </div>
+            </div>
+            
+            <div class="faq-category">
+                <h3><i class="fas fa-shopping-cart"></i> Commandes et livraison</h3>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment passer une commande ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Ajoutez des produits au panier, renseignez votre adresse de livraison, choisissez votre mode de paiement et validez. Vous recevrez un email de confirmation.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment suivre ma commande ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Après validation, vous serez redirigé vers la page de suivi. Vous pouvez aussi accéder à "Mes commandes" dans le menu.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Délais de livraison ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">La livraison à Brazzaville est effectuée sous 3 à 5 jours ouvrés. Pour les autres villes, comptez 5 à 7 jours ouvrés.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Frais de livraison ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Les frais de livraison sont de 10% du montant total de votre commande.</div>
+                </div>
+            </div>
+            
+            <div class="faq-category">
+                <h3><i class="fas fa-credit-card"></i> Paiements</h3>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Quels modes de paiement acceptez-vous ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Nous acceptons les cartes bancaires (Visa, MasterCard), Mobile Money (MTN, Airtel) et les espèces à la livraison.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Les paiements sont-ils sécurisés ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Oui, tous les paiements sont sécurisés via notre système de séquestre. Vos données bancaires ne sont jamais stockées sur nos serveurs.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment payer par Mobile Money ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Sélectionnez "Mobile Money", choisissez votre opérateur (MTN ou Airtel) et saisissez votre numéro. Vous recevrez une demande de paiement sur votre téléphone.</div>
+                </div>
+            </div>
+            
+            <div class="faq-category">
+                <h3><i class="fas fa-store"></i> Pour les vendeurs</h3>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment créer ma boutique ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Après inscription en tant que vendeur, vous recevrez un email avec un lien pour créer et personnaliser votre boutique.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment ajouter des produits ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Connectez-vous à votre tableau de bord vendeur, sélectionnez votre boutique puis "Ajouter un produit".</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment obtenir la certification ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">La certification bleue est attribuée par Ouenze après vérification des documents. La certification or est automatique pour les boutiques notées 4.5+.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment recevoir mes paiements ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Les paiements sont versés sur le compte bancaire ou Mobile Money que vous avez renseigné lors de votre inscription vendeur.</div>
+                </div>
+            </div>
+            
+            <div class="faq-category">
+                <h3><i class="fas fa-star"></i> Avis et notations</h3>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment noter une boutique ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Après la livraison de votre commande, vous recevrez une notification par email. Vous pouvez aussi noter depuis "Mes commandes".</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Que signifient les badges ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Le badge bleu "Certifiée" indique une boutique vérifiée. Le badge or "Top vendeur" est attribué aux boutiques notées 4.5+.</div>
+                </div>
+            </div>
+            
+            <div class="faq-category">
+                <h3><i class="fas fa-chart-line"></i> Investissement</h3>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment investir dans une boutique ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">Rendez-vous sur la page "Investir", consultez les boutiques disponibles et cliquez sur "Investir". Vous devrez fournir des justificatifs.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleAnswer(this)">Comment est calculée la valorisation ? <i class="fas fa-chevron-down"></i></div>
+                    <div class="faq-answer">La valorisation prend en compte le chiffre d'affaires, le nombre de commandes, la note client, la croissance et les actifs de la boutique.</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="contact-section">
+            <h3>Vous n'avez pas trouvé de réponse ?</h3>
+            <p>Notre équipe est à votre disposition pour vous aider</p>
+            <div class="contact-buttons">
+                <a href="mailto:contact@ouenze.cg" class="contact-btn"><i class="fas fa-envelope"></i> contact@ouenze.cg</a>
+                <a href="https://wa.me/242061234567" class="contact-btn whatsapp"><i class="fab fa-whatsapp"></i> +242 06 123 45 67</a>
+                <a href="#" class="contact-btn"><i class="fas fa-phone"></i> +242 05 123 45 67</a>
+            </div>
+            <p style="margin-top: 20px; font-size: 12px; color: var(--gray-500);">Horaires : Lundi - Vendredi, 8h - 18h | Samedi, 9h - 13h</p>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <p>© 2024 Ouenze Marketplace - Brazzaville, Congo | <a href="privacy.html" style="color:var(--primary);">Confidentialité</a> | <a href="help.html" style="color:var(--primary);">Aide</a> | <a href="about.html" style="color:var(--primary);">À propos</a></p>
+</div>
+
+<script>
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (currentUser) {
+            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+        } else {
+            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button>`;
+        }
+    }
+    
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('ouenze_current_user');
+        updateHeaderUI();
+        window.location.href = 'index.html';
+    }
+    
+    function toggleAnswer(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        answer.classList.toggle('show');
+        if (answer.classList.contains('show')) {
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            icon.style.transform = 'rotate(0)';
+        }
+    }
+    
+    function searchFaq() {
+        const query = document.getElementById('searchFaq').value.toLowerCase().trim();
+        const faqItems = document.querySelectorAll('.faq-item');
+        
+        if (!query) {
+            faqItems.forEach(item => item.style.display = 'block');
+            return;
+        }
+        
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question').innerText.toLowerCase();
+            const answer = item.querySelector('.faq-answer').innerText.toLowerCase();
+            if (question.includes(query) || answer.includes(query)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        updateHeaderUI();
+        const dropBtn = document.getElementById('dropdownBtn');
+        const dropCont = document.getElementById('dropdownContent');
+        if(dropBtn) {
+            dropBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropCont.classList.toggle('show');
+                dropCont.style.opacity = dropCont.classList.contains('show') ? '1' : '0';
+                dropCont.style.visibility = dropCont.classList.contains('show') ? 'visible' : 'hidden';
+            });
+            window.addEventListener('click', () => {
+                dropCont.classList.remove('show');
+                dropCont.style.opacity = '0';
+                dropCont.style.visibility = 'hidden';
+            });
+        }
+        
+        document.getElementById('searchFaq').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchFaq();
+        });
+    });
+</script>
+</body>
+</html>
