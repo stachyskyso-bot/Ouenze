@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* Styles identiques à votre version */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
         :root {
@@ -50,15 +51,15 @@
         .layout-card, .speed-card, .menu-pos-card, .product-type-card { flex: 1; padding: 6px; background: var(--gray-100); border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 11px; font-weight: 500; }
         .layout-card.selected, .speed-card.selected, .menu-pos-card.selected, .product-type-card.selected { border-color: var(--primary); background: #eef2ff; }
         
-        .logo-shape-option { display: flex; gap: 20px; margin: 20px 1; }
+        .logo-shape-option { display: flex; gap: 10px; margin: 10px 0; }
         .logo-shape { width: 45px; height: 45px; background: var(--primary); cursor: pointer; border: 2px solid transparent; }
         .logo-shape.square { border-radius: 0; }
         .logo-shape.rounded { border-radius: 10px; }
         .logo-shape.circle { border-radius: 50%; }
         .logo-shape.selected { border-color: var(--gray-700); transform: scale(1.05); }
         
-        .image-upload { border: 3px dashed var(--gray-200); border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); }
-        .image-preview { width: 100px; height: 100px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
+        .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); }
+        .image-preview { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
         .image-preview img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
         
         .menu-category-item { background: var(--gray-100); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
@@ -73,7 +74,6 @@
         .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
         .btn-sm { padding: 4px 10px; background: var(--gray-200); border: none; border-radius: 16px; cursor: pointer; font-size: 11px; }
         
-        /* Preview styles */
         .preview-shop { background: var(--preview-bg, #ffffff); overflow: hidden; border-radius: 16px; }
         .preview-header { background: linear-gradient(135deg, var(--preview-primary, #1e40af), var(--preview-primary-dark)); padding: 20px; color: white; }
         .preview-logo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -497,16 +497,24 @@
         slides[(active+d+slides.length)%slides.length].classList.add('active');
     };
     
-    // Publication avec propriétaire
+    // Publication avec propriétaire et ID correct
     function publishShop() {
         const name = document.getElementById('shopNameInput').value.trim();
         if(!name) { alert("Nom de boutique requis"); return; }
         const validProducts = tempProducts.filter(p=>p.name && p.price && p.photos.length);
         if(!validProducts.length) { alert("Ajoutez au moins un produit avec photo"); return; }
-        const shops = JSON.parse(localStorage.getItem('ouenze_shops')||'[]');
+        
+        let shops = JSON.parse(localStorage.getItem('ouenze_shops')||'[]');
+        
+        // Calculer le prochain ID correctement
+        let nextId = 1;
+        if(shops.length > 0) {
+            nextId = Math.max(...shops.map(s => s.id)) + 1;
+        }
+        
         const newShop = {
-            id: shops.length?Math.max(...shops.map(s=>s.id))+1:1,
-            name, 
+            id: nextId,
+            name: name, 
             logo: tempLogo, 
             description: document.getElementById('shopDescInput').value,
             city: document.getElementById('shopCity').value, 
@@ -516,34 +524,40 @@
             menu: { categories: tempMenuCategories, position: tempDesign.menuPosition, bg: tempDesign.menuBg, text: tempDesign.menuText, radius: tempDesign.menuRadius },
             carousel: tempCarousel, 
             products: validProducts, 
-            rating:0, 
-            totalRatings:0, 
-            reviews:[],
+            rating: 0, 
+            totalRatings: 0, 
+            reviews: [],
             owner: currentUserEmail,
             verified: false,
             totalSales: 0,
             assets: [],
             liabilities: [],
+            createdAt: new Date().toISOString(),
             design: { 
-                primary:tempDesign.primary, 
-                button:tempDesign.button, 
-                background:tempDesign.background,
-                headerTextColor:tempDesign.headerTextColor, 
-                productTextColor:tempDesign.productTextColor,
-                carouselHeight:tempDesign.carouselHeight, 
-                carouselRadius:tempDesign.carouselRadius,
-                carouselSpeed:tempDesign.carouselSpeed, 
-                prodWidth:tempDesign.prodWidth,
-                prodImgHeight:tempDesign.prodImgHeight, 
-                prodRadius:tempDesign.prodRadius,
-                prodGap:tempDesign.prodGap, 
-                layout:tempDesign.layout, 
-                logoShape:tempLogoShape 
+                primary: tempDesign.primary, 
+                button: tempDesign.button, 
+                background: tempDesign.background,
+                headerTextColor: tempDesign.headerTextColor, 
+                productTextColor: tempDesign.productTextColor,
+                carouselHeight: tempDesign.carouselHeight, 
+                carouselRadius: tempDesign.carouselRadius,
+                carouselSpeed: tempDesign.carouselSpeed, 
+                prodWidth: tempDesign.prodWidth,
+                prodImgHeight: tempDesign.prodImgHeight, 
+                prodRadius: tempDesign.prodRadius,
+                prodGap: tempDesign.prodGap, 
+                layout: tempDesign.layout, 
+                logoShape: tempLogoShape 
             }
         };
+        
         shops.push(newShop);
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-        alert(`✅ Boutique "${name}" créée avec succès !`);
+        
+        console.log(`✅ Boutique créée avec ID: ${newShop.id}`);
+        console.log(`📦 Nombre total de boutiques: ${shops.length}`);
+        
+        alert(`✅ Boutique "${name}" créée avec succès !\nID: ${newShop.id}\n\nRedirection vers la page d'accueil...`);
         window.location.href = 'index.html';
     }
     
