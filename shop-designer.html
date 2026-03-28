@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* ... garder tous les styles existants ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
         :root {
@@ -59,8 +58,8 @@
         .logo-shape.selected { border-color: var(--gray-700); transform: scale(1.05); }
         
         .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); }
-        .image-preview { width: 70px; height: 70px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
-        .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .image-preview { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
+        .image-preview img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
         
         .menu-category-item { background: var(--gray-100); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
         .subcategory-list { margin-left: 20px; margin-top: 6px; }
@@ -78,7 +77,8 @@
         .preview-shop { background: var(--preview-bg, #ffffff); overflow: hidden; border-radius: 16px; }
         .preview-header { background: linear-gradient(135deg, var(--preview-primary, #1e40af), var(--preview-primary-dark)); padding: 20px; color: white; }
         .preview-logo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .preview-logo-img { width: 50px; height: 50px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .preview-logo-img { width: 55px; height: 55px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: inherit; }
+        .preview-logo-img img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
         .preview-menu { background: var(--menu-bg, #1e40af); color: var(--menu-text, white); padding: 8px 16px; border-radius: var(--menu-radius, 0px); margin-bottom: 16px; }
         .preview-menu-horizontal { display: flex; gap: 16px; flex-wrap: wrap; }
         .preview-menu-vertical { width: 180px; float: left; margin-right: 16px; }
@@ -98,6 +98,7 @@
         .preview-product-title { font-weight: 600; font-size: 13px; color: var(--product-text, #1e293b); }
         .preview-product-price { font-weight: 700; color: var(--preview-primary, #1e40af); margin: 4px 0; font-size: 14px; }
         .preview-btn { background: var(--preview-button, #1e40af); color: white; border: none; padding: 6px; border-radius: var(--product-radius, 8px); width: 100%; cursor: pointer; font-size: 11px; }
+        .food-badge { display: inline-block; background: #eef2ff; color: var(--primary); font-size: 9px; padding: 2px 6px; border-radius: 12px; margin-bottom: 4px; }
         .clearfix::after { content: ""; clear: both; display: table; }
         
         @media (max-width: 900px) {
@@ -248,7 +249,7 @@
             const r = new FileReader(); 
             r.onload = e => { 
                 tempLogo = e.target.result; 
-                document.getElementById('logoPreview').innerHTML = `<img src="${e.target.result}">`; 
+                document.getElementById('logoPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;">`; 
                 updatePreview(); 
             }; 
             r.readAsDataURL(input.files[0]); 
@@ -336,7 +337,8 @@
         tempProducts.push({ 
             id: Date.now(), name: '', price: '', category: '', stock: 0, 
             colors: [], sizes: [], photos: [], description: '',
-            productType: 'standard'
+            productType: 'standard',
+            expiryDate: '', weight: '', origin: '', ingredients: ''
         });
         renderProducts();
         updatePreview();
@@ -369,6 +371,22 @@
                     <input placeholder="Catégorie" value="${escapeHtml(p.category)}" onchange="updateProduct(${idx},'category',this.value)">
                     <input placeholder="Stock" type="number" value="${p.stock}" onchange="updateProduct(${idx},'stock',parseInt(this.value))">
                 </div>
+                <div class="form-group"><label>Type de produit</label>
+                    <div class="product-type-option">
+                        <div class="product-type-card ${p.productType === 'standard' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','standard'); renderProducts();">Standard</div>
+                        <div class="product-type-card ${p.productType === 'food' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','food'); renderProducts();">Alimentaire</div>
+                    </div>
+                </div>
+                ${p.productType === 'food' ? `
+                <div class="form-row">
+                    <input placeholder="Date d'expiration (JJ/MM/AAAA)" value="${p.expiryDate}" onchange="updateProduct(${idx},'expiryDate',this.value)">
+                    <input placeholder="Poids (kg/g)" value="${p.weight}" onchange="updateProduct(${idx},'weight',this.value)">
+                </div>
+                <div class="form-row">
+                    <input placeholder="Origine" value="${p.origin}" onchange="updateProduct(${idx},'origin',this.value)">
+                    <input placeholder="Ingrédients" value="${p.ingredients}" onchange="updateProduct(${idx},'ingredients',this.value)">
+                </div>
+                ` : ''}
                 <div><strong>Photos</strong><div class="photo-gallery">${p.photos.map((ph,pi)=>`<div class="photo-item"><img src="${ph}"><div class="remove-photo" onclick="removeProductPhoto(${idx},${pi})">✕</div></div>`).join('')}</div><input type="file" accept="image/*" onchange="addProductPhoto(${idx}, this)"></div>
                 <div><strong>Couleurs</strong><div>${p.colors.map((c,ci)=>`<span style="background:#e2e8f0;padding:2px 8px;border-radius:16px;margin:2px;display:inline-block;font-size:11px;">${c} <span onclick="removeProductColor(${idx},${ci})" style="cursor:pointer;">✕</span></span>`).join('')}</div><div class="form-row"><input id="colorIn-${idx}" placeholder="Nouvelle couleur"><button onclick="addProductColor(${idx}, document.getElementById('colorIn-${idx}').value); document.getElementById('colorIn-${idx}').value=''">+</button></div></div>
                 <textarea placeholder="Description" rows="2" onchange="updateProduct(${idx},'description',this.value)">${escapeHtml(p.description)}</textarea>
@@ -386,7 +404,7 @@
         const city = document.getElementById('shopCity')?.value || 'Brazzaville';
         const quartier = document.getElementById('shopQuartier')?.value || '';
         const products = tempProducts.filter(p=>p.name && p.price);
-        const logoShapeClass = tempLogoShape === 'square' ? '0px' : tempLogoShape === 'rounded' ? '10px' : '50%';
+        const logoShapeClass = tempLogoShape === 'square' ? '0px' : tempLogoShape === 'rounded' ? '12px' : '50%';
         const isHorizontal = tempDesign.menuPosition === 'horizontal';
         const isVerticalLeft = tempDesign.menuPosition === 'vertical-left';
         const isVerticalRight = tempDesign.menuPosition === 'vertical-right';
@@ -430,7 +448,7 @@
             <div class="preview-shop">
                 <div class="preview-header">
                     <div class="preview-logo">
-                        <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}">` : '<i class="fas fa-store"></i>'}</div>
+                        <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
                         <div><h3 style="font-size:16px;">${escapeHtml(shopName)}</h3><p style="font-size:11px;">${escapeHtml(desc)}</p><div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${quartier}</div></div>
                     </div>
                 </div>
@@ -443,10 +461,11 @@
                     <div class="preview-products">
                         ${products.slice(0,6).map(p=>`
                             <div class="preview-product">
-                                <div class="preview-product-image">${p.photos[0]?`<img src="${p.photos[0]}">`:'<i class="fas fa-image"></i>'}</div>
+                                <div class="preview-product-image">${p.photos[0]?`<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">`:'<i class="fas fa-image"></i>'}</div>
                                 <div class="preview-product-info">
                                     <div class="preview-product-title">${escapeHtml(p.name)}</div>
                                     <div class="preview-product-price">${p.price} FCFA</div>
+                                    ${p.productType === 'food' ? `<div class="food-badge"><i class="fas fa-utensils"></i> Alimentaire</div>` : ''}
                                     <div style="font-size:10px;">Stock: ${p.stock}</div>
                                     <button class="preview-btn">Ajouter</button>
                                 </div>
@@ -500,7 +519,7 @@
             rating:0, 
             totalRatings:0, 
             reviews:[],
-            owner: currentUserEmail,  // AJOUT DU PROPRIÉTAIRE
+            owner: currentUserEmail,
             verified: false,
             totalSales: 0,
             assets: [],
