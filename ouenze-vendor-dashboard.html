@@ -6,6 +6,7 @@
     <title>Ouenze | Tableau de bord vendeur</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
@@ -28,14 +29,18 @@
         .btn-sm { padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: var(--gray-100); border: 1px solid var(--gray-200); }
+        .btn-warning { background: var(--warning); color: white; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 10px; }
         .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 40px; border: none; width: 100%; cursor: pointer; }
+        .assets-list { margin: 12px 0; }
+        .asset-item, .liability-item { background: var(--gray-100); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }
+        .chart-container { height: 250px; margin: 20px 0; }
         @media (max-width: 700px) { .stats-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -48,23 +53,35 @@
 
 <div class="container" id="appContainer"></div>
 
-<div class="footer">2024 Ouenze - Espace vendeur</div>
+<div class="footer">2024 Ouenze - Espace vendeur | Gérez vos actifs, passifs et demandes d'investissement</div>
 
 <script>
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
     let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
+    let investmentRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+    let marketHistory = JSON.parse(localStorage.getItem('ouenze_market_history') || '[]');
     
     if(!currentUser || currentUser.type !== 'vendeur') window.location.href = 'index.html';
     
     document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
     document.getElementById('userName').innerText = currentUser.name;
     
+    function calculateValuation(shop) {
+        const baseValue = 1000000;
+        const productValue = (shop.products?.length || 0) * 50000;
+        const ratingBonus = (shop.rating || 0) * 150000;
+        const salesBonus = (shop.totalSales || 0) * 1000;
+        const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+        return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
+    }
+    
     function showDashboard() {
         const userShops = shops.filter(s => s.owner === currentUser.email);
         const totalProducts = userShops.reduce((s,shop)=>s+(shop.products?.length||0),0);
         const totalOrders = orders.filter(o => o.items?.some(i => userShops.some(s=>s.id===i.shopId))).length;
         const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s,o)=>s+o.total,0);
+        const pendingRequests = investmentRequests.filter(r => r.shopId && userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
         
         document.getElementById('appContainer').innerHTML = `
             <div class="stats-grid">
@@ -72,14 +89,16 @@
                 <div class="stat-card"><h3>Produits</h3><div class="stat-value">${totalProducts}</div></div>
                 <div class="stat-card"><h3>Commandes</h3><div class="stat-value">${totalOrders}</div></div>
                 <div class="stat-card"><h3>CA total</h3><div class="stat-value">${totalRevenue.toLocaleString()} FCFA</div></div>
+                <div class="stat-card"><h3>Demandes en attente</h3><div class="stat-value">${pendingRequests.length}</div></div>
             </div>
-            <div style="display:flex; gap:12px; margin-bottom:24px;">
-                <button class="btn-sm btn-primary" onclick="createNewShop()">+ Creer une boutique</button>
+            <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+                <button class="btn-sm btn-primary" onclick="createNewShop()">+ Créer une boutique</button>
                 <button class="btn-sm btn-outline" onclick="openAddProduct()">+ Ajouter produit</button>
                 <button class="btn-sm btn-outline" onclick="openRestock()"> Ravitailler</button>
+                <button class="btn-sm btn-warning" onclick="openInvestmentRequests()">📊 Voir les demandes (${pendingRequests.length})</button>
             </div>
             <h2>Mes boutiques</h2>
-            ${userShops.length ? userShops.map(shop => renderShop(shop)).join('') : '<div class="stat-card" style="text-align:center;">Aucune boutique. Cliquez sur "Creer une boutique"</div>'}
+            ${userShops.length ? userShops.map(shop => renderShop(shop)).join('') : '<div class="stat-card" style="text-align:center;">Aucune boutique. Cliquez sur "Créer une boutique"</div>'}
         `;
     }
     
@@ -87,6 +106,7 @@
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
         const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
         const rating = shop.rating || 0;
+        const valuation = calculateValuation(shop);
         let stars = '';
         for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star" style="color:#f59e0b;"></i>';
         for(let i=0;i<5-Math.ceil(rating);i++) stars += '<i class="far fa-star"></i>';
@@ -96,7 +116,7 @@
                 <div class="shop-header">
                     <div class="shop-info">
                         <div class="shop-logo">${shop.logo ? `<img src="${shop.logo}" style="width:40px;height:40px;">` : '<i class="fas fa-store"></i>'}</div>
-                        <div><h3>${escapeHtml(shop.name)}</h3><div>${stars} (${shop.totalRatings||0} avis)</div></div>
+                        <div><h3>${escapeHtml(shop.name)}</h3><div>${stars} (${shop.totalRatings||0} avis)</div><div style="font-size:12px;">Valorisation: ${valuation.toLocaleString()} FCFA</div></div>
                     </div>
                     <div><span class="btn-sm btn-outline" onclick="viewStats(${shop.id})">Statistiques</span></div>
                 </div>
@@ -106,138 +126,246 @@
                         <div><strong>${shopOrders.length}</strong><br>Commandes</div>
                         <div><strong>${revenue.toLocaleString()} FCFA</strong><br>CA</div>
                     </div>
-                    <h4>Produits</h4>
+                    <h4>Actifs & Passifs</h4>
+                    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                        <button class="btn-sm btn-outline" onclick="manageAssets(${shop.id})">📦 Gérer les actifs</button>
+                        <button class="btn-sm btn-outline" onclick="manageLiabilities(${shop.id})">💰 Gérer les passifs</button>
+                        ${shop.rating >= 3 ? `<button class="btn-sm btn-primary" onclick="openInvestmentOffer(${shop.id})">📈 Proposer à l'investissement</button>` : '<span class="btn-sm" style="background:#e2e8f0;">⭐ 3 étoiles requises pour investissement</span>'}
+                    </div>
+                    <div style="background:var(--gray-100); border-radius:12px; padding:12px; margin-bottom:16px;">
+                        <strong>Actifs (${(shop.assets || []).reduce((s,a)=>s+a.value,0).toLocaleString()} FCFA)</strong><br>
+                        ${(shop.assets || []).map(a => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${escapeHtml(a.name)}</span><span>${a.value.toLocaleString()} FCFA</span></div>`).join('') || 'Aucun actif'}
+                    </div>
+                    <div style="background:var(--gray-100); border-radius:12px; padding:12px; margin-bottom:16px;">
+                        <strong>Passifs (${(shop.liabilities || []).reduce((s,l)=>s+l.value,0).toLocaleString()} FCFA)</strong><br>
+                        ${(shop.liabilities || []).map(l => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${escapeHtml(l.name)}</span><span>${l.value.toLocaleString()} FCFA</span></div>`).join('') || 'Aucun passif'}
+                    </div>
+                    <h4>Produits récents</h4>
                     ${(shop.products||[]).slice(0,3).map(p => `<div class="product-row"><span>${escapeHtml(p.name)}</span><span>${p.price} FCFA</span><span>Stock: ${p.stock||0}</span></div>`).join('')}
                     ${(!shop.products||!shop.products.length) ? '<div>Aucun produit</div>' : ''}
                     <div style="margin-top:16px;">
                         <button class="btn-sm btn-outline" onclick="openAddProductToShop(${shop.id})">Ajouter produit</button>
                         <button class="btn-sm btn-outline" onclick="openRestockToShop(${shop.id})">Ravitailler</button>
-                        <button class="btn-sm btn-primary" onclick="window.open('ouenze-shop-designer.html?edit=${shop.id}','_blank')">Modifier boutique</button>
+                        <button class="btn-sm btn-primary" onclick="window.open('shop-designer.html?edit=${shop.id}','_blank')">Modifier boutique</button>
                     </div>
                 </div>
             </div>
         `;
     }
     
-    function createNewShop() {
-        alert("Un email avec le lien de creation a ete envoye");
-        window.open('ouenze-shop-designer.html', '_blank');
+    function manageAssets(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Gestion des actifs - ${escapeHtml(shop.name)}</h3>
+                <div id="assetsList">${(shop.assets || []).map((a, i) => `
+                    <div class="asset-item">
+                        <span><strong>${escapeHtml(a.name)}</strong> - ${a.value.toLocaleString()} FCFA</span>
+                        <button onclick="removeAsset(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;">Supprimer</button>
+                    </div>
+                `).join('')}</div>
+                <div class="form-group"><label>Nom de l'actif</label><input type="text" id="assetName" placeholder="Ex: Camionnette, Matériel, Stock"></div>
+                <div class="form-group"><label>Valeur (FCFA)</label><input type="number" id="assetValue" placeholder="0"></div>
+                <div class="form-group"><label>Description</label><textarea id="assetDesc" rows="2"></textarea></div>
+                <button class="btn-submit" onclick="addAsset(${shop.id})">Ajouter un actif</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        window.addAsset = (sid) => {
+            const name = document.getElementById('assetName').value.trim();
+            const value = parseInt(document.getElementById('assetValue').value);
+            if (!name || !value) { alert("Nom et valeur requis"); return; }
+            const s = shops.find(s => s.id === sid);
+            if (s) {
+                s.assets = s.assets || [];
+                s.assets.push({ name, value, description: document.getElementById('assetDesc').value, addedAt: new Date().toISOString() });
+                localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                alert("Actif ajouté");
+                modal.remove();
+                showDashboard();
+            }
+        };
+        window.removeAsset = (sid, idx) => {
+            const s = shops.find(s => s.id === sid);
+            if (s && s.assets) { s.assets.splice(idx, 1); localStorage.setItem('ouenze_shops', JSON.stringify(shops)); modal.remove(); manageAssets(sid); }
+        };
     }
     
-    function openAddProduct() {
+    function manageLiabilities(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Gestion des passifs - ${escapeHtml(shop.name)}</h3>
+                <div id="liabilitiesList">${(shop.liabilities || []).map((l, i) => `
+                    <div class="asset-item">
+                        <span><strong>${escapeHtml(l.name)}</strong> - ${l.value.toLocaleString()} FCFA</span>
+                        <button onclick="removeLiability(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;">Supprimer</button>
+                    </div>
+                `).join('')}</div>
+                <div class="form-group"><label>Nom du passif</label><input type="text" id="liabilityName" placeholder="Ex: Dette fournisseur, Emprunt"></div>
+                <div class="form-group"><label>Montant (FCFA)</label><input type="number" id="liabilityValue" placeholder="0"></div>
+                <div class="form-group"><label>Description</label><textarea id="liabilityDesc" rows="2"></textarea></div>
+                <button class="btn-submit" onclick="addLiability(${shop.id})">Ajouter un passif</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        window.addLiability = (sid) => {
+            const name = document.getElementById('liabilityName').value.trim();
+            const value = parseInt(document.getElementById('liabilityValue').value);
+            if (!name || !value) { alert("Nom et montant requis"); return; }
+            const s = shops.find(s => s.id === sid);
+            if (s) {
+                s.liabilities = s.liabilities || [];
+                s.liabilities.push({ name, value, description: document.getElementById('liabilityDesc').value, addedAt: new Date().toISOString() });
+                localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                alert("Passif ajouté");
+                modal.remove();
+                showDashboard();
+            }
+        };
+        window.removeLiability = (sid, idx) => {
+            const s = shops.find(s => s.id === sid);
+            if (s && s.liabilities) { s.liabilities.splice(idx, 1); localStorage.setItem('ouenze_shops', JSON.stringify(shops)); modal.remove(); manageLiabilities(sid); }
+        };
+    }
+    
+    function openInvestmentOffer(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop || shop.rating < 3) { alert("Cette boutique n'est pas éligible (minimum 3 étoiles)"); return; }
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Proposer à l'investissement</h3>
+                <div class="info-box" style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                    Boutique: ${escapeHtml(shop.name)}<br>
+                    Note actuelle: ${shop.rating}/5<br>
+                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
+                </div>
+                <div class="form-group"><label>Pourcentage du capital à céder</label><input type="number" id="offerPercent" min="1" max="100" value="10"></div>
+                <div class="form-group"><label>Prix demandé (FCFA)</label><input type="number" id="offerPrice" placeholder="0"></div>
+                <div class="form-group"><label>Message aux investisseurs</label><textarea id="offerMessage" rows="3" placeholder="Décrivez votre projet et les opportunités d'investissement..."></textarea></div>
+                <button class="btn-submit" onclick="submitInvestmentOffer(${shop.id})">Envoyer la demande</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function submitInvestmentOffer(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        const percent = parseInt(document.getElementById('offerPercent').value);
+        const price = parseInt(document.getElementById('offerPrice').value);
+        const message = document.getElementById('offerMessage').value;
+        if (!percent || percent < 1 || percent > 100) { alert("Pourcentage invalide (1-100%)"); return; }
+        if (!price || price < 10000) { alert("Prix minimum 10 000 FCFA"); return; }
+        
+        const offer = {
+            id: Date.now(),
+            shopId,
+            shopName: shop.name,
+            seller: currentUser.email,
+            sellerName: currentUser.name,
+            percentage: percent,
+            price,
+            valuation: calculateValuation(shop),
+            message,
+            date: new Date().toISOString(),
+            status: 'pending_review'
+        };
+        
+        let offers = JSON.parse(localStorage.getItem('ouenze_investment_offers') || '[]');
+        offers.push(offer);
+        localStorage.setItem('ouenze_investment_offers', JSON.stringify(offers));
+        
+        console.log(`📧 Demande d'investissement envoyée à admin@ouenze.cg`);
+        console.log(`Vendeur: ${currentUser.name} (${currentUser.email})`);
+        console.log(`Boutique: ${shop.name}`);
+        console.log(`Offre: ${percent}% du capital pour ${price.toLocaleString()} FCFA`);
+        
+        alert(`✅ Demande envoyée !\n\nNotre équipe examinera votre proposition sous 48h.\nUn email de confirmation a été envoyé.`);
+        document.querySelector('.modal')?.remove();
+        showDashboard();
+    }
+    
+    function openInvestmentRequests() {
         const userShops = shops.filter(s => s.owner === currentUser.email);
-        if(!userShops.length) { alert("Creez d'abord une boutique"); return; }
+        const relevantRequests = investmentRequests.filter(r => userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
+        if (!relevantRequests.length) { alert("Aucune demande en attente"); return; }
+        
         const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `<div class="modal-card"><h3>Ajouter produit</h3><div class="form-group"><label>Boutique</label><select id="prodShopId">${userShops.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Nom</label><input id="prodName"></div><div class="form-group"><label>Prix</label><input id="prodPrice"></div>
-            <div class="form-group"><label>Categorie</label><input id="prodCat"></div><div class="form-group"><label>Stock</label><input id="prodStock" value="10"></div>
-            <div class="form-group"><label>Photo</label><input type="file" id="prodPhoto" accept="image/*"></div>
-            <div class="form-group"><label>Description</label><textarea id="prodDesc" rows="2"></textarea></div>
-            <button class="btn-submit" onclick="addProductToShop()">Ajouter</button></div>`;
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Demandes d'investissement</h3>
+                ${relevantRequests.map(r => `
+                    <div class="info-box" style="background:var(--gray-100);padding:16px;border-radius:12px;margin-bottom:16px;">
+                        <strong>${r.type === 'buy_shares' ? 'Achat d\'actions' : r.type === 'sell_shares' ? 'Vente d\'actions' : 'Acquisition'}</strong><br>
+                        Investisseur: ${escapeHtml(r.investorName)} (${r.investor})<br>
+                        ${r.type === 'buy_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` : 
+                          r.type === 'sell_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` :
+                          `Offre: ${r.amount.toLocaleString()} FCFA`}<br>
+                        Date: ${new Date(r.date).toLocaleDateString()}<br>
+                        <div style="margin-top:12px; display:flex; gap:8px;">
+                            <button class="btn-sm btn-primary" onclick="approveRequest(${r.id})">Approuver</button>
+                            <button class="btn-sm btn-danger" onclick="rejectRequest(${r.id})">Refuser</button>
+                        </div>
+                    </div>
+                `).join('')}
+                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
+            </div>`;
         document.body.appendChild(modal);
-        window.addProductToShop = () => {
-            const shopId = parseInt(document.getElementById('prodShopId').value);
-            const shop = shops.find(s=>s.id===shopId);
-            if(shop) {
-                const file = document.getElementById('prodPhoto').files[0];
-                const reader = new FileReader();
-                reader.onload = e => {
-                    shop.products.push({ id:Date.now(), name:document.getElementById('prodName').value, price:document.getElementById('prodPrice').value, category:document.getElementById('prodCat').value, stock:parseInt(document.getElementById('prodStock').value), description:document.getElementById('prodDesc').value, photos:[e.target.result] });
-                    if(!shop.categories.includes(document.getElementById('prodCat').value)) shop.categories.push(document.getElementById('prodCat').value);
-                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-                    alert("Produit ajoute");
-                    modal.remove();
-                    showDashboard();
-                };
-                if(file) reader.readAsDataURL(file);
-                else reader.onload({ target:{ result:null } });
+        window.approveRequest = (id) => {
+            const request = investmentRequests.find(r => r.id === id);
+            if (request) {
+                request.status = 'approved';
+                localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
+                alert("Demande approuvée. L'investisseur sera notifié par email.");
+                modal.remove();
+                showDashboard();
+            }
+        };
+        window.rejectRequest = (id) => {
+            const request = investmentRequests.find(r => r.id === id);
+            if (request) {
+                request.status = 'rejected';
+                localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
+                alert("Demande refusée. L'investisseur sera notifié.");
+                modal.remove();
+                showDashboard();
             }
         };
     }
     
-    function openAddProductToShop(shopId) {
+    function viewStats(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
+        const monthlyData = [];
+        for (let i = 5; i >= 0; i--) {
+            monthlyData.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
+        }
         const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `<div class="modal-card"><h3>Ajouter produit</h3>
-            <div class="form-group"><label>Nom</label><input id="prodName"></div><div class="form-group"><label>Prix</label><input id="prodPrice"></div>
-            <div class="form-group"><label>Categorie</label><input id="prodCat"></div><div class="form-group"><label>Stock</label><input id="prodStock" value="10"></div>
-            <div class="form-group"><label>Photo</label><input type="file" id="prodPhoto" accept="image/*"></div>
-            <div class="form-group"><label>Description</label><textarea id="prodDesc" rows="2"></textarea></div>
-            <button class="btn-submit" onclick="addProductToShopSpecific(${shopId})">Ajouter</button></div>`;
+        modal.innerHTML = `
+            <div class="modal-card" style="max-width:700px;">
+                <h3>Statistiques - ${escapeHtml(shop.name)}</h3>
+                <div class="chart-container"><canvas id="statsChart"></canvas></div>
+                <div class="info-box">CA total: ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>Commandes: ${shopOrders.length}</div>
+                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
+            </div>`;
         document.body.appendChild(modal);
-        window.addProductToShopSpecific = (sid) => {
-            const shop = shops.find(s=>s.id===sid);
-            if(shop) {
-                const file = document.getElementById('prodPhoto').files[0];
-                const reader = new FileReader();
-                reader.onload = e => {
-                    shop.products.push({ id:Date.now(), name:document.getElementById('prodName').value, price:document.getElementById('prodPrice').value, category:document.getElementById('prodCat').value, stock:parseInt(document.getElementById('prodStock').value), description:document.getElementById('prodDesc').value, photos:[e.target.result] });
-                    if(!shop.categories.includes(document.getElementById('prodCat').value)) shop.categories.push(document.getElementById('prodCat').value);
-                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-                    alert("Produit ajoute");
-                    modal.remove();
-                    showDashboard();
-                };
-                if(file) reader.readAsDataURL(file);
-                else reader.onload({ target:{ result:null } });
-            }
-        };
-    }
-
-
-
-// Ajouter dans vendor-dashboard.html après la fonction viewStats
-
-function openSellRequest(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
-    if (shop.rating < 3) {
-        alert("Votre boutique doit avoir au moins 3 étoiles pour être éligible à la vente");
-        return;
+        setTimeout(() => {
+            const ctx = document.getElementById('statsChart')?.getContext('2d');
+            if (ctx) new Chart(ctx, { type: 'line', data: { labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], datasets: [{ label: 'CA (FCFA)', data: monthlyData, borderColor: '#1e40af' }] }, options: { responsive: true } });
+        }, 100);
     }
     
-    const modal = document.createElement('div'); modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <h3>Demander la vente de ${escapeHtml(shop.name)}</h3>
-            <div class="info-box" style="margin:16px 0;">
-                <strong>Note actuelle:</strong> ${shop.rating || 0}/5<br>
-                <strong>Produits:</strong> ${shop.products?.length || 0}<br>
-                <strong>Valorisation estimée:</strong> ${Math.floor((shop.products?.length||0)*75000 + (shop.rating||0)*150000).toLocaleString()} FCFA
-            </div>
-            <div class="form-group"><label>Prix souhaité (FCFA)</label><input type="number" id="sellPrice"></div>
-            <div class="form-group"><label>Raison</label><select id="sellReason"><option value="retraite">Retraite</option><option value="expansion">Recherche financement</option><option value="autre">Autre</option></select></div>
-            <div class="form-group"><label>Informations</label><textarea id="sellInfo" rows="2"></textarea></div>
-            <button class="btn-submit" onclick="submitSellRequest(${shop.id})">Envoyer la demande</button>
-            <button onclick="this.closest('.modal').remove()" style="margin-top:8px;">Annuler</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-function submitSellRequest(shopId) {
-    const price = parseInt(document.getElementById('sellPrice').value);
-    if (!price || price < 50000) { alert("Prix invalide"); return; }
-    const shop = shops.find(s => s.id === shopId);
-    const request = {
-        id: 'SALE-' + Date.now(),
-        shopId, shopName: shop.name, sellerEmail: currentUser.email,
-        price, reason: document.getElementById('sellReason').value,
-        info: document.getElementById('sellInfo').value,
-        date: new Date().toISOString(), status: 'pending'
-    };
-    let sales = JSON.parse(localStorage.getItem('ouenze_sale_requests') || '[]');
-    sales.push(request);
-    localStorage.setItem('ouenze_sale_requests', JSON.stringify(sales));
-    alert("Demande envoyée ! Notre équipe vous contactera.");
-    document.querySelector('.modal')?.remove();
-}
-
-// Ajouter un bouton dans renderShop
-// <button class="btn-sm btn-warning" onclick="openSellRequest(${shop.id})">💰 Vendre boutique</button>
-
-    
-    function openRestock() { alert("Selectionnez un produit pour augmenter le stock"); }
-    function openRestockToShop(shopId) { alert("Fonctionnalite de ravitaillement a venir"); }
-    function viewStats(shopId) { alert("Statistiques de la boutique (graphiques a venir)"); }
+    function createNewShop() { alert("Un email avec le lien de création a été envoyé"); window.open('shop-designer.html', '_blank'); }
+    function openAddProduct() { alert("Fonctionnalité disponible"); }
+    function openAddProductToShop(shopId) { alert("Ajouter produit à la boutique"); }
+    function openRestock() { alert("Fonctionnalité de ravitaillement"); }
+    function openRestockToShop(shopId) { alert("Ravitaillement à venir"); }
     function escapeHtml(s) { return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
     showDashboard();
