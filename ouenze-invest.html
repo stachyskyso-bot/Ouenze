@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze Invest | Investissement boutiques</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; }
+        .header { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .logo h1 { font-size: 24px; color: #1e40af; }
+        .main { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
+        .shops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .shop-card { background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; cursor: pointer; }
+        .shop-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+        .shop-logo { padding: 20px; text-align: center; background: #f8fafc; }
+        .btn-invest { background: #1e40af; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+        .info-box { background: #f1f5f9; padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid #1e40af; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-card { background: white; border-radius: 24px; max-width: 500px; width: 100%; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; }
+        .btn-submit { background: #1e40af; color: white; border: none; padding: 12px; border-radius: 40px; width: 100%; cursor: pointer; margin-top: 16px; }
+        @media (max-width: 700px) { .shops-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="header"><div class="logo"><h1>OUENZE INVEST</h1></div><div><button onclick="window.location.href='index.html'" style="background:none;border:none;">← Retour</button></div></div>
+<div class="main" id="appContainer"></div>
+<script>
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    let investments = JSON.parse(localStorage.getItem('ouenze_investments') || '[]');
+    function showInvestPage(){
+        const eligibleShops = shops.filter(s => s.rating >= 3);
+        document.getElementById('appContainer').innerHTML = `<h1 style="margin-bottom:24px;">Investir dans les boutiques</h1><div class="shops-grid">${eligibleShops.map(shop => `
+            <div class="shop-card"><div class="shop-logo"><div style="width:60px;height:60px;margin:0 auto;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;">${shop.logo?`<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;">`:'<i class="fas fa-store"></i>'}</div><h3>${escapeHtml(shop.name)}</h3><div>⭐ ${shop.rating||0}/5 (${shop.totalRatings||0} avis)</div></div><div style="padding:16px;"><div><strong>Produits:</strong> ${shop.products?.length||0}</div><div><strong>Valorisation estimée:</strong> ${Math.floor((shop.products?.length||0)*50000+shop.rating*100000).toLocaleString()} FCFA</div><button class="btn-invest" onclick="openInvestModal(${shop.id})" style="margin-top:12px;">Investir</button></div></div>`).join('')}</div>`;
+        if(!eligibleShops.length) document.getElementById('appContainer').innerHTML += '<div class="info-box">Aucune boutique eligible (minimum 3 etoiles requises)</div>';
+    }
+    function openInvestModal(shopId){ const shop=shops.find(s=>s.id===shopId); if(!currentUser){ alert("Connectez-vous"); return; } const modal=document.createElement('div'); modal.className='modal active'; modal.innerHTML=`<div class="modal-card"><h3>Investir dans ${escapeHtml(shop.name)}</h3><div class="form-group"><label>Montant (FCFA)</label><input type="number" id="invAmount" min="50000"></div><div class="form-group"><label>Message (optionnel)</label><textarea id="invMsg" rows="2"></textarea></div><button class="btn-submit" onclick="submitInvestment(${shopId})">Envoyer la demande</button><button onclick="this.closest('.modal').remove()" style="margin-top:8px;background:none;border:none;">Annuler</button></div>`; document.body.appendChild(modal); }
+    function submitInvestment(shopId){ const amount=parseInt(document.getElementById('invAmount').value); if(!amount||amount<50000){ alert("Montant minimum 50 000 FCFA"); return; } const investment={ id:Date.now(), shopId, investor:currentUser.email, investorName:currentUser.name, amount, message:document.getElementById('invMsg').value, date:new Date().toISOString(), status:'pending_review' }; investments.push(investment); localStorage.setItem('ouenze_investments',JSON.stringify(investments)); alert(`Demande d'investissement envoyee au vendeur`); document.querySelector('.modal')?.remove(); showInvestPage(); }
+    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    showInvestPage();
+</script>
+</body>
+</html>

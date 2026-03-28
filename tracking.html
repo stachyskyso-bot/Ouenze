@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze | Suivi de livraison</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --primary-light: #3b82f6;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+        .container { max-width: 1200px; margin: 32px auto; padding: 0 24px; }
+        
+        /* Cards */
+        .tracking-card { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 24px; }
+        .tracking-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 24px; color: white; }
+        .tracking-header h2 { font-size: 20px; margin-bottom: 8px; }
+        .tracking-body { padding: 24px; }
+        
+        /* Jauge de progression */
+        .progress-container { margin: 24px 0; }
+        .progress-bar-bg { background: var(--gray-200); border-radius: 20px; height: 12px; overflow: hidden; }
+        .progress-bar-fill { background: var(--success); width: 0%; height: 100%; border-radius: 20px; transition: width 0.5s ease; }
+        .progress-stats { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--gray-500); }
+        
+        /* Étapes */
+        .steps-container { display: flex; justify-content: space-between; margin: 32px 0; position: relative; flex-wrap: wrap; }
+        .step { text-align: center; flex: 1; min-width: 100px; position: relative; z-index: 2; }
+        .step-icon { width: 50px; height: 50px; background: var(--gray-200); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 20px; transition: all 0.3s; color: var(--gray-500); }
+        .step.completed .step-icon { background: var(--success); color: white; }
+        .step.active .step-icon { background: var(--primary); color: white; animation: pulse 1s infinite; box-shadow: 0 0 0 3px rgba(30,64,175,0.3); }
+        .step-label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+        .step-date { font-size: 10px; color: var(--gray-500); margin-top: 4px; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        /* Ligne de connexion entre étapes */
+        .steps-container::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gray-200);
+            z-index: 1;
+        }
+        
+        /* Animation voiture */
+        .delivery-animation { background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9); border-radius: 20px; padding: 24px; margin: 24px 0; position: relative; overflow: hidden; text-align: center; }
+        .delivery-car { font-size: 48px; position: relative; display: inline-block; animation: drive 2s infinite ease-in-out; }
+        .delivery-road { width: 100%; height: 4px; background: var(--gray-500); margin-top: 16px; position: relative; border-radius: 2px; }
+        .delivery-road::before { content: ''; position: absolute; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; bottom: -8px; animation: moveRoad 2s infinite linear; }
+        @keyframes drive { 0% { transform: translateX(-20px); opacity: 0.7; } 50% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(20px); opacity: 0.7; } }
+        @keyframes moveRoad { 0% { left: 0; } 100% { left: 100%; } }
+        
+        /* Timeline */
+        .timeline { margin: 24px 0; }
+        .timeline-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--gray-200); }
+        .timeline-icon { width: 40px; height: 40px; background: var(--gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .timeline-icon.completed { background: var(--success); color: white; }
+        .timeline-icon.active { background: var(--primary); color: white; }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 600; margin-bottom: 4px; }
+        .timeline-desc { font-size: 13px; color: var(--gray-500); }
+        .timeline-date { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
+        
+        /* Modale notation */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-card { background: var(--white); border-radius: 28px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 32px; }
+        .review-stars { display: flex; gap: 12px; justify-content: center; margin: 20px 0; font-size: 32px; cursor: pointer; }
+        .review-stars i { color: #cbd5e1; transition: 0.2s; }
+        .review-stars i.active { color: var(--warning); }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; }
+        .btn-secondary { background: var(--gray-100); color: var(--gray-700); border: none; padding: 12px; border-radius: 40px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 12px; }
+        
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
+        @media (max-width: 700px) { .steps-container { flex-direction: column; gap: 16px; } .steps-container::before { display: none; } .step { display: flex; align-items: center; gap: 16px; text-align: left; } .step-icon { margin: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
+    <div class="user-menu" id="userMenu" onclick="window.location.href='index.html'">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <div><span id="userName">Utilisateur</span><br><small>Mes commandes</small></div>
+        <i class="fas fa-arrow-right"></i>
+    </div>
+</div>
+
+<div class="container" id="appContainer"></div>
+
+<div class="footer">
+    <p>2024 Ouenze Marketplace - Suivi de livraison en temps réel</p>
+</div>
+
+<script>
+    // Récupération de l'ID commande depuis l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('id');
+    
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    let currentOrder = null;
+    let trackingInterval = null;
+    
+    // Étapes de livraison
+    const deliverySteps = [
+        { name: 'Commande confirmée', icon: 'fa-check-circle', duration: 2000 },
+        { name: 'Préparation en cours', icon: 'fa-box', duration: 3000 },
+        { name: 'Expédiée', icon: 'fa-shipping-fast', duration: 2500 },
+        { name: 'En transit', icon: 'fa-truck', duration: 4000 },
+        { name: 'Arrivée en ville', icon: 'fa-city', duration: 3000 },
+        { name: 'Livrée', icon: 'fa-home', duration: 0 }
+    ];
+    
+    function updateUserUI() {
+        if (currentUser) {
+            document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
+            document.getElementById('userName').innerText = currentUser.name.split(' ')[0];
+        } else {
+            document.getElementById('userAvatar').innerText = 'U';
+            document.getElementById('userName').innerText = 'Invité';
+        }
+    }
+    
+    function getStepProgress(order) {
+        if (!order) return 0;
+        const stepIndex = order.trackingStep || 1;
+        return (stepIndex / deliverySteps.length) * 100;
+    }
+    
+    function formatDate(date) {
+        return new Date(date).toLocaleString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+    
+    function renderTracking() {
+        if (!currentOrder) {
+            document.getElementById('appContainer').innerHTML = `
+                <div class="tracking-card">
+                    <div class="tracking-header">
+                        <h2>Commande non trouvée</h2>
+                        <p>Veuillez vérifier le numéro de commande</p>
+                    </div>
+                    <div class="tracking-body" style="text-align:center;padding:40px;">
+                        <i class="fas fa-search" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
+                        <p>Aucune commande trouvée avec cet identifiant.</p>
+                        <button onclick="window.location.href='index.html'" class="btn-primary" style="margin-top:20px;width:auto;padding:12px 30px;">Retour à l'accueil</button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        const stepIndex = currentOrder.trackingStep || 1;
+        const progress = getStepProgress(currentOrder);
+        const isCompleted = stepIndex >= deliverySteps.length;
+        
+        document.getElementById('appContainer').innerHTML = `
+            <div class="tracking-card">
+                <div class="tracking-header">
+                    <h2><i class="fas fa-truck"></i> Suivi de livraison</h2>
+                    <p>Commande #${currentOrder.id} - ${formatDate(currentOrder.date)}</p>
+                    <p><strong>Total:</strong> ${currentOrder.total.toLocaleString()} FCFA</p>
+                </div>
+                <div class="tracking-body">
+                    
+                    <!-- Jauge de progression -->
+                    <div class="progress-container">
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span>Commande</span>
+                            <span>Préparation</span>
+                            <span>Expédition</span>
+                            <span>Transit</span>
+                            <span>Livraison</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Animation voiture -->
+                    <div class="delivery-animation">
+                        <div class="delivery-car"><i class="fas fa-truck"></i> Livraison en cours</div>
+                        <div class="delivery-road"></div>
+                        <div style="font-size:12px;color:var(--gray-500);margin-top:12px;">Votre colis est en route vers son destinataire</div>
+                    </div>
+                    
+                    <!-- Étapes -->
+                    <div class="steps-container">
+                        ${deliverySteps.map((step, idx) => `
+                            <div class="step ${idx+1 < stepIndex ? 'completed' : idx+1 === stepIndex ? 'active' : ''}">
+                                <div class="step-icon"><i class="fas ${step.icon}"></i></div>
+                                <div class="step-label">${step.name}</div>
+                                ${currentOrder.statusHistory?.find(h => h.status === step.name) ? `<div class="step-date">${formatDate(currentOrder.statusHistory.find(h => h.status === step.name).date)}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Historique détaillé -->
+                    <div class="timeline">
+                        <h3 style="margin-bottom:16px;">Historique de livraison</h3>
+                        ${currentOrder.statusHistory?.map((h, idx) => `
+                            <div class="timeline-item">
+                                <div class="timeline-icon ${idx === 0 ? 'completed' : ''}">
+                                    <i class="fas ${deliverySteps.find(s => s.name === h.status)?.icon || 'fa-clock'}"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title">${h.status}</div>
+                                    <div class="timeline-desc">${h.message || 'Mise à jour du statut'}</div>
+                                    <div class="timeline-date">${formatDate(h.date)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    ${isCompleted && !currentOrder.rated ? `
+                        <div style="margin-top:24px; padding:20px; background:var(--gray-100); border-radius:16px; text-align:center;">
+                            <i class="fas fa-star" style="color:var(--warning); font-size:24px; margin-bottom:8px;"></i>
+                            <h3>Votre commande est livrée !</h3>
+                            <p>Nous serions ravis de connaître votre avis sur cette boutique.</p>
+                            <button onclick="openRatingModal()" class="btn-primary" style="margin-top:12px;">Noter et commenter</button>
+                        </div>
+                    ` : ''}
+                    
+                    <button onclick="window.location.href='index.html'" class="btn-secondary">Retour à l'accueil</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function openRatingModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                    <h3>Noter votre commande</h3>
+                    <span onclick="this.closest('.modal').remove()" style="font-size:24px;cursor:pointer;">&times;</span>
+                </div>
+                <p>Commande #${currentOrder.id}</p>
+                <div class="review-stars" id="ratingStars">
+                    <i class="far fa-star" data-value="1"></i>
+                    <i class="far fa-star" data-value="2"></i>
+                    <i class="far fa-star" data-value="3"></i>
+                    <i class="far fa-star" data-value="4"></i>
+                    <i class="far fa-star" data-value="5"></i>
+                </div>
+                <textarea id="reviewComment" placeholder="Votre commentaire (optionnel)" rows="3" style="width:100%;padding:12px;border:1px solid var(--gray-200);border-radius:12px;margin:16px 0;"></textarea>
+                <button onclick="submitRating()" class="btn-primary">Envoyer mon avis</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        let selectedRating = 0;
+        document.querySelectorAll('#ratingStars i').forEach(star => {
+            star.addEventListener('click', () => {
+                selectedRating = parseInt(star.dataset.value);
+                document.querySelectorAll('#ratingStars i').forEach((s, idx) => {
+                    if (idx < selectedRating) s.className = 'fas fa-star active';
+                    else s.className = 'far fa-star';
+                });
+            });
+        });
+        
+        window.submitRating = () => {
+            if (selectedRating === 0) {
+                alert("Veuillez sélectionner une note");
+                return;
+            }
+            
+            const comment = document.getElementById('reviewComment').value;
+            const shopIds = [...new Set(currentOrder.items.map(i => i.shopId))];
+            
+            shopIds.forEach(shopId => {
+                const shop = shops.find(s => s.id === shopId);
+                if (shop) {
+                    shop.totalRatings = (shop.totalRatings || 0) + 1;
+                    shop.ratingSum = (shop.ratingSum || 0) + selectedRating;
+                    shop.rating = (shop.ratingSum / shop.totalRatings).toFixed(1);
+                    shop.reviews = shop.reviews || [];
+                    shop.reviews.unshift({
+                        user: currentUser?.name || 'Client',
+                        rating: selectedRating,
+                        comment: comment,
+                        date: new Date().toISOString()
+                    });
+                    if (shop.reviews.length > 20) shop.reviews.pop();
+                }
+            });
+            
+            currentOrder.rated = true;
+            localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+            localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+            
+            // Simulation d'envoi d'email
+            console.log(`📧 Email envoyé à ${currentUser?.email || 'client@email.com'}`);
+            console.log(`Merci pour votre avis sur la commande ${currentOrder.id}`);
+            console.log(`Note: ${selectedRating}/5 - Commentaire: ${comment || 'Aucun commentaire'}`);
+            
+            alert(`✅ Merci pour votre avis !\n\nUn email de confirmation a été envoyé à ${currentUser?.email || 'votre email'}\n\nVotre note aide les vendeurs à s'améliorer.`);
+            modal.remove();
+            renderTracking();
+        };
+    }
+    
+    function startTrackingSimulation() {
+        if (!currentOrder || currentOrder.trackingStep >= deliverySteps.length || currentOrder.trackingSimulated) return;
+        
+        currentOrder.trackingSimulated = true;
+        let currentStep = currentOrder.trackingStep || 1;
+        
+        function processNextStep() {
+            if (currentStep >= deliverySteps.length) {
+                if (trackingInterval) clearInterval(trackingInterval);
+                // Envoyer email de livraison
+                console.log(`📧 Email de livraison envoyé à ${currentUser?.email || 'client@email.com'}`);
+                console.log(`Votre commande ${currentOrder.id} a été livrée avec succès !`);
+                renderTracking();
+                return;
+            }
+            
+            const step = deliverySteps[currentStep - 1];
+            currentOrder.trackingStep = currentStep;
+            currentOrder.status = step.name;
+            currentOrder.statusHistory = currentOrder.statusHistory || [];
+            currentOrder.statusHistory.unshift({
+                status: step.name,
+                date: new Date().toISOString(),
+                message: step.name === 'Livrée' ? 'Colis livré avec succès' : `Votre commande est ${step.name.toLowerCase()}`
+            });
+            
+            localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+            renderTracking();
+            
+            // Simuler l'envoi d'email à chaque étape
+            console.log(`📧 Email: Votre commande ${currentOrder.id} est ${step.name.toLowerCase()}`);
+            
+            currentStep++;
+            
+            if (currentStep <= deliverySteps.length) {
+                const duration = deliverySteps[currentStep - 2]?.duration || 3000;
+                setTimeout(processNextStep, duration);
+            }
+        }
+        
+        setTimeout(processNextStep, 1000);
+    }
+    
+    function loadOrder() {
+        if (orderId) {
+            currentOrder = orders.find(o => o.id === orderId);
+        } else if (currentUser) {
+            const pendingOrders = orders.filter(o => o.userId === currentUser.email && o.trackingStep < deliverySteps.length);
+            if (pendingOrders.length > 0) currentOrder = pendingOrders[0];
+        }
+        
+        if (!currentOrder && orders.length > 0) {
+            currentOrder = orders[orders.length - 1];
+        }
+        
+        if (currentOrder && (!currentOrder.trackingStep || currentOrder.trackingStep === 0)) {
+            currentOrder.trackingStep = 1;
+            currentOrder.statusHistory = currentOrder.statusHistory || [];
+            if (currentOrder.statusHistory.length === 0) {
+                currentOrder.statusHistory.push({
+                    status: 'Commande confirmée',
+                    date: currentOrder.date || new Date().toISOString(),
+                    message: 'Votre commande a été confirmée'
+                });
+            }
+            localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+        }
+        
+        renderTracking();
+        
+        if (currentOrder && currentOrder.trackingStep < deliverySteps.length && !currentOrder.trackingSimulated) {
+            startTrackingSimulation();
+        }
+    }
+    
+    updateUserUI();
+    loadOrder();
+</script>
+</body>
+</html>
