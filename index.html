@@ -326,30 +326,36 @@
     }
     
     function displayShops(shopsList) {
-        const grid = document.getElementById('shopsGrid');
-        if (!grid) return;
-        if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:60px;">Aucune boutique</div>'; return; }
-        grid.innerHTML = shopsList.map(shop => `
-            <div class="shop-card" onclick="viewShop(${shop.id})">
-                ${getCertificationBadge(shop.rating || 0, shop.verified)}
-                <div class="shop-logo-area">
-                    <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:32px;"></i>'}</div>
-                    <div class="shop-name">${escapeHtml(shop.name)}</div>
-                    <div class="shop-rating">
-                        <div class="stars">${generateStars(shop.rating || 0)}</div>
-                        <span class="rating-count">(${shop.totalRatings || 0} avis)</span>
-                    </div>
-                    <div style="font-size:12px;color:var(--gray-500);margin-top:6px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}</div>
+    const grid = document.getElementById('shopsGrid');
+    if (!grid) return;
+    if (!shopsList.length) {
+        grid.innerHTML = '<div style="text-align:center;padding:60px;">Aucune boutique</div>';
+        return;
+    }
+    grid.innerHTML = shopsList.map(shop => `
+        <div class="shop-card" onclick="viewShop(${shop.id})">
+            <div class="shop-logo-area">
+                <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:32px;"></i>'}</div>
+                <div class="shop-name">${escapeHtml(shop.name)}</div>
+                <div class="shop-rating">
+                    <div class="stars">${generateStars(shop.rating || 0)}</div>
+                    <span class="rating-count">(${shop.totalRatings || 0} avis)</span>
                 </div>
-                <div class="shop-details">
-                    <div class="shop-metrics">
-                        <div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div>
-                        <div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div>
-                    </div>
+                <div style="font-size:12px;color:var(--gray-500);margin-top:6px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}</div>
+            </div>
+            <div class="shop-details">
+                <div class="shop-metrics">
+                    <div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div>
+                    <div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div>
                 </div>
             </div>
-        `).join('');
-    }
+        </div>
+    `).join('');
+}
+
+function viewShop(shopId) {
+    window.location.href = `shop.html?id=${shopId}`;
+}
     
     function displayProducts(productsList) {
         const grid = document.getElementById('productsGrid');
