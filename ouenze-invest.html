@@ -3,48 +3,557 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ouenze Invest | Investissement boutiques</title>
+    <title>Ouenze Invest | Bourse des boutiques</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f5f7fb; }
-        .header { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
-        .logo h1 { font-size: 24px; color: #1e40af; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .auth-btn { padding: 8px 18px; border-radius: 40px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+        .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; }
+        .nav-links { display: flex; gap: 28px; padding: 10px 0; }
+        .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 13px; font-weight: 500; cursor: pointer; }
+        
         .main { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
-        .shops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
-        .shop-card { background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; cursor: pointer; }
+        
+        /* Graphique bourse */
+        .market-chart { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); padding: 24px; margin-bottom: 32px; }
+        .market-chart h2 { font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .market-stats { display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+        .market-stat { background: var(--gray-100); padding: 12px 20px; border-radius: 12px; }
+        .market-stat-label { font-size: 12px; color: var(--gray-500); }
+        .market-stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+        
+        /* Grille boutiques */
+        .shops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; }
         .shop-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
-        .shop-logo { padding: 20px; text-align: center; background: #f8fafc; }
-        .btn-invest { background: #1e40af; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
-        .info-box { background: #f1f5f9; padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid #1e40af; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .shop-logo { padding: 20px; text-align: center; background: var(--gray-100); }
+        .shop-logo-img { width: 80px; height: 80px; margin: 0 auto; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .shop-info { padding: 16px; }
+        .shop-value { font-size: 20px; font-weight: 700; color: var(--primary); margin: 8px 0; }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; margin-left: 8px; }
+        .badge-gold { background: #fef3c7; color: #b45309; }
+        .badge-silver { background: #f1f5f9; color: #475569; }
+        .btn-invest { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 12px; font-weight: 500; }
+        .btn-sell { background: var(--warning); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 8px; }
+        
+        /* Page détail boutique */
+        .detail-header { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); padding: 24px; margin-bottom: 24px; display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+        .detail-logo { width: 100px; height: 100px; background: var(--gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .detail-info h1 { font-size: 28px; margin-bottom: 8px; }
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .chart-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); padding: 20px; }
+        .chart-card h3 { font-size: 14px; margin-bottom: 16px; color: var(--gray-500); }
+        .financial-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .financial-card { background: var(--gray-100); border-radius: 16px; padding: 16px; text-align: center; }
+        .financial-card .label { font-size: 12px; color: var(--gray-500); }
+        .financial-card .value { font-size: 24px; font-weight: 700; color: var(--primary); }
+        
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
         .modal.active { display: flex; }
-        .modal-card { background: white; border-radius: 24px; max-width: 500px; width: 100%; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 28px; }
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; }
-        .btn-submit { background: #1e40af; color: white; border: none; padding: 12px; border-radius: 40px; width: 100%; cursor: pointer; margin-top: 16px; }
-        @media (max-width: 700px) { .shops-grid { grid-template-columns: 1fr; } }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; }
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 40px; width: 100%; cursor: pointer; font-weight: 600; margin-top: 16px; }
+        .btn-submit-success { background: var(--success); }
+        .info-box { background: var(--gray-100); padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid var(--primary); font-size: 13px; }
+        
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
+        
+        @media (max-width: 700px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .shops-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-<div class="header"><div class="logo"><h1>OUENZE INVEST</h1></div><div><button onclick="window.location.href='index.html'" style="background:none;border:none;">← Retour</button></div></div>
-<div class="main" id="appContainer"></div>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE INVEST</h1></div>
+    <div class="header-actions" id="headerActions"></div>
+</div>
+<div class="nav-row">
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="index.html">Marketplace</a>
+            <a href="invest.html" style="color:var(--primary); font-weight:600;">Bourse</a>
+            <a href="vendor-dashboard.html">Espace vendeur</a>
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn" style="background:none;border:none;padding:10px 0;font-size:13px;cursor:pointer;color:var(--gray-500);"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent" style="position:absolute;top:100%;right:0;background:var(--white);min-width:200px;border:1px solid var(--gray-200);border-radius:12px;opacity:0;visibility:hidden;transition:0.2s;z-index:100;">
+                <a href="about.html">À propos</a>
+                <a href="privacy.html">Confidentialité</a>
+                <a href="help.html">Aide</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="appContainer" class="main"></div>
+
+<div class="footer">
+    <p>© 2024 Ouenze Invest - Plateforme d'investissement certifiée | Transactions sécurisées par séquestre</p>
+</div>
+
 <script>
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    let investments = JSON.parse(localStorage.getItem('ouenze_investments') || '[]');
-    function showInvestPage(){
-        const eligibleShops = shops.filter(s => s.rating >= 3);
-        document.getElementById('appContainer').innerHTML = `<h1 style="margin-bottom:24px;">Investir dans les boutiques</h1><div class="shops-grid">${eligibleShops.map(shop => `
-            <div class="shop-card"><div class="shop-logo"><div style="width:60px;height:60px;margin:0 auto;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;">${shop.logo?`<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;">`:'<i class="fas fa-store"></i>'}</div><h3>${escapeHtml(shop.name)}</h3><div>⭐ ${shop.rating||0}/5 (${shop.totalRatings||0} avis)</div></div><div style="padding:16px;"><div><strong>Produits:</strong> ${shop.products?.length||0}</div><div><strong>Valorisation estimée:</strong> ${Math.floor((shop.products?.length||0)*50000+shop.rating*100000).toLocaleString()} FCFA</div><button class="btn-invest" onclick="openInvestModal(${shop.id})" style="margin-top:12px;">Investir</button></div></div>`).join('')}</div>`;
-        if(!eligibleShops.length) document.getElementById('appContainer').innerHTML += '<div class="info-box">Aucune boutique eligible (minimum 3 etoiles requises)</div>';
+    let investmentRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+    let saleRequests = JSON.parse(localStorage.getItem('ouenze_sale_requests') || '[]');
+    let chartInstances = {};
+    
+    // Calculer la valorisation d'une boutique
+    function calculateValuation(shop) {
+        const productValue = (shop.products?.length || 0) * 75000;
+        const ratingBonus = (shop.rating || 0) * 150000;
+        const salesBonus = (shop.totalSales || 0) * 2000;
+        const monthlyRevenue = shop.monthlyRevenue || 500000;
+        return Math.floor(1500000 + productValue + ratingBonus + salesBonus + monthlyRevenue * 2);
     }
-    function openInvestModal(shopId){ const shop=shops.find(s=>s.id===shopId); if(!currentUser){ alert("Connectez-vous"); return; } const modal=document.createElement('div'); modal.className='modal active'; modal.innerHTML=`<div class="modal-card"><h3>Investir dans ${escapeHtml(shop.name)}</h3><div class="form-group"><label>Montant (FCFA)</label><input type="number" id="invAmount" min="50000"></div><div class="form-group"><label>Message (optionnel)</label><textarea id="invMsg" rows="2"></textarea></div><button class="btn-submit" onclick="submitInvestment(${shopId})">Envoyer la demande</button><button onclick="this.closest('.modal').remove()" style="margin-top:8px;background:none;border:none;">Annuler</button></div>`; document.body.appendChild(modal); }
-    function submitInvestment(shopId){ const amount=parseInt(document.getElementById('invAmount').value); if(!amount||amount<50000){ alert("Montant minimum 50 000 FCFA"); return; } const investment={ id:Date.now(), shopId, investor:currentUser.email, investorName:currentUser.name, amount, message:document.getElementById('invMsg').value, date:new Date().toISOString(), status:'pending_review' }; investments.push(investment); localStorage.setItem('ouenze_investments',JSON.stringify(investments)); alert(`Demande d'investissement envoyee au vendeur`); document.querySelector('.modal')?.remove(); showInvestPage(); }
-    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-    showInvestPage();
+    
+    // Générer l'historique des valeurs pour le graphique
+    function generateHistory(shop) {
+        const valuation = calculateValuation(shop);
+        return [
+            valuation * 0.85, valuation * 0.88, valuation * 0.92, valuation * 0.95,
+            valuation * 0.98, valuation, valuation * 1.02, valuation * 1.05,
+            valuation * 1.03, valuation * 1.06
+        ];
+    }
+    
+    // Page principale de la bourse
+    function showBoursePage() {
+        const eligibleShops = shops.filter(s => s.rating >= 3);
+        const marketHistory = generateMarketHistory(shops);
+        const totalMarketCap = shops.reduce((sum, s) => sum + calculateValuation(s), 0);
+        const avgGrowth = shops.reduce((sum, s) => sum + (s.growthRate || 12), 0) / (shops.length || 1);
+        
+        document.getElementById('appContainer').innerHTML = `
+            <div class="market-chart">
+                <h2><i class="fas fa-chart-line"></i> Indice Ouenze Bourse (OBI)</h2>
+                <canvas id="marketChart" style="max-height: 300px;"></canvas>
+                <div class="market-stats">
+                    <div class="market-stat"><div class="market-stat-label">Capitalisation totale</div><div class="market-stat-value">${totalMarketCap.toLocaleString()} FCFA</div></div>
+                    <div class="market-stat"><div class="market-stat-label">Croissance moyenne</div><div class="market-stat-value trend-up">+${avgGrowth.toFixed(1)}%</div></div>
+                    <div class="market-stat"><div class="market-stat-label">Boutiques éligibles</div><div class="market-stat-value">${eligibleShops.length}/${shops.length}</div></div>
+                </div>
+            </div>
+            <h2 style="margin-bottom: 20px;">Boutiques cotées (min. 3 étoiles)</h2>
+            <div class="shops-grid">
+                ${eligibleShops.map(shop => {
+                    const valuation = calculateValuation(shop);
+                    const trend = ((shop.growthRate || 12) - 10).toFixed(1);
+                    const trendClass = trend >= 0 ? 'trend-up' : 'trend-down';
+                    const trendIcon = trend >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                    return `
+                        <div class="shop-card" onclick="viewShopDetail(${shop.id})">
+                            <div class="shop-logo">
+                                <div class="shop-logo-img">
+                                    ${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:32px;"></i>'}
+                                </div>
+                                <h3 style="margin-top: 12px;">${escapeHtml(shop.name)}</h3>
+                                <div class="stars" style="color:#f59e0b;">${generateStars(shop.rating || 0)}</div>
+                            </div>
+                            <div class="shop-info">
+                                <div><strong>Ville:</strong> ${escapeHtml(shop.city || 'Brazzaville')}</div>
+                                <div class="shop-value">${valuation.toLocaleString()} FCFA</div>
+                                <div class="${trendClass}"><i class="fas ${trendIcon}"></i> ${Math.abs(trend)}%</div>
+                                <button class="btn-invest" onclick="event.stopPropagation();openInvestModal(${shop.id})">Investir</button>
+                                ${shop.owner === currentUser?.email ? `<button class="btn-sell" onclick="event.stopPropagation();openSellRequestModal(${shop.id})">Demander la vente</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            ${eligibleShops.length === 0 ? '<div class="info-box">Aucune boutique éligible pour le moment (minimum 3 étoiles requis)</div>' : ''}
+        `;
+        
+        setTimeout(() => {
+            const ctx = document.getElementById('marketChart')?.getContext('2d');
+            if (ctx && marketHistory.length) {
+                if (chartInstances.market) chartInstances.market.destroy();
+                chartInstances.market = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['J-30', 'J-25', 'J-20', 'J-15', 'J-10', 'J-5', 'Aujourd\'hui', '+5j', '+10j', '+15j'],
+                        datasets: [{ label: 'Indice OBI (FCFA)', data: marketHistory, borderColor: '#1e40af', backgroundColor: 'rgba(30,64,175,0.1)', fill: true, tension: 0.3 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            }
+        }, 100);
+    }
+    
+    function generateMarketHistory(shops) {
+        const avgVals = [];
+        for (let i = 0; i < 10; i++) {
+            const sum = shops.reduce((s, shop) => s + calculateValuation(shop) * (0.85 + i * 0.02), 0);
+            avgVals.push(Math.floor(sum / (shops.length || 1)));
+        }
+        return avgVals;
+    }
+    
+    // Page détail boutique
+    function viewShopDetail(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        
+        const valuation = calculateValuation(shop);
+        const history = generateHistory(shop);
+        const monthlyRevenue = shop.monthlyRevenue || 500000;
+        const monthlyOrders = shop.monthlyOrders || 25;
+        const growthRate = shop.growthRate || 12;
+        
+        document.getElementById('appContainer').innerHTML = `
+            <button onclick="showBoursePage()" style="background:none;border:none;color:var(--primary);cursor:pointer;margin-bottom:20px;"><i class="fas fa-arrow-left"></i> Retour à la bourse</button>
+            
+            <div class="detail-header">
+                <div class="detail-logo">
+                    ${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:48px;"></i>'}
+                </div>
+                <div class="detail-info">
+                    <h1>${escapeHtml(shop.name)}</h1>
+                    <div class="stars" style="color:#f59e0b; font-size:16px;">${generateStars(shop.rating || 0)} (${shop.totalRatings || 0} avis)</div>
+                    <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city + ', ' + shop.quartier)}</div>
+                    <div>${shop.verified ? '<span class="badge" style="background:var(--success);color:white;">Certifiée</span>' : ''}</div>
+                </div>
+            </div>
+            
+            <div class="financial-stats">
+                <div class="financial-card"><div class="label">Valorisation</div><div class="value">${valuation.toLocaleString()} FCFA</div></div>
+                <div class="financial-card"><div class="label">CA mensuel</div><div class="value">${monthlyRevenue.toLocaleString()} FCFA</div></div>
+                <div class="financial-card"><div class="label">Commandes/mois</div><div class="value">${monthlyOrders}</div></div>
+                <div class="financial-card"><div class="label">Croissance</div><div class="value trend-up">+${growthRate}%</div></div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card"><h3>Évolution de la valeur</h3><canvas id="valueChart"></canvas></div>
+                <div class="chart-card"><h3>Répartition du CA</h3><canvas id="revenueChart"></canvas></div>
+            </div>
+            
+            <div class="info-box">
+                <strong>Informations supplémentaires</strong><br>
+                - Produits en ligne: ${shop.products?.length || 0}<br>
+                - Nombre de vendeurs: 1<br>
+                - Date de création: ${new Date(shop.createdAt || Date.now()).toLocaleDateString()}<br>
+                - Dernière mise à jour: ${new Date().toLocaleDateString()}
+            </div>
+            
+            <div style="display: flex; gap: 16px; margin-top: 24px;">
+                <button class="btn-invest" style="padding: 12px 24px; width: auto;" onclick="openInvestModal(${shop.id})">Investir</button>
+                ${shop.owner === currentUser?.email && shop.rating >= 3 ? `<button class="btn-sell" style="padding: 12px 24px; width: auto;" onclick="openSellRequestModal(${shop.id})">Demander la vente de la boutique</button>` : ''}
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const ctx1 = document.getElementById('valueChart')?.getContext('2d');
+            if (ctx1) {
+                if (chartInstances.value) chartInstances.value.destroy();
+                chartInstances.value = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'],
+                        datasets: [{ label: 'Valeur (FCFA)', data: history, borderColor: '#1e40af', fill: true }]
+                    },
+                    options: { responsive: true }
+                });
+            }
+            const ctx2 = document.getElementById('revenueChart')?.getContext('2d');
+            if (ctx2) {
+                if (chartInstances.revenue) chartInstances.revenue.destroy();
+                chartInstances.revenue = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Ventes directes', 'Abonnements', 'Services'],
+                        datasets: [{ data: [65, 20, 15], backgroundColor: ['#1e40af', '#3b82f6', '#60a5fa'] }]
+                    },
+                    options: { responsive: true }
+                });
+            }
+        }, 100);
+    }
+    
+    // Vérifier si l'utilisateur a des coordonnées bancaires
+    function hasPaymentInfo() {
+        return currentUser && (currentUser.paymentMethod && currentUser.paymentDetails);
+    }
+    
+    // Ouvrir modale de saisie des coordonnées bancaires
+    function openPaymentInfoModal(callback) {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Informations de paiement requises</h3>
+                <p style="margin-bottom: 16px;">Pour investir, vous devez renseigner vos coordonnées bancaires ou Mobile Money.</p>
+                <div class="form-group"><label>Mode de paiement</label>
+                    <select id="paymentMethodSelect">
+                        <option value="">Sélectionner</option>
+                        <option value="airtel">Airtel Money</option>
+                        <option value="mtn">MTN Mobile Money</option>
+                        <option value="visa">Visa / Mastercard</option>
+                        <option value="paypal">PayPal</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="paymentDetailsInput" placeholder="Numéro de compte ou email"></div>
+                <button class="btn-submit" onclick="savePaymentInfo(this.closest('.modal'), '${callback}')">Enregistrer</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:8px;background:none;border:none;width:100%;cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function savePaymentInfo(modal, callback) {
+        const method = document.getElementById('paymentMethodSelect').value;
+        const details = document.getElementById('paymentDetailsInput').value;
+        if (!method || !details) { alert("Veuillez remplir tous les champs"); return; }
+        currentUser.paymentMethod = method;
+        currentUser.paymentDetails = details;
+        localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+        modal.remove();
+        if (callback === 'invest') window.pendingInvestCallback();
+        else if (callback === 'sell') window.pendingSellCallback();
+    }
+    
+    // Modale d'investissement
+    function openInvestModal(shopId) {
+        if (!currentUser) { alert("Veuillez vous connecter"); return; }
+        if (!hasPaymentInfo()) {
+            openPaymentInfoModal('invest');
+            window.pendingInvestCallback = () => openInvestModal(shopId);
+            return;
+        }
+        
+        const shop = shops.find(s => s.id === shopId);
+        const valuation = calculateValuation(shop);
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Investir dans ${escapeHtml(shop.name)}</h3>
+                <div class="info-box">
+                    <strong>Valorisation:</strong> ${valuation.toLocaleString()} FCFA<br>
+                    <strong>Minimum d'investissement:</strong> 50 000 FCFA<br>
+                    <strong>Retour estimé:</strong> ${shop.growthRate || 12}% annuel
+                </div>
+                <div class="form-group"><label>Montant (FCFA)</label><input type="number" id="invAmount" min="50000" placeholder="50 000"></div>
+                <div class="form-group"><label>Message (optionnel)</label><textarea id="invMsg" rows="2" placeholder="Votre message au vendeur..."></textarea></div>
+                <div class="info-box" style="background:#fef3c7;">
+                    <i class="fas fa-shield-alt"></i> Les fonds seront bloqués sur un compte séquestre jusqu'à validation par notre équipe.
+                </div>
+                <button class="btn-submit" onclick="submitInvestment(${shopId}, ${valuation})">Envoyer la demande</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:8px;background:none;border:none;width:100%;cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function submitInvestment(shopId, valuation) {
+        const amount = parseInt(document.getElementById('invAmount').value);
+        const message = document.getElementById('invMsg').value;
+        if (!amount || amount < 50000) { alert("Montant minimum 50 000 FCFA"); return; }
+        
+        const shop = shops.find(s => s.id === shopId);
+        const request = {
+            id: 'INV-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            type: 'investment',
+            shopId: shopId,
+            shopName: shop.name,
+            investorEmail: currentUser.email,
+            investorName: currentUser.name,
+            amount: amount,
+            percentage: ((amount / valuation) * 100).toFixed(2),
+            message: message,
+            paymentMethod: currentUser.paymentMethod,
+            paymentDetails: currentUser.paymentDetails,
+            date: new Date().toISOString(),
+            status: 'pending_review'
+        };
+        
+        investmentRequests.push(request);
+        localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
+        
+        // Simulation d'envoi d'email à l'équipe Ouenze
+        console.log(`📧 DEMANDE D'INVESTISSEMENT - ${request.id}`);
+        console.log(`Boutique: ${shop.name}`);
+        console.log(`Investisseur: ${currentUser.name} (${currentUser.email})`);
+        console.log(`Montant: ${amount.toLocaleString()} FCFA (${request.percentage}%)`);
+        console.log(`Paiement: ${currentUser.paymentMethod} - ${currentUser.paymentDetails}`);
+        console.log(`Message: ${message || 'Aucun message'}`);
+        console.log(`\n🔍 En attente de validation par l'équipe Ouenze Invest...`);
+        
+        alert(`✅ Demande d'investissement envoyée !\n\nID: ${request.id}\nMontant: ${amount.toLocaleString()} FCFA\n\n📧 Un email a été envoyé à notre équipe pour validation.\nVous recevrez une réponse sous 48h.`);
+        
+        document.querySelector('.modal')?.remove();
+        showBoursePage();
+    }
+    
+    // Modale de demande de vente (pour vendeurs)
+    function openSellRequestModal(shopId) {
+        if (!currentUser) { alert("Veuillez vous connecter"); return; }
+        if (currentUser.type !== 'vendeur') { alert("Seuls les vendeurs peuvent demander la vente de leur boutique"); return; }
+        if (!hasPaymentInfo()) {
+            openPaymentInfoModal('sell');
+            window.pendingSellCallback = () => openSellRequestModal(shopId);
+            return;
+        }
+        
+        const shop = shops.find(s => s.id === shopId);
+        if (shop.owner !== currentUser.email) { alert("Vous n'êtes pas le propriétaire de cette boutique"); return; }
+        if (shop.rating < 3) { alert("Votre boutique doit avoir au moins 3 étoiles pour être éligible à la vente"); return; }
+        
+        const valuation = calculateValuation(shop);
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Demander la vente de ${escapeHtml(shop.name)}</h3>
+                <div class="info-box">
+                    <strong>Valorisation estimée:</strong> ${valuation.toLocaleString()} FCFA<br>
+                    <strong>Note actuelle:</strong> ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)<br>
+                    <strong>Produits:</strong> ${shop.products?.length || 0}
+                </div>
+                <div class="form-group"><label>Prix de vente souhaité (FCFA)</label><input type="number" id="sellPrice" value="${valuation}" min="${valuation * 0.8}" step="50000"></div>
+                <div class="form-group"><label>Raison de la vente</label><select id="sellReason">
+                    <option value="retraite">Retraite / Changement d'activité</option>
+                    <option value="expansion">Recherche de financement pour expansion</option>
+                    <option value="autre">Autre</option>
+                </select></div>
+                <div class="form-group"><label>Informations complémentaires</label><textarea id="sellInfo" rows="2" placeholder="Précisez les raisons ou conditions particulières..."></textarea></div>
+                <div class="info-box" style="background:#fef3c7;">
+                    <i class="fas fa-shield-alt"></i> Notre équipe vérifiera votre boutique et vous contactera pour finaliser la transaction.
+                </div>
+                <button class="btn-submit btn-submit-success" onclick="submitSellRequest(${shopId}, ${valuation})">Envoyer la demande</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:8px;background:none;border:none;width:100%;cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function submitSellRequest(shopId, valuation) {
+        const price = parseInt(document.getElementById('sellPrice').value);
+        const reason = document.getElementById('sellReason').value;
+        const info = document.getElementById('sellInfo').value;
+        if (!price || price < valuation * 0.8) { alert("Le prix doit être au minimum 80% de la valorisation estimée"); return; }
+        
+        const shop = shops.find(s => s.id === shopId);
+        const request = {
+            id: 'SALE-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            type: 'sale',
+            shopId: shopId,
+            shopName: shop.name,
+            sellerEmail: currentUser.email,
+            sellerName: currentUser.name,
+            price: price,
+            valuation: valuation,
+            reason: reason,
+            additionalInfo: info,
+            paymentMethod: currentUser.paymentMethod,
+            paymentDetails: currentUser.paymentDetails,
+            date: new Date().toISOString(),
+            status: 'pending_review'
+        };
+        
+        saleRequests.push(request);
+        localStorage.setItem('ouenze_sale_requests', JSON.stringify(saleRequests));
+        
+        // Simulation d'envoi d'email à l'équipe Ouenze
+        console.log(`📧 DEMANDE DE VENTE DE BOUTIQUE - ${request.id}`);
+        console.log(`Boutique: ${shop.name}`);
+        console.log(`Vendeur: ${currentUser.name} (${currentUser.email})`);
+        console.log(`Prix demandé: ${price.toLocaleString()} FCFA (${((price/valuation)*100).toFixed(0)}% de la valorisation)`);
+        console.log(`Raison: ${reason}`);
+        console.log(`Infos: ${info || 'Aucune'}`);
+        console.log(`\n🔍 En attente de validation par l'équipe Ouenze Invest...`);
+        
+        alert(`✅ Demande de vente envoyée !\n\nID: ${request.id}\nPrix demandé: ${price.toLocaleString()} FCFA\n\n📧 Un email a été envoyé à notre équipe pour validation.\nVous recevrez une réponse sous 48h.`);
+        
+        document.querySelector('.modal')?.remove();
+        showBoursePage();
+    }
+    
+    function generateStars(rating) {
+        const full = Math.floor(rating);
+        let stars = '';
+        for (let i = 0; i < full; i++) stars += '<i class="fas fa-star"></i>';
+        if (rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
+        for (let i = 0; i < 5 - Math.ceil(rating); i++) stars += '<i class="far fa-star"></i>';
+        return stars;
+    }
+    
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (currentUser) {
+            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Investisseur'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+        } else {
+            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button>`;
+        }
+    }
+    
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('ouenze_current_user');
+        updateHeaderUI();
+        window.location.href = 'index.html';
+    }
+    
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    window.showBoursePage = showBoursePage;
+    window.viewShopDetail = viewShopDetail;
+    window.openInvestModal = openInvestModal;
+    window.openSellRequestModal = openSellRequestModal;
+    window.submitInvestment = submitInvestment;
+    window.submitSellRequest = submitSellRequest;
+    window.savePaymentInfo = savePaymentInfo;
+    
+    if (shops.length === 0) {
+        shops = [{ id: 1, name: "Élégance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 4.9, totalRatings: 342, totalSales: 1250, products: [], owner: null, verified: true, monthlyRevenue: 850000, growthRate: 18 }];
+        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        updateHeaderUI();
+        showBoursePage();
+        const dropBtn = document.getElementById('dropdownBtn');
+        const dropCont = document.getElementById('dropdownContent');
+        if(dropBtn) {
+            dropBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropCont.classList.toggle('show');
+                dropCont.style.opacity = dropCont.classList.contains('show') ? '1' : '0';
+                dropCont.style.visibility = dropCont.classList.contains('show') ? 'visible' : 'hidden';
+            });
+            window.addEventListener('click', () => {
+                dropCont.classList.remove('show');
+                dropCont.style.opacity = '0';
+                dropCont.style.visibility = 'hidden';
+            });
+        }
+    });
 </script>
 </body>
 </html>
