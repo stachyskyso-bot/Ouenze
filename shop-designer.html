@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -60,7 +59,7 @@
         
         .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; margin-bottom: 12px; background: var(--gray-100); }
         .image-preview { width: 80px; height: 80px; margin: 0 auto 12px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
-        .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .image-preview img { width: 100%; height: 100%; object-fit: contain; }
         
         .menu-category-item { background: var(--gray-100); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
         .subcategory-list { margin-left: 24px; margin-top: 8px; }
@@ -74,11 +73,16 @@
         .btn-primary { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
         .btn-sm { padding: 6px 12px; background: var(--gray-200); border: none; border-radius: 20px; cursor: pointer; font-size: 11px; }
         
+        /* Propriétés pour la nourriture */
+        .food-properties { background: #fef9e6; border-radius: 12px; padding: 12px; margin-top: 12px; border-left: 4px solid #f59e0b; }
+        .food-properties label { font-size: 11px; }
+        
         /* Preview styles */
         .preview-shop { background: var(--preview-bg, #ffffff); overflow: hidden; }
         .preview-header { background: linear-gradient(135deg, var(--preview-primary, #1e40af), var(--preview-primary-dark)); padding: 24px; color: white; }
         .preview-logo { display: flex; align-items: center; gap: 16px; }
-        .preview-logo-img { width: 60px; height: 60px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .preview-logo-img { width: 60px; height: 60px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%; }
+        .preview-logo-img img { width: 100%; height: 100%; object-fit: contain; }
         .preview-menu { background: var(--menu-bg, #1e40af); color: var(--menu-text, white); padding: 12px 20px; border-radius: var(--menu-radius, 0px); }
         .preview-menu-horizontal { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
         .preview-menu-vertical { width: 220px; float: left; margin-right: 24px; margin-bottom: 24px; }
@@ -100,6 +104,7 @@
         .preview-product-price { font-weight: 700; color: var(--preview-primary, #1e40af); margin: 6px 0; }
         .preview-btn { background: var(--preview-button, #1e40af); color: white; border: none; padding: 8px; border-radius: var(--product-radius, 8px); width: 100%; cursor: pointer; font-size: 12px; }
         .clearfix::after { content: ""; clear: both; display: table; }
+        .food-badge { background: #f59e0b; color: white; font-size: 10px; padding: 2px 6px; border-radius: 20px; display: inline-block; margin-top: 4px; }
         
         @media (max-width: 1000px) { .designer-layout { grid-template-columns: 1fr; } .designer-panel { position: relative; top: 0; } .form-row { grid-template-columns: 1fr; } }
     </style>
@@ -142,6 +147,27 @@
                     <div class="form-group"><label>Quartier</label><input type="text" id="shopQuartier"></div>
                 </div>
                 <div class="form-group"><label>Adresse</label><input type="text" id="shopAddress"></div>
+                <div class="form-group"><label>Type de boutique</label>
+                    <select id="shopType" onchange="toggleFoodProperties()">
+                        <option value="general">Générale (vêtements, électronique, etc.)</option>
+                        <option value="food">Alimentaire (nourriture, épicerie, restaurant)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Propriétés spécifiques à la nourriture -->
+            <div id="foodProperties" class="design-section" style="display:none;">
+                <h3><i class="fas fa-utensils"></i> Propriétés alimentaires</h3>
+                <div class="form-group"><label>Type de cuisine</label><input type="text" id="foodCuisine" placeholder="Ex: Congolaise, Africaine, Fast-food"></div>
+                <div class="form-group"><label>Options de livraison</label>
+                    <select id="foodDelivery">
+                        <option value="both">Livraison et sur place</option>
+                        <option value="delivery">Livraison uniquement</option>
+                        <option value="pickup">Sur place uniquement</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Horaires d'ouverture</label><input type="text" id="foodHours" placeholder="Lun-Sam: 8h-22h"></div>
+                <div class="form-group"><label>Temps de préparation (minutes)</label><input type="number" id="foodPrepTime" value="30"></div>
             </div>
             
             <!-- Menu de navigation -->
@@ -223,6 +249,8 @@
     let tempMenuCategories = [];
     let tempCarousel = [];
     let tempProducts = [];
+    let tempShopType = 'general';
+    let tempFoodProps = { cuisine: '', delivery: 'both', hours: '', prepTime: 30 };
     let tempDesign = {
         primary: "#1e40af", button: "#1e40af", background: "#ffffff",
         headerTextColor: "#ffffff", productTextColor: "#1e293b",
@@ -232,6 +260,22 @@
         layout: "grid"
     };
     let carouselInterval = null;
+    
+    function toggleFoodProperties() {
+        const type = document.getElementById('shopType').value;
+        tempShopType = type;
+        const foodDiv = document.getElementById('foodProperties');
+        if (type === 'food') {
+            foodDiv.style.display = 'block';
+            tempFoodProps.cuisine = document.getElementById('foodCuisine').value;
+            tempFoodProps.delivery = document.getElementById('foodDelivery').value;
+            tempFoodProps.hours = document.getElementById('foodHours').value;
+            tempFoodProps.prepTime = document.getElementById('foodPrepTime').value;
+        } else {
+            foodDiv.style.display = 'none';
+        }
+        updatePreview();
+    }
     
     // Logo
     function handleLogoUpload(input) {
@@ -324,7 +368,12 @@
     
     // Produits (illimités)
     function addProduct() {
-        tempProducts.push({ id: Date.now(), name: '', price: '', category: '', stock: 0, colors: [], photos: [], description: '' });
+        tempProducts.push({ 
+            id: Date.now(), name: '', price: '', category: '', stock: 0, 
+            colors: [], sizes: [], photos: [], description: '',
+            isFood: tempShopType === 'food',
+            weight: '', calories: '', ingredients: '', expiryDate: ''
+        });
         renderProducts();
         updatePreview();
     }
@@ -353,8 +402,15 @@
             <div class="product-item">
                 <div class="form-row"><input placeholder="Nom" value="${escapeHtml(p.name)}" onchange="updateProduct(${idx},'name',this.value)"><input placeholder="Prix (FCFA)" value="${p.price}" onchange="updateProduct(${idx},'price',this.value)"></div>
                 <div class="form-row"><input placeholder="Catégorie" value="${escapeHtml(p.category)}" onchange="updateProduct(${idx},'category',this.value)"><input placeholder="Stock" type="number" value="${p.stock}" onchange="updateProduct(${idx},'stock',parseInt(this.value))"></div>
+                ${tempShopType === 'food' ? `
+                <div class="food-properties">
+                    <div class="form-row"><input placeholder="Poids (g/kg)" value="${p.weight || ''}" onchange="updateProduct(${idx},'weight',this.value)"><input placeholder="Calories" value="${p.calories || ''}" onchange="updateProduct(${idx},'calories',this.value)"></div>
+                    <div class="form-group"><input placeholder="Ingrédients" value="${p.ingredients || ''}" onchange="updateProduct(${idx},'ingredients',this.value)"></div>
+                    <div class="form-group"><input placeholder="Date d'expiration" value="${p.expiryDate || ''}" onchange="updateProduct(${idx},'expiryDate',this.value)"></div>
+                </div>
+                ` : ''}
                 <div><strong>Photos</strong><div class="photo-gallery">${p.photos.map((ph,pi)=>`<div class="photo-item"><img src="${ph}"><div class="remove-photo" onclick="removeProductPhoto(${idx},${pi})">✕</div></div>`).join('')}</div><input type="file" accept="image/*" onchange="addProductPhoto(${idx}, this)"></div>
-                <div><strong>Couleurs</strong><div>${p.colors.map((c,ci)=>`<span style="background:#e2e8f0;padding:2px 8px;border-radius:16px;margin:2px;">${c} <span onclick="removeProductColor(${idx},${ci})">✕</span></span>`).join('')}</div><div class="form-row"><input id="colorIn-${idx}" placeholder="Nouvelle couleur"><button onclick="addProductColor(${idx}, document.getElementById('colorIn-${idx}').value); document.getElementById('colorIn-${idx}').value=''">+</button></div></div>
+                <div><strong>Couleurs</strong>${tempShopType === 'food' ? ' (non applicable pour nourriture)' : ''}<div>${p.colors.map((c,ci)=>`<span style="background:#e2e8f0;padding:2px 8px;border-radius:16px;margin:2px;">${c} <span onclick="removeProductColor(${idx},${ci})">✕</span></span>`).join('')}</div>${tempShopType !== 'food' ? `<div class="form-row"><input id="colorIn-${idx}" placeholder="Nouvelle couleur"><button onclick="addProductColor(${idx}, document.getElementById('colorIn-${idx}').value); document.getElementById('colorIn-${idx}').value=''">+</button></div>` : ''}</div>
                 <textarea placeholder="Description" rows="2" onchange="updateProduct(${idx},'description',this.value)">${escapeHtml(p.description)}</textarea>
                 <button onclick="removeProduct(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:6px;border-radius:8px;width:100%;margin-top:8px;">Supprimer</button>
             </div>
@@ -374,6 +430,7 @@
         const isHorizontal = tempDesign.menuPosition === 'horizontal';
         const isVerticalLeft = tempDesign.menuPosition === 'vertical-left';
         const isVerticalRight = tempDesign.menuPosition === 'vertical-right';
+        const isFoodShop = tempShopType === 'food';
         
         let menuHtml = '';
         if(isHorizontal) {
@@ -418,7 +475,12 @@
                 <div class="preview-header">
                     <div class="preview-logo">
                         <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}">` : '<i class="fas fa-store"></i>'}</div>
-                        <div><h3>${escapeHtml(shopName)}</h3><p>${escapeHtml(desc)}</p><div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${quartier}</div></div>
+                        <div>
+                            <h3>${escapeHtml(shopName)}</h3>
+                            <p>${escapeHtml(desc)}</p>
+                            <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${quartier}</div>
+                            ${isFoodShop ? `<div class="food-badge"><i class="fas fa-utensils"></i> Restaurant / Alimentaire</div>` : ''}
+                        </div>
                     </div>
                 </div>
                 ${menuHtml}
@@ -435,6 +497,7 @@
                                     <div class="preview-product-title">${escapeHtml(p.name)}</div>
                                     <div class="preview-product-price">${p.price} FCFA</div>
                                     <div style="font-size:11px;">Stock: ${p.stock}</div>
+                                    ${isFoodShop && p.weight ? `<div style="font-size:10px; color:var(--gray-500);">Poids: ${p.weight}</div>` : ''}
                                     <button class="preview-btn">Ajouter</button>
                                 </div>
                             </div>
@@ -469,27 +532,63 @@
     function publishShop() {
         const name = document.getElementById('shopNameInput').value.trim();
         if(!name) { alert("Nom de boutique requis"); return; }
-        const validProducts = tempProducts.filter(p=>p.name && p.price && p.photos.length);
-        if(!validProducts.length) { alert("Ajoutez au moins un produit avec photo"); return; }
+        
+        const validProducts = tempProducts.filter(p => p.name && p.price && p.photos && p.photos.length >= 1);
+        if(validProducts.length === 0) { 
+            alert("Ajoutez au moins un produit avec une photo"); 
+            return; 
+        }
+        
         const shops = JSON.parse(localStorage.getItem('ouenze_shops')||'[]');
+        const newId = shops.length ? Math.max(...shops.map(s=>s.id)) + 1 : 1;
+        
         const newShop = {
-            id: shops.length?Math.max(...shops.map(s=>s.id))+1:1,
-            name, logo: tempLogo, description: document.getElementById('shopDescInput').value,
-            city: document.getElementById('shopCity').value, quartier: document.getElementById('shopQuartier').value,
+            id: newId,
+            name: name,
+            logo: tempLogo,
+            description: document.getElementById('shopDescInput').value,
+            city: document.getElementById('shopCity').value || 'Brazzaville',
+            quartier: document.getElementById('shopQuartier').value,
             address: document.getElementById('shopAddress').value,
+            shopType: tempShopType,
+            foodProperties: tempShopType === 'food' ? {
+                cuisine: document.getElementById('foodCuisine').value,
+                delivery: document.getElementById('foodDelivery').value,
+                hours: document.getElementById('foodHours').value,
+                prepTime: parseInt(document.getElementById('foodPrepTime').value) || 30
+            } : null,
             categories: tempMenuCategories.map(c=>c.name),
             menu: { categories: tempMenuCategories, position: tempDesign.menuPosition, bg: tempDesign.menuBg, text: tempDesign.menuText, radius: tempDesign.menuRadius },
-            carousel: tempCarousel, products: validProducts, rating:0, totalRatings:0, reviews:[],
-            design: { primary:tempDesign.primary, button:tempDesign.button, background:tempDesign.background,
-                       headerTextColor:tempDesign.headerTextColor, productTextColor:tempDesign.productTextColor,
-                       carouselHeight:tempDesign.carouselHeight, carouselRadius:tempDesign.carouselRadius,
-                       carouselSpeed:tempDesign.carouselSpeed, prodWidth:tempDesign.prodWidth,
-                       prodImgHeight:tempDesign.prodImgHeight, prodRadius:tempDesign.prodRadius,
-                       prodGap:tempDesign.prodGap, layout:tempDesign.layout, logoShape:tempLogoShape }
+            carousel: tempCarousel,
+            products: validProducts,
+            rating: 0,
+            totalRatings: 0,
+            reviews: [],
+            assets: [],
+            liabilities: [],
+            owner: JSON.parse(localStorage.getItem('ouenze_current_user') || 'null')?.email || 'vendeur@email.com',
+            design: { 
+                primary: tempDesign.primary, 
+                button: tempDesign.button, 
+                background: tempDesign.background,
+                headerTextColor: tempDesign.headerTextColor, 
+                productTextColor: tempDesign.productTextColor,
+                carouselHeight: tempDesign.carouselHeight, 
+                carouselRadius: tempDesign.carouselRadius,
+                carouselSpeed: tempDesign.carouselSpeed, 
+                prodWidth: tempDesign.prodWidth,
+                prodImgHeight: tempDesign.prodImgHeight, 
+                prodRadius: tempDesign.prodRadius,
+                prodGap: tempDesign.prodGap, 
+                layout: tempDesign.layout, 
+                logoShape: tempLogoShape 
+            }
         };
+        
         shops.push(newShop);
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-        alert(`Boutique "${name}" créée avec succès !`);
+        
+        alert(`✅ Boutique "${name}" créée avec succès !\n\n${validProducts.length} produit(s) ajouté(s)\nType: ${tempShopType === 'food' ? 'Alimentaire' : 'Générale'}`);
         window.location.href = 'index.html';
     }
     
