@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* ... garder tous les styles existants ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
         :root {
@@ -19,7 +20,6 @@
             --gray-700: #334155;
         }
         
-        /* Header simplifié */
         .header-simple { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 16px 20px; text-align: center; }
         .header-simple h1 { font-size: 22px; font-weight: 700; color: var(--primary); }
         .header-simple p { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
@@ -237,6 +237,11 @@
     };
     let carouselInterval = null;
     
+    // Récupérer l'utilisateur connecté
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    let currentUserEmail = currentUser?.email || 'vendeur@ouenze.cg';
+    let currentUserName = currentUser?.name || 'Vendeur';
+    
     // Logo
     function handleLogoUpload(input) {
         if(input.files && input.files[0]) { 
@@ -331,8 +336,7 @@
         tempProducts.push({ 
             id: Date.now(), name: '', price: '', category: '', stock: 0, 
             colors: [], sizes: [], photos: [], description: '',
-            productType: 'standard', // standard, food
-            expiryDate: '', weight: '', origin: '', ingredients: ''
+            productType: 'standard'
         });
         renderProducts();
         updatePreview();
@@ -365,22 +369,6 @@
                     <input placeholder="Catégorie" value="${escapeHtml(p.category)}" onchange="updateProduct(${idx},'category',this.value)">
                     <input placeholder="Stock" type="number" value="${p.stock}" onchange="updateProduct(${idx},'stock',parseInt(this.value))">
                 </div>
-                <div class="form-group"><label>Type de produit</label>
-                    <div class="product-type-option">
-                        <div class="product-type-card ${p.productType === 'standard' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','standard'); renderProducts();">Standard</div>
-                        <div class="product-type-card ${p.productType === 'food' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','food'); renderProducts();">Alimentaire</div>
-                    </div>
-                </div>
-                ${p.productType === 'food' ? `
-                <div class="form-row">
-                    <input placeholder="Date d'expiration" value="${p.expiryDate}" onchange="updateProduct(${idx},'expiryDate',this.value)" style="font-size:11px;">
-                    <input placeholder="Poids (kg/g)" value="${p.weight}" onchange="updateProduct(${idx},'weight',this.value)">
-                </div>
-                <div class="form-row">
-                    <input placeholder="Origine" value="${p.origin}" onchange="updateProduct(${idx},'origin',this.value)">
-                    <input placeholder="Ingrédients" value="${p.ingredients}" onchange="updateProduct(${idx},'ingredients',this.value)">
-                </div>
-                ` : ''}
                 <div><strong>Photos</strong><div class="photo-gallery">${p.photos.map((ph,pi)=>`<div class="photo-item"><img src="${ph}"><div class="remove-photo" onclick="removeProductPhoto(${idx},${pi})">✕</div></div>`).join('')}</div><input type="file" accept="image/*" onchange="addProductPhoto(${idx}, this)"></div>
                 <div><strong>Couleurs</strong><div>${p.colors.map((c,ci)=>`<span style="background:#e2e8f0;padding:2px 8px;border-radius:16px;margin:2px;display:inline-block;font-size:11px;">${c} <span onclick="removeProductColor(${idx},${ci})" style="cursor:pointer;">✕</span></span>`).join('')}</div><div class="form-row"><input id="colorIn-${idx}" placeholder="Nouvelle couleur"><button onclick="addProductColor(${idx}, document.getElementById('colorIn-${idx}').value); document.getElementById('colorIn-${idx}').value=''">+</button></div></div>
                 <textarea placeholder="Description" rows="2" onchange="updateProduct(${idx},'description',this.value)">${escapeHtml(p.description)}</textarea>
@@ -459,7 +447,6 @@
                                 <div class="preview-product-info">
                                     <div class="preview-product-title">${escapeHtml(p.name)}</div>
                                     <div class="preview-product-price">${p.price} FCFA</div>
-                                    ${p.productType === 'food' ? `<div style="font-size:9px;color:var(--gray-500);">Exp: ${p.expiryDate || 'N/A'}</div>` : ''}
                                     <div style="font-size:10px;">Stock: ${p.stock}</div>
                                     <button class="preview-btn">Ajouter</button>
                                 </div>
@@ -491,7 +478,7 @@
         slides[(active+d+slides.length)%slides.length].classList.add('active');
     };
     
-    // Publication
+    // Publication avec propriétaire
     function publishShop() {
         const name = document.getElementById('shopNameInput').value.trim();
         if(!name) { alert("Nom de boutique requis"); return; }
@@ -500,18 +487,40 @@
         const shops = JSON.parse(localStorage.getItem('ouenze_shops')||'[]');
         const newShop = {
             id: shops.length?Math.max(...shops.map(s=>s.id))+1:1,
-            name, logo: tempLogo, description: document.getElementById('shopDescInput').value,
-            city: document.getElementById('shopCity').value, quartier: document.getElementById('shopQuartier').value,
+            name, 
+            logo: tempLogo, 
+            description: document.getElementById('shopDescInput').value,
+            city: document.getElementById('shopCity').value, 
+            quartier: document.getElementById('shopQuartier').value,
             address: document.getElementById('shopAddress').value,
             categories: tempMenuCategories.map(c=>c.name),
             menu: { categories: tempMenuCategories, position: tempDesign.menuPosition, bg: tempDesign.menuBg, text: tempDesign.menuText, radius: tempDesign.menuRadius },
-            carousel: tempCarousel, products: validProducts, rating:0, totalRatings:0, reviews:[],
-            design: { primary:tempDesign.primary, button:tempDesign.button, background:tempDesign.background,
-                       headerTextColor:tempDesign.headerTextColor, productTextColor:tempDesign.productTextColor,
-                       carouselHeight:tempDesign.carouselHeight, carouselRadius:tempDesign.carouselRadius,
-                       carouselSpeed:tempDesign.carouselSpeed, prodWidth:tempDesign.prodWidth,
-                       prodImgHeight:tempDesign.prodImgHeight, prodRadius:tempDesign.prodRadius,
-                       prodGap:tempDesign.prodGap, layout:tempDesign.layout, logoShape:tempLogoShape }
+            carousel: tempCarousel, 
+            products: validProducts, 
+            rating:0, 
+            totalRatings:0, 
+            reviews:[],
+            owner: currentUserEmail,  // AJOUT DU PROPRIÉTAIRE
+            verified: false,
+            totalSales: 0,
+            assets: [],
+            liabilities: [],
+            design: { 
+                primary:tempDesign.primary, 
+                button:tempDesign.button, 
+                background:tempDesign.background,
+                headerTextColor:tempDesign.headerTextColor, 
+                productTextColor:tempDesign.productTextColor,
+                carouselHeight:tempDesign.carouselHeight, 
+                carouselRadius:tempDesign.carouselRadius,
+                carouselSpeed:tempDesign.carouselSpeed, 
+                prodWidth:tempDesign.prodWidth,
+                prodImgHeight:tempDesign.prodImgHeight, 
+                prodRadius:tempDesign.prodRadius,
+                prodGap:tempDesign.prodGap, 
+                layout:tempDesign.layout, 
+                logoShape:tempLogoShape 
+            }
         };
         shops.push(newShop);
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
