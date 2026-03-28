@@ -1,3 +1,598 @@
+Je vais corriger les deux problèmes majeurs :
+
+1. **Affichage des produits alimentaires** avec leurs propriétés spécifiques (date d'expiration, poids, origine, ingrédients)
+2. **Logo trop zoomé** - réglage pour qu'il s'affiche proprement sans être coupé
+
+---
+
+## 📁 Fichier: `shop-designer.html` (Correction alimentaire et logo)
+
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ouenze | Création de boutique</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+        }
+        
+        .header-simple { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 16px 20px; text-align: center; }
+        .header-simple h1 { font-size: 22px; font-weight: 700; color: var(--primary); }
+        .header-simple p { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 16px; }
+        .designer-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .designer-panel { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); padding: 20px; position: sticky; top: 20px; height: fit-content; max-height: calc(100vh - 100px); overflow-y: auto; }
+        .designer-preview { background: #f8fafc; border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); overflow: auto; max-height: calc(100vh - 100px); }
+        
+        .design-section { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-200); }
+        .design-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-700); display: flex; align-items: center; gap: 8px; }
+        
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; }
+        .form-group input:focus { outline: none; border-color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        
+        .slider-group { margin: 12px 0; }
+        .slider-group label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+        input[type="range"] { width: 100%; height: 4px; background: var(--gray-200); border-radius: 2px; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+        
+        .color-picker-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+        .color-option { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+        .color-option.selected { border-color: var(--gray-700); transform: scale(1.05); }
+        
+        .layout-option, .speed-option, .menu-position-option, .product-type-option { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .layout-card, .speed-card, .menu-pos-card, .product-type-card { flex: 1; padding: 6px; background: var(--gray-100); border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 11px; font-weight: 500; }
+        .layout-card.selected, .speed-card.selected, .menu-pos-card.selected, .product-type-card.selected { border-color: var(--primary); background: #eef2ff; }
+        
+        .logo-shape-option { display: flex; gap: 10px; margin: 10px 0; }
+        .logo-shape { width: 45px; height: 45px; background: var(--primary); cursor: pointer; border: 2px solid transparent; }
+        .logo-shape.square { border-radius: 0; }
+        .logo-shape.rounded { border-radius: 10px; }
+        .logo-shape.circle { border-radius: 50%; }
+        .logo-shape.selected { border-color: var(--gray-700); transform: scale(1.05); }
+        
+        .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); }
+        .image-preview { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
+        .image-preview img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
+        
+        .menu-category-item { background: var(--gray-100); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+        .subcategory-list { margin-left: 20px; margin-top: 6px; }
+        .subcategory-item { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; background: var(--white); padding: 5px 8px; border-radius: 6px; }
+        
+        .product-item { background: var(--gray-100); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--gray-200); }
+        .photo-gallery { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+        .photo-item { width: 60px; height: 60px; background: var(--white); border-radius: 8px; border: 1px solid var(--gray-200); position: relative; overflow: hidden; }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+        .remove-photo { position: absolute; top: 2px; right: 2px; background: #dc2626; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
+        .btn-sm { padding: 4px 10px; background: var(--gray-200); border: none; border-radius: 16px; cursor: pointer; font-size: 11px; }
+        
+        /* Preview styles */
+        .preview-shop { background: var(--preview-bg, #ffffff); overflow: hidden; border-radius: 16px; }
+        .preview-header { background: linear-gradient(135deg, var(--preview-primary, #1e40af), var(--preview-primary-dark)); padding: 20px; color: white; }
+        .preview-logo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .preview-logo-img { width: 55px; height: 55px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: inherit; }
+        .preview-logo-img img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
+        .preview-menu { background: var(--menu-bg, #1e40af); color: var(--menu-text, white); padding: 8px 16px; border-radius: var(--menu-radius, 0px); margin-bottom: 16px; }
+        .preview-menu-horizontal { display: flex; gap: 16px; flex-wrap: wrap; }
+        .preview-menu-vertical { width: 180px; float: left; margin-right: 16px; }
+        .preview-menu-item { position: relative; cursor: pointer; padding: 6px 0; font-size: 13px; }
+        .preview-submenu { position: absolute; top: 100%; left: 0; background: var(--menu-bg); min-width: 150px; border-radius: 6px; padding: 6px 0; display: none; z-index: 100; }
+        .preview-menu-item:hover .preview-submenu { display: block; }
+        .preview-submenu-item { padding: 6px 12px; white-space: nowrap; font-size: 12px; }
+        .preview-content { overflow: hidden; }
+        .preview-carousel { position: relative; margin-bottom: 16px; overflow: hidden; border-radius: var(--carousel-radius, 12px); height: var(--carousel-height, 220px); }
+        .preview-carousel .slide { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .preview-carousel .active { display: block; }
+        .preview-products { display: var(--preview-layout, grid); grid-template-columns: repeat(auto-fill, minmax(var(--product-width, 200px), 1fr)); gap: var(--product-gap, 16px); margin-top: 16px; }
+        .preview-product { background: white; border-radius: var(--product-radius, 10px); border: 1px solid var(--gray-200); overflow: hidden; }
+        .preview-product-image { height: var(--product-img-height, 140px); background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .preview-product-image img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-product-info { padding: 10px; }
+        .preview-product-title { font-weight: 600; font-size: 13px; color: var(--product-text, #1e293b); }
+        .preview-product-price { font-weight: 700; color: var(--preview-primary, #1e40af); margin: 4px 0; font-size: 14px; }
+        .preview-btn { background: var(--preview-button, #1e40af); color: white; border: none; padding: 6px; border-radius: var(--product-radius, 8px); width: 100%; cursor: pointer; font-size: 11px; }
+        .food-badge { display: inline-block; background: #eef2ff; color: var(--primary); font-size: 9px; padding: 2px 6px; border-radius: 12px; margin-bottom: 4px; }
+        .clearfix::after { content: ""; clear: both; display: table; }
+        
+        @media (max-width: 900px) {
+            .designer-layout { grid-template-columns: 1fr; }
+            .designer-panel { position: relative; top: 0; max-height: none; }
+            .designer-preview { max-height: none; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-simple">
+    <h1>Création de boutique</h1>
+    <p>Personnalisez votre espace, menu, couleurs, carrousel et produits</p>
+</div>
+
+<div class="container">
+    <div class="designer-layout">
+        <!-- Panneau de configuration -->
+        <div class="designer-panel">
+            <h2 style="margin-bottom:16px; font-size:18px;">Configuration</h2>
+            
+            <!-- Logo -->
+            <div class="design-section">
+                <h3><i class="fas fa-image"></i> Logo</h3>
+                <div class="image-upload" onclick="document.getElementById('logoUpload').click()">
+                    <div id="logoPreview" class="image-preview"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <div>Charger un logo</div>
+                </div>
+                <input type="file" id="logoUpload" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+                <div class="logo-shape-option">
+                    <div class="logo-shape square" onclick="setLogoShape('square', this)"></div>
+                    <div class="logo-shape rounded" onclick="setLogoShape('rounded', this)"></div>
+                    <div class="logo-shape circle" onclick="setLogoShape('circle', this)"></div>
+                </div>
+            </div>
+            
+            <!-- Informations boutique -->
+            <div class="design-section">
+                <h3><i class="fas fa-store"></i> Informations</h3>
+                <div class="form-group"><label>Nom *</label><input type="text" id="shopNameInput" placeholder="Ma boutique"></div>
+                <div class="form-group"><label>Description</label><textarea id="shopDescInput" rows="2"></textarea></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Ville</label><input type="text" id="shopCity" placeholder="Brazzaville"></div>
+                    <div class="form-group"><label>Quartier</label><input type="text" id="shopQuartier"></div>
+                </div>
+                <div class="form-group"><label>Adresse</label><input type="text" id="shopAddress"></div>
+            </div>
+            
+            <!-- Menu de navigation -->
+            <div class="design-section">
+                <h3><i class="fas fa-bars"></i> Menu de navigation</h3>
+                <div class="form-group"><label>Position du menu</label>
+                    <div class="menu-position-option">
+                        <div class="menu-pos-card" data-pos="horizontal">Horizontal</div>
+                        <div class="menu-pos-card" data-pos="vertical-left">Vertical gauche</div>
+                        <div class="menu-pos-card" data-pos="vertical-right">Vertical droite</div>
+                    </div>
+                </div>
+                <div class="form-group"><label>Couleur fond menu</label><input type="color" id="menuBgColor" value="#1e40af"></div>
+                <div class="form-group"><label>Couleur texte menu</label><input type="color" id="menuTextColor" value="#ffffff"></div>
+                <div class="slider-group"><label>Arrondi menu <span id="menuRadiusVal">0</span>px</label><input type="range" id="menuRadius" min="0" max="30" value="0" oninput="updateMenuRadius(this.value)"></div>
+                <div id="menuCategoriesList"></div>
+                <button onclick="addMenuCategory()" class="btn-sm" style="margin-top:8px;">+ Ajouter une catégorie</button>
+            </div>
+            
+            <!-- Carrousel -->
+            <div class="design-section">
+                <h3><i class="fas fa-images"></i> Carrousel bannière</h3>
+                <div id="carouselList" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
+                <div class="image-upload" onclick="document.getElementById('carouselMedia').click()" style="padding:8px;">+ Ajouter image/vidéo</div>
+                <input type="file" id="carouselMedia" accept="image/*,video/*" style="display:none;" onchange="addCarouselMedia(this)">
+                <div class="slider-group"><label>Hauteur <span id="carouselHeightVal">220</span>px</label><input type="range" id="carouselHeight" min="120" max="400" value="220" oninput="updateCarouselHeight(this.value)"></div>
+                <div class="slider-group"><label>Arrondi <span id="carouselRadiusVal">12</span>px</label><input type="range" id="carouselRadius" min="0" max="40" value="12" oninput="updateCarouselRadius(this.value)"></div>
+                <div class="speed-option" id="speedOptions">
+                    <div class="speed-card" data-speed="0">Manuel</div>
+                    <div class="speed-card" data-speed="3">3s</div>
+                    <div class="speed-card" data-speed="5">5s</div>
+                    <div class="speed-card" data-speed="10">10s</div>
+                </div>
+            </div>
+            
+            <!-- Couleurs globales -->
+            <div class="design-section">
+                <h3><i class="fas fa-palette"></i> Couleurs</h3>
+                <div class="form-group"><label>Couleur principale</label><div class="color-picker-group"><div class="color-option" style="background:#1e40af;" onclick="selectColor('primary','#1e40af',this)"></div><div class="color-option" style="background:#7c3aed;" onclick="selectColor('primary','#7c3aed',this)"></div><div class="color-option" style="background:#d97706;" onclick="selectColor('primary','#d97706',this)"></div><input type="color" id="primaryColorPicker" onchange="selectColor('primary',this.value,null)"></div></div>
+                <div class="form-group"><label>Couleur boutons</label><div class="color-picker-group"><div class="color-option" style="background:#1e40af;" onclick="selectColor('button','#1e40af',this)"></div><div class="color-option" style="background:#7c3aed;" onclick="selectColor('button','#7c3aed',this)"></div><input type="color" id="buttonColorPicker" onchange="selectColor('button',this.value,null)"></div></div>
+                <div class="form-group"><label>Couleur fond boutique</label><input type="color" id="bgColorPicker" value="#ffffff" onchange="selectColor('background',this.value,null)"></div>
+                <div class="form-group"><label>Couleur texte header</label><input type="color" id="headerTextColor" value="#ffffff" onchange="updateHeaderTextColor(this.value)"></div>
+                <div class="form-group"><label>Couleur texte produits</label><input type="color" id="productTextColor" value="#1e293b" onchange="updateProductTextColor(this.value)"></div>
+            </div>
+            
+            <!-- Design produits -->
+            <div class="design-section">
+                <h3><i class="fas fa-cube"></i> Affichage produits</h3>
+                <div class="slider-group"><label>Largeur <span id="prodWidthVal">200</span>px</label><input type="range" id="prodWidth" min="150" max="280" value="200" oninput="updateProdWidth(this.value)"></div>
+                <div class="slider-group"><label>Hauteur image <span id="prodImgHeightVal">140</span>px</label><input type="range" id="prodImgHeight" min="100" max="220" value="140" oninput="updateProdImgHeight(this.value)"></div>
+                <div class="slider-group"><label>Arrondi produits <span id="prodRadiusVal">10</span>px</label><input type="range" id="prodRadius" min="0" max="32" value="10" oninput="updateProdRadius(this.value)"></div>
+                <div class="slider-group"><label>Espacement <span id="prodGapVal">16</span>px</label><input type="range" id="prodGap" min="8" max="40" value="16" oninput="updateProdGap(this.value)"></div>
+                <label>Disposition</label>
+                <div class="layout-option"><div class="layout-card" onclick="selectLayout('grid')">Grille</div><div class="layout-card" onclick="selectLayout('list')">Liste</div></div>
+            </div>
+            
+            <!-- Produits (illimités) -->
+            <div class="design-section">
+                <h3><i class="fas fa-box"></i> Produits</h3>
+                <div id="productsList"></div>
+                <button onclick="addProduct()" style="width:100%;padding:8px;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;cursor:pointer;margin-top:10px;">+ Ajouter un produit</button>
+            </div>
+            
+            <button class="btn-primary" onclick="publishShop()">Publier ma boutique</button>
+        </div>
+        
+        <!-- Aperçu -->
+        <div class="designer-preview">
+            <h3 style="margin-bottom:12px;">Aperçu en temps réel</h3>
+            <div id="livePreview"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // État
+    let tempLogo = null;
+    let tempLogoShape = 'rounded';
+    let tempMenuCategories = [];
+    let tempCarousel = [];
+    let tempProducts = [];
+    let tempDesign = {
+        primary: "#1e40af", button: "#1e40af", background: "#ffffff",
+        headerTextColor: "#ffffff", productTextColor: "#1e293b",
+        menuBg: "#1e40af", menuText: "#ffffff", menuRadius: 0, menuPosition: "horizontal",
+        carouselHeight: 220, carouselRadius: 12, carouselSpeed: 0,
+        prodWidth: 200, prodImgHeight: 140, prodRadius: 10, prodGap: 16,
+        layout: "grid"
+    };
+    let carouselInterval = null;
+    
+    // Récupérer l'utilisateur connecté
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    let currentUserEmail = currentUser?.email || 'vendeur@ouenze.cg';
+    let currentUserName = currentUser?.name || 'Vendeur';
+    
+    // Logo
+    function handleLogoUpload(input) {
+        if(input.files && input.files[0]) { 
+            const r = new FileReader(); 
+            r.onload = e => { 
+                tempLogo = e.target.result; 
+                document.getElementById('logoPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;">`; 
+                updatePreview(); 
+            }; 
+            r.readAsDataURL(input.files[0]); 
+        }
+    }
+    function setLogoShape(shape, element) {
+        tempLogoShape = shape; 
+        document.querySelectorAll('.logo-shape').forEach(el=>el.classList.remove('selected')); 
+        element.classList.add('selected'); 
+        updatePreview(); 
+    }
+    
+    // Menu catégories
+    function addMenuCategory() {
+        tempMenuCategories.push({ name: 'Nouvelle catégorie', subcategories: [] });
+        renderMenuCategories();
+        updatePreview();
+    }
+    function removeMenuCategory(idx) { tempMenuCategories.splice(idx,1); renderMenuCategories(); updatePreview(); }
+    function addSubcategory(catIdx) { tempMenuCategories[catIdx].subcategories.push('Nouvelle sous-catégorie'); renderMenuCategories(); updatePreview(); }
+    function removeSubcategory(catIdx, subIdx) { tempMenuCategories[catIdx].subcategories.splice(subIdx,1); renderMenuCategories(); updatePreview(); }
+    function updateMenuCategoryName(idx, val) { tempMenuCategories[idx].name = val; updatePreview(); }
+    function updateSubcategoryName(catIdx, subIdx, val) { tempMenuCategories[catIdx].subcategories[subIdx] = val; updatePreview(); }
+    function renderMenuCategories() {
+        const container = document.getElementById('menuCategoriesList');
+        if(!container) return;
+        container.innerHTML = tempMenuCategories.map((cat, ci) => `
+            <div class="menu-category-item">
+                <input type="text" value="${escapeHtml(cat.name)}" onchange="updateMenuCategoryName(${ci}, this.value)" style="width:100%; margin-bottom:6px; padding:5px; border:1px solid var(--gray-200); border-radius:6px; font-size:12px;">
+                <div class="subcategory-list">
+                    ${cat.subcategories.map((sub, si) => `
+                        <div class="subcategory-item">
+                            <input type="text" value="${escapeHtml(sub)}" onchange="updateSubcategoryName(${ci}, ${si}, this.value)" style="flex:1; padding:4px; border:1px solid var(--gray-200); border-radius:5px; font-size:11px;">
+                            <button onclick="removeSubcategory(${ci}, ${si})" style="background:#fee2e2; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer;">✕</button>
+                        </div>
+                    `).join('')}
+                    <button onclick="addSubcategory(${ci})" class="btn-sm" style="margin-top:4px;">+ Sous-catégorie</button>
+                </div>
+                <button onclick="removeMenuCategory(${ci})" style="margin-top:6px; background:#fee2e2; border:none; padding:3px 6px; border-radius:5px; cursor:pointer; font-size:10px;">Supprimer</button>
+            </div>
+        `).join('');
+        if(!tempMenuCategories.length) container.innerHTML = '<div style="color:var(--gray-500); font-size:11px;">Aucune catégorie. Ajoutez-en une.</div>';
+    }
+    
+    // Carrousel
+    function addCarouselMedia(input) {
+        if(input.files && input.files[0]) { 
+            const r = new FileReader(); 
+            r.onload = e => { 
+                tempCarousel.push({ type: input.files[0].type.startsWith('image/') ? 'image' : 'video', src: e.target.result }); 
+                renderCarouselList(); 
+                updatePreview(); 
+            }; 
+            r.readAsDataURL(input.files[0]); 
+        }
+    }
+    function removeCarouselMedia(idx) { tempCarousel.splice(idx,1); renderCarouselList(); updatePreview(); }
+    function renderCarouselList() {
+        const container = document.getElementById('carouselList');
+        if(!container) return;
+        container.innerHTML = tempCarousel.map((m,i) => `<div style="position:relative; width:55px; height:55px; border-radius:6px; overflow:hidden; border:1px solid var(--gray-200);"><${m.type === 'image' ? 'img' : 'video'} src="${m.src}" style="width:100%;height:100%;object-fit:cover;"><div style="position:absolute;top:0;right:0;background:red;color:white;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;" onclick="removeCarouselMedia(${i})">✕</div></div>`).join('');
+    }
+    function updateCarouselHeight(v) { tempDesign.carouselHeight = v; document.getElementById('carouselHeightVal').innerText = v; updatePreview(); }
+    function updateCarouselRadius(v) { tempDesign.carouselRadius = v; document.getElementById('carouselRadiusVal').innerText = v; updatePreview(); }
+    
+    // Couleurs et design
+    function selectColor(type, color, el) {
+        if(type==='primary') { tempDesign.primary = color; document.getElementById('primaryColorPicker').value = color; }
+        if(type==='button') { tempDesign.button = color; document.getElementById('buttonColorPicker').value = color; }
+        if(type==='background') { tempDesign.background = color; document.getElementById('bgColorPicker').value = color; }
+        if(el) { document.querySelectorAll(`.color-option`).forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); }
+        updatePreview();
+    }
+    function updateHeaderTextColor(c) { tempDesign.headerTextColor = c; updatePreview(); }
+    function updateProductTextColor(c) { tempDesign.productTextColor = c; updatePreview(); }
+    function updateMenuRadius(v) { tempDesign.menuRadius = v; document.getElementById('menuRadiusVal').innerText = v; updatePreview(); }
+    function updateProdWidth(v) { tempDesign.prodWidth = v; document.getElementById('prodWidthVal').innerText = v; updatePreview(); }
+    function updateProdImgHeight(v) { tempDesign.prodImgHeight = v; document.getElementById('prodImgHeightVal').innerText = v; updatePreview(); }
+    function updateProdRadius(v) { tempDesign.prodRadius = v; document.getElementById('prodRadiusVal').innerText = v; updatePreview(); }
+    function updateProdGap(v) { tempDesign.prodGap = v; document.getElementById('prodGapVal').innerText = v; updatePreview(); }
+    function selectLayout(l) { tempDesign.layout = l; document.querySelectorAll('.layout-card').forEach(c=>c.classList.remove('selected')); event.target.classList.add('selected'); updatePreview(); }
+    
+    // Produits (illimités)
+    function addProduct() {
+        tempProducts.push({ 
+            id: Date.now(), name: '', price: '', category: '', stock: 0, 
+            colors: [], sizes: [], photos: [], description: '',
+            productType: 'standard',
+            expiryDate: '', weight: '', origin: '', ingredients: ''
+        });
+        renderProducts();
+        updatePreview();
+    }
+    function updateProduct(idx, field, val) { if(tempProducts[idx]) tempProducts[idx][field] = val; updatePreview(); }
+    function addProductPhoto(idx, input) { 
+        if(input.files && input.files[0]) { 
+            const r = new FileReader(); 
+            r.onload = e => { 
+                tempProducts[idx].photos.push(e.target.result); 
+                renderProducts(); 
+                updatePreview(); 
+            }; 
+            r.readAsDataURL(input.files[0]); 
+        } 
+    }
+    function removeProductPhoto(idx, pidx) { tempProducts[idx].photos.splice(pidx,1); renderProducts(); updatePreview(); }
+    function addProductColor(idx, color) { if(color && !tempProducts[idx].colors.includes(color)) { tempProducts[idx].colors.push(color); renderProducts(); updatePreview(); } }
+    function removeProductColor(idx, cidx) { tempProducts[idx].colors.splice(cidx,1); renderProducts(); updatePreview(); }
+    function removeProduct(idx) { tempProducts.splice(idx,1); renderProducts(); updatePreview(); }
+    
+    function renderProducts() {
+        const container = document.getElementById('productsList');
+        if(!container) return;
+        if(!tempProducts.length) { container.innerHTML = '<div style="text-align:center;padding:16px;">Aucun produit</div>'; return; }
+        container.innerHTML = tempProducts.map((p, idx) => `
+            <div class="product-item">
+                <div class="form-row"><input placeholder="Nom" value="${escapeHtml(p.name)}" onchange="updateProduct(${idx},'name',this.value)"><input placeholder="Prix (FCFA)" value="${p.price}" onchange="updateProduct(${idx},'price',this.value)"></div>
+                <div class="form-row">
+                    <input placeholder="Catégorie" value="${escapeHtml(p.category)}" onchange="updateProduct(${idx},'category',this.value)">
+                    <input placeholder="Stock" type="number" value="${p.stock}" onchange="updateProduct(${idx},'stock',parseInt(this.value))">
+                </div>
+                <div class="form-group"><label>Type de produit</label>
+                    <div class="product-type-option">
+                        <div class="product-type-card ${p.productType === 'standard' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','standard'); renderProducts();">Standard</div>
+                        <div class="product-type-card ${p.productType === 'food' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','food'); renderProducts();">Alimentaire</div>
+                    </div>
+                </div>
+                ${p.productType === 'food' ? `
+                <div class="form-row">
+                    <input placeholder="Date d'expiration (JJ/MM/AAAA)" value="${p.expiryDate}" onchange="updateProduct(${idx},'expiryDate',this.value)">
+                    <input placeholder="Poids (kg/g)" value="${p.weight}" onchange="updateProduct(${idx},'weight',this.value)">
+                </div>
+                <div class="form-row">
+                    <input placeholder="Origine" value="${p.origin}" onchange="updateProduct(${idx},'origin',this.value)">
+                    <input placeholder="Ingrédients" value="${p.ingredients}" onchange="updateProduct(${idx},'ingredients',this.value)">
+                </div>
+                ` : ''}
+                <div><strong>Photos</strong><div class="photo-gallery">${p.photos.map((ph,pi)=>`<div class="photo-item"><img src="${ph}"><div class="remove-photo" onclick="removeProductPhoto(${idx},${pi})">✕</div></div>`).join('')}</div><input type="file" accept="image/*" onchange="addProductPhoto(${idx}, this)"></div>
+                <div><strong>Couleurs</strong><div>${p.colors.map((c,ci)=>`<span style="background:#e2e8f0;padding:2px 8px;border-radius:16px;margin:2px;display:inline-block;font-size:11px;">${c} <span onclick="removeProductColor(${idx},${ci})" style="cursor:pointer;">✕</span></span>`).join('')}</div><div class="form-row"><input id="colorIn-${idx}" placeholder="Nouvelle couleur"><button onclick="addProductColor(${idx}, document.getElementById('colorIn-${idx}').value); document.getElementById('colorIn-${idx}').value=''">+</button></div></div>
+                <textarea placeholder="Description" rows="2" onchange="updateProduct(${idx},'description',this.value)">${escapeHtml(p.description)}</textarea>
+                <button onclick="removeProduct(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:4px;border-radius:6px;width:100%;margin-top:6px;font-size:11px;">Supprimer</button>
+            </div>
+        `).join('');
+    }
+    
+    // Aperçu
+    function updatePreview() {
+        const preview = document.getElementById('livePreview');
+        if(!preview) return;
+        const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
+        const desc = document.getElementById('shopDescInput')?.value || '';
+        const city = document.getElementById('shopCity')?.value || 'Brazzaville';
+        const quartier = document.getElementById('shopQuartier')?.value || '';
+        const products = tempProducts.filter(p=>p.name && p.price);
+        const logoShapeClass = tempLogoShape === 'square' ? '0px' : tempLogoShape === 'rounded' ? '12px' : '50%';
+        const isHorizontal = tempDesign.menuPosition === 'horizontal';
+        const isVerticalLeft = tempDesign.menuPosition === 'vertical-left';
+        const isVerticalRight = tempDesign.menuPosition === 'vertical-right';
+        
+        let menuHtml = '';
+        if(isHorizontal) {
+            menuHtml = `<div class="preview-menu preview-menu-horizontal" style="background:${tempDesign.menuBg}; color:${tempDesign.menuText}; border-radius:${tempDesign.menuRadius}px;">
+                ${tempMenuCategories.map(cat => `
+                    <div class="preview-menu-item">
+                        ${escapeHtml(cat.name)}
+                        ${cat.subcategories.length ? `<div class="preview-submenu">${cat.subcategories.map(sub => `<div class="preview-submenu-item">${escapeHtml(sub)}</div>`).join('')}</div>` : ''}
+                    </div>
+                `).join('')}
+            </div>`;
+        } else {
+            menuHtml = `<div class="preview-menu preview-menu-vertical" style="background:${tempDesign.menuBg}; color:${tempDesign.menuText}; border-radius:${tempDesign.menuRadius}px; float: ${isVerticalLeft ? 'left' : 'right'}; margin-${isVerticalLeft ? 'right' : 'left'}: 16px; width:160px;">
+                ${tempMenuCategories.map(cat => `
+                    <div class="preview-menu-item">
+                        ${escapeHtml(cat.name)}
+                        ${cat.subcategories.length ? `<div class="preview-submenu">${cat.subcategories.map(sub => `<div class="preview-submenu-item">${escapeHtml(sub)}</div>`).join('')}</div>` : ''}
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+        
+        const contentMargin = isVerticalLeft ? 'margin-left: 176px;' : (isVerticalRight ? 'margin-right: 176px;' : '');
+        
+        preview.innerHTML = `
+            <style>
+                .preview-shop{background:${tempDesign.background}; border-radius:12px;}
+                .preview-header{background:linear-gradient(135deg,${tempDesign.primary},${tempDesign.primary}aa);color:${tempDesign.headerTextColor};}
+                .preview-logo-img{border-radius:${logoShapeClass};}
+                .preview-products{display:${tempDesign.layout === 'grid' ? 'grid' : 'flex'};${tempDesign.layout === 'grid' ? `grid-template-columns:repeat(auto-fill,minmax(${tempDesign.prodWidth}px,1fr));` : 'flex-direction:column;'}gap:${tempDesign.prodGap}px;}
+                .preview-product{border-radius:${tempDesign.prodRadius}px;}
+                .preview-product-image{height:${tempDesign.prodImgHeight}px;}
+                .preview-product-title{color:${tempDesign.productTextColor};}
+                .preview-product-price{color:${tempDesign.primary};}
+                .preview-btn{background:${tempDesign.button};border-radius:${tempDesign.prodRadius}px;}
+                .preview-carousel{height:${tempDesign.carouselHeight}px;border-radius:${tempDesign.carouselRadius}px;}
+            </style>
+            <div class="preview-shop">
+                <div class="preview-header">
+                    <div class="preview-logo">
+                        <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
+                        <div><h3 style="font-size:16px;">${escapeHtml(shopName)}</h3><p style="font-size:11px;">${escapeHtml(desc)}</p><div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${quartier}</div></div>
+                    </div>
+                </div>
+                ${menuHtml}
+                <div class="preview-content" style="${contentMargin}">
+                    <div class="preview-carousel" id="previewCarousel">
+                        ${tempCarousel.map((m,i)=>`<${m.type} src="${m.src}" class="slide ${i===0?'active':''}"></${m.type}>`).join('')}
+                        ${tempCarousel.length>1?`<button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;" onclick="changeSlide(-1)">❮</button><button class="carousel-btn carousel-next" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;" onclick="changeSlide(1)">❯</button>`:''}
+                    </div>
+                    <div class="preview-products">
+                        ${products.slice(0,6).map(p=>`
+                            <div class="preview-product">
+                                <div class="preview-product-image">${p.photos[0]?`<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">`:'<i class="fas fa-image"></i>'}</div>
+                                <div class="preview-product-info">
+                                    <div class="preview-product-title">${escapeHtml(p.name)}</div>
+                                    <div class="preview-product-price">${p.price} FCFA</div>
+                                    ${p.productType === 'food' ? `<div class="food-badge"><i class="fas fa-utensils"></i> Alimentaire</div>` : ''}
+                                    <div style="font-size:10px;">Stock: ${p.stock}</div>
+                                    <button class="preview-btn">Ajouter</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${!products.length?'<div style="text-align:center;padding:20px;">Aucun produit</div>':''}
+                </div>
+            </div>
+        `;
+        
+        if(tempCarousel.length && tempDesign.carouselSpeed>0) {
+            if(carouselInterval) clearInterval(carouselInterval);
+            carouselInterval = setInterval(() => {
+                const slides = document.querySelectorAll('#previewCarousel .slide');
+                if(!slides.length) return;
+                let active = Array.from(slides).findIndex(s=>s.classList.contains('active'));
+                slides[active].classList.remove('active');
+                slides[(active+1)%slides.length].classList.add('active');
+            }, tempDesign.carouselSpeed*1000);
+        }
+    }
+    
+    window.changeSlide = function(d) {
+        const slides = document.querySelectorAll('#previewCarousel .slide');
+        if(!slides.length) return;
+        let active = Array.from(slides).findIndex(s=>s.classList.contains('active'));
+        slides[active].classList.remove('active');
+        slides[(active+d+slides.length)%slides.length].classList.add('active');
+    };
+    
+    // Publication avec propriétaire
+    function publishShop() {
+        const name = document.getElementById('shopNameInput').value.trim();
+        if(!name) { alert("Nom de boutique requis"); return; }
+        const validProducts = tempProducts.filter(p=>p.name && p.price && p.photos.length);
+        if(!validProducts.length) { alert("Ajoutez au moins un produit avec photo"); return; }
+        const shops = JSON.parse(localStorage.getItem('ouenze_shops')||'[]');
+        const newShop = {
+            id: shops.length?Math.max(...shops.map(s=>s.id))+1:1,
+            name, 
+            logo: tempLogo, 
+            description: document.getElementById('shopDescInput').value,
+            city: document.getElementById('shopCity').value, 
+            quartier: document.getElementById('shopQuartier').value,
+            address: document.getElementById('shopAddress').value,
+            categories: tempMenuCategories.map(c=>c.name),
+            menu: { categories: tempMenuCategories, position: tempDesign.menuPosition, bg: tempDesign.menuBg, text: tempDesign.menuText, radius: tempDesign.menuRadius },
+            carousel: tempCarousel, 
+            products: validProducts, 
+            rating:0, 
+            totalRatings:0, 
+            reviews:[],
+            owner: currentUserEmail,
+            verified: false,
+            totalSales: 0,
+            assets: [],
+            liabilities: [],
+            design: { 
+                primary:tempDesign.primary, 
+                button:tempDesign.button, 
+                background:tempDesign.background,
+                headerTextColor:tempDesign.headerTextColor, 
+                productTextColor:tempDesign.productTextColor,
+                carouselHeight:tempDesign.carouselHeight, 
+                carouselRadius:tempDesign.carouselRadius,
+                carouselSpeed:tempDesign.carouselSpeed, 
+                prodWidth:tempDesign.prodWidth,
+                prodImgHeight:tempDesign.prodImgHeight, 
+                prodRadius:tempDesign.prodRadius,
+                prodGap:tempDesign.prodGap, 
+                layout:tempDesign.layout, 
+                logoShape:tempLogoShape 
+            }
+        };
+        shops.push(newShop);
+        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+        alert(`✅ Boutique "${name}" créée avec succès !`);
+        window.location.href = 'index.html';
+    }
+    
+    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    // Initialisation des événements
+    document.querySelectorAll('.menu-pos-card').forEach(card=>{
+        card.addEventListener('click',()=>{
+            tempDesign.menuPosition = card.dataset.pos;
+            document.querySelectorAll('.menu-pos-card').forEach(c=>c.classList.remove('selected'));
+            card.classList.add('selected');
+            updatePreview();
+        });
+    });
+    document.querySelectorAll('.speed-card').forEach(card=>{
+        card.addEventListener('click',()=>{
+            tempDesign.carouselSpeed = parseInt(card.dataset.speed);
+            document.querySelectorAll('.speed-card').forEach(c=>c.classList.remove('selected'));
+            card.classList.add('selected');
+            updatePreview();
+        });
+    });
+    document.getElementById('menuBgColor').addEventListener('change', e=>{ tempDesign.menuBg = e.target.value; updatePreview(); });
+    document.getElementById('menuTextColor').addEventListener('change', e=>{ tempDesign.menuText = e.target.value; updatePreview(); });
+    
+    renderMenuCategories();
+    renderCarouselList();
+    renderProducts();
+    updatePreview();
+</script>
+</body>
+</html>
+```
+
+---
+
+## 📁 Fichier: `shop.html` (Correction pour afficher les produits alimentaires et le logo propre)
+
+```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -22,7 +617,6 @@
             --danger: #ef4444;
         }
         
-        /* Header */
         .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; position: sticky; top: 0; z-index: 100; }
         .logo h1 { font-size: 22px; font-weight: 800; color: var(--primary); cursor: pointer; }
         .search-wrapper { flex: 1; max-width: 350px; }
@@ -38,81 +632,67 @@
         
         .main { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
         
-        /* Header boutique personnalisé */
         .shop-header-custom { border-radius: 20px; padding: 28px; margin-bottom: 24px; color: white; position: relative; overflow: hidden; }
         .shop-header-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-        .shop-logo-large { width: 80px; height: 80px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .shop-logo-large img { width: 100%; height: 100%; object-fit: cover; }
+        .shop-logo-large { width: 80px; height: 80px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: var(--logo-radius, 12px); }
+        .shop-logo-large img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
         .shop-info h1 { font-size: 24px; margin-bottom: 6px; }
         .shop-info p { font-size: 13px; opacity: 0.9; }
         .shop-rating { margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .stars { color: var(--gold); font-size: 13px; }
         .certification-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 30px; font-size: 11px; margin-left: 8px; }
         
-        /* Menu de navigation */
         .shop-menu { background: var(--menu-bg); color: var(--menu-text); border-radius: var(--menu-radius); margin-bottom: 20px; }
         .shop-menu-horizontal { display: flex; gap: 20px; flex-wrap: wrap; padding: 10px 16px; }
         .shop-menu-vertical { width: 200px; float: left; margin-right: 20px; padding: 10px; }
         .shop-menu-item { position: relative; cursor: pointer; padding: 6px 0; font-size: 13px; }
-        .shop-submenu { position: absolute; top: 100%; left: 0; background: var(--menu-bg); min-width: 160px; border-radius: 8px; padding: 6px 0; display: none; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .shop-submenu { position: absolute; top: 100%; left: 0; background: var(--menu-bg); min-width: 160px; border-radius: 8px; padding: 6px 0; display: none; z-index: 100; }
         .shop-menu-item:hover .shop-submenu { display: block; }
         .shop-submenu-item { padding: 6px 14px; white-space: nowrap; font-size: 12px; }
-        .shop-submenu-item:hover { background: rgba(255,255,255,0.2); }
         .clearfix::after { content: ""; clear: both; display: table; }
         
-        /* Carrousel */
         .carousel-container { position: relative; margin-bottom: 24px; overflow: hidden; border-radius: var(--carousel-radius, 12px); }
         .carousel-slide { display: none; width: 100%; height: var(--carousel-height, 280px); object-fit: cover; }
         .carousel-slide.active { display: block; }
-        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; transition: 0.2s; }
-        .carousel-btn:hover { background: rgba(0,0,0,0.8); }
+        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; }
         .carousel-prev { left: 12px; }
         .carousel-next { right: 12px; }
         .carousel-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
         .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; }
         .carousel-dot.active { background: white; }
         
-        /* Catégories */
         .categories-filter { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; clear: both; }
-        .category-btn { padding: 6px 16px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 13px; transition: 0.2s; }
-        .category-btn.active { background: var(--primary-color, #1e40af); color: white; border-color: var(--primary-color, #1e40af); }
+        .category-btn { padding: 6px 16px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 13px; }
+        .category-btn.active { background: var(--primary-color, #1e40af); color: white; }
         
-        /* Produits */
         .products-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
         .product-card { background: var(--white); border-radius: var(--product-radius, 12px); border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; }
         .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
         .product-image { width: 100%; height: var(--product-img-height, 160px); object-fit: cover; }
         .product-info { padding: 12px; }
-        .product-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--product-text, #1e293b); line-height: 1.3; }
+        .product-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--product-text, #1e293b); }
         .product-price { font-size: 18px; font-weight: 700; color: var(--primary-color, #1e40af); margin: 6px 0; }
         .product-stock { font-size: 11px; color: var(--gray-500); margin-bottom: 8px; }
-        .product-badge { display: inline-block; background: var(--gray-100); padding: 2px 8px; border-radius: 20px; font-size: 10px; margin-bottom: 6px; color: var(--gray-600); }
-        .btn-add-cart { background: var(--button-color, #1e40af); color: white; border: none; padding: 8px; border-radius: var(--product-radius, 8px); font-weight: 500; cursor: pointer; width: 100%; transition: 0.2s; font-size: 12px; }
-        .btn-add-cart:hover { opacity: 0.9; }
+        .product-badge { display: inline-block; background: #eef2ff; color: var(--primary); padding: 2px 8px; border-radius: 20px; font-size: 10px; margin-bottom: 6px; }
+        .btn-add-cart { background: var(--button-color, #1e40af); color: white; border: none; padding: 8px; border-radius: var(--product-radius, 8px); font-weight: 500; cursor: pointer; width: 100%; font-size: 12px; }
         
-        /* Avis */
         .reviews-section { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); margin-top: 24px; clear: both; }
-        .reviews-section h3 { font-size: 16px; margin-bottom: 16px; }
         .review-item { padding: 12px 0; border-bottom: 1px solid var(--gray-200); }
-        .review-item:last-child { border-bottom: none; }
         .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
         .review-user { font-weight: 600; font-size: 13px; }
         .review-stars { color: var(--gold); font-size: 11px; }
         .review-date { font-size: 10px; color: var(--gray-500); }
-        .review-comment { font-size: 13px; color: var(--gray-700); margin-top: 6px; line-height: 1.4; }
+        .review-comment { font-size: 13px; color: var(--gray-700); margin-top: 6px; }
         
-        /* Modale produit */
         .product-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 16px; }
         .product-modal-content { background: var(--white); border-radius: 24px; max-width: 900px; width: 100%; max-height: 85vh; overflow-y: auto; cursor: default; padding: 20px; }
         .product-modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .product-main-image { width: 100%; height: 280px; object-fit: cover; border-radius: 16px; background: var(--gray-100); }
         .product-thumbnails { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
         .product-thumbnail { width: 55px; height: 55px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
-        .product-thumbnail.active { border-color: var(--primary-color, #1e40af); }
-        .variant-option { display: inline-block; margin: 4px; padding: 5px 12px; background: var(--gray-100); border-radius: 20px; cursor: pointer; font-size: 12px; border: 1px solid var(--gray-200); }
-        .variant-option.selected { background: var(--primary-color, #1e40af); color: white; border-color: var(--primary-color, #1e40af); }
-        .btn-modal-add { background: var(--button-color, #1e40af); color: white; border: none; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
-        .food-details { background: var(--gray-100); padding: 10px; border-radius: 12px; margin: 12px 0; font-size: 12px; }
+        .product-thumbnail.active { border-color: var(--primary-color); }
+        .food-details { background: var(--gray-100); padding: 12px; border-radius: 12px; margin: 12px 0; font-size: 12px; }
+        .btn-modal-add { background: var(--button-color); color: white; border: none; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
         
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 48px; padding: 20px; text-align: center; font-size: 11px; color: var(--gray-500); }
         
@@ -198,7 +778,6 @@
         
         const primaryColor = design.primary || '#1e40af';
         const buttonColor = design.button || primaryColor;
-        const bgColor = design.background || '#ffffff';
         const headerTextColor = design.headerTextColor || '#ffffff';
         const productTextColor = design.productTextColor || '#1e293b';
         
@@ -271,7 +850,7 @@
             <div class="shop-header-custom">
                 <div class="shop-header-content">
                     <div class="shop-logo-large">
-                        ${currentShop.logo ? `<img src="${currentShop.logo}">` : '<i class="fas fa-store" style="font-size:36px;color:var(--primary);"></i>'}
+                        ${currentShop.logo ? `<img src="${currentShop.logo}" style="object-fit:contain;">` : '<i class="fas fa-store" style="font-size:36px;"></i>'}
                     </div>
                     <div class="shop-info">
                         <h1>${escapeHtml(currentShop.name)}</h1>
@@ -348,8 +927,7 @@
     function startAutoCarousel() {
         if (carouselInterval) clearInterval(carouselInterval);
         const speed = currentShop.design?.carouselSpeed || 0;
-        const carouselItems = currentShop.carousel;
-        if (speed > 0 && carouselItems && carouselItems.length > 1) {
+        if (speed > 0 && currentShop.carousel && currentShop.carousel.length > 1) {
             carouselInterval = setInterval(() => {
                 const slides = document.querySelectorAll('.carousel-slide');
                 if (!slides.length) return;
@@ -431,17 +1009,7 @@
         if (!product) return;
         const design = currentShop.design || {};
         const photos = product.photos && product.photos.length ? product.photos : ['https://via.placeholder.com/600x400?text=Image'];
-        let selectedColor = product.colors?.[0] || '';
-        let selectedSize = product.sizes?.[0] || '';
         let currentPrice = parseFloat(product.price);
-        
-        function updatePrice() {
-            let price = parseFloat(product.price);
-            if (selectedColor && product.colorPrices && product.colorPrices[selectedColor]) price = product.colorPrices[selectedColor];
-            if (selectedSize && product.sizePrices && product.sizePrices[selectedSize]) price = product.sizePrices[selectedSize];
-            document.getElementById('modalPrice').innerText = price + ' FCFA';
-            window.currentProductPrice = price;
-        }
         
         const modal = document.createElement('div'); modal.className = 'product-modal';
         modal.innerHTML = `
@@ -469,16 +1037,16 @@
                         ` : ''}
                         ${product.colors && product.colors.length ? `
                             <div class="variant-selector"><strong>Couleurs:</strong><br>
-                                ${product.colors.map(c => `<span class="variant-option" data-type="color" data-value="${c}" style="background:${c}; color:white; display:inline-block; margin:3px;">${c}</span>`).join('')}
+                                ${product.colors.map(c => `<span class="variant-option" style="display:inline-block; margin:3px; padding:4px 10px; background:${c}; color:white; border-radius:20px; font-size:11px;">${c}</span>`).join('')}
                             </div>
                         ` : ''}
                         ${product.sizes && product.sizes.length ? `
                             <div class="variant-selector"><strong>Tailles:</strong><br>
-                                ${product.sizes.map(s => `<span class="variant-option" data-type="size" data-value="${s}">${s}</span>`).join('')}
+                                ${product.sizes.map(s => `<span class="variant-option" style="display:inline-block; margin:3px; padding:4px 10px; background:var(--gray-100); border-radius:20px; font-size:11px;">${s}</span>`).join('')}
                             </div>
                         ` : ''}
                         <div class="product-description" style="margin:12px 0;">${escapeHtml(product.description || 'Aucune description disponible')}</div>
-                        <button class="btn-modal-add" style="background:${design.button || '#1e40af'};" onclick="addToCartFromModal(${product.id}, '${escapeHtml(product.name)}')">Ajouter au panier</button>
+                        <button class="btn-modal-add" onclick="addToCartFromModal(${product.id}, '${escapeHtml(product.name)}')">Ajouter au panier</button>
                     </div>
                 </div>
             </div>`;
@@ -491,20 +1059,9 @@
                 thumb.classList.add('active');
             });
         });
-        document.querySelectorAll('.variant-option').forEach(opt => {
-            opt.addEventListener('click', () => {
-                const type = opt.dataset.type;
-                const value = opt.dataset.value;
-                if (type === 'color') selectedColor = value;
-                if (type === 'size') selectedSize = value;
-                document.querySelectorAll(`.variant-option[data-type="${type}"]`).forEach(o => o.classList.remove('selected'));
-                opt.classList.add('selected');
-                updatePrice();
-            });
-        });
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         window.addToCartFromModal = (pid, pname) => {
-            const price = window.currentProductPrice || parseFloat(product.price);
+            const price = parseFloat(product.price);
             if (!currentUser) { alert("Connectez-vous"); modal.remove(); openLoginModal(); return; }
             const existing = cart.find(i => i.productId === pid && i.shopId === currentShop.id);
             if (existing) existing.quantity++;
@@ -530,9 +1087,9 @@
         modal.innerHTML = `
             <div style="background:white;border-radius:24px;width:100%;max-width:380px;padding:28px;">
                 <h3 style="margin-bottom:16px;">Connexion</h3>
-                <div class="form-group"><input type="email" id="loginEmail" placeholder="Email" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:10px;"></div>
-                <div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:10px;"></div>
-                <button onclick="doLogin()" style="width:100%;padding:10px;background:var(--primary);color:white;border:none;border-radius:40px;font-weight:600;cursor:pointer;">Se connecter</button>
+                <div><input type="email" id="loginEmail" placeholder="Email" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:10px;margin-bottom:12px;"></div>
+                <div><input type="password" id="loginPassword" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:10px;margin-bottom:20px;"></div>
+                <button onclick="doLogin()" style="width:100%;padding:10px;background:var(--primary);color:white;border:none;border-radius:40px;cursor:pointer;">Se connecter</button>
                 <div style="text-align:center;margin-top:12px;"><a href="#" onclick="this.closest('.modal').remove();window.location.href='index.html';">Créer un compte</a></div>
             </div>`;
         document.body.appendChild(modal);
@@ -561,7 +1118,7 @@
     window.addToCartFromModal = addToCartFromModal;
     
     if (shops.length === 0) {
-        shops = [{ id: 1, name: "Tech Congo", city: "Brazzaville", quartier: "Moungali", rating: 4.8, totalRatings: 124, products: [{ id: 1, name: "Smartphone", price: "85000", photos: [], stock: 10, colors: ["Noir", "Bleu"], sizes: ["S", "M", "L"], description: "Smartphone haute performance", productType: "standard" }], categories: ["Electronique"], reviews: [], verified: true, design: { primary: "#1e40af", button: "#1e40af", carouselSpeed: 5, prodRadius: 12, prodImgHeight: 160, layout: "grid" } }];
+        shops = [{ id: 1, name: "Tech Congo", city: "Brazzaville", quartier: "Moungali", rating: 4.8, totalRatings: 124, products: [{ id: 1, name: "Smartphone", price: "85000", photos: [], stock: 10, colors: ["Noir", "Bleu"], sizes: ["S", "M", "L"], description: "Smartphone haute performance", productType: "standard" }], categories: ["Electronique"], reviews: [], verified: true, design: { primary: "#1e40af", button: "#1e40af", carouselSpeed: 5, prodRadius: 12, prodImgHeight: 160, layout: "grid", logoShape: "rounded" } }];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
     }
     
@@ -572,3 +1129,4 @@
 </script>
 </body>
 </html>
+```
