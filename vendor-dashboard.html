@@ -33,14 +33,12 @@
         .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
         .container { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
         
-        /* Statistiques */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
         .stat-card { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); transition: all 0.2s; }
         .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .stat-card h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
         
-        /* Boutons */
         .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-dark); }
@@ -51,7 +49,6 @@
         .btn-success { background: var(--success); color: white; }
         .btn-success:hover { background: #059669; }
         
-        /* Cartes boutique */
         .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; transition: all 0.2s; }
         .shop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
         .shop-header { padding: 20px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
@@ -63,24 +60,20 @@
         .shop-rating i { color: #f59e0b; }
         .shop-body { padding: 20px; }
         
-        /* Métriques */
         .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
         .metric-card { background: var(--gray-50); border-radius: 12px; padding: 12px; text-align: center; }
         .metric-value { font-size: 20px; font-weight: 700; color: var(--primary); }
         .metric-label { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
         
-        /* Produits */
         .product-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
         .product-name { font-weight: 500; }
         .product-price { font-weight: 600; color: var(--primary); }
         .product-stock { font-size: 12px; color: var(--gray-500); }
         
-        /* Actifs et passifs */
         .assets-section { background: var(--gray-50); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
         .assets-section h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--gray-700); }
         .asset-item, .liability-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--gray-200); }
         
-        /* Partage */
         .share-section { margin: 16px 0; }
         .share-section strong { font-size: 13px; font-weight: 600; color: var(--gray-700); }
         .share-buttons { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
@@ -92,13 +85,9 @@
         .share-linkedin { background: #0077b5; }
         .share-copy { background: var(--gray-500); }
         
-        /* Graphique */
         .chart-container { height: 180px; margin: 16px 0; }
-        
-        /* Actions */
         .shop-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
         
-        /* Modale */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; }
@@ -146,13 +135,79 @@
     document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
     document.getElementById('userName').innerText = currentUser.name;
     
+    // ============ FORMULE DE VALORISATION PROFESSIONNELLE ============
+    // Valeur = (Résultat × Multiple) + Trésorerie estimée - Dettes
+    // Multiple ajusté selon le secteur d'activité et la note
+    function getMultipleByRating(rating, category) {
+        let baseMultiple = 3.0;
+        
+        // Ajustement selon la note
+        if (rating >= 4.8) baseMultiple = 5.5;
+        else if (rating >= 4.5) baseMultiple = 4.5;
+        else if (rating >= 4.0) baseMultiple = 3.8;
+        else if (rating >= 3.5) baseMultiple = 3.2;
+        else if (rating >= 3.0) baseMultiple = 2.8;
+        else if (rating >= 2.5) baseMultiple = 2.2;
+        else baseMultiple = 1.8;
+        
+        // Ajustement selon le secteur (bonus)
+        const highValueSectors = ['Electronique', 'Mode', 'Bijouterie', 'Parfumerie', 'Luxe'];
+        if (highValueSectors.some(s => category?.includes(s))) baseMultiple *= 1.15;
+        
+        return baseMultiple;
+    }
+    
+    function calculateEBITDA(shop) {
+        // Calcul du résultat (EBITDA estimé)
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
+        const totalRevenue = shopOrders.reduce((sum, o) => sum + o.total, 0);
+        
+        // Estimation des charges (70% du CA pour les charges d'exploitation)
+        const operatingExpenses = totalRevenue * 0.7;
+        const ebitda = totalRevenue - operatingExpenses;
+        
+        // Projection annuelle (extrapolation)
+        const monthlyAvg = ebitda / (Math.max(shopOrders.length, 1));
+        const annualProjection = monthlyAvg * 12;
+        
+        return {
+            monthly: ebitda,
+            annual: annualProjection,
+            totalRevenue: totalRevenue,
+            operatingExpenses: operatingExpenses
+        };
+    }
+    
+    function calculateCashEstimate(shop) {
+        // Trésorerie estimée = 20% du CA annuel + actifs liquides
+        const ebitda = calculateEBITDA(shop);
+        const cashFromActivity = ebitda.annual * 0.2;
+        
+        // Actifs liquides (stock, matériel rapidement vendable)
+        const liquidAssets = (shop.assets || []).reduce((sum, a) => {
+            // 70% de la valeur des actifs considérée comme liquide
+            return sum + (a.value * 0.7);
+        }, 0);
+        
+        return cashFromActivity + liquidAssets;
+    }
+    
+    function calculateTotalDebts(shop) {
+        // Total des dettes
+        return (shop.liabilities || []).reduce((sum, l) => sum + l.value, 0);
+    }
+    
     function calculateValuation(shop) {
-        const baseValue = 1000000;
-        const productValue = (shop.products?.length || 0) * 50000;
-        const ratingBonus = (shop.rating || 0) * 150000;
-        const salesBonus = (shop.totalSales || 0) * 1000;
-        const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-        return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
+        const ebitda = calculateEBITDA(shop);
+        const multiple = getMultipleByRating(shop.rating || 0, shop.categories?.[0]);
+        const cash = calculateCashEstimate(shop);
+        const debts = calculateTotalDebts(shop);
+        
+        // Formule: Valeur = (Résultat × Multiple) + Trésorerie - Dettes
+        const valuation = (ebitda.annual * multiple) + cash - debts;
+        
+        // Valeur minimale de 500 000 FCFA
+        return Math.max(valuation, 500000);
     }
     
     function getMonthlyRevenue(shopId) {
@@ -169,6 +224,7 @@
         const totalProducts = userShops.reduce((s,shop)=>s+(shop.products?.length||0),0);
         const totalOrders = orders.filter(o => o.items?.some(i => userShops.some(s=>s.id===i.shopId))).length;
         const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s,o)=>s+o.total,0);
+        const totalValuation = userShops.reduce((s, shop) => s + calculateValuation(shop), 0);
         const pendingRequests = investmentRequests.filter(r => r.shopId && userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
         
         document.getElementById('appContainer').innerHTML = `
@@ -177,6 +233,7 @@
                 <div class="stat-card"><h3>Produits</h3><div class="stat-value">${totalProducts}</div></div>
                 <div class="stat-card"><h3>Commandes</h3><div class="stat-value">${totalOrders}</div></div>
                 <div class="stat-card"><h3>Chiffre d'affaires</h3><div class="stat-value">${totalRevenue.toLocaleString()} FCFA</div></div>
+                <div class="stat-card"><h3>Valorisation totale</h3><div class="stat-value">${totalValuation.toLocaleString()} FCFA</div></div>
                 <div class="stat-card"><h3>Demandes en attente</h3><div class="stat-value">${pendingRequests.length}</div></div>
             </div>
             <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
@@ -220,7 +277,12 @@
         const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
         const rating = shop.rating || 0;
         const valuation = calculateValuation(shop);
+        const ebitda = calculateEBITDA(shop);
+        const multiple = getMultipleByRating(rating, shop.categories?.[0]);
+        const cash = calculateCashEstimate(shop);
+        const debts = calculateTotalDebts(shop);
         const shopUrl = `${window.location.origin}${window.location.pathname.includes('vendor-dashboard') ? '/index.html' : '/index.html'}?id=${shop.id}`;
+        
         let stars = '';
         for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star"></i>';
         if(rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
@@ -244,6 +306,32 @@
                         <div class="metric-card"><div class="metric-value">${shop.products?.length||0}</div><div class="metric-label">Produits</div></div>
                         <div class="metric-card"><div class="metric-value">${shopOrders.length}</div><div class="metric-label">Commandes</div></div>
                         <div class="metric-card"><div class="metric-value">${revenue.toLocaleString()} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
+                    </div>
+                    
+                    <div style="background:var(--gray-50); border-radius:12px; padding:12px; margin-bottom:16px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
+                            <span><strong>EBITDA annuel</strong></span>
+                            <span>${Math.round(ebitda.annual).toLocaleString()} FCFA</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
+                            <span><strong>Multiple appliqué</strong></span>
+                            <span>${multiple}x</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
+                            <span><strong>Trésorerie estimée</strong></span>
+                            <span>${Math.round(cash).toLocaleString()} FCFA</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
+                            <span><strong>Dettes totales</strong></span>
+                            <span style="color:var(--danger);">- ${Math.round(debts).toLocaleString()} FCFA</span>
+                        </div>
+                        <div style="border-top:1px solid var(--gray-200); margin-top:8px; padding-top:8px; display:flex; justify-content:space-between; font-weight:700;">
+                            <span>Valorisation totale</span>
+                            <span style="color:var(--primary);">${Math.round(valuation).toLocaleString()} FCFA</span>
+                        </div>
+                        <div style="font-size:10px; color:var(--gray-500); margin-top:8px; text-align:center;">
+                            Formule: (Résultat × Multiple) + Trésorerie - Dettes
+                        </div>
                     </div>
                     
                     <div class="chart-container">
@@ -387,9 +475,10 @@
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Proposer à l'investissement</h3>
                 <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
-                    Boutique: ${escapeHtml(shop.name)}<br>
-                    Note actuelle: ${shop.rating}/5<br>
-                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
+                    <strong>${escapeHtml(shop.name)}</strong><br>
+                    Note: ${shop.rating}/5<br>
+                    Valorisation estimée: ${Math.round(calculateValuation(shop)).toLocaleString()} FCFA<br>
+                    EBITDA annuel: ${Math.round(calculateEBITDA(shop).annual).toLocaleString()} FCFA
                 </div>
                 <div class="form-group"><label>Pourcentage du capital à céder</label><input type="number" id="offerPercent" min="1" max="100" value="10"></div>
                 <div class="form-group"><label>Prix demandé (FCFA)</label><input type="number" id="offerPrice" placeholder="0"></div>
@@ -487,15 +576,35 @@
         for (let i = 5; i >= 0; i--) {
             monthlyData.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
         }
+        const ebitda = calculateEBITDA(shop);
+        const valuation = calculateValuation(shop);
+        
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card" style="max-width:700px;">
                 <h3 style="margin-bottom: 20px;">Statistiques - ${escapeHtml(shop.name)}</h3>
                 <div style="height: 250px;"><canvas id="statsChart"></canvas></div>
-                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-top:16px;">
-                    <strong>Chiffre d'affaires total:</strong> ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>
-                    <strong>Commandes:</strong> ${shopOrders.length}<br>
-                    <strong>Note moyenne:</strong> ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)
+                <div style="background:var(--gray-100);padding:16px;border-radius:12px;margin-top:16px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <strong>Chiffre d'affaires total</strong>
+                        <span>${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <strong>EBITDA annuel</strong>
+                        <span>${Math.round(ebitda.annual).toLocaleString()} FCFA</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <strong>Valorisation</strong>
+                        <span style="color:var(--primary); font-weight:700;">${Math.round(valuation).toLocaleString()} FCFA</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <strong>Commandes</strong>
+                        <span>${shopOrders.length}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong>Note moyenne</strong>
+                        <span>${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)</span>
+                    </div>
                 </div>
                 <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline" style="margin-top:16px;">Fermer</button>
             </div>`;
