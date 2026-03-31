@@ -12,7 +12,7 @@
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
         :root { --primary: #1e40af; --primary-dark: #1e3a8a; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --white: #ffffff; --gray-100: #f1f5f9; --gray-200: #e2e8f0; --gray-500: #64748b; --gray-700: #334155; }
         .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-        .logo h1 { font-size: 24px; color: var(--primary); }
+        .logo h1 { font-size: 24px; color: var(--primary); cursor: pointer; }
         .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
         .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
         .container { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
@@ -22,7 +22,7 @@
         .stat-value { font-size: 28px; font-weight: 700; }
         .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; }
         .shop-header { padding: 20px; background: var(--gray-100); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .shop-info { display: flex; align-items: center; gap: 16px; }
+        .shop-info { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
         .shop-logo { width: 50px; height: 50px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; }
         .shop-body { padding: 20px; }
         .product-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
@@ -30,6 +30,7 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: var(--gray-100); border: 1px solid var(--gray-200); }
         .btn-warning { background: var(--warning); color: white; }
+        .btn-success { background: var(--success); color: white; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; }
@@ -37,8 +38,13 @@
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 10px; }
         .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 40px; border: none; width: 100%; cursor: pointer; }
-        .assets-list { margin: 12px 0; }
-        .asset-item, .liability-item { background: var(--gray-100); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .share-buttons { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .share-btn { padding: 4px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; color: white; }
+        .share-facebook { background: #1877f2; }
+        .share-twitter { background: #1da1f2; }
+        .share-whatsapp { background: #25d366; }
+        .share-linkedin { background: #0077b5; }
+        .share-copy { background: var(--gray-500); }
         .footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }
         .chart-container { height: 250px; margin: 20px 0; }
         @media (max-width: 700px) { .stats-grid { grid-template-columns: 1fr; } }
@@ -47,13 +53,13 @@
 <body>
 
 <div class="header">
-    <div class="logo"><h1>OUENZE</h1></div>
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
     <div class="user-menu" onclick="window.location.href='index.html'"><div class="user-avatar" id="userAvatar">V</div><div><span id="userName">Vendeur</span><br><small>Tableau de bord</small></div><i class="fas fa-arrow-right"></i></div>
 </div>
 
 <div class="container" id="appContainer"></div>
 
-<div class="footer">2024 Ouenze - Espace vendeur | Gérez vos actifs, passifs et demandes d'investissement</div>
+<div class="footer">2024 Ouenze - Espace vendeur | <a href="accounting.html" style="color:var(--primary);">Comptabilité</a> | Gérez vos actifs, passifs et demandes d'investissement</div>
 
 <script>
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
@@ -76,6 +82,15 @@
         return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
     }
     
+    function getMonthlyRevenue(shopId) {
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
+        const monthly = [];
+        for (let i = 5; i >= 0; i--) {
+            monthly.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
+        }
+        return monthly;
+    }
+    
     function showDashboard() {
         const userShops = shops.filter(s => s.owner === currentUser.email);
         const totalProducts = userShops.reduce((s,shop)=>s+(shop.products?.length||0),0);
@@ -96,10 +111,24 @@
                 <button class="btn-sm btn-outline" onclick="openAddProduct()">+ Ajouter produit</button>
                 <button class="btn-sm btn-outline" onclick="openRestock()"> Ravitailler</button>
                 <button class="btn-sm btn-warning" onclick="openInvestmentRequests()">📊 Voir les demandes (${pendingRequests.length})</button>
+                <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'">📈 Comptabilité</button>
             </div>
             <h2>Mes boutiques</h2>
             ${userShops.length ? userShops.map(shop => renderShop(shop)).join('') : '<div class="stat-card" style="text-align:center;">Aucune boutique. Cliquez sur "Créer une boutique"</div>'}
         `;
+        
+        // Créer les graphiques pour chaque boutique
+        userShops.forEach(shop => {
+            const monthlyData = getMonthlyRevenue(shop.id);
+            const ctx = document.getElementById(`chart-${shop.id}`)?.getContext('2d');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], datasets: [{ label: 'CA (FCFA)', data: monthlyData, borderColor: '#1e40af', fill: true, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            }
+        });
     }
     
     function renderShop(shop) {
@@ -107,6 +136,7 @@
         const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
         const rating = shop.rating || 0;
         const valuation = calculateValuation(shop);
+        const shopUrl = `${window.location.origin}/index.html?id=${shop.id}`;
         let stars = '';
         for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star" style="color:#f59e0b;"></i>';
         for(let i=0;i<5-Math.ceil(rating);i++) stars += '<i class="far fa-star"></i>';
@@ -115,7 +145,7 @@
             <div class="shop-card">
                 <div class="shop-header">
                     <div class="shop-info">
-                        <div class="shop-logo">${shop.logo ? `<img src="${shop.logo}" style="width:40px;height:40px;">` : '<i class="fas fa-store"></i>'}</div>
+                        <div class="shop-logo">${shop.logo ? `<img src="${shop.logo}" style="width:40px;height:40px;object-fit:cover;">` : '<i class="fas fa-store"></i>'}</div>
                         <div><h3>${escapeHtml(shop.name)}</h3><div>${stars} (${shop.totalRatings||0} avis)</div><div style="font-size:12px;">Valorisation: ${valuation.toLocaleString()} FCFA</div></div>
                     </div>
                     <div><span class="btn-sm btn-outline" onclick="viewStats(${shop.id})">Statistiques</span></div>
@@ -126,6 +156,22 @@
                         <div><strong>${shopOrders.length}</strong><br>Commandes</div>
                         <div><strong>${revenue.toLocaleString()} FCFA</strong><br>CA</div>
                     </div>
+                    
+                    <div class="chart-container" style="height: 180px; margin: 16px 0;">
+                        <canvas id="chart-${shop.id}"></canvas>
+                    </div>
+                    
+                    <div style="margin: 12px 0;">
+                        <strong>Partager ma boutique</strong>
+                        <div class="share-buttons">
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shopUrl)}" target="_blank" class="share-btn share-facebook"><i class="fab fa-facebook-f"></i> Facebook</a>
+                            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(shopUrl)}&text=Découvrez ma boutique ${encodeURIComponent(shop.name)} sur Ouenze!" target="_blank" class="share-btn share-twitter"><i class="fab fa-twitter"></i> Twitter</a>
+                            <a href="https://wa.me/?text=${encodeURIComponent(`Découvrez ma boutique ${shop.name} sur Ouenze! ${shopUrl}`)}" target="_blank" class="share-btn share-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                            <a href="https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shopUrl)}&title=${encodeURIComponent(shop.name)}" target="_blank" class="share-btn share-linkedin"><i class="fab fa-linkedin-in"></i> LinkedIn</a>
+                            <button onclick="copyShopLink('${shopUrl}')" class="share-btn share-copy"><i class="fas fa-copy"></i> Copier lien</button>
+                        </div>
+                    </div>
+                    
                     <h4>Actifs & Passifs</h4>
                     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
                         <button class="btn-sm btn-outline" onclick="manageAssets(${shop.id})">📦 Gérer les actifs</button>
@@ -153,6 +199,11 @@
         `;
     }
     
+    function copyShopLink(url) {
+        navigator.clipboard.writeText(url);
+        alert("Lien de la boutique copié !");
+    }
+    
     function manageAssets(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
@@ -161,7 +212,7 @@
             <div class="modal-card">
                 <h3>Gestion des actifs - ${escapeHtml(shop.name)}</h3>
                 <div id="assetsList">${(shop.assets || []).map((a, i) => `
-                    <div class="asset-item">
+                    <div class="asset-item" style="background:var(--gray-100);padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;">
                         <span><strong>${escapeHtml(a.name)}</strong> - ${a.value.toLocaleString()} FCFA</span>
                         <button onclick="removeAsset(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;">Supprimer</button>
                     </div>
@@ -201,7 +252,7 @@
             <div class="modal-card">
                 <h3>Gestion des passifs - ${escapeHtml(shop.name)}</h3>
                 <div id="liabilitiesList">${(shop.liabilities || []).map((l, i) => `
-                    <div class="asset-item">
+                    <div class="asset-item" style="background:var(--gray-100);padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;">
                         <span><strong>${escapeHtml(l.name)}</strong> - ${l.value.toLocaleString()} FCFA</span>
                         <button onclick="removeLiability(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;">Supprimer</button>
                     </div>
@@ -281,10 +332,6 @@
         localStorage.setItem('ouenze_investment_offers', JSON.stringify(offers));
         
         console.log(`📧 Demande d'investissement envoyée à admin@ouenze.cg`);
-        console.log(`Vendeur: ${currentUser.name} (${currentUser.email})`);
-        console.log(`Boutique: ${shop.name}`);
-        console.log(`Offre: ${percent}% du capital pour ${price.toLocaleString()} FCFA`);
-        
         alert(`✅ Demande envoyée !\n\nNotre équipe examinera votre proposition sous 48h.\nUn email de confirmation a été envoyé.`);
         document.querySelector('.modal')?.remove();
         showDashboard();
@@ -351,13 +398,17 @@
             <div class="modal-card" style="max-width:700px;">
                 <h3>Statistiques - ${escapeHtml(shop.name)}</h3>
                 <div class="chart-container"><canvas id="statsChart"></canvas></div>
-                <div class="info-box">CA total: ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>Commandes: ${shopOrders.length}</div>
-                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
+                <div class="info-box" style="background:var(--gray-100);padding:12px;border-radius:12px;margin-top:12px;">
+                    CA total: ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>
+                    Commandes: ${shopOrders.length}<br>
+                    Note moyenne: ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)
+                </div>
+                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline" style="margin-top:12px;">Fermer</button>
             </div>`;
         document.body.appendChild(modal);
         setTimeout(() => {
             const ctx = document.getElementById('statsChart')?.getContext('2d');
-            if (ctx) new Chart(ctx, { type: 'line', data: { labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], datasets: [{ label: 'CA (FCFA)', data: monthlyData, borderColor: '#1e40af' }] }, options: { responsive: true } });
+            if (ctx) new Chart(ctx, { type: 'line', data: { labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], datasets: [{ label: 'CA (FCFA)', data: monthlyData, borderColor: '#1e40af', fill: true, tension: 0.3 }] }, options: { responsive: true } });
         }, 100);
     }
     
