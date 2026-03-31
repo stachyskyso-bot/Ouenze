@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Styles identiques à votre version - garder les mêmes styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
         :root {
@@ -239,6 +238,15 @@
     let currentCategory = 'all';
     let carouselInterval = null;
     let selectedPayment = null;
+    
+    // Fonction d'envoi d'email (simulation)
+    function sendEmail(to, subject, body) {
+        console.log(`📧 EMAIL ENVOYÉ À: ${to}`);
+        console.log(`📧 OBJET: ${subject}`);
+        console.log(`📧 MESSAGE: ${body}`);
+        console.log('---');
+        return true;
+    }
     
     // Boutiques par défaut
     if (shops.length === 0) {
@@ -905,13 +913,12 @@
         orders.push(newOrder);
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         
+        // Envoi d'email de confirmation
+        const emailBody = `Bonjour ${currentUser?.name || 'Client'},\n\nVotre commande #${orderId} a été confirmée.\n\nDétails:\n- Total: ${finalTotal.toLocaleString()} FCFA\n- Livraison: ${city}, ${quartier}\n- Paiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}\n\nVous pouvez suivre votre commande ici: https://ouenze.cg/tracking.html?id=${orderId}\n\nMerci de votre confiance !\n\nL'équipe Ouenze`;
+        sendEmail(currentUser?.email || 'client@email.com', `Confirmation de commande #${orderId}`, emailBody);
+        
         cart = [];
         saveData();
-        
-        // Email simulation
-        console.log(`📧 EMAIL ENVOYÉ À ${currentUser?.email || 'client@email.com'}`);
-        console.log(`Objet: Confirmation de commande #${orderId}`);
-        console.log(`Bonjour ${currentUser?.name || 'Client'},\n\nVotre commande #${orderId} a été confirmée.\nTotal: ${finalTotal.toLocaleString()} FCFA\nPaiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}\nLivraison: ${city}, ${quartier}\n\nSuivez votre commande: https://ouenze.cg/tracking.html?id=${orderId}\n\nMerci de votre confiance !`);
         
         alert(`✅ Commande ${orderId} confirmée !\n\nUn email de confirmation a été envoyé à ${currentUser?.email || 'votre email'}\nTotal: ${finalTotal.toLocaleString()} FCFA\nPaiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}`);
         
@@ -955,7 +962,9 @@
             stepContent.innerHTML = `
                 <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
                 <div class="form-group"><label>Prénom(s) *</label><input type="text" id="firstName" placeholder="Jean"></div>
-               
+                <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
+                <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
+                <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: 123456789"></div>
                 <div class="form-group"><label>Ville de résidence</label><input type="text" id="city" placeholder="Brazzaville"></div>
                 <div class="form-group"><label>Adresse</label><textarea id="address" rows="2"></textarea></div>
                 <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
@@ -968,13 +977,8 @@
             stepContent.innerHTML = `
                 <div class="form-group"><label>Type de compte</label><select id="accountType" onchange="togglePaymentFields()"><option value="client">Client</option><option value="vendeur">Vendeur</option></select></div>
                 <div id="paymentFields" style="display:none">
-                     <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
-                <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
-                <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: OA3456789"></div>
-                    <div class="form-group"><label>Coordonnées bancaires / Mobile Money <span id="paymentRequired" style="color:red;">*</span></label>
-                    <select id="paymentMethod"><option value="">Sélectionner</option><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa / Mastercard</option><option value="paypal">PayPal</option></select></div>
+                    <div class="form-group"><label>Coordonnées bancaires / Mobile Money *</label><select id="paymentMethod"><option value="">Sélectionner</option><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa / Mastercard</option><option value="paypal">PayPal</option></select></div>
                     <div class="form-group"><input type="text" id="paymentDetails" placeholder="Numéro de compte ou identifiant"></div>
-                    <div class="info-text" style="font-size:10px; color:var(--gray-500); margin-top:-8px; margin-bottom:12px;">Ces informations sont obligatoires pour les vendeurs</div>
                 </div>
                 <div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-submit" onclick="finalizeRegistration()">Créer mon compte</button></div>
             `;
@@ -985,8 +989,7 @@
     
     function togglePaymentFields() {
         const paymentFields = document.getElementById('paymentFields');
-        const isVendeur = document.getElementById('accountType').value === 'vendeur';
-        if (paymentFields) paymentFields.style.display = isVendeur ? 'block' : 'none';
+        if (paymentFields) paymentFields.style.display = document.getElementById('accountType').value === 'vendeur' ? 'block' : 'none';
     }
     
     function validateRegisterStep1() {
@@ -1002,13 +1005,11 @@
         if (password !== confirm) { alert("Mots de passe différents"); return; }
         tempUserData = { fullName, firstName, birthDate, birthPlace, idNumber, city: document.getElementById('city').value, address: document.getElementById('address').value, email, password };
         generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+        alert(`Code vérification: ${generatedCode}`);
         
-        // Email simulation
-        console.log(`📧 EMAIL ENVOYÉ À ${email}`);
-        console.log(`Objet: Code de vérification Ouenze`);
-        console.log(`Bonjour ${fullName},\n\nVotre code de vérification est: ${generatedCode}\n\nCe code expire dans 10 minutes.\n\nCordialement,\nL'équipe Ouenze`);
+        // Envoi d'email de vérification
+        sendEmail(email, "Code de vérification Ouenze", `Bonjour ${fullName},\n\nVotre code de vérification est: ${generatedCode}\n\nCe code expire dans 10 minutes.\n\nL'équipe Ouenze`);
         
-        alert(`Code de vérification: ${generatedCode}\n\nUn email a été envoyé à ${email}`);
         currentStep = 2;
         renderRegisterStep();
     }
@@ -1025,12 +1026,7 @@
         const accountType = document.getElementById('accountType').value;
         const paymentMethod = document.getElementById('paymentMethod')?.value || '';
         const paymentDetails = document.getElementById('paymentDetails')?.value || '';
-        
-        // Vérification des coordonnées bancaires uniquement pour les vendeurs
-        if (accountType === 'vendeur' && (!paymentMethod || !paymentDetails)) {
-            alert("Coordonnées bancaires requises pour les vendeurs");
-            return;
-        }
+        if (accountType === 'vendeur' && (!paymentMethod || !paymentDetails)) { alert("Coordonnées bancaires requises pour les vendeurs"); return; }
         
         currentUser = { 
             name: tempUserData.fullName, 
@@ -1040,28 +1036,28 @@
             idNumber: tempUserData.idNumber, 
             email: tempUserData.email, 
             type: accountType,
-            ...(accountType === 'vendeur' && { paymentMethod, paymentDetails })
+            paymentMethod: accountType === 'vendeur' ? paymentMethod : null,
+            paymentDetails: accountType === 'vendeur' ? paymentDetails : null
         };
-        
         saveData();
         closeRegisterModal();
         
-        // Email de confirmation
-        console.log(`📧 EMAIL DE BIENVENUE ENVOYÉ À ${tempUserData.email}`);
-        console.log(`Objet: Bienvenue sur Ouenze !`);
-        console.log(`Bonjour ${tempUserData.fullName},\n\nVotre compte ${accountType === 'vendeur' ? 'vendeur' : 'client'} a été créé avec succès.\n\nConnectez-vous dès maintenant pour découvrir notre marketplace.\n\nCordialement,\nL'équipe Ouenze`);
+        // Envoi d'email de bienvenue
+        const welcomeBody = `Bonjour ${currentUser.name},\n\nVotre compte ${accountType === 'vendeur' ? 'vendeur' : 'client'} a été créé avec succès sur Ouenze Marketplace !\n\n${accountType === 'vendeur' ? 'Vous pouvez maintenant créer votre boutique depuis votre tableau de bord vendeur.' : 'Vous pouvez maintenant parcourir les boutiques et passer vos commandes.'}\n\nCordialement,\nL'équipe Ouenze`;
+        sendEmail(currentUser.email, "Bienvenue sur Ouenze Marketplace", welcomeBody);
         
-        alert(`✅ Compte ${accountType} créé avec succès !\n\nUn email de bienvenue a été envoyé à ${tempUserData.email}`);
+        alert(`Compte ${accountType} créé !\nUn email de bienvenue a été envoyé à ${currentUser.email}`);
         updateHeaderUI();
         resetToHome();
     }
     
     function forgotPassword() { 
         if (currentUser?.email) {
-            console.log(`📧 EMAIL DE RÉINITIALISATION ENVOYÉ À ${currentUser.email}`);
-            alert("Un lien de réinitialisation a été envoyé à votre email");
+            const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            sendEmail(currentUser.email, "Réinitialisation de mot de passe", `Bonjour,\n\nVotre code de réinitialisation est: ${resetCode}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\nL'équipe Ouenze`);
+            alert(`Un code de réinitialisation a été envoyé à ${currentUser.email}`);
         } else {
-            alert("Veuillez entrer votre email pour réinitialiser votre mot de passe");
+            alert("Veuillez entrer votre email");
         }
     }
     function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); }
@@ -1073,16 +1069,19 @@
         window.doLogin = () => {
             const email = document.getElementById('loginEmail').value.trim();
             if (email) { 
-                // Vérifier si un compte vendeur existe avec ce mail
-                const existingShops = shops.filter(s => s.owner === email);
-                const userType = existingShops.length > 0 ? 'vendeur' : 'client';
-                currentUser = { name: email.split('@')[0], email, type: userType };
+                // Simuler la récupération d'un utilisateur existant
+                const existingUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+                if (existingUser && existingUser.email === email) {
+                    currentUser = existingUser;
+                } else {
+                    currentUser = { name: email.split('@')[0], email, type: 'client' };
+                }
                 saveData(); 
                 updateHeaderUI(); 
                 modal.remove(); 
                 resetToHome(); 
                 alert(`Bienvenue ${currentUser.name}`);
-                console.log(`📧 EMAIL DE CONNEXION: Connexion réussie pour ${email}`);
+                sendEmail(email, "Connexion à Ouenze", `Bonjour ${currentUser.name},\n\nVous vous êtes connecté à votre compte Ouenze Marketplace.\n\nSi ce n'est pas vous, veuillez contacter notre support.`);
             } else alert("Email requis");
         };
     }
@@ -1098,14 +1097,7 @@
         updateVendorLink();
     }
     
-    function logout() { 
-        currentUser = null; 
-        saveData(); 
-        updateHeaderUI(); 
-        resetToHome(); 
-        alert("Déconnexion réussie");
-        console.log("📧 Déconnexion effectuée");
-    }
+    function logout() { currentUser = null; saveData(); updateHeaderUI(); resetToHome(); alert("Déconnexion réussie"); }
     
     function resetToHome() {
         const url = new URL(window.location.href);
