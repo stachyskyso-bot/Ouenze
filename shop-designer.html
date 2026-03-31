@@ -2,591 +2,786 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Ouenze | Création de boutique</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze | Tableau de bord vendeur</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Styles identiques à votre version */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
-        :root {
-            --primary: #1e40af;
-            --primary-dark: #1e3a8a;
-            --white: #ffffff;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-500: #64748b;
-            --gray-700: #334155;
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; }
+        :root { 
+            --primary: #1e40af; 
+            --primary-dark: #1e3a8a; 
+            --primary-light: #3b82f6; 
+            --success: #10b981; 
+            --danger: #ef4444; 
+            --warning: #f59e0b; 
+            --white: #ffffff; 
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9; 
+            --gray-200: #e2e8f0; 
+            --gray-500: #64748b; 
+            --gray-700: #334155; 
+            --gray-900: #0f172a;
         }
         
-        .header-simple { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 16px 20px; text-align: center; }
-        .header-simple h1 { font-size: 22px; font-weight: 700; color: var(--primary); }
-        .header-simple p { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; transition: all 0.2s; }
+        .user-menu:hover { background: var(--gray-200); }
+        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
         
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 16px; }
-        .designer-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .designer-panel { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); padding: 20px; position: sticky; top: 20px; height: fit-content; max-height: calc(100vh - 100px); overflow-y: auto; }
-        .designer-preview { background: #f8fafc; border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); overflow: auto; max-height: calc(100vh - 100px); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .stat-card { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); transition: all 0.2s; }
+        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .stat-card h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
         
-        .design-section { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-200); }
-        .design-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-700); display: flex; align-items: center; gap: 8px; }
+        .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-outline { background: var(--gray-100); border: 1px solid var(--gray-200); color: var(--gray-700); }
+        .btn-outline:hover { background: var(--gray-200); }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #e67e22; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
         
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--gray-700); }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; }
-        .form-group input:focus { outline: none; border-color: var(--primary); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; transition: all 0.2s; }
+        .shop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
+        .shop-header { padding: 20px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .shop-info { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .shop-logo { width: 50px; height: 50px; border-radius: 12px; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); overflow: hidden; }
+        .shop-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .shop-info h3 { font-size: 18px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+        .shop-rating { font-size: 12px; color: var(--gray-500); }
+        .shop-rating i { color: #f59e0b; }
+        .shop-body { padding: 20px; }
         
-        .slider-group { margin: 12px 0; }
-        .slider-group label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
-        input[type="range"] { width: 100%; height: 4px; background: var(--gray-200); border-radius: 2px; -webkit-appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .metric-card { background: var(--gray-50); border-radius: 12px; padding: 12px; text-align: center; }
+        .metric-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+        .metric-label { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
         
-        .color-picker-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
-        .color-option { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
-        .color-option.selected { border-color: var(--gray-700); transform: scale(1.05); }
+        .product-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
+        .product-name { font-weight: 500; }
+        .product-price { font-weight: 600; color: var(--primary); }
+        .product-stock { font-size: 12px; color: var(--gray-500); }
         
-        .layout-option, .speed-option, .menu-position-option, .product-type-option { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .layout-card, .speed-card, .menu-pos-card, .product-type-card { flex: 1; padding: 6px; background: var(--gray-100); border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 11px; font-weight: 500; }
-        .layout-card.selected, .speed-card.selected, .menu-pos-card.selected, .product-type-card.selected { border-color: var(--primary); background: #eef2ff; }
+        .assets-section { background: var(--gray-50); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+        .assets-section h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--gray-700); }
+        .asset-item, .liability-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--gray-200); }
         
-        .logo-shape-option { display: flex; gap: 10px; margin: 10px 0; }
-        .logo-shape { width: 45px; height: 45px; background: var(--primary); cursor: pointer; border: 2px solid transparent; }
-        .logo-shape.square { border-radius: 0; }
-        .logo-shape.rounded { border-radius: 10px; }
-        .logo-shape.circle { border-radius: 50%; }
-        .logo-shape.selected { border-color: var(--gray-700); transform: scale(1.05); }
+        .share-section { margin: 16px 0; }
+        .share-section strong { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+        .share-buttons { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .share-btn { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: white; transition: opacity 0.2s; }
+        .share-btn:hover { opacity: 0.9; }
+        .share-facebook { background: #1877f2; }
+        .share-twitter { background: #1da1f2; }
+        .share-whatsapp { background: #25d366; }
+        .share-linkedin { background: #0077b5; }
+        .share-copy { background: var(--gray-500); }
         
-        .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); }
-        .image-preview { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
-        .image-preview img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
+        .chart-container { height: 180px; margin: 16px 0; }
         
-        .menu-category-item { background: var(--gray-100); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-        .subcategory-list { margin-left: 20px; margin-top: 6px; }
-        .subcategory-item { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; background: var(--white); padding: 5px 8px; border-radius: 6px; }
+        .shop-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
         
-        .product-item { background: var(--gray-100); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--gray-200); }
-        .photo-gallery { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-        .photo-item { width: 60px; height: 60px; background: var(--white); border-radius: 8px; border: 1px solid var(--gray-200); position: relative; overflow: hidden; }
-        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
-        .remove-photo { position: absolute; top: 2px; right: 2px; background: #dc2626; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
-        .btn-sm { padding: 4px 10px; background: var(--gray-200); border: none; border-radius: 16px; cursor: pointer; font-size: 11px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+        .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 40px; border: none; width: 100%; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-submit:hover { background: var(--primary-dark); }
         
-        .preview-shop { background: var(--preview-bg, #ffffff); overflow: hidden; border-radius: 16px; }
-        .preview-header { background: linear-gradient(135deg, var(--preview-primary, #1e40af), var(--preview-primary-dark)); padding: 20px; color: white; }
-        .preview-logo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .preview-logo-img { width: 55px; height: 55px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: inherit; }
-        .preview-logo-img img { width: 100%; height: 100%; object-fit: contain; max-width: 100%; max-height: 100%; }
-        .preview-menu { background: var(--menu-bg, #1e40af); color: var(--menu-text, white); padding: 8px 16px; border-radius: var(--menu-radius, 0px); margin-bottom: 16px; }
-        .preview-menu-horizontal { display: flex; gap: 16px; flex-wrap: wrap; }
-        .preview-menu-vertical { width: 180px; float: left; margin-right: 16px; }
-        .preview-menu-item { position: relative; cursor: pointer; padding: 6px 0; font-size: 13px; }
-        .preview-submenu { position: absolute; top: 100%; left: 0; background: var(--menu-bg); min-width: 150px; border-radius: 6px; padding: 6px 0; display: none; z-index: 100; }
-        .preview-menu-item:hover .preview-submenu { display: block; }
-        .preview-submenu-item { padding: 6px 12px; white-space: nowrap; font-size: 12px; }
-        .preview-content { overflow: hidden; }
-        .preview-carousel { position: relative; margin-bottom: 16px; overflow: hidden; border-radius: var(--carousel-radius, 12px); height: var(--carousel-height, 220px); }
-        .preview-carousel .slide { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .preview-carousel .active { display: block; }
-        .preview-products { display: var(--preview-layout, grid); grid-template-columns: repeat(auto-fill, minmax(var(--product-width, 200px), 1fr)); gap: var(--product-gap, 16px); margin-top: 16px; }
-        .preview-product { background: white; border-radius: var(--product-radius, 10px); border: 1px solid var(--gray-200); overflow: hidden; }
-        .preview-product-image { height: var(--product-img-height, 140px); background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .preview-product-image img { width: 100%; height: 100%; object-fit: cover; }
-        .preview-product-info { padding: 10px; }
-        .preview-product-title { font-weight: 600; font-size: 13px; color: var(--product-text, #1e293b); }
-        .preview-product-price { font-weight: 700; color: var(--preview-primary, #1e40af); margin: 4px 0; font-size: 14px; }
-        .preview-btn { background: var(--preview-button, #1e40af); color: white; border: none; padding: 6px; border-radius: var(--product-radius, 8px); width: 100%; cursor: pointer; font-size: 11px; }
-        .food-badge { display: inline-block; background: #eef2ff; color: var(--primary); font-size: 9px; padding: 2px 6px; border-radius: 12px; margin-bottom: 4px; }
-        .clearfix::after { content: ""; clear: both; display: table; }
+        .footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }
+        .footer a { color: var(--primary); text-decoration: none; }
         
-        @media (max-width: 900px) {
-            .designer-layout { grid-template-columns: 1fr; }
-            .designer-panel { position: relative; top: 0; max-height: none; }
-            .designer-preview { max-height: none; }
-            .form-row { grid-template-columns: 1fr; }
+        @media (max-width: 700px) { 
+            .stats-grid { grid-template-columns: 1fr; }
+            .metrics-grid { grid-template-columns: 1fr; gap: 8px; }
         }
     </style>
 </head>
 <body>
 
-<div class="header-simple">
-    <h1>Création de boutique</h1>
-    <p>Personnalisez votre espace, menu, couleurs, carrousel et produits</p>
-</div>
-
-<div class="container">
-    <div class="designer-layout">
-        <!-- Panneau de configuration -->
-        <div class="designer-panel">
-            <h2 style="margin-bottom:16px; font-size:18px;">Configuration</h2>
-            
-            <!-- Logo -->
-            <div class="design-section">
-                <h3><i class="fas fa-image"></i> Logo</h3>
-                <div class="image-upload" onclick="document.getElementById('logoUpload').click()">
-                    <div id="logoPreview" class="image-preview"><i class="fas fa-cloud-upload-alt"></i></div>
-                    <div>Charger un logo</div>
-                </div>
-                <input type="file" id="logoUpload" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
-                <div class="logo-shape-option">
-                    <div class="logo-shape square" onclick="setLogoShape('square', this)"></div>
-                    <div class="logo-shape rounded" onclick="setLogoShape('rounded', this)"></div>
-                    <div class="logo-shape circle" onclick="setLogoShape('circle', this)"></div>
-                </div>
-            </div>
-            
-            <!-- Informations boutique -->
-            <div class="design-section">
-                <h3><i class="fas fa-store"></i> Informations</h3>
-                <div class="form-group"><label>Nom *</label><input type="text" id="shopNameInput" placeholder="Ma boutique"></div>
-                <div class="form-group"><label>Description</label><textarea id="shopDescInput" rows="2"></textarea></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Ville</label><input type="text" id="shopCity" placeholder="Brazzaville"></div>
-                    <div class="form-group"><label>Quartier</label><input type="text" id="shopQuartier"></div>
-                </div>
-                <div class="form-group"><label>Adresse</label><input type="text" id="shopAddress"></div>
-            </div>
-            
-            <!-- Menu de navigation -->
-            <div class="design-section">
-                <h3><i class="fas fa-bars"></i> Menu de navigation</h3>
-                <div class="form-group"><label>Position du menu</label>
-                    <div class="menu-position-option">
-                        <div class="menu-pos-card" data-pos="horizontal">Horizontal</div>
-                        <div class="menu-pos-card" data-pos="vertical-left">Vertical gauche</div>
-                        <div class="menu-pos-card" data-pos="vertical-right">Vertical droite</div>
-                    </div>
-                </div>
-                <div class="form-group"><label>Couleur fond menu</label><input type="color" id="menuBgColor" value="#1e40af"></div>
-                <div class="form-group"><label>Couleur texte menu</label><input type="color" id="menuTextColor" value="#ffffff"></div>
-                <div class="slider-group"><label>Arrondi menu <span id="menuRadiusVal">0</span>px</label><input type="range" id="menuRadius" min="0" max="30" value="0" oninput="updateMenuRadius(this.value)"></div>
-                <div id="menuCategoriesList"></div>
-                <button onclick="addMenuCategory()" class="btn-sm" style="margin-top:8px;">+ Ajouter une catégorie</button>
-            </div>
-            
-            <!-- Carrousel -->
-            <div class="design-section">
-                <h3><i class="fas fa-images"></i> Carrousel bannière</h3>
-                <div id="carouselList" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
-                <div class="image-upload" onclick="document.getElementById('carouselMedia').click()" style="padding:8px;">+ Ajouter image/vidéo</div>
-                <input type="file" id="carouselMedia" accept="image/*,video/*" style="display:none;" onchange="addCarouselMedia(this)">
-                <div class="slider-group"><label>Hauteur <span id="carouselHeightVal">220</span>px</label><input type="range" id="carouselHeight" min="120" max="400" value="220" oninput="updateCarouselHeight(this.value)"></div>
-                <div class="slider-group"><label>Arrondi <span id="carouselRadiusVal">12</span>px</label><input type="range" id="carouselRadius" min="0" max="40" value="12" oninput="updateCarouselRadius(this.value)"></div>
-                <div class="speed-option" id="speedOptions">
-                    <div class="speed-card" data-speed="0">Manuel</div>
-                    <div class="speed-card" data-speed="3">3s</div>
-                    <div class="speed-card" data-speed="5">5s</div>
-                    <div class="speed-card" data-speed="10">10s</div>
-                </div>
-            </div>
-            
-            <!-- Couleurs globales -->
-            <div class="design-section">
-                <h3><i class="fas fa-palette"></i> Couleurs</h3>
-                <div class="form-group"><label>Couleur principale</label><div class="color-picker-group"><div class="color-option" style="background:#1e40af;" onclick="selectColor('primary','#1e40af',this)"></div><div class="color-option" style="background:#7c3aed;" onclick="selectColor('primary','#7c3aed',this)"></div><div class="color-option" style="background:#d97706;" onclick="selectColor('primary','#d97706',this)"></div><input type="color" id="primaryColorPicker" onchange="selectColor('primary',this.value,null)"></div></div>
-                <div class="form-group"><label>Couleur boutons</label><div class="color-picker-group"><div class="color-option" style="background:#1e40af;" onclick="selectColor('button','#1e40af',this)"></div><div class="color-option" style="background:#7c3aed;" onclick="selectColor('button','#7c3aed',this)"></div><input type="color" id="buttonColorPicker" onchange="selectColor('button',this.value,null)"></div></div>
-                <div class="form-group"><label>Couleur fond boutique</label><input type="color" id="bgColorPicker" value="#ffffff" onchange="selectColor('background',this.value,null)"></div>
-                <div class="form-group"><label>Couleur texte header</label><input type="color" id="headerTextColor" value="#ffffff" onchange="updateHeaderTextColor(this.value)"></div>
-                <div class="form-group"><label>Couleur texte produits</label><input type="color" id="productTextColor" value="#1e293b" onchange="updateProductTextColor(this.value)"></div>
-            </div>
-            
-            <!-- Design produits -->
-            <div class="design-section">
-                <h3><i class="fas fa-cube"></i> Affichage produits</h3>
-                <div class="slider-group"><label>Largeur <span id="prodWidthVal">200</span>px</label><input type="range" id="prodWidth" min="150" max="280" value="200" oninput="updateProdWidth(this.value)"></div>
-                <div class="slider-group"><label>Hauteur image <span id="prodImgHeightVal">140</span>px</label><input type="range" id="prodImgHeight" min="100" max="220" value="140" oninput="updateProdImgHeight(this.value)"></div>
-                <div class="slider-group"><label>Arrondi produits <span id="prodRadiusVal">10</span>px</label><input type="range" id="prodRadius" min="0" max="32" value="10" oninput="updateProdRadius(this.value)"></div>
-                <div class="slider-group"><label>Espacement <span id="prodGapVal">16</span>px</label><input type="range" id="prodGap" min="8" max="40" value="16" oninput="updateProdGap(this.value)"></div>
-                <label>Disposition</label>
-                <div class="layout-option"><div class="layout-card" onclick="selectLayout('grid')">Grille</div><div class="layout-card" onclick="selectLayout('list')">Liste</div></div>
-            </div>
-            
-            <!-- Produits (illimités) -->
-            <div class="design-section">
-                <h3><i class="fas fa-box"></i> Produits</h3>
-                <div id="productsList"></div>
-                <button onclick="addProduct()" style="width:100%;padding:8px;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;cursor:pointer;margin-top:10px;">+ Ajouter un produit</button>
-            </div>
-            
-            <button class="btn-primary" onclick="publishShop()">Publier ma boutique</button>
-        </div>
-        
-        <!-- Aperçu -->
-        <div class="designer-preview">
-            <h3 style="margin-bottom:12px;">Aperçu en temps réel</h3>
-            <div id="livePreview"></div>
-        </div>
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
+    <div class="user-menu" onclick="window.location.href='index.html'">
+        <div class="user-avatar" id="userAvatar">V</div>
+        <div><span id="userName">Vendeur</span><br><small>Tableau de bord</small></div>
+        <i class="fas fa-arrow-right" style="color: var(--gray-500);"></i>
     </div>
 </div>
 
+<div class="container" id="appContainer"></div>
+
+<div class="footer">
+    2024 Ouenze - Espace vendeur | <a href="accounting.html">Comptabilité</a> | Gérez vos actifs, passifs et demandes d'investissement
+</div>
+
 <script>
-    // État
-    let tempLogo = null;
-    let tempLogoShape = 'rounded';
-    let tempMenuCategories = [];
-    let tempCarousel = [];
-    let tempProducts = [];
-    let tempDesign = {
-        primary: "#1e40af", button: "#1e40af", background: "#ffffff",
-        headerTextColor: "#ffffff", productTextColor: "#1e293b",
-        menuBg: "#1e40af", menuText: "#ffffff", menuRadius: 0, menuPosition: "horizontal",
-        carouselHeight: 220, carouselRadius: 12, carouselSpeed: 0,
-        prodWidth: 200, prodImgHeight: 140, prodRadius: 10, prodGap: 16,
-        layout: "grid"
-    };
-    let carouselInterval = null;
-    
-    // Récupérer l'utilisateur connecté
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-    let currentUserEmail = currentUser?.email || 'vendeur@ouenze.cg';
-    let currentUserName = currentUser?.name || 'Vendeur';
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
+    let investmentRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
     
-    // Logo
-    function handleLogoUpload(input) {
-        if(input.files && input.files[0]) { 
-            const r = new FileReader(); 
-            r.onload = e => { 
-                tempLogo = e.target.result; 
-                document.getElementById('logoPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;">`; 
-                updatePreview(); 
-            }; 
-            r.readAsDataURL(input.files[0]); 
+    if(!currentUser || currentUser.type !== 'vendeur') window.location.href = 'index.html';
+    
+    document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
+    document.getElementById('userName').innerText = currentUser.name;
+    
+    // Calcul professionnel de la valorisation : Valeur = (Résultat × Multiple) + Trésorerie estimée - Dettes
+    function calculateValuation(shop) {
+        // Calcul du résultat (CA - charges estimées)
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
+        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        
+        // Charges estimées (30% du CA pour les frais, 5% pour les commissions)
+        const estimatedExpenses = revenue * 0.35;
+        const result = revenue - estimatedExpenses;
+        
+        // Multiple selon le secteur et la note (entre 2 et 8)
+        let multiple = 3;
+        if(shop.rating >= 4.5) multiple = 6;
+        else if(shop.rating >= 3.5) multiple = 4.5;
+        else if(shop.rating >= 2.5) multiple = 3;
+        else multiple = 2;
+        
+        // Bonus pour le nombre de produits
+        if((shop.products?.length || 0) > 50) multiple += 1;
+        if((shop.products?.length || 0) > 100) multiple += 0.5;
+        
+        // Trésorerie estimée (20% du CA annuel)
+        const estimatedCash = revenue * 0.2;
+        
+        // Dettes (passifs)
+        const debts = (shop.liabilities || []).reduce((sum, l) => sum + (l.value || 0), 0);
+        
+        // Actifs
+        const assets = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+        
+        // Valorisation finale
+        let valuation = (result * multiple) + estimatedCash + assets - debts;
+        
+        // Valeur minimale
+        if(valuation < 500000) valuation = 500000;
+        
+        return Math.round(valuation);
+    }
+    
+    function getMonthlyRevenue(shopId) {
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
+        const monthly = [];
+        for (let i = 5; i >= 0; i--) {
+            monthly.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
         }
-    }
-    function setLogoShape(shape, element) {
-        tempLogoShape = shape; 
-        document.querySelectorAll('.logo-shape').forEach(el=>el.classList.remove('selected')); 
-        element.classList.add('selected'); 
-        updatePreview(); 
+        return monthly;
     }
     
-    // Menu catégories
-    function addMenuCategory() {
-        tempMenuCategories.push({ name: 'Nouvelle catégorie', subcategories: [] });
-        renderMenuCategories();
-        updatePreview();
+    function showDashboard() {
+        const userShops = shops.filter(s => s.owner === currentUser.email);
+        const totalProducts = userShops.reduce((s,shop)=>s+(shop.products?.length||0),0);
+        const totalOrders = orders.filter(o => o.items?.some(i => userShops.some(s=>s.id===i.shopId))).length;
+        const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s,o)=>s+o.total,0);
+        const pendingRequests = investmentRequests.filter(r => r.shopId && userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
+        
+        document.getElementById('appContainer').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card"><h3>Mes boutiques</h3><div class="stat-value">${userShops.length}</div></div>
+                <div class="stat-card"><h3>Produits</h3><div class="stat-value">${totalProducts}</div></div>
+                <div class="stat-card"><h3>Commandes</h3><div class="stat-value">${totalOrders}</div></div>
+                <div class="stat-card"><h3>Chiffre d'affaires</h3><div class="stat-value">${totalRevenue.toLocaleString()} FCFA</div></div>
+                <div class="stat-card"><h3>Demandes en attente</h3><div class="stat-value">${pendingRequests.length}</div></div>
+            </div>
+            <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+                <button class="btn-sm btn-primary" onclick="createNewShop()"><i class="fas fa-plus"></i> Créer une boutique</button>
+                <button class="btn-sm btn-outline" onclick="openAddProduct()"><i class="fas fa-box"></i> Ajouter produit</button>
+                <button class="btn-sm btn-outline" onclick="openRestock()"><i class="fas fa-truck"></i> Ravitailler</button>
+                <button class="btn-sm btn-warning" onclick="openInvestmentRequests()"><i class="fas fa-chart-line"></i> Demandes (${pendingRequests.length})</button>
+                <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
+            </div>
+            <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques</h2>
+            ${userShops.length ? userShops.map(shop => renderShop(shop)).join('') : '<div class="stat-card" style="text-align:center;">Aucune boutique. Cliquez sur "Créer une boutique" pour commencer.</div>'}
+        `;
+        
+        userShops.forEach(shop => {
+            const monthlyData = getMonthlyRevenue(shop.id);
+            const ctx = document.getElementById(`chart-${shop.id}`)?.getContext('2d');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: { 
+                        labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], 
+                        datasets: [{ 
+                            label: 'CA (FCFA)', 
+                            data: monthlyData, 
+                            borderColor: '#1e40af', 
+                            backgroundColor: 'rgba(30,64,175,0.05)',
+                            fill: true, 
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#1e40af'
+                        }] 
+                    },
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } } }
+                });
+            }
+        });
     }
-    function removeMenuCategory(idx) { tempMenuCategories.splice(idx,1); renderMenuCategories(); updatePreview(); }
-    function addSubcategory(catIdx) { tempMenuCategories[catIdx].subcategories.push('Nouvelle sous-catégorie'); renderMenuCategories(); updatePreview(); }
-    function removeSubcategory(catIdx, subIdx) { tempMenuCategories[catIdx].subcategories.splice(subIdx,1); renderMenuCategories(); updatePreview(); }
-    function updateMenuCategoryName(idx, val) { tempMenuCategories[idx].name = val; updatePreview(); }
-    function updateSubcategoryName(catIdx, subIdx, val) { tempMenuCategories[catIdx].subcategories[subIdx] = val; updatePreview(); }
-    function renderMenuCategories() {
-        const container = document.getElementById('menuCategoriesList');
-        if(!container) return;
-        container.innerHTML = tempMenuCategories.map((cat, ci) => `
-            <div class="menu-category-item">
-                <input type="text" value="${escapeHtml(cat.name)}" onchange="updateMenuCategoryName(${ci}, this.value)" style="width:100%; margin-bottom:6px; padding:5px; border:1px solid var(--gray-200); border-radius:6px; font-size:12px;">
-                <div class="subcategory-list">
-                    ${cat.subcategories.map((sub, si) => `
-                        <div class="subcategory-item">
-                            <input type="text" value="${escapeHtml(sub)}" onchange="updateSubcategoryName(${ci}, ${si}, this.value)" style="flex:1; padding:4px; border:1px solid var(--gray-200); border-radius:5px; font-size:11px;">
-                            <button onclick="removeSubcategory(${ci}, ${si})" style="background:#fee2e2; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer;">✕</button>
+    
+    function renderShop(shop) {
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
+        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        const rating = shop.rating || 0;
+        const valuation = calculateValuation(shop);
+        const shopUrl = `${window.location.origin}${window.location.pathname.includes('vendor-dashboard') ? '/index.html' : '/index.html'}?id=${shop.id}`;
+        let stars = '';
+        for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star"></i>';
+        if(rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
+        for(let i=0;i<5-Math.ceil(rating);i++) stars += '<i class="far fa-star"></i>';
+        
+        return `
+            <div class="shop-card">
+                <div class="shop-header">
+                    <div class="shop-info">
+                        <div class="shop-logo">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:24px;color:var(--primary);"></i>'}</div>
+                        <div>
+                            <h3>${escapeHtml(shop.name)}</h3>
+                            <div class="shop-rating">${stars} (${shop.totalRatings||0} avis)</div>
+                            <div style="font-size:12px; color:var(--gray-500);">Valorisation: ${valuation.toLocaleString()} FCFA</div>
+                        </div>
+                    </div>
+                    <div><button class="btn-sm btn-outline" onclick="viewStats(${shop.id})"><i class="fas fa-chart-simple"></i> Statistiques</button></div>
+                </div>
+                <div class="shop-body">
+                    <div class="metrics-grid">
+                        <div class="metric-card"><div class="metric-value">${shop.products?.length||0}</div><div class="metric-label">Produits</div></div>
+                        <div class="metric-card"><div class="metric-value">${shopOrders.length}</div><div class="metric-label">Commandes</div></div>
+                        <div class="metric-card"><div class="metric-value">${revenue.toLocaleString()} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="chart-${shop.id}"></canvas>
+                    </div>
+                    
+                    <div class="share-section">
+                        <strong><i class="fas fa-share-alt"></i> Partager ma boutique</strong>
+                        <div class="share-buttons">
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shopUrl)}" target="_blank" class="share-btn share-facebook"><i class="fab fa-facebook-f"></i> Facebook</a>
+                            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(shopUrl)}&text=Découvrez ma boutique ${encodeURIComponent(shop.name)} sur Ouenze!" target="_blank" class="share-btn share-twitter"><i class="fab fa-twitter"></i> Twitter</a>
+                            <a href="https://wa.me/?text=${encodeURIComponent(`Découvrez ma boutique ${shop.name} sur Ouenze! ${shopUrl}`)}" target="_blank" class="share-btn share-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                            <a href="https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shopUrl)}&title=${encodeURIComponent(shop.name)}" target="_blank" class="share-btn share-linkedin"><i class="fab fa-linkedin-in"></i> LinkedIn</a>
+                            <button onclick="copyShopLink('${shopUrl}')" class="share-btn share-copy"><i class="fas fa-copy"></i> Copier lien</button>
+                        </div>
+                    </div>
+                    
+                    <div class="assets-section">
+                        <h4><i class="fas fa-building" style="color:var(--primary);"></i> Actifs</h4>
+                        ${(shop.assets || []).map(a => `<div class="asset-item"><span>${escapeHtml(a.name)}</span><span>${a.value.toLocaleString()} FCFA</span></div>`).join('') || '<div style="font-size:12px; color:var(--gray-500);">Aucun actif enregistré</div>'}
+                        <div style="margin-top: 8px;"><button class="btn-sm btn-outline" onclick="manageAssets(${shop.id})" style="width:100%;"><i class="fas fa-plus"></i> Gérer les actifs</button></div>
+                    </div>
+                    
+                    <div class="assets-section">
+                        <h4><i class="fas fa-chart-line" style="color:var(--warning);"></i> Passifs</h4>
+                        ${(shop.liabilities || []).map(l => `<div class="asset-item"><span>${escapeHtml(l.name)}</span><span>${l.value.toLocaleString()} FCFA</span></div>`).join('') || '<div style="font-size:12px; color:var(--gray-500);">Aucun passif enregistré</div>'}
+                        <div style="margin-top: 8px;"><button class="btn-sm btn-outline" onclick="manageLiabilities(${shop.id})" style="width:100%;"><i class="fas fa-plus"></i> Gérer les passifs</button></div>
+                    </div>
+                    
+                    <h4 style="font-size: 13px; margin: 16px 0 8px;"><i class="fas fa-box"></i> Produits récents</h4>
+                    ${(shop.products||[]).slice(0,3).map(p => `
+                        <div class="product-row">
+                            <span class="product-name">${escapeHtml(p.name)}</span>
+                            <span class="product-price">${p.price} FCFA</span>
+                            <span class="product-stock">Stock: ${p.stock||0}</span>
                         </div>
                     `).join('')}
-                    <button onclick="addSubcategory(${ci})" class="btn-sm" style="margin-top:4px;">+ Sous-catégorie</button>
-                </div>
-                <button onclick="removeMenuCategory(${ci})" style="margin-top:6px; background:#fee2e2; border:none; padding:3px 6px; border-radius:5px; cursor:pointer; font-size:10px;">Supprimer</button>
-            </div>
-        `).join('');
-        if(!tempMenuCategories.length) container.innerHTML = '<div style="color:var(--gray-500); font-size:11px;">Aucune catégorie. Ajoutez-en une.</div>';
-    }
-    
-    // Carrousel
-    function addCarouselMedia(input) {
-        if(input.files && input.files[0]) { 
-            const r = new FileReader(); 
-            r.onload = e => { 
-                tempCarousel.push({ type: input.files[0].type.startsWith('image/') ? 'image' : 'video', src: e.target.result }); 
-                renderCarouselList(); 
-                updatePreview(); 
-            }; 
-            r.readAsDataURL(input.files[0]); 
-        }
-    }
-    function removeCarouselMedia(idx) { tempCarousel.splice(idx,1); renderCarouselList(); updatePreview(); }
-    function renderCarouselList() {
-        const container = document.getElementById('carouselList');
-        if(!container) return;
-        container.innerHTML = tempCarousel.map((m,i) => `<div style="position:relative; width:55px; height:55px; border-radius:6px; overflow:hidden; border:1px solid var(--gray-200);"><${m.type === 'image' ? 'img' : 'video'} src="${m.src}" style="width:100%;height:100%;object-fit:cover;"><div style="position:absolute;top:0;right:0;background:red;color:white;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;" onclick="removeCarouselMedia(${i})">✕</div></div>`).join('');
-    }
-    function updateCarouselHeight(v) { tempDesign.carouselHeight = v; document.getElementById('carouselHeightVal').innerText = v; updatePreview(); }
-    function updateCarouselRadius(v) { tempDesign.carouselRadius = v; document.getElementById('carouselRadiusVal').innerText = v; updatePreview(); }
-    
-    // Couleurs et design
-    function selectColor(type, color, el) {
-        if(type==='primary') { tempDesign.primary = color; document.getElementById('primaryColorPicker').value = color; }
-        if(type==='button') { tempDesign.button = color; document.getElementById('buttonColorPicker').value = color; }
-        if(type==='background') { tempDesign.background = color; document.getElementById('bgColorPicker').value = color; }
-        if(el) { document.querySelectorAll(`.color-option`).forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); }
-        updatePreview();
-    }
-    function updateHeaderTextColor(c) { tempDesign.headerTextColor = c; updatePreview(); }
-    function updateProductTextColor(c) { tempDesign.productTextColor = c; updatePreview(); }
-    function updateMenuRadius(v) { tempDesign.menuRadius = v; document.getElementById('menuRadiusVal').innerText = v; updatePreview(); }
-    function updateProdWidth(v) { tempDesign.prodWidth = v; document.getElementById('prodWidthVal').innerText = v; updatePreview(); }
-    function updateProdImgHeight(v) { tempDesign.prodImgHeight = v; document.getElementById('prodImgHeightVal').innerText = v; updatePreview(); }
-    function updateProdRadius(v) { tempDesign.prodRadius = v; document.getElementById('prodRadiusVal').innerText = v; updatePreview(); }
-    function updateProdGap(v) { tempDesign.prodGap = v; document.getElementById('prodGapVal').innerText = v; updatePreview(); }
-    function selectLayout(l) { tempDesign.layout = l; document.querySelectorAll('.layout-card').forEach(c=>c.classList.remove('selected')); event.target.classList.add('selected'); updatePreview(); }
-    
-    // Produits (illimités)
-    function addProduct() {
-        tempProducts.push({ 
-            id: Date.now(), name: '', price: '', category: '', stock: 0, 
-            colors: [], sizes: [], photos: [], description: '',
-            productType: 'standard',
-            expiryDate: '', weight: '', origin: '', ingredients: ''
-        });
-        renderProducts();
-        updatePreview();
-    }
-    function updateProduct(idx, field, val) { if(tempProducts[idx]) tempProducts[idx][field] = val; updatePreview(); }
-    function addProductPhoto(idx, input) { 
-        if(input.files && input.files[0]) { 
-            const r = new FileReader(); 
-            r.onload = e => { 
-                tempProducts[idx].photos.push(e.target.result); 
-                renderProducts(); 
-                updatePreview(); 
-            }; 
-            r.readAsDataURL(input.files[0]); 
-        } 
-    }
-    function removeProductPhoto(idx, pidx) { tempProducts[idx].photos.splice(pidx,1); renderProducts(); updatePreview(); }
-    function addProductColor(idx, color) { if(color && !tempProducts[idx].colors.includes(color)) { tempProducts[idx].colors.push(color); renderProducts(); updatePreview(); } }
-    function removeProductColor(idx, cidx) { tempProducts[idx].colors.splice(cidx,1); renderProducts(); updatePreview(); }
-    function removeProduct(idx) { tempProducts.splice(idx,1); renderProducts(); updatePreview(); }
-    
-    function renderProducts() {
-        const container = document.getElementById('productsList');
-        if(!container) return;
-        if(!tempProducts.length) { container.innerHTML = '<div style="text-align:center;padding:16px;">Aucun produit</div>'; return; }
-        container.innerHTML = tempProducts.map((p, idx) => `
-            <div class="product-item">
-                <div class="form-row"><input placeholder="Nom" value="${escapeHtml(p.name)}" onchange="updateProduct(${idx},'name',this.value)"><input placeholder="Prix (FCFA)" value="${p.price}" onchange="updateProduct(${idx},'price',this.value)"></div>
-                <div class="form-row">
-                    <input placeholder="Catégorie" value="${escapeHtml(p.category)}" onchange="updateProduct(${idx},'category',this.value)">
-                    <input placeholder="Stock" type="number" value="${p.stock}" onchange="updateProduct(${idx},'stock',parseInt(this.value))">
-                </div>
-                <div class="form-group"><label>Type de produit</label>
-                    <div class="product-type-option">
-                        <div class="product-type-card ${p.productType === 'standard' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','standard'); renderProducts();">Standard</div>
-                        <div class="product-type-card ${p.productType === 'food' ? 'selected' : ''}" onclick="updateProduct(${idx},'productType','food'); renderProducts();">Alimentaire</div>
+                    ${(!shop.products||!shop.products.length) ? '<div style="font-size:12px; color:var(--gray-500);">Aucun produit</div>' : ''}
+                    
+                    <div class="shop-actions">
+                        <button class="btn-sm btn-outline" onclick="openAddProductToShop(${shop.id})"><i class="fas fa-plus"></i> Ajouter produit</button>
+                        <button class="btn-sm btn-outline" onclick="openRestockToShop(${shop.id})"><i class="fas fa-truck"></i> Ravitailler</button>
+                        <button class="btn-sm btn-primary" onclick="openShopDesigner(${shop.id})"><i class="fas fa-edit"></i> Modifier le design</button>
+                        <button class="btn-sm btn-warning" onclick="openSellShopModal(${shop.id})"><i class="fas fa-store"></i> Vendre la boutique</button>
                     </div>
-                </div>
-                ${p.productType === 'food' ? `
-                <div class="form-row">
-                    <input placeholder="Date d'expiration (JJ/MM/AAAA)" value="${p.expiryDate}" onchange="updateProduct(${idx},'expiryDate',this.value)">
-                    <input placeholder="Poids (kg/g)" value="${p.weight}" onchange="updateProduct(${idx},'weight',this.value)">
-                </div>
-                <div class="form-row">
-                    <input placeholder="Origine" value="${p.origin}" onchange="updateProduct(${idx},'origin',this.value)">
-                    <input placeholder="Ingrédients" value="${p.ingredients}" onchange="updateProduct(${idx},'ingredients',this.value)">
-                </div>
-                ` : ''}
-                <div><strong>Photos</strong><div class="photo-gallery">${p.photos.map((ph,pi)=>`<div class="photo-item"><img src="${ph}"><div class="remove-photo" onclick="removeProductPhoto(${idx},${pi})">✕</div></div>`).join('')}</div><input type="file" accept="image/*" onchange="addProductPhoto(${idx}, this)"></div>
-                <div><strong>Couleurs</strong><div>${p.colors.map((c,ci)=>`<span style="background:#e2e8f0;padding:2px 8px;border-radius:16px;margin:2px;display:inline-block;font-size:11px;">${c} <span onclick="removeProductColor(${idx},${ci})" style="cursor:pointer;">✕</span></span>`).join('')}</div><div class="form-row"><input id="colorIn-${idx}" placeholder="Nouvelle couleur"><button onclick="addProductColor(${idx}, document.getElementById('colorIn-${idx}').value); document.getElementById('colorIn-${idx}').value=''">+</button></div></div>
-                <textarea placeholder="Description" rows="2" onchange="updateProduct(${idx},'description',this.value)">${escapeHtml(p.description)}</textarea>
-                <button onclick="removeProduct(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:4px;border-radius:6px;width:100%;margin-top:6px;font-size:11px;">Supprimer</button>
-            </div>
-        `).join('');
-    }
-    
-    // Aperçu
-    function updatePreview() {
-        const preview = document.getElementById('livePreview');
-        if(!preview) return;
-        const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
-        const desc = document.getElementById('shopDescInput')?.value || '';
-        const city = document.getElementById('shopCity')?.value || 'Brazzaville';
-        const quartier = document.getElementById('shopQuartier')?.value || '';
-        const products = tempProducts.filter(p=>p.name && p.price);
-        const logoShapeClass = tempLogoShape === 'square' ? '0px' : tempLogoShape === 'rounded' ? '12px' : '50%';
-        const isHorizontal = tempDesign.menuPosition === 'horizontal';
-        const isVerticalLeft = tempDesign.menuPosition === 'vertical-left';
-        const isVerticalRight = tempDesign.menuPosition === 'vertical-right';
-        
-        let menuHtml = '';
-        if(isHorizontal) {
-            menuHtml = `<div class="preview-menu preview-menu-horizontal" style="background:${tempDesign.menuBg}; color:${tempDesign.menuText}; border-radius:${tempDesign.menuRadius}px;">
-                ${tempMenuCategories.map(cat => `
-                    <div class="preview-menu-item">
-                        ${escapeHtml(cat.name)}
-                        ${cat.subcategories.length ? `<div class="preview-submenu">${cat.subcategories.map(sub => `<div class="preview-submenu-item">${escapeHtml(sub)}</div>`).join('')}</div>` : ''}
-                    </div>
-                `).join('')}
-            </div>`;
-        } else {
-            menuHtml = `<div class="preview-menu preview-menu-vertical" style="background:${tempDesign.menuBg}; color:${tempDesign.menuText}; border-radius:${tempDesign.menuRadius}px; float: ${isVerticalLeft ? 'left' : 'right'}; margin-${isVerticalLeft ? 'right' : 'left'}: 16px; width:160px;">
-                ${tempMenuCategories.map(cat => `
-                    <div class="preview-menu-item">
-                        ${escapeHtml(cat.name)}
-                        ${cat.subcategories.length ? `<div class="preview-submenu">${cat.subcategories.map(sub => `<div class="preview-submenu-item">${escapeHtml(sub)}</div>`).join('')}</div>` : ''}
-                    </div>
-                `).join('')}
-            </div>`;
-        }
-        
-        const contentMargin = isVerticalLeft ? 'margin-left: 176px;' : (isVerticalRight ? 'margin-right: 176px;' : '');
-        
-        preview.innerHTML = `
-            <style>
-                .preview-shop{background:${tempDesign.background}; border-radius:12px;}
-                .preview-header{background:linear-gradient(135deg,${tempDesign.primary},${tempDesign.primary}aa);color:${tempDesign.headerTextColor};}
-                .preview-logo-img{border-radius:${logoShapeClass};}
-                .preview-products{display:${tempDesign.layout === 'grid' ? 'grid' : 'flex'};${tempDesign.layout === 'grid' ? `grid-template-columns:repeat(auto-fill,minmax(${tempDesign.prodWidth}px,1fr));` : 'flex-direction:column;'}gap:${tempDesign.prodGap}px;}
-                .preview-product{border-radius:${tempDesign.prodRadius}px;}
-                .preview-product-image{height:${tempDesign.prodImgHeight}px;}
-                .preview-product-title{color:${tempDesign.productTextColor};}
-                .preview-product-price{color:${tempDesign.primary};}
-                .preview-btn{background:${tempDesign.button};border-radius:${tempDesign.prodRadius}px;}
-                .preview-carousel{height:${tempDesign.carouselHeight}px;border-radius:${tempDesign.carouselRadius}px;}
-            </style>
-            <div class="preview-shop">
-                <div class="preview-header">
-                    <div class="preview-logo">
-                        <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
-                        <div><h3 style="font-size:16px;">${escapeHtml(shopName)}</h3><p style="font-size:11px;">${escapeHtml(desc)}</p><div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${quartier}</div></div>
-                    </div>
-                </div>
-                ${menuHtml}
-                <div class="preview-content" style="${contentMargin}">
-                    <div class="preview-carousel" id="previewCarousel">
-                        ${tempCarousel.map((m,i)=>`<${m.type} src="${m.src}" class="slide ${i===0?'active':''}"></${m.type}>`).join('')}
-                        ${tempCarousel.length>1?`<button class="carousel-btn carousel-prev" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;" onclick="changeSlide(-1)">❮</button><button class="carousel-btn carousel-next" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;" onclick="changeSlide(1)">❯</button>`:''}
-                    </div>
-                    <div class="preview-products">
-                        ${products.slice(0,6).map(p=>`
-                            <div class="preview-product">
-                                <div class="preview-product-image">${p.photos[0]?`<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">`:'<i class="fas fa-image"></i>'}</div>
-                                <div class="preview-product-info">
-                                    <div class="preview-product-title">${escapeHtml(p.name)}</div>
-                                    <div class="preview-product-price">${p.price} FCFA</div>
-                                    ${p.productType === 'food' ? `<div class="food-badge"><i class="fas fa-utensils"></i> Alimentaire</div>` : ''}
-                                    <div style="font-size:10px;">Stock: ${p.stock}</div>
-                                    <button class="preview-btn">Ajouter</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ${!products.length?'<div style="text-align:center;padding:20px;">Aucun produit</div>':''}
                 </div>
             </div>
         `;
-        
-        if(tempCarousel.length && tempDesign.carouselSpeed>0) {
-            if(carouselInterval) clearInterval(carouselInterval);
-            carouselInterval = setInterval(() => {
-                const slides = document.querySelectorAll('#previewCarousel .slide');
-                if(!slides.length) return;
-                let active = Array.from(slides).findIndex(s=>s.classList.contains('active'));
-                slides[active].classList.remove('active');
-                slides[(active+1)%slides.length].classList.add('active');
-            }, tempDesign.carouselSpeed*1000);
-        }
     }
     
-    window.changeSlide = function(d) {
-        const slides = document.querySelectorAll('#previewCarousel .slide');
-        if(!slides.length) return;
-        let active = Array.from(slides).findIndex(s=>s.classList.contains('active'));
-        slides[active].classList.remove('active');
-        slides[(active+d+slides.length)%slides.length].classList.add('active');
-    };
+    function openShopDesigner(shopId) {
+        window.open(`shop-designer.html?edit=${shopId}`, '_blank');
+    }
     
-    // Publication avec propriétaire et ID correct
-    function publishShop() {
-        const name = document.getElementById('shopNameInput').value.trim();
-        if(!name) { alert("Nom de boutique requis"); return; }
-        const validProducts = tempProducts.filter(p=>p.name && p.price && p.photos.length);
-        if(!validProducts.length) { alert("Ajoutez au moins un produit avec photo"); return; }
+    function openSellShopModal(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
         
-        let shops = JSON.parse(localStorage.getItem('ouenze_shops')||'[]');
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
+                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                    <strong>${escapeHtml(shop.name)}</strong><br>
+                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
+                </div>
+                <div class="form-group">
+                    <label>Action à effectuer</label>
+                    <select id="sellAction" class="form-group" style="width:100%;padding:10px;">
+                        <option value="transfer">Affecter la boutique à un nouvel acheteur</option>
+                        <option value="delete">Supprimer définitivement la boutique</option>
+                    </select>
+                </div>
+                <div id="buyerFields" style="display:block;">
+                    <div class="form-group"><label>Email de l'acheteur</label><input type="email" id="buyerEmail" placeholder="acheteur@email.com"></div>
+                    <div class="form-group"><label>Nom complet de l'acheteur</label><input type="text" id="buyerName" placeholder="Nom et prénom"></div>
+                    <div class="form-group"><label>Prix de vente (FCFA)</label><input type="number" id="salePrice" placeholder="0" value="${calculateValuation(shop)}"></div>
+                </div>
+                <div id="deleteWarning" style="display:none; background:#fee2e2; padding:12px; border-radius:12px; margin-bottom:16px;">
+                    <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible. Toutes les données de la boutique seront supprimées.
+                </div>
+                <button class="btn-submit" onclick="submitShopSale(${shop.id})">Confirmer</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
         
-        // Calculer le prochain ID correctement
-        let nextId = 1;
-        if(shops.length > 0) {
-            nextId = Math.max(...shops.map(s => s.id)) + 1;
+        document.getElementById('sellAction').addEventListener('change', (e) => {
+            const buyerFields = document.getElementById('buyerFields');
+            const deleteWarning = document.getElementById('deleteWarning');
+            if(e.target.value === 'delete') {
+                buyerFields.style.display = 'none';
+                deleteWarning.style.display = 'block';
+            } else {
+                buyerFields.style.display = 'block';
+                deleteWarning.style.display = 'none';
+            }
+        });
+    }
+    
+    function submitShopSale(shopId) {
+        const action = document.getElementById('sellAction').value;
+        const shop = shops.find(s => s.id === shopId);
+        
+        if(action === 'transfer') {
+            const buyerEmail = document.getElementById('buyerEmail').value.trim();
+            const buyerName = document.getElementById('buyerName').value.trim();
+            const salePrice = parseInt(document.getElementById('salePrice').value);
+            
+            if(!buyerEmail || !buyerName || !salePrice) {
+                alert("Veuillez remplir tous les champs");
+                return;
+            }
+            
+            // Envoi d'email à l'acheteur (simulation)
+            const purchaseLink = `${window.location.origin}/purchase-shop.html?shop=${shopId}&email=${encodeURIComponent(buyerEmail)}&price=${salePrice}`;
+            
+            console.log(`📧 Email envoyé à ${buyerEmail}`);
+            console.log(`Objet: Acquisition de la boutique ${shop.name}`);
+            console.log(`Message: Félicitations ! Un vendeur vous propose l'acquisition de la boutique "${shop.name}" au prix de ${salePrice.toLocaleString()} FCFA.`);
+            console.log(`Lien pour finaliser: ${purchaseLink}`);
+            
+            alert(`✅ Demande envoyée à ${buyerEmail}\n\nUn email contenant le lien pour finaliser l'acquisition a été envoyé. L'acheteur devra fournir ses informations d'identification et moyen de paiement.`);
+            
+            // Sauvegarder la demande de vente
+            let saleRequests = JSON.parse(localStorage.getItem('ouenze_shop_sales') || '[]');
+            saleRequests.push({
+                id: Date.now(),
+                shopId,
+                shopName: shop.name,
+                seller: currentUser.email,
+                buyerEmail,
+                buyerName,
+                price: salePrice,
+                date: new Date().toISOString(),
+                status: 'pending'
+            });
+            localStorage.setItem('ouenze_shop_sales', JSON.stringify(saleRequests));
+            
+        } else if(action === 'delete') {
+            if(confirm(`Êtes-vous sûr de vouloir supprimer définitivement la boutique "${shop.name}" ? Cette action est irréversible.`)) {
+                const index = shops.findIndex(s => s.id === shopId);
+                if(index !== -1) {
+                    shops.splice(index, 1);
+                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                    alert(`Boutique "${shop.name}" supprimée avec succès.`);
+                    document.querySelector('.modal.active')?.remove();
+                    showDashboard();
+                }
+            }
         }
-        
-        const newShop = {
-            id: nextId,
-            name: name, 
-            logo: tempLogo, 
-            description: document.getElementById('shopDescInput').value,
-            city: document.getElementById('shopCity').value, 
-            quartier: document.getElementById('shopQuartier').value,
-            address: document.getElementById('shopAddress').value,
-            categories: tempMenuCategories.map(c=>c.name),
-            menu: { categories: tempMenuCategories, position: tempDesign.menuPosition, bg: tempDesign.menuBg, text: tempDesign.menuText, radius: tempDesign.menuRadius },
-            carousel: tempCarousel, 
-            products: validProducts, 
-            rating: 0, 
-            totalRatings: 0, 
-            reviews: [],
-            owner: currentUserEmail,
-            verified: false,
-            totalSales: 0,
-            assets: [],
-            liabilities: [],
-            createdAt: new Date().toISOString(),
-            design: { 
-                primary: tempDesign.primary, 
-                button: tempDesign.button, 
-                background: tempDesign.background,
-                headerTextColor: tempDesign.headerTextColor, 
-                productTextColor: tempDesign.productTextColor,
-                carouselHeight: tempDesign.carouselHeight, 
-                carouselRadius: tempDesign.carouselRadius,
-                carouselSpeed: tempDesign.carouselSpeed, 
-                prodWidth: tempDesign.prodWidth,
-                prodImgHeight: tempDesign.prodImgHeight, 
-                prodRadius: tempDesign.prodRadius,
-                prodGap: tempDesign.prodGap, 
-                layout: tempDesign.layout, 
-                logoShape: tempLogoShape 
+        document.querySelector('.modal.active')?.remove();
+    }
+    
+    function copyShopLink(url) {
+        navigator.clipboard.writeText(url);
+        alert("Lien de la boutique copié !");
+    }
+    
+    function manageAssets(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Gestion des actifs - ${escapeHtml(shop.name)}</h3>
+                <div id="assetsList">${(shop.assets || []).map((a, i) => `
+                    <div class="asset-item" style="background:var(--gray-100);padding:10px;border-radius:8px;margin-bottom:8px;">
+                        <span><strong>${escapeHtml(a.name)}</strong> - ${a.value.toLocaleString()} FCFA</span>
+                        <button onclick="removeAsset(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>
+                    </div>
+                `).join('')}</div>
+                <div class="form-group"><label>Nom de l'actif</label><input type="text" id="assetName" placeholder="Ex: Camionnette, Matériel, Stock"></div>
+                <div class="form-group"><label>Valeur (FCFA)</label><input type="number" id="assetValue" placeholder="0"></div>
+                <div class="form-group"><label>Description</label><textarea id="assetDesc" rows="2"></textarea></div>
+                <button class="btn-submit" onclick="addAsset(${shop.id})">Ajouter un actif</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        window.addAsset = (sid) => {
+            const name = document.getElementById('assetName').value.trim();
+            const value = parseInt(document.getElementById('assetValue').value);
+            if (!name || !value) { alert("Nom et valeur requis"); return; }
+            const s = shops.find(s => s.id === sid);
+            if (s) {
+                s.assets = s.assets || [];
+                s.assets.push({ name, value, description: document.getElementById('assetDesc').value, addedAt: new Date().toISOString() });
+                localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                alert("Actif ajouté");
+                modal.remove();
+                showDashboard();
             }
         };
-        
-        shops.push(newShop);
-        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-        
-        console.log(`✅ Boutique créée avec ID: ${newShop.id}`);
-        console.log(`📦 Nombre total de boutiques: ${shops.length}`);
-        
-        alert(`✅ Boutique "${name}" créée avec succès !\nID: ${newShop.id}\n\nRedirection vers la page d'accueil...`);
-        window.location.href = 'index.html';
+        window.removeAsset = (sid, idx) => {
+            const s = shops.find(s => s.id === sid);
+            if (s && s.assets) { s.assets.splice(idx, 1); localStorage.setItem('ouenze_shops', JSON.stringify(shops)); modal.remove(); manageAssets(sid); }
+        };
     }
     
-    function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function manageLiabilities(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Gestion des passifs - ${escapeHtml(shop.name)}</h3>
+                <div id="liabilitiesList">${(shop.liabilities || []).map((l, i) => `
+                    <div class="asset-item" style="background:var(--gray-100);padding:10px;border-radius:8px;margin-bottom:8px;">
+                        <span><strong>${escapeHtml(l.name)}</strong> - ${l.value.toLocaleString()} FCFA</span>
+                        <button onclick="removeLiability(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>
+                    </div>
+                `).join('')}</div>
+                <div class="form-group"><label>Nom du passif</label><input type="text" id="liabilityName" placeholder="Ex: Dette fournisseur, Emprunt"></div>
+                <div class="form-group"><label>Montant (FCFA)</label><input type="number" id="liabilityValue" placeholder="0"></div>
+                <div class="form-group"><label>Description</label><textarea id="liabilityDesc" rows="2"></textarea></div>
+                <button class="btn-submit" onclick="addLiability(${shop.id})">Ajouter un passif</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        window.addLiability = (sid) => {
+            const name = document.getElementById('liabilityName').value.trim();
+            const value = parseInt(document.getElementById('liabilityValue').value);
+            if (!name || !value) { alert("Nom et montant requis"); return; }
+            const s = shops.find(s => s.id === sid);
+            if (s) {
+                s.liabilities = s.liabilities || [];
+                s.liabilities.push({ name, value, description: document.getElementById('liabilityDesc').value, addedAt: new Date().toISOString() });
+                localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                alert("Passif ajouté");
+                modal.remove();
+                showDashboard();
+            }
+        };
+        window.removeLiability = (sid, idx) => {
+            const s = shops.find(s => s.id === sid);
+            if (s && s.liabilities) { s.liabilities.splice(idx, 1); localStorage.setItem('ouenze_shops', JSON.stringify(shops)); modal.remove(); manageLiabilities(sid); }
+        };
+    }
     
-    // Initialisation des événements
-    document.querySelectorAll('.menu-pos-card').forEach(card=>{
-        card.addEventListener('click',()=>{
-            tempDesign.menuPosition = card.dataset.pos;
-            document.querySelectorAll('.menu-pos-card').forEach(c=>c.classList.remove('selected'));
-            card.classList.add('selected');
-            updatePreview();
-        });
-    });
-    document.querySelectorAll('.speed-card').forEach(card=>{
-        card.addEventListener('click',()=>{
-            tempDesign.carouselSpeed = parseInt(card.dataset.speed);
-            document.querySelectorAll('.speed-card').forEach(c=>c.classList.remove('selected'));
-            card.classList.add('selected');
-            updatePreview();
-        });
-    });
-    document.getElementById('menuBgColor').addEventListener('change', e=>{ tempDesign.menuBg = e.target.value; updatePreview(); });
-    document.getElementById('menuTextColor').addEventListener('change', e=>{ tempDesign.menuText = e.target.value; updatePreview(); });
+    // Ajouter un produit avec quantité
+    function openAddProductToShop(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Ajouter un produit - ${escapeHtml(shop.name)}</h3>
+                <div class="form-group"><label>Nom du produit *</label><input type="text" id="productName" placeholder="Nom du produit"></div>
+                <div class="form-group"><label>Prix (FCFA) *</label><input type="number" id="productPrice" placeholder="0"></div>
+                <div class="form-group"><label>Catégorie</label><input type="text" id="productCategory" placeholder="Catégorie"></div>
+                <div class="form-group"><label>Quantité en stock *</label><input type="number" id="productStock" placeholder="0" value="1"></div>
+                <div class="form-group"><label>Description</label><textarea id="productDesc" rows="2"></textarea></div>
+                <div class="form-group"><label>Photo (optionnel)</label><input type="file" id="productPhoto" accept="image/*"></div>
+                <button class="btn-submit" onclick="addProductToShop(${shop.id})">Ajouter le produit</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        window.addProductToShop = (sid) => {
+            const name = document.getElementById('productName').value.trim();
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const stock = parseInt(document.getElementById('productStock').value);
+            const category = document.getElementById('productCategory').value.trim();
+            const description = document.getElementById('productDesc').value;
+            const fileInput = document.getElementById('productPhoto');
+            
+            if(!name || !price || stock < 0) {
+                alert("Nom, prix et stock sont obligatoires");
+                return;
+            }
+            
+            const s = shops.find(s => s.id === sid);
+            if(s) {
+                const newProduct = {
+                    id: Date.now(),
+                    name: name,
+                    price: price,
+                    category: category || "Général",
+                    stock: stock,
+                    description: description,
+                    photos: [],
+                    productType: "standard"
+                };
+                
+                if(fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        newProduct.photos = [e.target.result];
+                        s.products.push(newProduct);
+                        if(!s.categories.includes(category) && category) s.categories.push(category);
+                        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                        alert(`Produit "${name}" ajouté avec succès (Stock: ${stock})`);
+                        modal.remove();
+                        showDashboard();
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    s.products.push(newProduct);
+                    if(!s.categories.includes(category) && category) s.categories.push(category);
+                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                    alert(`Produit "${name}" ajouté avec succès (Stock: ${stock})`);
+                    modal.remove();
+                    showDashboard();
+                }
+            }
+        };
+    }
     
-    renderMenuCategories();
-    renderCarouselList();
-    renderProducts();
-    updatePreview();
+    // Ravitaillement avec quantité
+    function openRestockToShop(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop || !shop.products || shop.products.length === 0) {
+            alert("Aucun produit à ravitailler");
+            return;
+        }
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Ravitaillement - ${escapeHtml(shop.name)}</h3>
+                <div class="form-group"><label>Produit</label>
+                    <select id="restockProduct">
+                        ${shop.products.map(p => `<option value="${p.id}" data-stock="${p.stock || 0}">${escapeHtml(p.name)} - Stock actuel: ${p.stock || 0}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group"><label>Quantité à ajouter *</label><input type="number" id="restockQuantity" placeholder="0" value="1" min="1"></div>
+                <button class="btn-submit" onclick="processRestock(${shop.id})">Ajouter au stock</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        window.processRestock = (sid) => {
+            const productId = parseInt(document.getElementById('restockProduct').value);
+            const quantity = parseInt(document.getElementById('restockQuantity').value);
+            
+            if(!quantity || quantity <= 0) {
+                alert("Quantité invalide");
+                return;
+            }
+            
+            const s = shops.find(s => s.id === sid);
+            const product = s?.products?.find(p => p.id === productId);
+            
+            if(product) {
+                product.stock = (product.stock || 0) + quantity;
+                localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                alert(`Stock mis à jour: ${product.name} → ${product.stock} unités (+${quantity})`);
+                modal.remove();
+                showDashboard();
+            }
+        };
+    }
+    
+    function openAddProduct() {
+        const userShops = shops.filter(s => s.owner === currentUser.email);
+        if(!userShops.length) {
+            alert("Créez d'abord une boutique");
+            return;
+        }
+        openAddProductToShop(userShops[0].id);
+    }
+    
+    function openRestock() {
+        const userShops = shops.filter(s => s.owner === currentUser.email);
+        if(!userShops.length) {
+            alert("Créez d'abord une boutique");
+            return;
+        }
+        openRestockToShop(userShops[0].id);
+    }
+    
+    function openInvestmentOffer(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop || shop.rating < 3) { alert("Cette boutique n'est pas éligible (minimum 3 étoiles)"); return; }
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Proposer à l'investissement</h3>
+                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                    Boutique: ${escapeHtml(shop.name)}<br>
+                    Note actuelle: ${shop.rating}/5<br>
+                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
+                </div>
+                <div class="form-group"><label>Pourcentage du capital à céder</label><input type="number" id="offerPercent" min="1" max="100" value="10"></div>
+                <div class="form-group"><label>Prix demandé (FCFA)</label><input type="number" id="offerPrice" placeholder="0"></div>
+                <div class="form-group"><label>Message aux investisseurs</label><textarea id="offerMessage" rows="3"></textarea></div>
+                <button class="btn-submit" onclick="submitInvestmentOffer(${shop.id})">Envoyer la demande</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function submitInvestmentOffer(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        const percent = parseInt(document.getElementById('offerPercent').value);
+        const price = parseInt(document.getElementById('offerPrice').value);
+        const message = document.getElementById('offerMessage').value;
+        if (!percent || percent < 1 || percent > 100) { alert("Pourcentage invalide (1-100%)"); return; }
+        if (!price || price < 10000) { alert("Prix minimum 10 000 FCFA"); return; }
+        
+        const offer = {
+            id: Date.now(),
+            shopId,
+            shopName: shop.name,
+            seller: currentUser.email,
+            sellerName: currentUser.name,
+            percentage: percent,
+            price,
+            valuation: calculateValuation(shop),
+            message,
+            date: new Date().toISOString(),
+            status: 'pending_review'
+        };
+        
+        let offers = JSON.parse(localStorage.getItem('ouenze_investment_offers') || '[]');
+        offers.push(offer);
+        localStorage.setItem('ouenze_investment_offers', JSON.stringify(offers));
+        
+        alert(`Demande envoyée !\n\nNotre équipe examinera votre proposition sous 48h.\nUn email de confirmation a été envoyé.`);
+        document.querySelector('.modal')?.remove();
+        showDashboard();
+    }
+    
+    function openInvestmentRequests() {
+        const userShops = shops.filter(s => s.owner === currentUser.email);
+        const relevantRequests = investmentRequests.filter(r => userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
+        if (!relevantRequests.length) { alert("Aucune demande en attente"); return; }
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Demandes d'investissement</h3>
+                ${relevantRequests.map(r => `
+                    <div style="background:var(--gray-100);padding:16px;border-radius:12px;margin-bottom:16px;">
+                        <strong>${r.type === 'buy_shares' ? 'Achat d\'actions' : r.type === 'sell_shares' ? 'Vente d\'actions' : 'Acquisition'}</strong><br>
+                        Investisseur: ${escapeHtml(r.investorName)}<br>
+                        ${r.type === 'buy_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` : 
+                          r.type === 'sell_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` :
+                          `Offre: ${r.amount.toLocaleString()} FCFA`}<br>
+                        Date: ${new Date(r.date).toLocaleDateString()}<br>
+                        <div style="margin-top:12px; display:flex; gap:8px;">
+                            <button class="btn-sm btn-primary" onclick="approveRequest(${r.id})">Approuver</button>
+                            <button class="btn-sm btn-danger" style="background:var(--danger);color:white;" onclick="rejectRequest(${r.id})">Refuser</button>
+                        </div>
+                    </div>
+                `).join('')}
+                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        window.approveRequest = (id) => {
+            const request = investmentRequests.find(r => r.id === id);
+            if (request) {
+                request.status = 'approved';
+                localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
+                alert("Demande approuvée. L'investisseur sera notifié par email.");
+                modal.remove();
+                showDashboard();
+            }
+        };
+        window.rejectRequest = (id) => {
+            const request = investmentRequests.find(r => r.id === id);
+            if (request) {
+                request.status = 'rejected';
+                localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
+                alert("Demande refusée. L'investisseur sera notifié.");
+                modal.remove();
+                showDashboard();
+            }
+        };
+    }
+    
+    function viewStats(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
+        const monthlyData = [];
+        for (let i = 5; i >= 0; i--) {
+            monthlyData.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
+        }
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card" style="max-width:700px;">
+                <h3 style="margin-bottom: 20px;">Statistiques - ${escapeHtml(shop.name)}</h3>
+                <div style="height: 250px;"><canvas id="statsChart"></canvas></div>
+                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-top:16px;">
+                    <strong>Chiffre d'affaires total:</strong> ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>
+                    <strong>Commandes:</strong> ${shopOrders.length}<br>
+                    <strong>Note moyenne:</strong> ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)
+                </div>
+                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline" style="margin-top:16px;">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        setTimeout(() => {
+            const ctx = document.getElementById('statsChart')?.getContext('2d');
+            if (ctx) new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], 
+                    datasets: [{ 
+                        label: 'CA (FCFA)', 
+                        data: monthlyData, 
+                        borderColor: '#1e40af',
+                        backgroundColor: 'rgba(30,64,175,0.05)',
+                        fill: true, 
+                        tension: 0.3 
+                    }] 
+                }, 
+                options: { responsive: true, maintainAspectRatio: true } 
+            });
+        }, 100);
+    }
+    
+    function createNewShop() { alert("Un email avec le lien de création a été envoyé"); window.open('shop-designer.html', '_blank'); }
+    function escapeHtml(s) { return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    showDashboard();
 </script>
 </body>
 </html>
