@@ -22,7 +22,6 @@
             --danger: #ef4444;
         }
         
-        /* Header optimisé mobile */
         .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 10px 16px; position: sticky; top: 0; z-index: 100; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
         .logo h1 { font-size: 20px; font-weight: 800; color: var(--primary); cursor: pointer; }
@@ -36,7 +35,6 @@
         .user-info { font-size: 11px; line-height: 1.2; }
         .user-info small { font-size: 9px; color: var(--gray-500); }
         
-        /* Barre de recherche */
         .search-wrapper { width: 100%; }
         .search-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
         .search-tab { padding: 3px 10px; font-size: 10px; background: var(--gray-100); border-radius: 20px; cursor: pointer; color: var(--gray-500); }
@@ -45,7 +43,6 @@
         .search-bar input { flex: 1; padding: 8px 14px; border: none; outline: none; background: transparent; font-size: 13px; }
         .search-bar button { background: none; border: none; padding: 0 12px; color: var(--primary); cursor: pointer; }
         
-        /* Navigation */
         .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); padding: 6px 16px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
         .nav-links { display: flex; gap: 20px; }
@@ -59,7 +56,6 @@
         
         .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
         
-        /* Classement */
         .ranking-bar { background: var(--white); border-radius: 16px; padding: 10px 16px; margin-bottom: 16px; border: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .ranking-filters { display: flex; gap: 8px; flex-wrap: wrap; }
         .ranking-btn { background: none; border: none; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 20px; color: var(--gray-500); }
@@ -69,7 +65,6 @@
         .rating-badge.silver { background: #f1f5f9; color: #475569; }
         .rating-badge.bronze { background: #ffedd5; color: #9a3412; }
         
-        /* Grille boutiques */
         .shops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
         .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
         .shop-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
@@ -87,7 +82,6 @@
         .metric { text-align: center; padding: 6px; background: var(--gray-100); border-radius: 10px; font-size: 10px; }
         .metric-value { font-weight: 700; font-size: 14px; color: var(--primary); }
         
-        /* Vue boutique détaillée */
         .back-btn { background: none; border: none; color: var(--primary); cursor: pointer; margin-bottom: 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
         .shop-header-custom { background: linear-gradient(135deg, var(--primary-color, #1e40af), var(--primary-color, #1e40af)aa); border-radius: 20px; padding: 20px; margin-bottom: 20px; color: white; }
         .shop-header-content { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -97,7 +91,6 @@
         .shop-info p { font-size: 11px; opacity: 0.9; }
         .share-link { background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 10px; border-radius: 30px; font-size: 10px; cursor: pointer; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; }
         
-        /* Menu boutique */
         .shop-menu { background: var(--menu-bg, #1e40af); color: var(--menu-text, white); border-radius: var(--menu-radius, 0px); margin-bottom: 16px; }
         .shop-menu-horizontal { display: flex; gap: 12px; flex-wrap: wrap; padding: 6px 12px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
         .shop-menu-vertical { width: 100%; float: none; margin-bottom: 12px; padding: 6px; overflow-x: auto; white-space: nowrap; }
@@ -106,7 +99,6 @@
         .shop-menu-item:hover .shop-submenu { display: block; }
         .shop-submenu-item { padding: 4px 10px; white-space: nowrap; font-size: 10px; }
         
-        /* Carrousel */
         .carousel-container { position: relative; margin-bottom: 16px; overflow: hidden; border-radius: var(--carousel-radius, 12px); }
         .carousel-slide { display: none; width: 100%; height: var(--carousel-height, 200px); object-fit: cover; }
         .carousel-slide.active { display: block; }
@@ -117,12 +109,10 @@
         .carousel-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; }
         .carousel-dot.active { background: white; }
         
-        /* Catégories */
         .categories-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; clear: both; overflow-x: auto; padding-bottom: 4px; }
         .category-btn { padding: 4px 12px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 11px; white-space: nowrap; }
         .category-btn.active { background: var(--primary-color, #1e40af); color: white; }
         
-        /* Produits */
         .products-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
         .product-card { background: var(--white); border-radius: var(--product-radius, 12px); border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; }
         .product-card:hover { transform: translateY(-2px); }
@@ -134,7 +124,6 @@
         .product-badge { display: inline-block; background: #eef2ff; color: var(--primary); padding: 2px 6px; border-radius: 20px; font-size: 8px; margin-bottom: 4px; }
         .btn-add-cart { background: var(--button-color, #1e40af); color: white; border: none; padding: 5px; border-radius: var(--product-radius, 8px); font-weight: 500; cursor: pointer; width: 100%; font-size: 10px; }
         
-        /* Avis */
         .reviews-section { background: var(--white); border-radius: 16px; padding: 16px; border: 1px solid var(--gray-200); margin-top: 16px; clear: both; }
         .reviews-section h3 { font-size: 13px; margin-bottom: 10px; }
         .review-item { padding: 8px 0; border-bottom: 1px solid var(--gray-200); }
@@ -144,7 +133,6 @@
         .review-date { font-size: 8px; color: var(--gray-500); }
         .review-comment { font-size: 11px; color: var(--gray-700); margin-top: 3px; }
         
-        /* Modale produit */
         .product-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 12px; }
         .product-modal-content { background: var(--white); border-radius: 20px; max-width: 95%; width: 100%; max-height: 90vh; overflow-y: auto; cursor: default; padding: 16px; }
         .product-modal-body { display: flex; flex-direction: column; gap: 16px; }
@@ -157,14 +145,34 @@
         .variant-option { display: inline-block; margin: 3px; padding: 3px 8px; background: var(--gray-100); border-radius: 20px; cursor: pointer; font-size: 10px; }
         .btn-modal-add { background: var(--button-color, #1e40af); color: white; border: none; padding: 10px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; font-size: 12px; }
         
+        .cart-container { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); padding: 20px; margin-bottom: 20px; }
+        .cart-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
+        .cart-item-info { flex: 1; }
+        .cart-total { text-align: right; padding: 16px; font-size: 18px; font-weight: 700; border-top: 1px solid var(--gray-200); margin-top: 16px; }
+        .payment-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
+        .payment-option { padding: 12px; background: var(--gray-100); border-radius: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .payment-option.selected { border-color: var(--primary); background: #eef2ff; }
+        .card-details { background: var(--gray-100); border-radius: 12px; padding: 16px; margin-top: 12px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 12px; }
+        .step-indicator { display: flex; gap: 8px; margin-bottom: 20px; }
+        .step { flex: 1; text-align: center; padding: 6px; background: var(--gray-100); border-radius: 20px; font-size: 10px; font-weight: 500; color: var(--gray-500); }
+        .step.active { background: var(--primary); color: white; }
+        .step.completed { background: var(--success); color: white; }
+        .btn-next, .btn-submit { padding: 10px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; background: var(--primary); color: white; width: 100%; font-size: 12px; }
+        .btn-prev { background: var(--gray-100); color: var(--gray-700); width: 48%; padding: 10px; border-radius: 30px; font-weight: 500; border: none; cursor: pointer; }
+        .button-group { display: flex; gap: 12px; margin-top: 16px; }
+        
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 12px; text-align: center; font-size: 9px; color: var(--gray-500); }
         
         @media (max-width: 480px) {
             .shops-grid { grid-template-columns: 1fr; }
             .products-container { grid-template-columns: repeat(2, 1fr); }
-            .shop-header-custom { padding: 16px; }
-            .shop-logo-large { width: 50px; height: 50px; }
-            .shop-info h1 { font-size: 18px; }
         }
     </style>
 </head>
@@ -229,6 +237,7 @@
     let currentShop = null;
     let currentCategory = 'all';
     let carouselInterval = null;
+    let selectedPayment = null;
     
     // Boutiques par défaut
     if (shops.length === 0) {
@@ -290,15 +299,15 @@
         });
     }
     
-    // ============ VUE ACCUEIL (GRILLE) ============
+    // ============ VUE ACCUEIL ============
     function showHomePage() {
         const rankedShops = sortShops(shops, currentRanking);
         document.getElementById('appContainer').innerHTML = `
             <div class="ranking-bar">
                 <div class="ranking-filters">
-                    <button class="ranking-btn ${currentRanking === 'rating' ? 'active' : ''}" onclick="setRanking('rating')">⭐ Par note</button>
-                    <button class="ranking-btn ${currentRanking === 'date' ? 'active' : ''}" onclick="setRanking('date')">🕐 Récent</button>
-                    <button class="ranking-btn ${currentRanking === 'sales' ? 'active' : ''}" onclick="setRanking('sales')">📈 Ventes</button>
+                    <button class="ranking-btn ${currentRanking === 'rating' ? 'active' : ''}" onclick="setRanking('rating')">Par note</button>
+                    <button class="ranking-btn ${currentRanking === 'date' ? 'active' : ''}" onclick="setRanking('date')">Récent</button>
+                    <button class="ranking-btn ${currentRanking === 'sales' ? 'active' : ''}" onclick="setRanking('sales')">Ventes</button>
                 </div>
                 <div style="display:flex; gap:6px;">
                     <span class="rating-badge gold"><i class="fas fa-crown"></i> Or</span>
@@ -403,12 +412,11 @@
         }
     }
     
-    // ============ VUE BOUTIQUE DÉTAILLÉE AVEC ID DANS L'URL ============
+    // ============ VUE BOUTIQUE DÉTAILLÉE ============
     function viewShopDetail(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
         
-        // Mettre à jour l'URL avec l'ID de la boutique
         const url = new URL(window.location.href);
         url.searchParams.set('id', shopId);
         window.history.pushState({}, '', url);
@@ -428,7 +436,6 @@
         const carouselRadius = design.carouselRadius || 12;
         const carouselHeight = design.carouselHeight || 200;
         const logoBorderRadius = design.logoShape === 'square' ? '0px' : design.logoShape === 'circle' ? '50%' : '12px';
-        
         const shareUrl = window.location.href;
         
         let menuHtml = '';
@@ -481,7 +488,7 @@
                             ${shop.verified ? '<span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:20px;margin-left:6px;font-size:10px;"><i class="fas fa-check-circle"></i> Certifiée</span>' : ''}
                         </div>
                         <div style="margin-top:4px; font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city + ', ' + shop.quartier)}</div>
-                        <button class="share-link" onclick="copyShopLink('${shareUrl}')"><i class="fas fa-share-alt"></i> Partager la boutique</button>
+                        <button class="share-link" onclick="copyShopLink('${shareUrl}')"><i class="fas fa-share-alt"></i> Partager</button>
                     </div>
                 </div>
             </div>
@@ -490,10 +497,7 @@
                 ${shop.carousel && shop.carousel.length ? `
                 <div class="carousel-container" id="shopCarousel">
                     ${shop.carousel.map((media, idx) => `
-                        ${media.type === 'image' ? 
-                            `<img src="${media.src}" class="carousel-slide ${idx === 0 ? 'active' : ''}">` : 
-                            `<video src="${media.src}" class="carousel-slide ${idx === 0 ? 'active' : ''}" autoplay muted loop></video>`
-                        }
+                        ${media.type === 'image' ? `<img src="${media.src}" class="carousel-slide ${idx === 0 ? 'active' : ''}">` : `<video src="${media.src}" class="carousel-slide ${idx === 0 ? 'active' : ''}" autoplay muted loop></video>`}
                     `).join('')}
                     <button class="carousel-btn carousel-prev" onclick="changeCarouselSlide(-1)">❮</button>
                     <button class="carousel-btn carousel-next" onclick="changeCarouselSlide(1)">❯</button>
@@ -511,7 +515,7 @@
                 <div id="shopProductsContainer" class="products-container"></div>
                 
                 <div class="reviews-section">
-                    <h3><i class="fas fa-star" style="color:var(--gold);"></i> Avis clients</h3>
+                    <h3>Avis clients</h3>
                     ${(shop.reviews || []).length ? shop.reviews.map(r => `
                         <div class="review-item">
                             <div class="review-header">
@@ -542,7 +546,7 @@
     
     function copyShopLink(url) {
         navigator.clipboard.writeText(url);
-        alert("Lien de la boutique copié !");
+        alert("Lien copié !");
     }
     
     function displayShopProducts() {
@@ -557,7 +561,7 @@
         const productImgHeight = design.prodImgHeight || 130;
         
         if (!products.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px;">Aucun produit dans cette catégorie</div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px;">Aucun produit</div>';
             return;
         }
         
@@ -565,7 +569,7 @@
             <div class="product-card" onclick="openProductModal(${currentShop.id}, ${p.id})">
                 <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image" style="height:${productImgHeight}px;">
                 <div class="product-info">
-                    ${p.productType === 'food' ? '<div class="product-badge"><i class="fas fa-utensils"></i> Alimentaire</div>' : ''}
+                    ${p.productType === 'food' ? '<div class="product-badge">Alimentaire</div>' : ''}
                     <div class="product-title">${escapeHtml(p.name)}</div>
                     <div class="product-price">${p.price} FCFA</div>
                     <div class="product-stock">Stock: ${p.stock || 0}</div>
@@ -578,8 +582,7 @@
     function startShopCarousel() {
         if (carouselInterval) clearInterval(carouselInterval);
         const speed = currentShop.design?.carouselSpeed || 0;
-        const carouselItems = currentShop.carousel;
-        if (speed > 0 && carouselItems && carouselItems.length > 1) {
+        if (speed > 0 && currentShop.carousel && currentShop.carousel.length > 1) {
             carouselInterval = setInterval(() => {
                 const slides = document.querySelectorAll('#shopCarousel .carousel-slide');
                 if (!slides.length) return;
@@ -644,11 +647,11 @@
                         <div class="product-stock">Stock: ${product.stock || 0}</div>
                         ${product.productType === 'food' ? `
                         <div class="food-details">
-                            <strong><i class="fas fa-utensils"></i> Infos alimentaires</strong><br>
-                            ${product.expiryDate ? `📅 Exp: ${escapeHtml(product.expiryDate)}<br>` : ''}
-                            ${product.weight ? `⚖️ Poids: ${escapeHtml(product.weight)}<br>` : ''}
-                            ${product.origin ? `🌍 Origine: ${escapeHtml(product.origin)}<br>` : ''}
-                            ${product.ingredients ? `📋 Ingrédients: ${escapeHtml(product.ingredients)}` : ''}
+                            <strong>Informations alimentaires</strong><br>
+                            ${product.expiryDate ? `Expiration: ${escapeHtml(product.expiryDate)}<br>` : ''}
+                            ${product.weight ? `Poids: ${escapeHtml(product.weight)}<br>` : ''}
+                            ${product.origin ? `Origine: ${escapeHtml(product.origin)}<br>` : ''}
+                            ${product.ingredients ? `Ingrédients: ${escapeHtml(product.ingredients)}` : ''}
                         </div>
                         ` : ''}
                         ${product.colors && product.colors.length ? `
@@ -697,22 +700,330 @@
         alert(`${productName} ajouté au panier`);
     }
     
-    // ============ PANIER ET COMMANDES ============
-    function showCart() { alert("Fonctionnalité panier à venir"); }
-    function showMyOrders() { alert("Fonctionnalité commandes à venir"); }
+    // ============ PANIER ET PAIEMENT ============
+    function showCart() {
+        if (cart.length === 0) {
+            document.getElementById('appContainer').innerHTML = `
+                <div class="cart-container" style="text-align:center;padding:40px;">
+                    <i class="fas fa-shopping-cart" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
+                    <h3>Votre panier est vide</h3>
+                    <button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;width:auto;padding:8px 24px;">Continuer vos achats</button>
+                </div>
+            `;
+            return;
+        }
+        
+        let subtotal = 0;
+        cart.forEach(item => { subtotal += item.price * item.quantity; });
+        const deliveryFees = subtotal * 0.1;
+        const total = subtotal + deliveryFees;
+        
+        const itemsHtml = cart.map((item, idx) => `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <h4 style="font-size:14px;">${escapeHtml(item.productName)}</h4>
+                    <div style="font-size:12px;color:var(--primary);">${item.price} FCFA</div>
+                    <div style="font-size:10px;color:var(--gray-500);">${escapeHtml(item.shopName)}</div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                        <button onclick="updateQuantity(${idx}, -1)" style="background:var(--gray-100);border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;">-</button>
+                        <span style="font-size:12px;">${item.quantity}</span>
+                        <button onclick="updateQuantity(${idx}, 1)" style="background:var(--gray-100);border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;">+</button>
+                        <button onclick="removeFromCart(${idx})" style="background:none;border:none;color:var(--danger);cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        document.getElementById('appContainer').innerHTML = `
+            <div class="cart-container">
+                <h2 style="font-size:18px;margin-bottom:16px;">Mon panier</h2>
+                ${itemsHtml}
+                <div class="cart-total">
+                    <div>Sous-total: ${subtotal.toLocaleString()} FCFA</div>
+                    <div style="font-size:11px;color:var(--gray-500);">Frais de livraison (10%): ${deliveryFees.toLocaleString()} FCFA</div>
+                    <div style="font-size:20px;margin-top:8px;">Total: ${total.toLocaleString()} FCFA</div>
+                </div>
+                <button class="btn-submit" onclick="showCheckout(${total})">Passer à la caisse</button>
+                <button onclick="resetToHome()" style="margin-top:12px;background:none;border:none;color:var(--primary);cursor:pointer;font-size:11px;">Continuer mes achats</button>
+            </div>
+        `;
+    }
     
-    // ============ AUTHENTIFICATION ============
+    function updateQuantity(index, delta) {
+        cart[index].quantity += delta;
+        if (cart[index].quantity <= 0) cart.splice(index, 1);
+        saveData();
+        showCart();
+    }
+    
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        saveData();
+        showCart();
+    }
+    
+    function showCheckout(total) {
+        document.getElementById('appContainer').innerHTML = `
+            <div class="cart-container">
+                <h2 style="font-size:18px;margin-bottom:16px;">Livraison et paiement</h2>
+                <div class="form-group"><label>Ville *</label><input type="text" id="deliveryCity" placeholder="Brazzaville"></div>
+                <div class="form-group"><label>Quartier *</label><input type="text" id="deliveryQuartier" placeholder="Moungali, Bacongo..."></div>
+                <div class="form-group"><label>Adresse *</label><input type="text" id="deliveryAddress" placeholder="Rue, numéro, point de repère"></div>
+                <div class="form-group"><label>Téléphone *</label><input type="tel" id="deliveryPhone" placeholder="+242 06 XX XX XX"></div>
+                
+                <h3 style="font-size:14px;margin:16px 0 12px;">Mode de paiement</h3>
+                <div class="payment-options" id="paymentOptions">
+                    <div class="payment-option" data-payment="card"><i class="fas fa-credit-card"></i> Carte bancaire</div>
+                    <div class="payment-option" data-payment="mobile"><i class="fas fa-mobile-alt"></i> Mobile Money</div>
+                    <div class="payment-option" data-payment="paypal"><i class="fab fa-paypal"></i> PayPal</div>
+                    <div class="payment-option" data-payment="cash"><i class="fas fa-money-bill"></i> Espèce</div>
+                </div>
+                
+                <div id="paymentDetailsContainer" style="display:none;"></div>
+                
+                <div style="margin-top:16px; padding:12px; background:var(--gray-100); border-radius:12px;">
+                    <strong>Total à payer:</strong> <span style="font-size:18px;font-weight:700;color:var(--primary);">${total.toLocaleString()} FCFA</span>
+                </div>
+                
+                <button class="btn-submit" onclick="validateAndPay(${total})" style="margin-top:16px;">Confirmer la commande</button>
+                <button onclick="showCart()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Retour</button>
+            </div>
+        `;
+        
+        document.querySelectorAll('.payment-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedPayment = opt.dataset.payment;
+                showPaymentDetails(selectedPayment);
+            });
+        });
+    }
+    
+    function showPaymentDetails(type) {
+        const container = document.getElementById('paymentDetailsContainer');
+        if (type === 'card') {
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="card-details">
+                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
+                    <div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div>
+                    <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group" style="flex:1;"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div>
+                    <div id="cardTypeDisplay" style="font-size:10px;color:var(--gray-500);"></div>
+                </div>
+            `;
+            const cardInput = document.getElementById('cardNumber');
+            if(cardInput) {
+                cardInput.addEventListener('input', (e) => {
+                    let val = e.target.value.replace(/\s/g, '');
+                    if(val.length > 16) val = val.slice(0,16);
+                    e.target.value = val.replace(/(\d{4})/g, '$1 ').trim();
+                    let firstDigit = val.charAt(0);
+                    let typeDisplay = document.getElementById('cardTypeDisplay');
+                    if(firstDigit === '4') typeDisplay.innerHTML = 'VISA';
+                    else if(firstDigit === '5') typeDisplay.innerHTML = 'MasterCard';
+                    else typeDisplay.innerHTML = '';
+                });
+            }
+        } else if (type === 'mobile') {
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="card-details">
+                    <div class="form-group"><label>Opérateur</label><select id="mobileOperator"><option value="mtn">MTN Mobile Money</option><option value="airtel">Airtel Money</option></select></div>
+                    <div class="form-group"><label>Numéro</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div>
+                </div>
+            `;
+        } else if (type === 'paypal') {
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="card-details">
+                    <div class="form-group"><label>Email PayPal</label><input type="email" id="paypalEmail" placeholder="exemple@paypal.com"></div>
+                </div>
+            `;
+        } else if (type === 'cash') {
+            container.style.display = 'block';
+            container.innerHTML = `<div class="card-details"><p>Paiement à la livraison</p></div>`;
+        }
+    }
+    
+    function validateAndPay(total) {
+        const city = document.getElementById('deliveryCity')?.value.trim();
+        const quartier = document.getElementById('deliveryQuartier')?.value.trim();
+        const address = document.getElementById('deliveryAddress')?.value.trim();
+        const phone = document.getElementById('deliveryPhone')?.value.trim();
+        
+        if (!city || !quartier || !address || !phone) {
+            alert("Veuillez remplir toutes les informations de livraison");
+            return;
+        }
+        
+        if (!selectedPayment) {
+            alert("Veuillez choisir un mode de paiement");
+            return;
+        }
+        
+        if (selectedPayment === 'card') {
+            const cardName = document.getElementById('cardName')?.value.trim();
+            const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
+            const cardExpiry = document.getElementById('cardExpiry')?.value.trim();
+            const cardCvv = document.getElementById('cardCvv')?.value.trim();
+            if (!cardName || !cardNumber || !cardExpiry || !cardCvv) { alert("Veuillez remplir toutes les informations de la carte"); return; }
+            if (cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
+            if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) { alert("Date d'expiration invalide (MM/AA)"); return; }
+            if (cardCvv.length !== 3) { alert("CVV invalide"); return; }
+        }
+        
+        if (selectedPayment === 'mobile') {
+            const mobileNumber = document.getElementById('mobileNumber')?.value.trim();
+            if (!mobileNumber) { alert("Numéro Mobile Money requis"); return; }
+            const cleanNumber = mobileNumber.replace(/\s/g, '');
+            if (!/^(\+242|0)[56]\d{8}$/.test(cleanNumber)) { alert("Numéro invalide. Format: +242 06 XX XX XX"); return; }
+        }
+        
+        if (selectedPayment === 'paypal') {
+            const paypalEmail = document.getElementById('paypalEmail')?.value.trim();
+            if (!paypalEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) { alert("Email PayPal invalide"); return; }
+        }
+        
+        const subtotal = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
+        const deliveryFees = subtotal * 0.1;
+        const finalTotal = subtotal + deliveryFees;
+        const orderId = 'CMD-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+        
+        const newOrder = {
+            id: orderId, userId: currentUser?.email || 'client@email.com', userName: currentUser?.name || 'Client',
+            items: cart.map(item => ({ productId: item.productId, productName: item.productName, price: item.price, quantity: item.quantity, shopId: item.shopId, shopName: item.shopName })),
+            subtotal, deliveryFees, total: finalTotal,
+            deliveryInfo: { city, quartier, address, phone },
+            paymentMethod: selectedPayment,
+            date: new Date().toISOString(), status: 'confirmée', trackingStep: 1,
+            statusHistory: [{ status: 'Commande confirmée', date: new Date().toISOString(), message: `Votre commande #${orderId} a été confirmée` }],
+            rated: false
+        };
+        
+        orders.push(newOrder);
+        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+        
+        cart = [];
+        saveData();
+        
+        alert(`✅ Commande ${orderId} confirmée !\n\nUn email de confirmation a été envoyé à ${currentUser?.email || 'votre email'}\nTotal: ${finalTotal.toLocaleString()} FCFA\nPaiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}`);
+        
+        window.location.href = `tracking.html?id=${orderId}`;
+    }
+    
+    function showMyOrders() {
+        const userOrders = orders.filter(o => o.userId === (currentUser?.email || 'client@email.com'));
+        if (userOrders.length === 0) {
+            document.getElementById('appContainer').innerHTML = `<div class="cart-container" style="text-align:center;padding:40px;"><i class="fas fa-truck" style="font-size:48px;color:var(--gray-500);"></i><h3>Aucune commande</h3><button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;">Commencer</button></div>`;
+            return;
+        }
+        
+        document.getElementById('appContainer').innerHTML = `
+            <div class="cart-container">
+                <h2>Mes commandes</h2>
+                ${userOrders.map(order => `
+                    <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;"><strong>#${order.id}</strong><span>${new Date(order.date).toLocaleDateString()}</span></div>
+                        <div>Total: ${order.total.toLocaleString()} FCFA</div>
+                        <div>Statut: <span style="color:var(--success);">${order.status}</span></div>
+                        <button onclick="window.location.href='tracking.html?id=${order.id}'" class="btn-sm btn-outline" style="margin-top:8px;">Suivre</button>
+                    </div>
+                `).join('')}
+                <button onclick="resetToHome()" class="btn-submit">Continuer</button>
+            </div>
+        `;
+    }
+    
+    // ============ INSCRIPTION 3 ÉTAPES AVEC PIÈCE D'IDENTITÉ ============
+    let currentStep = 1;
+    let tempUserData = {};
+    let generatedCode = "";
+    
+    function openRegisterModal() { currentStep = 1; tempUserData = {}; renderRegisterStep(); document.getElementById('registerModal').classList.add('active'); }
+    
+    function renderRegisterStep() {
+        const stepContent = document.getElementById('stepContent');
+        if (!stepContent) return;
+        if (currentStep === 1) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
+                <div class="form-group"><label>Prénom(s) *</label><input type="text" id="firstName" placeholder="Jean"></div>
+                <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
+                <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
+                <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: 123456789"></div>
+                <div class="form-group"><label>Ville de résidence</label><input type="text" id="city" placeholder="Brazzaville"></div>
+                <div class="form-group"><label>Adresse</label><textarea id="address" rows="2"></textarea></div>
+                <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
+                <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Mot de passe *</label><input type="password" id="password"></div><div class="form-group" style="flex:1;"><label>Confirmer *</label><input type="password" id="confirmPassword"></div></div>
+                <button class="btn-next" onclick="validateRegisterStep1()">Continuer</button>
+            `;
+        } else if (currentStep === 2) {
+            stepContent.innerHTML = `<div class="form-group"><label>Code de vérification</label><input type="text" id="verifCode" placeholder="123456"></div><div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-next" onclick="validateRegisterStep2()">Vérifier</button></div>`;
+        } else if (currentStep === 3) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Type de compte</label><select id="accountType" onchange="togglePaymentFields()"><option value="client">Client</option><option value="vendeur">Vendeur</option></select></div>
+                <div id="paymentFields" style="display:none">
+                    <div class="form-group"><label>Coordonnées bancaires / Mobile Money *</label><select id="paymentMethod"><option value="">Sélectionner</option><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa / Mastercard</option><option value="paypal">PayPal</option></select></div>
+                    <div class="form-group"><input type="text" id="paymentDetails" placeholder="Numéro de compte ou identifiant"></div>
+                </div>
+                <div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-submit" onclick="finalizeRegistration()">Créer mon compte</button></div>
+            `;
+            togglePaymentFields();
+        }
+        document.querySelectorAll('.step').forEach((el, idx) => { el.classList.remove('active', 'completed'); if (idx+1 === currentStep) el.classList.add('active'); else if (idx+1 < currentStep) el.classList.add('completed'); });
+    }
+    
+    function togglePaymentFields() {
+        const paymentFields = document.getElementById('paymentFields');
+        if (paymentFields) paymentFields.style.display = document.getElementById('accountType').value === 'vendeur' ? 'block' : 'none';
+    }
+    
+    function validateRegisterStep1() {
+        const fullName = document.getElementById('fullName').value.trim();
+        const firstName = document.getElementById('firstName').value.trim();
+        const birthDate = document.getElementById('birthDate').value;
+        const birthPlace = document.getElementById('birthPlace').value.trim();
+        const idNumber = document.getElementById('idNumber').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        if (!fullName || !firstName || !birthDate || !birthPlace || !idNumber || !email || !password) { alert("Tous les champs sont obligatoires"); return; }
+        if (password !== confirm) { alert("Mots de passe différents"); return; }
+        tempUserData = { fullName, firstName, birthDate, birthPlace, idNumber, city: document.getElementById('city').value, address: document.getElementById('address').value, email, password };
+        generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+        alert(`Code vérification: ${generatedCode}`);
+        currentStep = 2;
+        renderRegisterStep();
+    }
+    
+    function validateRegisterStep2() {
+        if (document.getElementById('verifCode').value !== generatedCode) { alert("Code incorrect"); return; }
+        currentStep = 3;
+        renderRegisterStep();
+    }
+    
+    function prevStep() { currentStep--; renderRegisterStep(); }
+    
+    function finalizeRegistration() {
+        const accountType = document.getElementById('accountType').value;
+        const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+        const paymentDetails = document.getElementById('paymentDetails')?.value || '';
+        if (accountType === 'vendeur' && (!paymentMethod || !paymentDetails)) { alert("Coordonnées bancaires requises pour les vendeurs"); return; }
+        currentUser = { name: tempUserData.fullName, firstName: tempUserData.firstName, birthDate: tempUserData.birthDate, birthPlace: tempUserData.birthPlace, idNumber: tempUserData.idNumber, email: tempUserData.email, type: accountType, paymentMethod, paymentDetails };
+        saveData();
+        closeRegisterModal();
+        alert(`Compte ${accountType} créé !`);
+        updateHeaderUI();
+        resetToHome();
+    }
+    
+    function forgotPassword() { alert("Un lien de réinitialisation a été envoyé à votre email"); }
+    function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); }
+    
     function openLoginModal() {
         const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;';
-        modal.innerHTML = `
-            <div style="background:white;border-radius:24px;width:90%;max-width:340px;padding:20px;">
-                <h3 style="margin-bottom:16px;">Connexion</h3>
-                <div><input type="email" id="loginEmail" placeholder="Email" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:10px;margin-bottom:12px;"></div>
-                <div><input type="password" id="loginPassword" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:10px;margin-bottom:16px;"></div>
-                <button onclick="doLogin()" style="width:100%;padding:10px;background:var(--primary);color:white;border:none;border-radius:40px;cursor:pointer;">Se connecter</button>
-                <div style="text-align:center;margin-top:12px;"><a href="#" onclick="this.closest('.modal').remove();openRegisterModal();">Créer un compte</a></div>
-            </div>`;
+        modal.innerHTML = `<div class="modal-card"><h3>Connexion</h3><div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div><div class="forgot-password" style="text-align:right;margin-bottom:12px;"><a onclick="forgotPassword()" style="color:var(--primary);font-size:11px;">Mot de passe oublié ?</a></div><button class="btn-submit" onclick="doLogin()">Se connecter</button><div style="text-align:center;margin-top:12px;"><a href="#" onclick="this.closest('.modal').remove();openRegisterModal();">Créer un compte</a></div></div>`;
         document.body.appendChild(modal);
         window.doLogin = () => {
             const email = document.getElementById('loginEmail').value.trim();
@@ -720,8 +1031,6 @@
             else alert("Email requis");
         };
     }
-    
-    function openRegisterModal() { alert("Inscription disponible"); }
     
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
@@ -757,19 +1066,17 @@
     window.showCart = showCart;
     window.showMyOrders = showMyOrders;
     window.copyShopLink = copyShopLink;
+    window.updateQuantity = updateQuantity;
+    window.removeFromCart = removeFromCart;
+    window.showCheckout = showCheckout;
+    window.validateAndPay = validateAndPay;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
-        
-        // Vérifier si un ID de boutique est présent dans l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const shopId = parseInt(urlParams.get('id'));
-        
-        if (shopId && shops.find(s => s.id === shopId)) {
-            viewShopDetail(shopId);
-        } else {
-            showHomePage();
-        }
+        if (shopId && shops.find(s => s.id === shopId)) viewShopDetail(shopId);
+        else showHomePage();
         
         document.getElementById('searchBtn').addEventListener('click', performSearch);
         document.getElementById('searchInput').addEventListener('keypress', e => { if(e.key === 'Enter') performSearch(); });
@@ -789,6 +1096,13 @@
                 dropCont.style.visibility = 'hidden';
             });
         }
+        
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'registerModal';
+        modalDiv.className = 'modal';
+        modalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Identité</div><div class="step">2. Vérification</div><div class="step">3. Compte</div></div><div id="stepContent"></div></div>`;
+        document.body.appendChild(modalDiv);
+        window.onclick = (event) => { if(event.target === document.getElementById('registerModal')) closeRegisterModal(); };
     });
 </script>
 </body>
