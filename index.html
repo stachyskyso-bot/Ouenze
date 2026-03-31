@@ -49,10 +49,12 @@
         .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; }
         .nav-links a.active { color: var(--primary); font-weight: 600; }
         .dropdown { position: relative; }
-        .dropdown-btn { background: none; border: none; font-size: 11px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; gap: 4px; }
-        .dropdown-content { position: absolute; top: 100%; right: 0; background: var(--white); min-width: 160px; border: 1px solid var(--gray-200); border-radius: 12px; opacity: 0; visibility: hidden; transition: 0.2s; z-index: 100; }
+        .dropdown-btn { background: none; border: none; font-size: 11px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 20px; background: var(--gray-100); }
+        .dropdown-btn:hover { background: var(--gray-200); }
+        .dropdown-content { position: absolute; top: 100%; right: 0; background: var(--white); min-width: 160px; border: 1px solid var(--gray-200); border-radius: 12px; opacity: 0; visibility: hidden; transition: 0.2s; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .dropdown-content.show { opacity: 1; visibility: visible; }
         .dropdown-content a { display: block; padding: 8px 14px; text-decoration: none; color: var(--gray-700); font-size: 11px; border-bottom: 1px solid var(--gray-200); }
+        .dropdown-content a:hover { background: var(--gray-100); }
         
         .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
         
@@ -173,6 +175,7 @@
         @media (max-width: 480px) {
             .shops-grid { grid-template-columns: 1fr; }
             .products-container { grid-template-columns: repeat(2, 1fr); }
+            .dropdown-content { right: auto; left: 0; }
         }
     </style>
 </head>
@@ -238,6 +241,9 @@
     let currentCategory = 'all';
     let carouselInterval = null;
     let selectedPayment = null;
+    let resetPasswordStep = 1;
+    let resetEmail = "";
+    let resetCode = "";
     
     // Fonction d'envoi d'email (simulation)
     function sendEmail(to, subject, body) {
@@ -248,13 +254,162 @@
         return true;
     }
     
+    // ============ MOT DE PASSE OUBLIÉ EN 3 ÉTAPES ============
+    function openForgotPasswordModal() {
+        resetPasswordStep = 1;
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.id = 'forgotPasswordModal';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <div class="step-indicator" id="resetStepIndicator">
+                    <div class="step active">1. Email</div>
+                    <div class="step">2. Code</div>
+                    <div class="step">3. Nouveau mot de passe</div>
+                </div>
+                <div id="resetStepContent">
+                    <div class="form-group">
+                        <label>Adresse email</label>
+                        <input type="email" id="resetEmail" placeholder="exemple@email.com">
+                    </div>
+                    <button class="btn-next" onclick="sendResetCode()">Envoyer le code</button>
+                    <div class="button-group" style="margin-top:12px;">
+                        <button onclick="this.closest('.modal').remove()" class="btn-prev" style="width:100%;">Annuler</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    function sendResetCode() {
+        const email = document.getElementById('resetEmail').value.trim();
+        if (!email) {
+            alert("Veuillez entrer votre adresse email");
+            return;
+        }
+        
+        // Vérifier si l'email existe
+        const userExists = shops.some(s => s.owner === email) || 
+                           (currentUser && currentUser.email === email) ||
+                           email === 'demo@ouenze.cg';
+        
+        if (!userExists && email !== 'test@ouenze.cg') {
+            alert("Aucun compte trouvé avec cet email");
+            return;
+        }
+        
+        resetEmail = email;
+        resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        sendEmail(email, "Code de réinitialisation Ouenze", 
+            `Bonjour,\n\nVous avez demandé la réinitialisation de votre mot de passe.\n\nVotre code de vérification est: ${resetCode}\n\nCe code expire dans 10 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\nL'équipe Ouenze`);
+        
+        alert(`Code de vérification envoyé à ${email}\n\nCode: ${resetCode} (simulation)`);
+        
+        resetPasswordStep = 2;
+        renderResetStep();
+    }
+    
+    function renderResetStep() {
+        const modal = document.getElementById('forgotPasswordModal');
+        if (!modal) return;
+        
+        const stepContent = document.getElementById('resetStepContent');
+        const stepIndicator = document.getElementById('resetStepIndicator');
+        
+        if (resetPasswordStep === 2) {
+            stepContent.innerHTML = `
+                <div class="form-group">
+                    <label>Code de vérification</label>
+                    <input type="text" id="resetVerifCode" placeholder="123456">
+                </div>
+                <button class="btn-next" onclick="verifyResetCode()">Vérifier</button>
+                <div class="button-group" style="margin-top:12px;">
+                    <button onclick="sendResetCode()" class="btn-prev" style="width:48%;">Renvoyer</button>
+                    <button onclick="this.closest('.modal').remove()" class="btn-prev" style="width:48%;">Annuler</button>
+                </div>
+            `;
+        } else if (resetPasswordStep === 3) {
+            stepContent.innerHTML = `
+                <div class="form-group">
+                    <label>Nouveau mot de passe</label>
+                    <input type="password" id="newPassword" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>Confirmer le mot de passe</label>
+                    <input type="password" id="confirmNewPassword" placeholder="••••••••">
+                </div>
+                <button class="btn-next" onclick="updatePassword()">Mettre à jour</button>
+                <div class="button-group" style="margin-top:12px;">
+                    <button onclick="this.closest('.modal').remove()" class="btn-prev" style="width:100%;">Annuler</button>
+                </div>
+            `;
+        }
+        
+        // Mettre à jour les indicateurs d'étape
+        const steps = stepIndicator.querySelectorAll('.step');
+        steps.forEach((step, idx) => {
+            step.classList.remove('active', 'completed');
+            if (idx + 1 === resetPasswordStep) {
+                step.classList.add('active');
+            } else if (idx + 1 < resetPasswordStep) {
+                step.classList.add('completed');
+            }
+        });
+    }
+    
+    function verifyResetCode() {
+        const code = document.getElementById('resetVerifCode').value.trim();
+        if (code !== resetCode) {
+            alert("Code incorrect. Veuillez réessayer.");
+            return;
+        }
+        resetPasswordStep = 3;
+        renderResetStep();
+    }
+    
+    function updatePassword() {
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmNewPassword').value;
+        
+        if (!newPassword || newPassword.length < 4) {
+            alert("Le mot de passe doit contenir au moins 4 caractères");
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            alert("Les mots de passe ne correspondent pas");
+            return;
+        }
+        
+        // Mettre à jour le mot de passe de l'utilisateur
+        if (currentUser && currentUser.email === resetEmail) {
+            currentUser.password = newPassword;
+            localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+        }
+        
+        // Simuler la mise à jour
+        sendEmail(resetEmail, "Mot de passe réinitialisé", 
+            `Bonjour,\n\nVotre mot de passe a été réinitialisé avec succès.\n\nSi vous n'êtes pas à l'origine de cette modification, contactez immédiatement notre support.\n\nL'équipe Ouenze`);
+        
+        alert(`✅ Mot de passe réinitialisé avec succès !\n\nUn email de confirmation a été envoyé à ${resetEmail}`);
+        
+        document.getElementById('forgotPasswordModal')?.remove();
+    }
+    
+    // Modifier la fonction forgotPassword pour utiliser la nouvelle modal
+    function forgotPassword() {
+        openForgotPasswordModal();
+    }
+    
     // Boutiques par défaut
     if (shops.length === 0) {
         shops = [
-            { id: 1, name: "Élégance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250, 
+            { id: 1, name: "Élégance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250, hasPhysicalStore: true,
               products: [{ id: 1, name: "Boubou Cérémonie", price: "65000", photos: [], stock: 25, colors: ["Or", "Bleu Royal"], sizes: ["S", "M", "L", "XL"], description: "Boubou traditionnel", productType: "standard" }], 
               categories: ["Boubou", "Accessoires"], reviews: [{ user: "Marie K.", rating: 5, comment: "Superbe qualité !", date: "2024-03-15" }], verified: true },
-            { id: 2, name: "Tech Congo", city: "Brazzaville", quartier: "Centre-ville", rating: 4.8, totalRatings: 124, totalSales: 342, 
+            { id: 2, name: "Tech Congo", city: "Brazzaville", quartier: "Centre-ville", rating: 4.8, totalRatings: 124, totalSales: 342, hasPhysicalStore: false,
               products: [{ id: 1, name: "Smartphone", price: "85000", photos: [], stock: 10, colors: ["Noir", "Bleu"], sizes: [], description: "Smartphone haute performance", productType: "standard" }], 
               categories: ["Electronique"], reviews: [], verified: true }
         ];
@@ -293,46 +448,32 @@
         return stars;
     }
 
-
-
-
-
-
-
-   // Calcul du niveau de la boutique (Or, Argent, Bronze) pour l'affichage
-function getShopLevel(shop) {
-    const annualRevenue = (shop.monthlyRevenue || (shop.totalSales || 0) * 1000) * 12;
-    const valuation = calculateValuation(shop);
-    const rating = shop.rating || 0;
-    const hasPhysicalStore = shop.hasPhysicalStore || false;
-    
-    // Niveau Or: rating >= 4.5, CA annuel > 10M, valorisation > 1M, boutique physique
-    if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
-        return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b' };
+    function getShopLevel(shop) {
+        const annualRevenue = (shop.monthlyRevenue || (shop.totalSales || 0) * 1000) * 12;
+        const valuation = calculateValuation(shop);
+        const rating = shop.rating || 0;
+        const hasPhysicalStore = shop.hasPhysicalStore || false;
+        
+        if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
+            return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b' };
+        }
+        else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
+            return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8' };
+        }
+        else if (rating >= 3) {
+            return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309' };
+        }
+        return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b' };
     }
-    // Niveau Argent: rating entre 4 et 5, CA annuel 5M-10M, valorisation > 500k
-    else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
-        return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8' };
+
+    function calculateValuation(shop) {
+        const baseValue = 1000000;
+        const productValue = (shop.products?.length || 0) * 50000;
+        const ratingBonus = (shop.rating || 0) * 150000;
+        const salesBonus = (shop.totalSales || 0) * 1000;
+        const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+        return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
     }
-    // Niveau Bronze: rating >= 3, éligible à l'investissement
-    else if (rating >= 3) {
-        return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309' };
-    }
-    return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b' };
-}
-
-function calculateValuation(shop) {
-    const baseValue = 1000000;
-    const productValue = (shop.products?.length || 0) * 50000;
-    const ratingBonus = (shop.rating || 0) * 150000;
-    const salesBonus = (shop.totalSales || 0) * 1000;
-    const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-    return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
-}
-
-
-
-    
     
     function getCertificationBadge(rating, verified) {
         if (verified) return '<div class="certification-badge blue" title="Certifiée"><i class="fas fa-check-circle"></i></div>';
@@ -387,39 +528,39 @@ function calculateValuation(shop) {
     }
     
     function displayShops(shopsList) {
-    const grid = document.getElementById('shopsGrid');
-    if (!grid) return;
-    if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:30px;">Aucune boutique</div>'; return; }
-    grid.innerHTML = shopsList.map(shop => {
-        const level = getShopLevel(shop);
-        const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
-        const levelBadge = level.level ? `<span class="level-badge level-${levelClass}" style="display:inline-block; margin-left:6px; padding:2px 8px; border-radius:20px; font-size:9px; background:${level.color}20; color:${level.color};"><i class="fas fa-crown"></i> ${level.name}</span>` : '';
-        
-        return `
-            <div class="shop-card" onclick="viewShopDetail(${shop.id})" style="position:relative;">
-                ${getCertificationBadge(shop.rating || 0, shop.verified)}
-                <div class="shop-logo-area">
-                    <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
-                    <div class="shop-name">${escapeHtml(shop.name)}${levelBadge}</div>
-                    <div class="shop-rating">
-                        <div class="stars">${generateStars(shop.rating || 0)}</div>
-                        <span>(${shop.totalRatings || 0})</span>
+        const grid = document.getElementById('shopsGrid');
+        if (!grid) return;
+        if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:30px;">Aucune boutique</div>'; return; }
+        grid.innerHTML = shopsList.map(shop => {
+            const level = getShopLevel(shop);
+            const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
+            const levelBadge = level.level ? `<span class="level-badge level-${levelClass}" style="display:inline-block; margin-left:6px; padding:2px 8px; border-radius:20px; font-size:9px; background:${level.color}20; color:${level.color};"><i class="fas fa-crown"></i> ${level.name}</span>` : '';
+            
+            return `
+                <div class="shop-card" onclick="viewShopDetail(${shop.id})" style="position:relative;">
+                    ${getCertificationBadge(shop.rating || 0, shop.verified)}
+                    <div class="shop-logo-area">
+                        <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
+                        <div class="shop-name">${escapeHtml(shop.name)}${levelBadge}</div>
+                        <div class="shop-rating">
+                            <div class="stars">${generateStars(shop.rating || 0)}</div>
+                            <span>(${shop.totalRatings || 0})</span>
+                        </div>
+                        <div style="font-size:10px;color:var(--gray-500);margin-top:4px;">
+                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                            ${level.level ? `<br><span style="color:${level.color};">💰 Commission: ${level.ouenzeFee}%</span>` : ''}
+                        </div>
                     </div>
-                    <div style="font-size:10px;color:var(--gray-500);margin-top:4px;">
-                        <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                        ${level.level ? `<br><span style="color:${level.color};">💰 Commission: ${level.ouenzeFee}%</span>` : ''}
+                    <div class="shop-details">
+                        <div class="shop-metrics">
+                            <div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div>
+                            <div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div>
+                        </div>
                     </div>
                 </div>
-                <div class="shop-details">
-                    <div class="shop-metrics">
-                        <div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div>
-                        <div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
+            `;
+        }).join('');
+    }
     
     function displayProducts(productsList) {
         const grid = document.getElementById('productsGrid');
@@ -963,8 +1104,7 @@ function calculateValuation(shop) {
         orders.push(newOrder);
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         
-        // Envoi d'email de confirmation
-        const emailBody = `Bonjour ${currentUser?.name || 'Client'},\n\nVotre commande #${orderId} a été confirmée.\n\nDétails:\n- Total: ${finalTotal.toLocaleString()} FCFA\n- Livraison: ${city}, ${quartier}\n- Paiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}\n\nVous pouvez suivre votre commande ici: https://ouenze.cg/tracking.html?id=${orderId}\n\nMerci de votre confiance !\n\nL'équipe Ouenze`;
+        const emailBody = `Bonjour ${currentUser?.name || 'Client'},\n\nVotre commande #${orderId} a été confirmée.\n\nDétails:\n- Total: ${finalTotal.toLocaleString()} FCFA\n- Livraison: ${city}, ${quartier}\n- Paiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}\n\nVous pouvez suivre votre commande ici: tracking.html?id=${orderId}\n\nMerci de votre confiance !\n\nL'équipe Ouenze`;
         sendEmail(currentUser?.email || 'client@email.com', `Confirmation de commande #${orderId}`, emailBody);
         
         cart = [];
@@ -1056,10 +1196,7 @@ function calculateValuation(shop) {
         tempUserData = { fullName, firstName, birthDate, birthPlace, idNumber, city: document.getElementById('city').value, address: document.getElementById('address').value, email, password };
         generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         alert(`Code vérification: ${generatedCode}`);
-        
-        // Envoi d'email de vérification
         sendEmail(email, "Code de vérification Ouenze", `Bonjour ${fullName},\n\nVotre code de vérification est: ${generatedCode}\n\nCe code expire dans 10 minutes.\n\nL'équipe Ouenze`);
-        
         currentStep = 2;
         renderRegisterStep();
     }
@@ -1092,7 +1229,6 @@ function calculateValuation(shop) {
         saveData();
         closeRegisterModal();
         
-        // Envoi d'email de bienvenue
         const welcomeBody = `Bonjour ${currentUser.name},\n\nVotre compte ${accountType === 'vendeur' ? 'vendeur' : 'client'} a été créé avec succès sur Ouenze Marketplace !\n\n${accountType === 'vendeur' ? 'Vous pouvez maintenant créer votre boutique depuis votre tableau de bord vendeur.' : 'Vous pouvez maintenant parcourir les boutiques et passer vos commandes.'}\n\nCordialement,\nL'équipe Ouenze`;
         sendEmail(currentUser.email, "Bienvenue sur Ouenze Marketplace", welcomeBody);
         
@@ -1101,15 +1237,6 @@ function calculateValuation(shop) {
         resetToHome();
     }
     
-    function forgotPassword() { 
-        if (currentUser?.email) {
-            const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-            sendEmail(currentUser.email, "Réinitialisation de mot de passe", `Bonjour,\n\nVotre code de réinitialisation est: ${resetCode}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\nL'équipe Ouenze`);
-            alert(`Un code de réinitialisation a été envoyé à ${currentUser.email}`);
-        } else {
-            alert("Veuillez entrer votre email");
-        }
-    }
     function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); }
     
     function openLoginModal() {
@@ -1119,7 +1246,6 @@ function calculateValuation(shop) {
         window.doLogin = () => {
             const email = document.getElementById('loginEmail').value.trim();
             if (email) { 
-                // Simuler la récupération d'un utilisateur existant
                 const existingUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
                 if (existingUser && existingUser.email === email) {
                     currentUser = existingUser;
@@ -1174,6 +1300,7 @@ function calculateValuation(shop) {
     window.removeFromCart = removeFromCart;
     window.showCheckout = showCheckout;
     window.validateAndPay = validateAndPay;
+    window.forgotPassword = forgotPassword;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
@@ -1208,11 +1335,6 @@ function calculateValuation(shop) {
         document.body.appendChild(modalDiv);
         window.onclick = (event) => { if(event.target === document.getElementById('registerModal')) closeRegisterModal(); };
     });
-
-
-
-
- 
 </script>
 </body>
 </html>
