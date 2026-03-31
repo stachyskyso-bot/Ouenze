@@ -13,6 +13,9 @@
         :root {
             --primary: #1e40af;
             --primary-dark: #1e3a8a;
+            --gold: #f59e0b;
+            --silver: #94a3b8;
+            --bronze: #b45309;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
@@ -30,6 +33,12 @@
         .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
         .main { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
         
+        /* Badges de niveau */
+        .level-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+        .level-gold { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #b45309; border: 1px solid #f59e0b; }
+        .level-silver { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #334155; border: 1px solid #94a3b8; }
+        .level-bronze { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #9a3412; border: 1px solid #b45309; }
+        
         /* Filtres et classement */
         .filters-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
         .sort-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -40,7 +49,11 @@
         /* Grille boutiques */
         .shops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-bottom: 32px; }
         .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
-        .shop-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+        .shop-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -12px rgba(0,0,0,0.1); }
+        .shop-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+        .shop-card.gold::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .shop-card.silver::before { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+        .shop-card.bronze::before { background: linear-gradient(90deg, #b45309, #f59e0b); }
         .shop-logo { padding: 20px; text-align: center; background: linear-gradient(135deg, #f8fafc, #f1f5f9); }
         .shop-logo-img { width: 70px; height: 70px; margin: 0 auto; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .shop-name { margin-top: 12px; font-size: 18px; font-weight: 700; }
@@ -54,6 +67,7 @@
         .shop-detail-container { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); padding: 24px; margin-bottom: 24px; }
         .shop-detail-header { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
         .shop-detail-logo { width: 100px; height: 100px; background: var(--gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .shop-level { margin-top: 8px; }
         .chart-tabs { display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap; border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; }
         .chart-tab { padding: 8px 20px; background: var(--gray-100); border-radius: 30px; cursor: pointer; font-size: 13px; transition: 0.2s; }
         .chart-tab.active { background: var(--primary); color: white; }
@@ -62,11 +76,18 @@
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--gray-200); }
         .data-table th { background: var(--gray-100); font-weight: 600; }
+        .investment-range { background: linear-gradient(135deg, var(--gray-100), var(--white)); padding: 16px; border-radius: 16px; margin: 16px 0; border-left: 4px solid var(--primary); }
+        .fee-info { display: inline-block; padding: 4px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; margin: 8px 0; }
+        .fee-gold { background: #fef3c7; color: #b45309; }
+        .fee-silver { background: #f1f5f9; color: #334155; }
+        .fee-bronze { background: #ffedd5; color: #9a3412; }
         .action-buttons { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
-        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-weight: 500; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
         .btn-success { background: var(--success); }
+        .btn-success:hover { background: #059669; }
         .btn-danger { background: var(--danger); }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-danger:hover { background: #dc2626; }
         
         /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
@@ -76,6 +97,8 @@
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 10px; }
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        .highlight-card { animation: pulse 1s ease-in-out; }
         @media (max-width: 700px) { .shops-grid { grid-template-columns: 1fr; } .action-buttons { flex-direction: column; } }
     </style>
 </head>
@@ -98,10 +121,31 @@
     let investments = JSON.parse(localStorage.getItem('ouenze_investments') || '[]');
     let userHoldings = JSON.parse(localStorage.getItem('ouenze_holdings') || '[]');
     let marketHistory = JSON.parse(localStorage.getItem('ouenze_market_history') || '[]');
-    let currentView = 'grid';
     let currentSort = 'rating';
     let currentShop = null;
     let currentChart = null;
+    
+    // Calcul du niveau de la boutique (Or, Argent, Bronze)
+    function getShopLevel(shop) {
+        const annualRevenue = (shop.monthlyRevenue || 500000) * 12;
+        const valuation = calculateValuation(shop);
+        const rating = shop.rating || 0;
+        const hasPhysicalStore = shop.hasPhysicalStore || false;
+        
+        // Niveau Or: rating >= 4.5, CA annuel > 10M, valorisation > 1M, boutique physique
+        if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
+            return { level: 'gold', name: 'Or', fee: 21, minInvestment: 500000, maxInvestment: 5000000, color: '#f59e0b', bg: '#fef3c7' };
+        }
+        // Niveau Argent: rating entre 4 et 5, CA annuel 5M-10M, valorisation > 500k
+        else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
+            return { level: 'silver', name: 'Argent', fee: 21.5, minInvestment: 250000, maxInvestment: 2000000, color: '#94a3b8', bg: '#f1f5f9' };
+        }
+        // Niveau Bronze: rating >= 3, éligible à l'investissement
+        else if (rating >= 3) {
+            return { level: 'bronze', name: 'Bronze', fee: 22, minInvestment: 100000, maxInvestment: 1000000, color: '#b45309', bg: '#ffedd5' };
+        }
+        return { level: null, name: 'Non éligible', fee: 22, minInvestment: 0, maxInvestment: 0, color: '#64748b', bg: '#f1f5f9' };
+    }
     
     // Calcul de la valorisation d'une boutique
     function calculateValuation(shop) {
@@ -118,7 +162,7 @@
         return Math.round(valuation / 1000);
     }
     
-    // Générer l'historique des prix (simulation)
+    // Générer l'historique des prix
     function generatePriceHistory(shopId, valuation) {
         const history = [];
         let currentPrice = valuation / 1000;
@@ -153,7 +197,7 @@
                     <button class="sort-btn ${currentSort === 'rating' ? 'active' : ''}" onclick="setSort('rating')">⭐ Par note</button>
                     <button class="sort-btn ${currentSort === 'price' ? 'active' : ''}" onclick="setSort('price')">💰 Par prix</button>
                     <button class="sort-btn ${currentSort === 'growth' ? 'active' : ''}" onclick="setSort('growth')">📈 Par croissance</button>
-                    <button class="sort-btn ${currentSort === 'date' ? 'active' : ''}" onclick="setSort('date')">🕐 Plus récentes</button>
+                    <button class="sort-btn ${currentSort === 'level' ? 'active' : ''}" onclick="setSort('level')">🏆 Par niveau</button>
                 </div>
                 <input type="text" id="searchShop" class="search-input" placeholder="Rechercher une boutique..." onkeyup="filterShops()">
             </div>
@@ -167,7 +211,12 @@
             if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
             if (sortBy === 'price') return calculateValuation(b) - calculateValuation(a);
             if (sortBy === 'growth') return (b.growthRate || 0) - (a.growthRate || 0);
-            if (sortBy === 'date') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            if (sortBy === 'level') {
+                const levelA = getShopLevel(a).level;
+                const levelB = getShopLevel(b).level;
+                const order = { gold: 3, silver: 2, bronze: 1 };
+                return (order[levelB] || 0) - (order[levelA] || 0);
+            }
             return 0;
         });
     }
@@ -177,17 +226,20 @@
         if (!grid) return;
         if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:60px;">Aucune boutique éligible (minimum 3 étoiles requises)</div>'; return; }
         grid.innerHTML = shopsList.map(shop => {
+            const level = getShopLevel(shop);
             const valuation = calculateValuation(shop);
             const sharePrice = calculateSharePrice(valuation);
             const trend = Math.random() > 0.5 ? 'up' : 'down';
+            const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
             return `
-                <div class="shop-card" onclick="showShopDetail(${shop.id})">
+                <div class="shop-card ${levelClass}" onclick="showShopDetail(${shop.id})">
                     <div class="shop-logo">
                         <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:32px;"></i>'}</div>
                         <div class="shop-name">${escapeHtml(shop.name)}</div>
                         <div class="shop-rating">${'⭐'.repeat(Math.floor(shop.rating || 0))} ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)</div>
                         <div class="shop-price">${valuation.toLocaleString()} FCFA</div>
-                        <div style="font-size:12px;">Prix par action: ${sharePrice.toLocaleString()} FCFA</div>
+                        <div class="shop-level"><span class="level-badge level-${level.level}"><i class="fas fa-crown"></i> ${level.name}</span></div>
+                        <div style="font-size:11px; margin-top:6px;">💰 Frais: ${level.fee}%</div>
                     </div>
                     <div class="shop-stats">
                         <span><i class="fas fa-box"></i> ${shop.products?.length || 0} produits</span>
@@ -214,13 +266,12 @@
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
         currentShop = shop;
+        const level = getShopLevel(shop);
         const valuation = calculateValuation(shop);
         const sharePrice = calculateSharePrice(valuation);
         const history = getShopHistory(shopId);
         const userHolding = userHoldings.find(h => h.shopId === shopId && h.userId === currentUser?.email);
-        
-        // Vérifier si l'utilisateur a des infos de paiement
-        const hasPaymentInfo = currentUser && (currentUser.paymentMethod && currentUser.paymentDetails);
+        const annualRevenue = (shop.monthlyRevenue || valuation * 0.1) * 12;
         
         document.getElementById('appContainer').innerHTML = `
             <button onclick="showInvestPage()" style="background:none;border:none;color:var(--primary);cursor:pointer;margin-bottom:20px;"><i class="fas fa-arrow-left"></i> Retour</button>
@@ -230,8 +281,16 @@
                     <div>
                         <h1>${escapeHtml(shop.name)}</h1>
                         <div class="shop-rating">${'⭐'.repeat(Math.floor(shop.rating || 0))} ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)</div>
+                        <div class="shop-level"><span class="level-badge level-${level.level}"><i class="fas fa-crown"></i> Niveau ${level.name}</span> <span class="fee-info fee-${level.level}"><i class="fas fa-percent"></i> Frais de commission: ${level.fee}%</span></div>
                         <div>📍 ${escapeHtml(shop.city || 'Brazzaville')}, ${escapeHtml(shop.quartier || '')}</div>
+                        ${shop.hasPhysicalStore ? '<div><i class="fas fa-store"></i> Boutique physique certifiée</div>' : ''}
                     </div>
+                </div>
+                
+                <div class="investment-range">
+                    <strong><i class="fas fa-chart-line"></i> Fourchette d'investissement</strong><br>
+                    Minimum: ${level.minInvestment.toLocaleString()} FCFA | Maximum: ${level.maxInvestment.toLocaleString()} FCFA<br>
+                    <small>Investissement recommandé pour ce niveau de boutique</small>
                 </div>
                 
                 <div class="chart-tabs">
@@ -250,9 +309,11 @@
                         <tr><th>Valorisation totale</th><td>${valuation.toLocaleString()} FCFA</td></tr>
                         <tr><th>Prix par action (0.1%)</th><td>${sharePrice.toLocaleString()} FCFA</td></tr>
                         <tr><th>Chiffre d'affaires mensuel</th><td>${(shop.monthlyRevenue || valuation * 0.1).toLocaleString()} FCFA</td></tr>
+                        <tr><th>Chiffre d'affaires annuel</th><td>${annualRevenue.toLocaleString()} FCFA</td></tr>
                         <tr><th>Croissance estimée</th><td class="trend-up">+${shop.growthRate || 12}%</td></tr>
                         <tr><th>Capital social</th><td>${Math.round(valuation * 0.3).toLocaleString()} FCFA</td></tr>
                         <tr><th>Rentabilité</th><td>${Math.round(valuation * 0.15).toLocaleString()} FCFA/an</td></tr>
+                        <tr><th>Commission Ouenze</th><td><span class="fee-info fee-${level.level}">${level.fee}%</span> (au lieu de 22%)</td></tr>
                     </table>
                 </div>
                 
@@ -261,8 +322,8 @@
                     <table class="data-table">
                         <thead><tr><th>Type</th><th>Désignation</th><th>Valeur (FCFA)</th></tr></thead>
                         <tbody>
-                            ${(shop.assets || []).map(a => `<tr><td>Actif</td><td>${escapeHtml(a.name)}</td><td>${a.value.toLocaleString()}</td></tr>`).join('')}
-                            ${(shop.liabilities || []).map(l => `<tr><td>Passif</td><td>${escapeHtml(l.name)}</td><td>${l.value.toLocaleString()}</td></tr>`).join('')}
+                            ${(shop.assets || []).map(a => `<tr><td>Actif</td><td>${escapeHtml(a.name)}</td><td>${a.value.toLocaleString()} FCFA</td></tr>`).join('')}
+                            ${(shop.liabilities || []).map(l => `<tr><td>Passif</td><td>${escapeHtml(l.name)}</td><td>${l.value.toLocaleString()} FCFA</td></tr>`).join('')}
                             ${(!shop.assets || shop.assets.length === 0) && (!shop.liabilities || shop.liabilities.length === 0) ? '<tr><td colspan="3">Aucune donnée disponible</td></tr>' : ''}
                         </tbody>
                     </table>
@@ -270,17 +331,18 @@
                 
                 ${currentUser ? `
                 <div class="action-buttons">
-                    <button class="btn-primary" onclick="openBuySharesModal(${shop.id}, ${sharePrice})">📈 Acheter des actions</button>
+                    <button class="btn-primary" onclick="openBuySharesModal(${shop.id}, ${sharePrice}, ${level.minInvestment}, ${level.maxInvestment})">📈 Acheter des actions</button>
                     ${userHolding && userHolding.quantity > 0 ? `<button class="btn-danger" onclick="openSellSharesModal(${shop.id}, ${sharePrice}, ${userHolding.quantity})">📉 Vendre des actions</button>` : ''}
                     <button class="btn-success" onclick="openAcquisitionModal(${shop.id}, ${valuation})">🏢 Acquérir la boutique</button>
                 </div>
-                ` : `<div class="info-box" style="background:var(--gray-100);padding:16px;border-radius:12px;text-align:center;">Connectez-vous pour investir</div>`}
+                ` : `<div class="info-box" style="background:var(--gray-100);padding:16px;border-radius:12px;text-align:center;">🔒 Connectez-vous pour investir dans cette boutique</div>`}
                 
                 ${userHolding && userHolding.quantity > 0 ? `
                 <div class="info-box" style="margin-top:20px;background:var(--gray-100);padding:16px;border-radius:12px;">
-                    <strong>Votre portefeuille</strong><br>
+                    <strong>📊 Votre portefeuille</strong><br>
                     Actions détenues: ${userHolding.quantity}<br>
-                    Valeur: ${(userHolding.quantity * sharePrice).toLocaleString()} FCFA
+                    Valeur actuelle: ${(userHolding.quantity * sharePrice).toLocaleString()} FCFA<br>
+                    Plus-value estimée: ${((userHolding.quantity * sharePrice) - (userHolding.quantity * userHolding.buyPrice)).toLocaleString()} FCFA
                 </div>
                 ` : ''}
             </div>
@@ -296,18 +358,18 @@
         
         let labels, data, label, color;
         if (type === 'price') {
-            labels = history.map(h => h.date);
+            labels = history.map(h => h.date.slice(5));
             data = history.map(h => h.price);
             label = 'Prix par action (FCFA)';
             color = '#1e40af';
         } else if (type === 'volume') {
-            labels = history.slice(-10).map(h => h.date);
+            labels = history.slice(-10).map(h => h.date.slice(5));
             data = labels.map(() => Math.floor(Math.random() * 100 + 20));
             label = 'Volume transacted';
             color = '#10b981';
         } else if (type === 'revenue') {
-            labels = history.slice(-12).map(h => h.date);
-            data = labels.map(() => Math.floor(Math.random() * 500000 + 100000));
+            labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+            data = labels.map(() => Math.floor(Math.random() * 500000 + 200000));
             label = 'CA mensuel (FCFA)';
             color = '#f59e0b';
         } else {
@@ -323,13 +385,13 @@
             currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: { labels, datasets: [{ label, data, backgroundColor: color }] },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
             });
         } else {
             currentChart = new Chart(ctx, {
                 type: 'line',
                 data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: color + '20', fill: true, tension: 0.3 }] },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
             });
         }
     }
@@ -372,7 +434,7 @@
         });
     }
     
-    function openBuySharesModal(shopId, sharePrice) {
+    function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
         if (!currentUser) { alert("Connectez-vous"); return; }
         checkPaymentInfo().then(hasInfo => {
             if (!hasInfo) return;
@@ -380,24 +442,48 @@
             modal.innerHTML = `
                 <div class="modal-card">
                     <h3>Acheter des actions</h3>
+                    <div class="investment-range" style="margin-bottom:16px;">
+                        Fourchette d'investissement:<br>
+                        Minimum: ${minInvestment.toLocaleString()} FCFA | Maximum: ${maxInvestment.toLocaleString()} FCFA
+                    </div>
                     <div class="form-group"><label>Nombre d'actions</label><input type="number" id="sharesQty" min="1" value="1"></div>
                     <div class="form-group"><label>Prix unitaire</label><input type="text" id="sharePrice" value="${sharePrice}" readonly disabled></div>
                     <div class="form-group"><strong>Total: <span id="totalPrice">${sharePrice}</span> FCFA</strong></div>
-                    <button class="btn-primary" onclick="submitBuyRequest(${shopId}, ${sharePrice})">Soumettre la demande</button>
+                    <div id="investmentWarning" style="font-size:12px;color:var(--warning);margin-top:8px;"></div>
+                    <button class="btn-primary" onclick="submitBuyRequest(${shopId}, ${sharePrice}, ${minInvestment}, ${maxInvestment})">Soumettre la demande</button>
                     <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
                 </div>`;
             document.body.appendChild(modal);
-            document.getElementById('sharesQty').addEventListener('input', (e) => {
+            const qtyInput = document.getElementById('sharesQty');
+            const totalSpan = document.getElementById('totalPrice');
+            const warningSpan = document.getElementById('investmentWarning');
+            qtyInput.addEventListener('input', (e) => {
                 const total = e.target.value * sharePrice;
-                document.getElementById('totalPrice').innerText = total.toLocaleString();
+                totalSpan.innerText = total.toLocaleString();
+                if (total < minInvestment) {
+                    warningSpan.innerHTML = '⚠️ Montant inférieur au minimum recommandé';
+                    warningSpan.style.color = '#ef4444';
+                } else if (total > maxInvestment) {
+                    warningSpan.innerHTML = '⚠️ Montant supérieur au maximum recommandé';
+                    warningSpan.style.color = '#ef4444';
+                } else {
+                    warningSpan.innerHTML = '✅ Montant dans la fourchette recommandée';
+                    warningSpan.style.color = '#10b981';
+                }
             });
         });
     }
     
-    function submitBuyRequest(shopId, sharePrice) {
+    function submitBuyRequest(shopId, sharePrice, minInvestment, maxInvestment) {
         const quantity = parseInt(document.getElementById('sharesQty').value);
         if (!quantity || quantity < 1) { alert("Quantité invalide"); return; }
         const total = quantity * sharePrice;
+        if (total < minInvestment) {
+            if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est inférieur au minimum recommandé (${minInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
+        }
+        if (total > maxInvestment) {
+            if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est supérieur au maximum recommandé (${maxInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
+        }
         
         const request = {
             id: Date.now(),
@@ -419,13 +505,7 @@
         requests.push(request);
         localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
         
-        // Simulation email
-        console.log(`📧 Demande d'investissement envoyée à admin@ouenze.cg`);
-        console.log(`Investisseur: ${currentUser.name} (${currentUser.email})`);
-        console.log(`Boutique: ${request.shopName}`);
-        console.log(`Type: Achat de ${quantity} actions (${total.toLocaleString()} FCFA)`);
-        
-        alert(`✅ Demande envoyée !\n\nUn email a été envoyé à notre équipe pour vérification.\nVous recevrez une confirmation sous 48h.`);
+        alert(`✅ Demande d'investissement envoyée !\n\nMontant: ${total.toLocaleString()} FCFA\nBoutique: ${request.shopName}\n\nUn email a été envoyé à notre équipe pour vérification.`);
         document.querySelector('.modal')?.remove();
         showShopDetail(shopId);
     }
@@ -471,7 +551,7 @@
         requests.push(request);
         localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
         
-        alert(`✅ Demande de vente envoyée !\n\nNotre équipe traitera votre demande sous 48h.`);
+        alert(`✅ Demande de vente envoyée !\n\nMontant: ${total.toLocaleString()} FCFA\nNotre équipe traitera votre demande sous 48h.`);
         document.querySelector('.modal')?.remove();
         showShopDetail(shopId);
     }
@@ -580,7 +660,11 @@
     window.submitAcquisitionRequest = submitAcquisitionRequest;
     
     if (shops.length === 0) {
-        shops = [{ id: 1, name: "Tech Congo", rating: 4.8, totalRatings: 124, products: [], city: "Brazzaville", quartier: "Moungali", monthlyRevenue: 450000, growthRate: 15, assets: [{ name: "Matériel informatique", value: 850000 }], liabilities: [] }];
+        shops = [
+            { id: 1, name: "Élégance Africaine", rating: 5.0, totalRatings: 342, products: [], city: "Brazzaville", quartier: "Moungali", monthlyRevenue: 950000, growthRate: 18, hasPhysicalStore: true, assets: [{ name: "Boutique physique", value: 2500000 }, { name: "Stock marchandises", value: 1200000 }], liabilities: [{ name: "Emprunt bancaire", value: 500000 }] },
+            { id: 2, name: "Tech Congo", rating: 4.8, totalRatings: 124, products: [], city: "Brazzaville", quartier: "Centre-ville", monthlyRevenue: 450000, growthRate: 15, hasPhysicalStore: false, assets: [{ name: "Matériel informatique", value: 850000 }], liabilities: [] },
+            { id: 3, name: "Saveurs du Congo", rating: 4.2, totalRatings: 203, products: [], city: "Pointe-Noire", quartier: "Centre", monthlyRevenue: 380000, growthRate: 12, hasPhysicalStore: true, assets: [{ name: "Équipement cuisine", value: 600000 }], liabilities: [] }
+        ];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
     }
     
