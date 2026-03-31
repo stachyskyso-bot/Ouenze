@@ -48,6 +48,8 @@
         .btn-warning:hover { background: #e67e22; }
         .btn-success { background: var(--success); color: white; }
         .btn-success:hover { background: #059669; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
         
         .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; transition: all 0.2s; }
         .shop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
@@ -86,6 +88,7 @@
         .share-copy { background: var(--gray-500); }
         
         .chart-container { height: 180px; margin: 16px 0; }
+        
         .shop-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
@@ -135,79 +138,43 @@
     document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
     document.getElementById('userName').innerText = currentUser.name;
     
-    // ============ FORMULE DE VALORISATION PROFESSIONNELLE ============
-    // Valeur = (Résultat × Multiple) + Trésorerie estimée - Dettes
-    // Multiple ajusté selon le secteur d'activité et la note
-    function getMultipleByRating(rating, category) {
-        let baseMultiple = 3.0;
-        
-        // Ajustement selon la note
-        if (rating >= 4.8) baseMultiple = 5.5;
-        else if (rating >= 4.5) baseMultiple = 4.5;
-        else if (rating >= 4.0) baseMultiple = 3.8;
-        else if (rating >= 3.5) baseMultiple = 3.2;
-        else if (rating >= 3.0) baseMultiple = 2.8;
-        else if (rating >= 2.5) baseMultiple = 2.2;
-        else baseMultiple = 1.8;
-        
-        // Ajustement selon le secteur (bonus)
-        const highValueSectors = ['Electronique', 'Mode', 'Bijouterie', 'Parfumerie', 'Luxe'];
-        if (highValueSectors.some(s => category?.includes(s))) baseMultiple *= 1.15;
-        
-        return baseMultiple;
-    }
-    
-    function calculateEBITDA(shop) {
-        // Calcul du résultat (EBITDA estimé)
-        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
-        const totalRevenue = shopOrders.reduce((sum, o) => sum + o.total, 0);
-        
-        // Estimation des charges (70% du CA pour les charges d'exploitation)
-        const operatingExpenses = totalRevenue * 0.7;
-        const ebitda = totalRevenue - operatingExpenses;
-        
-        // Projection annuelle (extrapolation)
-        const monthlyAvg = ebitda / (Math.max(shopOrders.length, 1));
-        const annualProjection = monthlyAvg * 12;
-        
-        return {
-            monthly: ebitda,
-            annual: annualProjection,
-            totalRevenue: totalRevenue,
-            operatingExpenses: operatingExpenses
-        };
-    }
-    
-    function calculateCashEstimate(shop) {
-        // Trésorerie estimée = 20% du CA annuel + actifs liquides
-        const ebitda = calculateEBITDA(shop);
-        const cashFromActivity = ebitda.annual * 0.2;
-        
-        // Actifs liquides (stock, matériel rapidement vendable)
-        const liquidAssets = (shop.assets || []).reduce((sum, a) => {
-            // 70% de la valeur des actifs considérée comme liquide
-            return sum + (a.value * 0.7);
-        }, 0);
-        
-        return cashFromActivity + liquidAssets;
-    }
-    
-    function calculateTotalDebts(shop) {
-        // Total des dettes
-        return (shop.liabilities || []).reduce((sum, l) => sum + l.value, 0);
-    }
-    
+    // Calcul professionnel de la valorisation : Valeur = (Résultat × Multiple) + Trésorerie estimée - Dettes
     function calculateValuation(shop) {
-        const ebitda = calculateEBITDA(shop);
-        const multiple = getMultipleByRating(shop.rating || 0, shop.categories?.[0]);
-        const cash = calculateCashEstimate(shop);
-        const debts = calculateTotalDebts(shop);
+        // Calcul du résultat (CA - charges estimées)
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
+        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
         
-        // Formule: Valeur = (Résultat × Multiple) + Trésorerie - Dettes
-        const valuation = (ebitda.annual * multiple) + cash - debts;
+        // Charges estimées (30% du CA pour les frais, 5% pour les commissions)
+        const estimatedExpenses = revenue * 0.35;
+        const result = revenue - estimatedExpenses;
         
-        // Valeur minimale de 500 000 FCFA
-        return Math.max(valuation, 500000);
+        // Multiple selon le secteur et la note (entre 2 et 8)
+        let multiple = 3;
+        if(shop.rating >= 4.5) multiple = 6;
+        else if(shop.rating >= 3.5) multiple = 4.5;
+        else if(shop.rating >= 2.5) multiple = 3;
+        else multiple = 2;
+        
+        // Bonus pour le nombre de produits
+        if((shop.products?.length || 0) > 50) multiple += 1;
+        if((shop.products?.length || 0) > 100) multiple += 0.5;
+        
+        // Trésorerie estimée (20% du CA annuel)
+        const estimatedCash = revenue * 0.2;
+        
+        // Dettes (passifs)
+        const debts = (shop.liabilities || []).reduce((sum, l) => sum + (l.value || 0), 0);
+        
+        // Actifs
+        const assets = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+        
+        // Valorisation finale
+        let valuation = (result * multiple) + estimatedCash + assets - debts;
+        
+        // Valeur minimale
+        if(valuation < 500000) valuation = 500000;
+        
+        return Math.round(valuation);
     }
     
     function getMonthlyRevenue(shopId) {
@@ -224,7 +191,6 @@
         const totalProducts = userShops.reduce((s,shop)=>s+(shop.products?.length||0),0);
         const totalOrders = orders.filter(o => o.items?.some(i => userShops.some(s=>s.id===i.shopId))).length;
         const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s,o)=>s+o.total,0);
-        const totalValuation = userShops.reduce((s, shop) => s + calculateValuation(shop), 0);
         const pendingRequests = investmentRequests.filter(r => r.shopId && userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
         
         document.getElementById('appContainer').innerHTML = `
@@ -233,7 +199,6 @@
                 <div class="stat-card"><h3>Produits</h3><div class="stat-value">${totalProducts}</div></div>
                 <div class="stat-card"><h3>Commandes</h3><div class="stat-value">${totalOrders}</div></div>
                 <div class="stat-card"><h3>Chiffre d'affaires</h3><div class="stat-value">${totalRevenue.toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Valorisation totale</h3><div class="stat-value">${totalValuation.toLocaleString()} FCFA</div></div>
                 <div class="stat-card"><h3>Demandes en attente</h3><div class="stat-value">${pendingRequests.length}</div></div>
             </div>
             <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
@@ -277,12 +242,7 @@
         const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
         const rating = shop.rating || 0;
         const valuation = calculateValuation(shop);
-        const ebitda = calculateEBITDA(shop);
-        const multiple = getMultipleByRating(rating, shop.categories?.[0]);
-        const cash = calculateCashEstimate(shop);
-        const debts = calculateTotalDebts(shop);
         const shopUrl = `${window.location.origin}${window.location.pathname.includes('vendor-dashboard') ? '/index.html' : '/index.html'}?id=${shop.id}`;
-        
         let stars = '';
         for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star"></i>';
         if(rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
@@ -306,32 +266,6 @@
                         <div class="metric-card"><div class="metric-value">${shop.products?.length||0}</div><div class="metric-label">Produits</div></div>
                         <div class="metric-card"><div class="metric-value">${shopOrders.length}</div><div class="metric-label">Commandes</div></div>
                         <div class="metric-card"><div class="metric-value">${revenue.toLocaleString()} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
-                    </div>
-                    
-                    <div style="background:var(--gray-50); border-radius:12px; padding:12px; margin-bottom:16px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
-                            <span><strong>EBITDA annuel</strong></span>
-                            <span>${Math.round(ebitda.annual).toLocaleString()} FCFA</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
-                            <span><strong>Multiple appliqué</strong></span>
-                            <span>${multiple}x</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
-                            <span><strong>Trésorerie estimée</strong></span>
-                            <span>${Math.round(cash).toLocaleString()} FCFA</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px;">
-                            <span><strong>Dettes totales</strong></span>
-                            <span style="color:var(--danger);">- ${Math.round(debts).toLocaleString()} FCFA</span>
-                        </div>
-                        <div style="border-top:1px solid var(--gray-200); margin-top:8px; padding-top:8px; display:flex; justify-content:space-between; font-weight:700;">
-                            <span>Valorisation totale</span>
-                            <span style="color:var(--primary);">${Math.round(valuation).toLocaleString()} FCFA</span>
-                        </div>
-                        <div style="font-size:10px; color:var(--gray-500); margin-top:8px; text-align:center;">
-                            Formule: (Résultat × Multiple) + Trésorerie - Dettes
-                        </div>
                     </div>
                     
                     <div class="chart-container">
@@ -374,12 +308,115 @@
                     <div class="shop-actions">
                         <button class="btn-sm btn-outline" onclick="openAddProductToShop(${shop.id})"><i class="fas fa-plus"></i> Ajouter produit</button>
                         <button class="btn-sm btn-outline" onclick="openRestockToShop(${shop.id})"><i class="fas fa-truck"></i> Ravitailler</button>
-                        ${shop.rating >= 3 ? `<button class="btn-sm btn-primary" onclick="openInvestmentOffer(${shop.id})"><i class="fas fa-chart-line"></i> Proposer à l'investissement</button>` : '<span class="btn-sm" style="background:#e2e8f0; color:#64748b;"><i class="fas fa-star"></i> 3 étoiles requises</span>'}
-                        <button class="btn-sm btn-outline" onclick="window.open('shop-designer.html?edit=${shop.id}','_blank')"><i class="fas fa-edit"></i> Modifier boutique</button>
+                        <button class="btn-sm btn-primary" onclick="openShopDesigner(${shop.id})"><i class="fas fa-edit"></i> Modifier le design</button>
+                        <button class="btn-sm btn-warning" onclick="openSellShopModal(${shop.id})"><i class="fas fa-store"></i> Vendre la boutique</button>
                     </div>
                 </div>
             </div>
         `;
+    }
+    
+    function openShopDesigner(shopId) {
+        window.open(`shop-designer.html?edit=${shopId}`, '_blank');
+    }
+    
+    function openSellShopModal(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
+                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                    <strong>${escapeHtml(shop.name)}</strong><br>
+                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
+                </div>
+                <div class="form-group">
+                    <label>Action à effectuer</label>
+                    <select id="sellAction" class="form-group" style="width:100%;padding:10px;">
+                        <option value="transfer">Affecter la boutique à un nouvel acheteur</option>
+                        <option value="delete">Supprimer définitivement la boutique</option>
+                    </select>
+                </div>
+                <div id="buyerFields" style="display:block;">
+                    <div class="form-group"><label>Email de l'acheteur</label><input type="email" id="buyerEmail" placeholder="acheteur@email.com"></div>
+                    <div class="form-group"><label>Nom complet de l'acheteur</label><input type="text" id="buyerName" placeholder="Nom et prénom"></div>
+                    <div class="form-group"><label>Prix de vente (FCFA)</label><input type="number" id="salePrice" placeholder="0" value="${calculateValuation(shop)}"></div>
+                </div>
+                <div id="deleteWarning" style="display:none; background:#fee2e2; padding:12px; border-radius:12px; margin-bottom:16px;">
+                    <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible. Toutes les données de la boutique seront supprimées.
+                </div>
+                <button class="btn-submit" onclick="submitShopSale(${shop.id})">Confirmer</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        document.getElementById('sellAction').addEventListener('change', (e) => {
+            const buyerFields = document.getElementById('buyerFields');
+            const deleteWarning = document.getElementById('deleteWarning');
+            if(e.target.value === 'delete') {
+                buyerFields.style.display = 'none';
+                deleteWarning.style.display = 'block';
+            } else {
+                buyerFields.style.display = 'block';
+                deleteWarning.style.display = 'none';
+            }
+        });
+    }
+    
+    function submitShopSale(shopId) {
+        const action = document.getElementById('sellAction').value;
+        const shop = shops.find(s => s.id === shopId);
+        
+        if(action === 'transfer') {
+            const buyerEmail = document.getElementById('buyerEmail').value.trim();
+            const buyerName = document.getElementById('buyerName').value.trim();
+            const salePrice = parseInt(document.getElementById('salePrice').value);
+            
+            if(!buyerEmail || !buyerName || !salePrice) {
+                alert("Veuillez remplir tous les champs");
+                return;
+            }
+            
+            // Envoi d'email à l'acheteur (simulation)
+            const purchaseLink = `${window.location.origin}/purchase-shop.html?shop=${shopId}&email=${encodeURIComponent(buyerEmail)}&price=${salePrice}`;
+            
+            console.log(`📧 Email envoyé à ${buyerEmail}`);
+            console.log(`Objet: Acquisition de la boutique ${shop.name}`);
+            console.log(`Message: Félicitations ! Un vendeur vous propose l'acquisition de la boutique "${shop.name}" au prix de ${salePrice.toLocaleString()} FCFA.`);
+            console.log(`Lien pour finaliser: ${purchaseLink}`);
+            
+            alert(`✅ Demande envoyée à ${buyerEmail}\n\nUn email contenant le lien pour finaliser l'acquisition a été envoyé. L'acheteur devra fournir ses informations d'identification et moyen de paiement.`);
+            
+            // Sauvegarder la demande de vente
+            let saleRequests = JSON.parse(localStorage.getItem('ouenze_shop_sales') || '[]');
+            saleRequests.push({
+                id: Date.now(),
+                shopId,
+                shopName: shop.name,
+                seller: currentUser.email,
+                buyerEmail,
+                buyerName,
+                price: salePrice,
+                date: new Date().toISOString(),
+                status: 'pending'
+            });
+            localStorage.setItem('ouenze_shop_sales', JSON.stringify(saleRequests));
+            
+        } else if(action === 'delete') {
+            if(confirm(`Êtes-vous sûr de vouloir supprimer définitivement la boutique "${shop.name}" ? Cette action est irréversible.`)) {
+                const index = shops.findIndex(s => s.id === shopId);
+                if(index !== -1) {
+                    shops.splice(index, 1);
+                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                    alert(`Boutique "${shop.name}" supprimée avec succès.`);
+                    document.querySelector('.modal.active')?.remove();
+                    showDashboard();
+                }
+            }
+        }
+        document.querySelector('.modal.active')?.remove();
     }
     
     function copyShopLink(url) {
@@ -467,6 +504,139 @@
         };
     }
     
+    // Ajouter un produit avec quantité
+    function openAddProductToShop(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Ajouter un produit - ${escapeHtml(shop.name)}</h3>
+                <div class="form-group"><label>Nom du produit *</label><input type="text" id="productName" placeholder="Nom du produit"></div>
+                <div class="form-group"><label>Prix (FCFA) *</label><input type="number" id="productPrice" placeholder="0"></div>
+                <div class="form-group"><label>Catégorie</label><input type="text" id="productCategory" placeholder="Catégorie"></div>
+                <div class="form-group"><label>Quantité en stock *</label><input type="number" id="productStock" placeholder="0" value="1"></div>
+                <div class="form-group"><label>Description</label><textarea id="productDesc" rows="2"></textarea></div>
+                <div class="form-group"><label>Photo (optionnel)</label><input type="file" id="productPhoto" accept="image/*"></div>
+                <button class="btn-submit" onclick="addProductToShop(${shop.id})">Ajouter le produit</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        window.addProductToShop = (sid) => {
+            const name = document.getElementById('productName').value.trim();
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const stock = parseInt(document.getElementById('productStock').value);
+            const category = document.getElementById('productCategory').value.trim();
+            const description = document.getElementById('productDesc').value;
+            const fileInput = document.getElementById('productPhoto');
+            
+            if(!name || !price || stock < 0) {
+                alert("Nom, prix et stock sont obligatoires");
+                return;
+            }
+            
+            const s = shops.find(s => s.id === sid);
+            if(s) {
+                const newProduct = {
+                    id: Date.now(),
+                    name: name,
+                    price: price,
+                    category: category || "Général",
+                    stock: stock,
+                    description: description,
+                    photos: [],
+                    productType: "standard"
+                };
+                
+                if(fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        newProduct.photos = [e.target.result];
+                        s.products.push(newProduct);
+                        if(!s.categories.includes(category) && category) s.categories.push(category);
+                        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                        alert(`Produit "${name}" ajouté avec succès (Stock: ${stock})`);
+                        modal.remove();
+                        showDashboard();
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    s.products.push(newProduct);
+                    if(!s.categories.includes(category) && category) s.categories.push(category);
+                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                    alert(`Produit "${name}" ajouté avec succès (Stock: ${stock})`);
+                    modal.remove();
+                    showDashboard();
+                }
+            }
+        };
+    }
+    
+    // Ravitaillement avec quantité
+    function openRestockToShop(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop || !shop.products || shop.products.length === 0) {
+            alert("Aucun produit à ravitailler");
+            return;
+        }
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Ravitaillement - ${escapeHtml(shop.name)}</h3>
+                <div class="form-group"><label>Produit</label>
+                    <select id="restockProduct">
+                        ${shop.products.map(p => `<option value="${p.id}" data-stock="${p.stock || 0}">${escapeHtml(p.name)} - Stock actuel: ${p.stock || 0}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group"><label>Quantité à ajouter *</label><input type="number" id="restockQuantity" placeholder="0" value="1" min="1"></div>
+                <button class="btn-submit" onclick="processRestock(${shop.id})">Ajouter au stock</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        window.processRestock = (sid) => {
+            const productId = parseInt(document.getElementById('restockProduct').value);
+            const quantity = parseInt(document.getElementById('restockQuantity').value);
+            
+            if(!quantity || quantity <= 0) {
+                alert("Quantité invalide");
+                return;
+            }
+            
+            const s = shops.find(s => s.id === sid);
+            const product = s?.products?.find(p => p.id === productId);
+            
+            if(product) {
+                product.stock = (product.stock || 0) + quantity;
+                localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                alert(`Stock mis à jour: ${product.name} → ${product.stock} unités (+${quantity})`);
+                modal.remove();
+                showDashboard();
+            }
+        };
+    }
+    
+    function openAddProduct() {
+        const userShops = shops.filter(s => s.owner === currentUser.email);
+        if(!userShops.length) {
+            alert("Créez d'abord une boutique");
+            return;
+        }
+        openAddProductToShop(userShops[0].id);
+    }
+    
+    function openRestock() {
+        const userShops = shops.filter(s => s.owner === currentUser.email);
+        if(!userShops.length) {
+            alert("Créez d'abord une boutique");
+            return;
+        }
+        openRestockToShop(userShops[0].id);
+    }
+    
     function openInvestmentOffer(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop || shop.rating < 3) { alert("Cette boutique n'est pas éligible (minimum 3 étoiles)"); return; }
@@ -475,10 +645,9 @@
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Proposer à l'investissement</h3>
                 <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
-                    <strong>${escapeHtml(shop.name)}</strong><br>
-                    Note: ${shop.rating}/5<br>
-                    Valorisation estimée: ${Math.round(calculateValuation(shop)).toLocaleString()} FCFA<br>
-                    EBITDA annuel: ${Math.round(calculateEBITDA(shop).annual).toLocaleString()} FCFA
+                    Boutique: ${escapeHtml(shop.name)}<br>
+                    Note actuelle: ${shop.rating}/5<br>
+                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
                 </div>
                 <div class="form-group"><label>Pourcentage du capital à céder</label><input type="number" id="offerPercent" min="1" max="100" value="10"></div>
                 <div class="form-group"><label>Prix demandé (FCFA)</label><input type="number" id="offerPrice" placeholder="0"></div>
@@ -576,35 +745,15 @@
         for (let i = 5; i >= 0; i--) {
             monthlyData.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
         }
-        const ebitda = calculateEBITDA(shop);
-        const valuation = calculateValuation(shop);
-        
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card" style="max-width:700px;">
                 <h3 style="margin-bottom: 20px;">Statistiques - ${escapeHtml(shop.name)}</h3>
                 <div style="height: 250px;"><canvas id="statsChart"></canvas></div>
-                <div style="background:var(--gray-100);padding:16px;border-radius:12px;margin-top:16px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <strong>Chiffre d'affaires total</strong>
-                        <span>${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <strong>EBITDA annuel</strong>
-                        <span>${Math.round(ebitda.annual).toLocaleString()} FCFA</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <strong>Valorisation</strong>
-                        <span style="color:var(--primary); font-weight:700;">${Math.round(valuation).toLocaleString()} FCFA</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <strong>Commandes</strong>
-                        <span>${shopOrders.length}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <strong>Note moyenne</strong>
-                        <span>${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)</span>
-                    </div>
+                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-top:16px;">
+                    <strong>Chiffre d'affaires total:</strong> ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>
+                    <strong>Commandes:</strong> ${shopOrders.length}<br>
+                    <strong>Note moyenne:</strong> ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)
                 </div>
                 <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline" style="margin-top:16px;">Fermer</button>
             </div>`;
@@ -630,10 +779,6 @@
     }
     
     function createNewShop() { alert("Un email avec le lien de création a été envoyé"); window.open('shop-designer.html', '_blank'); }
-    function openAddProduct() { alert("Ajouter un produit"); }
-    function openAddProductToShop(shopId) { alert("Ajouter produit à la boutique"); }
-    function openRestock() { alert("Ravitaillement de stock"); }
-    function openRestockToShop(shopId) { alert("Ravitaillement à venir"); }
     function escapeHtml(s) { return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
     showDashboard();
