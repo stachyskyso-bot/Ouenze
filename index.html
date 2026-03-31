@@ -955,9 +955,7 @@
             stepContent.innerHTML = `
                 <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
                 <div class="form-group"><label>Prénom(s) *</label><input type="text" id="firstName" placeholder="Jean"></div>
-                <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
-                <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
-                <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: 123456789"></div>
+               
                 <div class="form-group"><label>Ville de résidence</label><input type="text" id="city" placeholder="Brazzaville"></div>
                 <div class="form-group"><label>Adresse</label><textarea id="address" rows="2"></textarea></div>
                 <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
@@ -970,6 +968,9 @@
             stepContent.innerHTML = `
                 <div class="form-group"><label>Type de compte</label><select id="accountType" onchange="togglePaymentFields()"><option value="client">Client</option><option value="vendeur">Vendeur</option></select></div>
                 <div id="paymentFields" style="display:none">
+                     <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
+                <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
+                <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: OA3456789"></div>
                     <div class="form-group"><label>Coordonnées bancaires / Mobile Money <span id="paymentRequired" style="color:red;">*</span></label>
                     <select id="paymentMethod"><option value="">Sélectionner</option><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa / Mastercard</option><option value="paypal">PayPal</option></select></div>
                     <div class="form-group"><input type="text" id="paymentDetails" placeholder="Numéro de compte ou identifiant"></div>
