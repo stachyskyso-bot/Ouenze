@@ -292,6 +292,47 @@
         for (let i = 0; i < 5 - Math.ceil(rating); i++) stars += '<i class="far fa-star"></i>';
         return stars;
     }
+
+
+
+
+
+
+
+   // Calcul du niveau de la boutique (Or, Argent, Bronze) pour l'affichage
+function getShopLevel(shop) {
+    const annualRevenue = (shop.monthlyRevenue || (shop.totalSales || 0) * 1000) * 12;
+    const valuation = calculateValuation(shop);
+    const rating = shop.rating || 0;
+    const hasPhysicalStore = shop.hasPhysicalStore || false;
+    
+    // Niveau Or: rating >= 4.5, CA annuel > 10M, valorisation > 1M, boutique physique
+    if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
+        return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b' };
+    }
+    // Niveau Argent: rating entre 4 et 5, CA annuel 5M-10M, valorisation > 500k
+    else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
+        return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8' };
+    }
+    // Niveau Bronze: rating >= 3, éligible à l'investissement
+    else if (rating >= 3) {
+        return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309' };
+    }
+    return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b' };
+}
+
+function calculateValuation(shop) {
+    const baseValue = 1000000;
+    const productValue = (shop.products?.length || 0) * 50000;
+    const ratingBonus = (shop.rating || 0) * 150000;
+    const salesBonus = (shop.totalSales || 0) * 1000;
+    const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+    return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
+}
+
+
+
+    
     
     function getCertificationBadge(rating, verified) {
         if (verified) return '<div class="certification-badge blue" title="Certifiée"><i class="fas fa-check-circle"></i></div>';
@@ -1171,36 +1212,7 @@
 
 
 
-    // Calcul du niveau de la boutique (Or, Argent, Bronze) pour l'affichage
-function getShopLevel(shop) {
-    const annualRevenue = (shop.monthlyRevenue || (shop.totalSales || 0) * 1000) * 12;
-    const valuation = calculateValuation(shop);
-    const rating = shop.rating || 0;
-    const hasPhysicalStore = shop.hasPhysicalStore || false;
-    
-    // Niveau Or: rating >= 4.5, CA annuel > 10M, valorisation > 1M, boutique physique
-    if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
-        return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b' };
-    }
-    // Niveau Argent: rating entre 4 et 5, CA annuel 5M-10M, valorisation > 500k
-    else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
-        return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8' };
-    }
-    // Niveau Bronze: rating >= 3, éligible à l'investissement
-    else if (rating >= 3) {
-        return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309' };
-    }
-    return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b' };
-}
-
-function calculateValuation(shop) {
-    const baseValue = 1000000;
-    const productValue = (shop.products?.length || 0) * 50000;
-    const ratingBonus = (shop.rating || 0) * 150000;
-    const salesBonus = (shop.totalSales || 0) * 1000;
-    const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-    return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
-}
+ 
 </script>
 </body>
 </html>
