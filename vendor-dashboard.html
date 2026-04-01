@@ -17,6 +17,9 @@
             --success: #10b981; 
             --danger: #ef4444; 
             --warning: #f59e0b; 
+            --gold: #f59e0b;
+            --silver: #94a3b8;
+            --bronze: #b45309;
             --white: #ffffff; 
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9; 
@@ -50,6 +53,11 @@
         .btn-success:hover { background: #059669; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: #dc2626; }
+        
+        .level-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .level-gold { background: #fef3c7; color: #b45309; }
+        .level-silver { background: #f1f5f9; color: #334155; }
+        .level-bronze { background: #ffedd5; color: #9a3412; }
         
         .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; transition: all 0.2s; }
         .shop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
@@ -138,76 +146,49 @@
     document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
     document.getElementById('userName').innerText = currentUser.name;
     
-    // Calcul professionnel de la valorisation : Valeur = (Résultat × Multiple) + Trésorerie estimée - Dettes
     function calculateValuation(shop) {
-        // Calcul du résultat (CA - charges estimées)
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
         const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
-        
-        // Charges estimées (30% du CA pour les frais, 5% pour les commissions)
         const estimatedExpenses = revenue * 0.35;
         const result = revenue - estimatedExpenses;
         
-        // Multiple selon le secteur et la note (entre 2 et 8)
         let multiple = 3;
         if(shop.rating >= 4.5) multiple = 6;
         else if(shop.rating >= 3.5) multiple = 4.5;
         else if(shop.rating >= 2.5) multiple = 3;
         else multiple = 2;
         
-        // Bonus pour le nombre de produits
         if((shop.products?.length || 0) > 50) multiple += 1;
         if((shop.products?.length || 0) > 100) multiple += 0.5;
         
-        // Trésorerie estimée (20% du CA annuel)
         const estimatedCash = revenue * 0.2;
-        
-        // Dettes (passifs)
         const debts = (shop.liabilities || []).reduce((sum, l) => sum + (l.value || 0), 0);
-        
-        // Actifs
         const assets = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
         
-        // Valorisation finale
         let valuation = (result * multiple) + estimatedCash + assets - debts;
-        
-        // Valeur minimale
         if(valuation < 500000) valuation = 500000;
-        
         return Math.round(valuation);
     }
-
-
-
-
-
-// Calcul du niveau de la boutique (Or, Argent, Bronze)
-function getShopLevel(shop) {
-    const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
-    const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
-    const annualRevenue = revenue * 12;
-    const valuation = calculateValuation(shop);
-    const rating = shop.rating || 0;
-    const hasPhysicalStore = shop.hasPhysicalStore || false;
     
-    // Niveau Or: rating >= 4.5, CA annuel > 10M, valorisation > 1M, boutique physique
-    if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
-        return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b', bg: '#fef3c7' };
+    function getShopLevel(shop) {
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
+        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        const annualRevenue = revenue * 12;
+        const valuation = calculateValuation(shop);
+        const rating = shop.rating || 0;
+        const hasPhysicalStore = shop.hasPhysicalStore || false;
+        
+        if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
+            return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b', bg: '#fef3c7', class: 'level-gold' };
+        }
+        else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
+            return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8', bg: '#f1f5f9', class: 'level-silver' };
+        }
+        else if (rating >= 3) {
+            return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309', bg: '#ffedd5', class: 'level-bronze' };
+        }
+        return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b', bg: '#f1f5f9', class: '' };
     }
-    // Niveau Argent: rating entre 4 et 5, CA annuel 5M-10M, valorisation > 500k
-    else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
-        return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8', bg: '#f1f5f9' };
-    }
-    // Niveau Bronze: rating >= 3, éligible à l'investissement
-    else if (rating >= 3) {
-        return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309', bg: '#ffedd5' };
-    }
-    return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b', bg: '#f1f5f9' };
-}
-
-
-
-
     
     function getMonthlyRevenue(shopId) {
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
@@ -270,169 +251,108 @@ function getShopLevel(shop) {
     }
     
     function renderShop(shop) {
-    const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
-    const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
-    const rating = shop.rating || 0;
-    const valuation = calculateValuation(shop);
-    const level = getShopLevel(shop);
-    const shopUrl = `${window.location.origin}${window.location.pathname.includes('vendor-dashboard') ? '/index.html' : '/index.html'}?id=${shop.id}`;
-    let stars = '';
-    for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star"></i>';
-    if(rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
-    for(let i=0;i<5-Math.ceil(rating);i++) stars += '<i class="far fa-star"></i>';
-    
-    const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
-    const annualRevenue = revenue * 12;
-    
-    return `
-        <div class="shop-card">
-            <div class="shop-header">
-                <div class="shop-info">
-                    <div class="shop-logo">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:24px;color:var(--primary);"></i>'}</div>
-                    <div>
-                        <h3>${escapeHtml(shop.name)} <span class="level-badge level-${levelClass}" style="display:inline-block; margin-left:8px; padding:2px 10px; border-radius:20px; font-size:11px; background:${level.bg}; color:${level.color};"><i class="fas fa-crown"></i> ${level.name}</span></h3>
-                        <div class="shop-rating">${stars} (${shop.totalRatings||0} avis)</div>
-                        <div style="font-size:12px; color:var(--gray-500);">Valorisation: ${valuation.toLocaleString()} FCFA</div>
-                        <div style="font-size:11px; margin-top:4px;">
-                            <span style="background:${level.bg}; color:${level.color}; padding:2px 8px; border-radius:20px;">
-                                <i class="fas fa-percent"></i> Commission Ouenze: ${level.ouenzeFee}% 
-                                ${level.vendorBonus > 0 ? `<span style="margin-left:6px;"><i class="fas fa-gift"></i> Bonus: +${level.vendorBonus}%</span>` : ''}
-                            </span>
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
+        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        const rating = shop.rating || 0;
+        const valuation = calculateValuation(shop);
+        const level = getShopLevel(shop);
+        const shopUrl = `${window.location.origin}/index.html?id=${shop.id}`;
+        let stars = '';
+        for(let i=0;i<Math.floor(rating);i++) stars += '<i class="fas fa-star"></i>';
+        if(rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
+        for(let i=0;i<5-Math.ceil(rating);i++) stars += '<i class="far fa-star"></i>';
+        
+        const annualRevenue = revenue * 12;
+        
+        return `
+            <div class="shop-card">
+                <div class="shop-header">
+                    <div class="shop-info">
+                        <div class="shop-logo">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:24px;color:var(--primary);"></i>'}</div>
+                        <div>
+                            <h3>${escapeHtml(shop.name)} ${level.level ? `<span class="level-badge ${level.class}"><i class="fas fa-crown"></i> ${level.name}</span>` : ''}</h3>
+                            <div class="shop-rating">${stars} (${shop.totalRatings||0} avis)</div>
+                            <div style="font-size:12px; color:var(--gray-500);">Valorisation: ${valuation.toLocaleString()} FCFA</div>
+                            <div style="font-size:11px; margin-top:4px;">
+                                <span style="background:${level.bg}; color:${level.color}; padding:2px 8px; border-radius:20px;">
+                                    <i class="fas fa-percent"></i> Commission Ouenze: ${level.ouenzeFee}% 
+                                    ${level.vendorBonus > 0 ? `<span style="margin-left:6px;"><i class="fas fa-gift"></i> Bonus: +${level.vendorBonus}%</span>` : ''}
+                                </span>
+                            </div>
                         </div>
                     </div>
+                    <div><button class="btn-sm btn-outline" onclick="viewStats(${shop.id})"><i class="fas fa-chart-simple"></i> Statistiques</button></div>
                 </div>
-                <div><button class="btn-sm btn-outline" onclick="viewStats(${shop.id})"><i class="fas fa-chart-simple"></i> Statistiques</button></div>
-            </div>
-            <div class="shop-body">
-                <div class="metrics-grid">
-                    <div class="metric-card"><div class="metric-value">${shop.products?.length||0}</div><div class="metric-label">Produits</div></div>
-                    <div class="metric-card"><div class="metric-value">${shopOrders.length}</div><div class="metric-label">Commandes</div></div>
-                    <div class="metric-card"><div class="metric-value">${revenue.toLocaleString()} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
-                </div>
-                
-                <div class="info-box" style="background:var(--gray-50); padding:12px; border-radius:12px; margin-bottom:16px;">
-                    <strong><i class="fas fa-chart-line"></i> Indicateurs de niveau</strong><br>
-                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px;">
-                        <span>📊 CA annuel: ${annualRevenue.toLocaleString()} FCFA</span>
-                        <span>⭐ Note: ${rating}/5</span>
-                        <span>🏢 ${shop.hasPhysicalStore ? 'Boutique physique ✓' : 'Pas de boutique physique'}</span>
+                <div class="shop-body">
+                    <div class="metrics-grid">
+                        <div class="metric-card"><div class="metric-value">${shop.products?.length||0}</div><div class="metric-label">Produits</div></div>
+                        <div class="metric-card"><div class="metric-value">${shopOrders.length}</div><div class="metric-label">Commandes</div></div>
+                        <div class="metric-card"><div class="metric-value">${revenue.toLocaleString()} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
                     </div>
-                    ${level.level === 'gold' ? '<div style="margin-top:8px; color:var(--gold);"><i class="fas fa-crown"></i> Niveau Or - Vous bénéficiez d\'une commission réduite à 21% (+1% de bonus)</div>' : ''}
-                    ${level.level === 'silver' ? '<div style="margin-top:8px; color:var(--silver);"><i class="fas fa-medal"></i> Niveau Argent - Vous bénéficiez d\'une commission réduite à 21.5% (+0.5% de bonus)</div>' : ''}
-                    ${level.level === 'bronze' ? '<div style="margin-top:8px; color:var(--bronze);"><i class="fas fa-leaf"></i> Niveau Bronze - Commission standard à 22%</div>' : ''}
+                    
+                    <div class="info-box" style="background:var(--gray-50); padding:12px; border-radius:12px; margin-bottom:16px;">
+                        <strong><i class="fas fa-chart-line"></i> Indicateurs de niveau</strong><br>
+                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                            <span>📊 CA annuel: ${annualRevenue.toLocaleString()} FCFA</span>
+                            <span>⭐ Note: ${rating}/5</span>
+                            <span>🏢 ${shop.hasPhysicalStore ? 'Boutique physique ✓' : 'Pas de boutique physique'}</span>
+                        </div>
+                        ${level.level === 'gold' ? '<div style="margin-top:8px; color:var(--gold);"><i class="fas fa-crown"></i> Niveau Or - Commission réduite à 21% (+1% de bonus)</div>' : ''}
+                        ${level.level === 'silver' ? '<div style="margin-top:8px; color:var(--silver);"><i class="fas fa-medal"></i> Niveau Argent - Commission réduite à 21.5% (+0.5% de bonus)</div>' : ''}
+                        ${level.level === 'bronze' ? '<div style="margin-top:8px; color:var(--bronze);"><i class="fas fa-leaf"></i> Niveau Bronze - Commission standard à 22%</div>' : ''}
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="chart-${shop.id}"></canvas>
+                    </div>
+                    
+                    <div class="share-section">
+                        <strong><i class="fas fa-share-alt"></i> Partager ma boutique</strong>
+                        <div class="share-buttons">
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shopUrl)}" target="_blank" class="share-btn share-facebook"><i class="fab fa-facebook-f"></i> Facebook</a>
+                            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(shopUrl)}&text=Découvrez ma boutique ${encodeURIComponent(shop.name)} sur Ouenze!" target="_blank" class="share-btn share-twitter"><i class="fab fa-twitter"></i> Twitter</a>
+                            <a href="https://wa.me/?text=${encodeURIComponent(`Découvrez ma boutique ${shop.name} sur Ouenze! ${shopUrl}`)}" target="_blank" class="share-btn share-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                            <a href="https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shopUrl)}&title=${encodeURIComponent(shop.name)}" target="_blank" class="share-btn share-linkedin"><i class="fab fa-linkedin-in"></i> LinkedIn</a>
+                            <button onclick="copyShopLink('${shopUrl}')" class="share-btn share-copy"><i class="fas fa-copy"></i> Copier lien</button>
+                        </div>
+                    </div>
+                    
+                    <div class="assets-section">
+                        <h4><i class="fas fa-building" style="color:var(--primary);"></i> Actifs</h4>
+                        ${(shop.assets || []).map(a => `<div class="asset-item"><span>${escapeHtml(a.name)}</span><span>${a.value.toLocaleString()} FCFA</span></div>`).join('') || '<div style="font-size:12px; color:var(--gray-500);">Aucun actif enregistré</div>'}
+                        <div style="margin-top: 8px;"><button class="btn-sm btn-outline" onclick="manageAssets(${shop.id})" style="width:100%;"><i class="fas fa-plus"></i> Gérer les actifs</button></div>
+                    </div>
+                    
+                    <div class="assets-section">
+                        <h4><i class="fas fa-chart-line" style="color:var(--warning);"></i> Passifs</h4>
+                        ${(shop.liabilities || []).map(l => `<div class="asset-item"><span>${escapeHtml(l.name)}</span><span>${l.value.toLocaleString()} FCFA</span></div>`).join('') || '<div style="font-size:12px; color:var(--gray-500);">Aucun passif enregistré</div>'}
+                        <div style="margin-top: 8px;"><button class="btn-sm btn-outline" onclick="manageLiabilities(${shop.id})" style="width:100%;"><i class="fas fa-plus"></i> Gérer les passifs</button></div>
+                    </div>
+                    
+                    <h4 style="font-size: 13px; margin: 16px 0 8px;"><i class="fas fa-box"></i> Produits récents</h4>
+                    ${(shop.products||[]).slice(0,3).map(p => `
+                        <div class="product-row">
+                            <span class="product-name">${escapeHtml(p.name)}</span>
+                            <span class="product-price">${p.price} FCFA</span>
+                            <span class="product-stock">Stock: ${p.stock||0}</span>
+                        </div>
+                    `).join('')}
+                    ${(!shop.products||!shop.products.length) ? '<div style="font-size:12px; color:var(--gray-500);">Aucun produit</div>' : ''}
+                    
+                    <div class="shop-actions">
+                        <button class="btn-sm btn-outline" onclick="openAddProductToShop(${shop.id})"><i class="fas fa-plus"></i> Ajouter produit</button>
+                        <button class="btn-sm btn-outline" onclick="openRestockToShop(${shop.id})"><i class="fas fa-truck"></i> Ravitailler</button>
+                        ${shop.rating >= 3 ? `<button class="btn-sm btn-primary" onclick="openInvestmentOffer(${shop.id})"><i class="fas fa-chart-line"></i> Proposer à l'investissement</button>` : '<span class="btn-sm" style="background:#e2e8f0; color:#64748b;"><i class="fas fa-star"></i> 3 étoiles requises</span>'}
+                        <button class="btn-sm btn-warning" onclick="openSellShopModal(${shop.id})"><i class="fas fa-store"></i> Vendre la boutique</button>
+                        <button class="btn-sm btn-outline" onclick="openShopDesigner(${shop.id})"><i class="fas fa-edit"></i> Modifier le design</button>
+                    </div>
                 </div>
-                
-                <div class="chart-container">
-                    <canvas id="chart-${shop.id}"></canvas>
-                </div>
-                
-                <!-- Reste du code identique... -->
             </div>
-        </div>
-    `;
-}
+        `;
+    }
     
     function openShopDesigner(shopId) {
         window.open(`shop-designer.html?edit=${shopId}`, '_blank');
-    }
-    
-    function openSellShopModal(shopId) {
-        const shop = shops.find(s => s.id === shopId);
-        if (!shop) return;
-        
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
-                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
-                    <strong>${escapeHtml(shop.name)}</strong><br>
-                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
-                </div>
-                <div class="form-group">
-                    <label>Action à effectuer</label>
-                    <select id="sellAction" class="form-group" style="width:100%;padding:10px;">
-                        <option value="transfer">Affecter la boutique à un nouvel acheteur</option>
-                        <option value="delete">Supprimer définitivement la boutique</option>
-                    </select>
-                </div>
-                <div id="buyerFields" style="display:block;">
-                    <div class="form-group"><label>Email de l'acheteur</label><input type="email" id="buyerEmail" placeholder="acheteur@email.com"></div>
-                    <div class="form-group"><label>Nom complet de l'acheteur</label><input type="text" id="buyerName" placeholder="Nom et prénom"></div>
-                    <div class="form-group"><label>Prix de vente (FCFA)</label><input type="number" id="salePrice" placeholder="0" value="${calculateValuation(shop)}"></div>
-                </div>
-                <div id="deleteWarning" style="display:none; background:#fee2e2; padding:12px; border-radius:12px; margin-bottom:16px;">
-                    <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible. Toutes les données de la boutique seront supprimées.
-                </div>
-                <button class="btn-submit" onclick="submitShopSale(${shop.id})">Confirmer</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
-            </div>`;
-        document.body.appendChild(modal);
-        
-        document.getElementById('sellAction').addEventListener('change', (e) => {
-            const buyerFields = document.getElementById('buyerFields');
-            const deleteWarning = document.getElementById('deleteWarning');
-            if(e.target.value === 'delete') {
-                buyerFields.style.display = 'none';
-                deleteWarning.style.display = 'block';
-            } else {
-                buyerFields.style.display = 'block';
-                deleteWarning.style.display = 'none';
-            }
-        });
-    }
-    
-    function submitShopSale(shopId) {
-        const action = document.getElementById('sellAction').value;
-        const shop = shops.find(s => s.id === shopId);
-        
-        if(action === 'transfer') {
-            const buyerEmail = document.getElementById('buyerEmail').value.trim();
-            const buyerName = document.getElementById('buyerName').value.trim();
-            const salePrice = parseInt(document.getElementById('salePrice').value);
-            
-            if(!buyerEmail || !buyerName || !salePrice) {
-                alert("Veuillez remplir tous les champs");
-                return;
-            }
-            
-            // Envoi d'email à l'acheteur (simulation)
-            const purchaseLink = `${window.location.origin}/purchase-shop.html?shop=${shopId}&email=${encodeURIComponent(buyerEmail)}&price=${salePrice}`;
-            
-            console.log(`📧 Email envoyé à ${buyerEmail}`);
-            console.log(`Objet: Acquisition de la boutique ${shop.name}`);
-            console.log(`Message: Félicitations ! Un vendeur vous propose l'acquisition de la boutique "${shop.name}" au prix de ${salePrice.toLocaleString()} FCFA.`);
-            console.log(`Lien pour finaliser: ${purchaseLink}`);
-            
-            alert(`✅ Demande envoyée à ${buyerEmail}\n\nUn email contenant le lien pour finaliser l'acquisition a été envoyé. L'acheteur devra fournir ses informations d'identification et moyen de paiement.`);
-            
-            // Sauvegarder la demande de vente
-            let saleRequests = JSON.parse(localStorage.getItem('ouenze_shop_sales') || '[]');
-            saleRequests.push({
-                id: Date.now(),
-                shopId,
-                shopName: shop.name,
-                seller: currentUser.email,
-                buyerEmail,
-                buyerName,
-                price: salePrice,
-                date: new Date().toISOString(),
-                status: 'pending'
-            });
-            localStorage.setItem('ouenze_shop_sales', JSON.stringify(saleRequests));
-            
-        } else if(action === 'delete') {
-            if(confirm(`Êtes-vous sûr de vouloir supprimer définitivement la boutique "${shop.name}" ? Cette action est irréversible.`)) {
-                const index = shops.findIndex(s => s.id === shopId);
-                if(index !== -1) {
-                    shops.splice(index, 1);
-                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-                    alert(`Boutique "${shop.name}" supprimée avec succès.`);
-                    document.querySelector('.modal.active')?.remove();
-                    showDashboard();
-                }
-            }
-        }
-        document.querySelector('.modal.active')?.remove();
     }
     
     function copyShopLink(url) {
@@ -520,7 +440,6 @@ function getShopLevel(shop) {
         };
     }
     
-    // Ajouter un produit avec quantité
     function openAddProductToShop(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
@@ -590,7 +509,6 @@ function getShopLevel(shop) {
         };
     }
     
-    // Ravitaillement avec quantité
     function openRestockToShop(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop || !shop.products || shop.products.length === 0) {
@@ -651,6 +569,98 @@ function getShopLevel(shop) {
             return;
         }
         openRestockToShop(userShops[0].id);
+    }
+    
+    function openSellShopModal(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        if (!shop) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
+                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                    <strong>${escapeHtml(shop.name)}</strong><br>
+                    Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
+                </div>
+                <div class="form-group">
+                    <label>Action à effectuer</label>
+                    <select id="sellAction" style="width:100%;padding:10px; border:1px solid var(--gray-200); border-radius:10px;">
+                        <option value="transfer">Affecter la boutique à un nouvel acheteur</option>
+                        <option value="delete">Supprimer définitivement la boutique</option>
+                    </select>
+                </div>
+                <div id="buyerFields">
+                    <div class="form-group"><label>Email de l'acheteur</label><input type="email" id="buyerEmail" placeholder="acheteur@email.com"></div>
+                    <div class="form-group"><label>Nom complet de l'acheteur</label><input type="text" id="buyerName" placeholder="Nom et prénom"></div>
+                    <div class="form-group"><label>Prix de vente (FCFA)</label><input type="number" id="salePrice" placeholder="0" value="${calculateValuation(shop)}"></div>
+                </div>
+                <div id="deleteWarning" style="display:none; background:#fee2e2; padding:12px; border-radius:12px; margin-bottom:16px;">
+                    <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible.
+                </div>
+                <button class="btn-submit" onclick="submitShopSale(${shop.id})">Confirmer</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        document.getElementById('sellAction').addEventListener('change', (e) => {
+            const buyerFields = document.getElementById('buyerFields');
+            const deleteWarning = document.getElementById('deleteWarning');
+            if(e.target.value === 'delete') {
+                buyerFields.style.display = 'none';
+                deleteWarning.style.display = 'block';
+            } else {
+                buyerFields.style.display = 'block';
+                deleteWarning.style.display = 'none';
+            }
+        });
+    }
+    
+    function submitShopSale(shopId) {
+        const action = document.getElementById('sellAction').value;
+        const shop = shops.find(s => s.id === shopId);
+        
+        if(action === 'transfer') {
+            const buyerEmail = document.getElementById('buyerEmail').value.trim();
+            const buyerName = document.getElementById('buyerName').value.trim();
+            const salePrice = parseInt(document.getElementById('salePrice').value);
+            
+            if(!buyerEmail || !buyerName || !salePrice) {
+                alert("Veuillez remplir tous les champs");
+                return;
+            }
+            
+            const purchaseLink = `${window.location.origin}/purchase-shop.html?shop=${shopId}&email=${encodeURIComponent(buyerEmail)}&price=${salePrice}`;
+            console.log(`📧 Email envoyé à ${buyerEmail}`);
+            alert(`✅ Demande envoyée à ${buyerEmail}\n\nUn email contenant le lien pour finaliser l'acquisition a été envoyé.`);
+            
+            let saleRequests = JSON.parse(localStorage.getItem('ouenze_shop_sales') || '[]');
+            saleRequests.push({
+                id: Date.now(),
+                shopId,
+                shopName: shop.name,
+                seller: currentUser.email,
+                buyerEmail,
+                buyerName,
+                price: salePrice,
+                date: new Date().toISOString(),
+                status: 'pending'
+            });
+            localStorage.setItem('ouenze_shop_sales', JSON.stringify(saleRequests));
+            
+        } else if(action === 'delete') {
+            if(confirm(`Êtes-vous sûr de vouloir supprimer définitivement la boutique "${shop.name}" ?`)) {
+                const index = shops.findIndex(s => s.id === shopId);
+                if(index !== -1) {
+                    shops.splice(index, 1);
+                    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+                    alert(`Boutique "${shop.name}" supprimée avec succès.`);
+                    document.querySelector('.modal.active')?.remove();
+                    showDashboard();
+                }
+            }
+        }
+        document.querySelector('.modal.active')?.remove();
     }
     
     function openInvestmentOffer(shopId) {
@@ -794,8 +804,14 @@ function getShopLevel(shop) {
         }, 100);
     }
     
-    function createNewShop() { alert("Un email avec le lien de création a été envoyé"); window.open('shop-designer.html', '_blank'); }
-    function escapeHtml(s) { return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function createNewShop() { 
+        alert("Un email avec le lien de création a été envoyé"); 
+        window.open('shop-designer.html', '_blank'); 
+    }
+    
+    function escapeHtml(s) { 
+        return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
+    }
     
     showDashboard();
 </script>
