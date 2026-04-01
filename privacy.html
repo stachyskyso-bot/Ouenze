@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Ouenze | Politique de confidentialité</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,68 +18,110 @@
             --gray-500: #64748b;
             --gray-700: #334155;
             --gray-900: #0f172a;
+            --gold: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
         }
         
-        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
-        .header-actions { display: flex; gap: 12px; align-items: center; }
-        .auth-btn { padding: 8px 18px; border-radius: 40px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
-        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
-        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
-        .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); }
-        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; }
-        .nav-links { display: flex; gap: 28px; padding: 10px 0; }
-        .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 13px; font-weight: 500; cursor: pointer; }
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 10px 16px; position: sticky; top: 0; z-index: 100; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .logo h1 { font-size: 20px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .logo span { font-size: 9px; color: var(--gray-500); display: block; }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+        .cart-icon { position: relative; cursor: pointer; font-size: 18px; color: var(--primary); }
+        .cart-count { position: absolute; top: -6px; right: -10px; background: var(--danger); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; }
+        .auth-btn { padding: 5px 12px; border-radius: 30px; font-size: 11px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
+        .user-menu { display: flex; align-items: center; gap: 8px; background: var(--gray-100); padding: 4px 10px; border-radius: 30px; cursor: pointer; }
+        .user-avatar { width: 28px; height: 28px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; }
+        .user-info { font-size: 11px; line-height: 1.2; }
+        .user-info small { font-size: 9px; color: var(--gray-500); }
+        
+        .search-wrapper { width: 100%; }
+        .search-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
+        .search-tab { padding: 3px 10px; font-size: 10px; background: var(--gray-100); border-radius: 20px; cursor: pointer; color: var(--gray-500); }
+        .search-tab.active { background: var(--primary); color: white; }
+        .search-bar { display: flex; background: var(--gray-100); border-radius: 30px; border: 1px solid var(--gray-200); }
+        .search-bar input { flex: 1; padding: 8px 14px; border: none; outline: none; background: transparent; font-size: 13px; }
+        .search-bar button { background: none; border: none; padding: 0 12px; color: var(--primary); cursor: pointer; }
+        
+        .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); padding: 6px 16px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; }
         .nav-links a.active { color: var(--primary); font-weight: 600; }
+        .dropdown { position: relative; }
+        .dropdown-btn { background: none; border: none; font-size: 11px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 20px; background: var(--gray-100); }
+        .dropdown-btn:hover { background: var(--gray-200); }
+        .dropdown-content { position: absolute; top: 100%; right: 0; background: var(--white); min-width: 160px; border: 1px solid var(--gray-200); border-radius: 12px; opacity: 0; visibility: hidden; transition: 0.2s; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .dropdown-content.show { opacity: 1; visibility: visible; }
+        .dropdown-content a { display: block; padding: 8px 14px; text-decoration: none; color: var(--gray-700); font-size: 11px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; }
+        .dropdown-content a:hover { background: var(--gray-100); color: var(--primary); }
+        .dropdown-content a:last-child { border-bottom: none; }
         
-        .main { max-width: 1200px; margin: 48px auto; padding: 0 24px; }
-        .page-card { background: var(--white); border-radius: 28px; border: 1px solid var(--gray-200); padding: 48px; }
-        .page-header { text-align: center; margin-bottom: 40px; }
-        .page-header h1 { font-size: 32px; font-weight: 700; color: var(--gray-900); margin-bottom: 12px; }
-        .page-header p { color: var(--gray-500); font-size: 16px; }
-        .page-header i { font-size: 48px; color: var(--primary); margin-bottom: 16px; display: inline-block; }
+        .main { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
+        .page-card { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); padding: 24px; }
+        .page-header { text-align: center; margin-bottom: 24px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px; }
+        .page-header p { color: var(--gray-500); font-size: 13px; }
+        .page-header i { font-size: 40px; color: var(--primary); margin-bottom: 12px; display: inline-block; }
         
-        .section { margin-bottom: 32px; }
-        .section h2 { font-size: 20px; font-weight: 600; color: var(--gray-800); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--gray-200); }
-        .section p { color: var(--gray-600); line-height: 1.6; margin-bottom: 12px; }
-        .section ul { margin-left: 24px; margin-bottom: 16px; color: var(--gray-600); line-height: 1.6; }
-        .section li { margin-bottom: 8px; }
-        .highlight { background: var(--gray-100); padding: 20px; border-radius: 16px; margin: 20px 0; border-left: 4px solid var(--primary); }
-        .last-updated { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--gray-200); color: var(--gray-500); font-size: 12px; }
+        .section { margin-bottom: 24px; }
+        .section h2 { font-size: 18px; font-weight: 600; color: var(--gray-800); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--gray-200); }
+        .section p { color: var(--gray-600); line-height: 1.5; margin-bottom: 10px; font-size: 13px; }
+        .section ul { margin-left: 20px; margin-bottom: 12px; color: var(--gray-600); line-height: 1.5; font-size: 13px; }
+        .section li { margin-bottom: 6px; }
+        .highlight { background: var(--gray-100); padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid var(--primary); font-size: 13px; }
+        .last-updated { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--gray-200); color: var(--gray-500); font-size: 10px; }
         
-        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 12px; text-align: center; font-size: 9px; color: var(--gray-500); }
         
         @media (max-width: 700px) {
-            .page-card { padding: 24px; }
-            .page-header h1 { font-size: 24px; }
-            .section h2 { font-size: 18px; }
+            .page-card { padding: 20px; }
+            .page-header h1 { font-size: 20px; }
+            .section h2 { font-size: 16px; }
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
-    <div class="header-actions" id="headerActions"></div>
+    <div class="header-top">
+        <div class="logo" onclick="window.location.href='index.html'">
+            <h1>OUENZE</h1>
+            <span>Congo Brazzaville</span>
+        </div>
+        <div class="header-actions" id="headerActions"></div>
+    </div>
+    <div class="search-wrapper">
+        <div class="search-tabs">
+            <span class="search-tab" data-type="all" onclick="window.location.href='index.html'">Tous</span>
+            <span class="search-tab" data-type="shop" onclick="window.location.href='index.html'">Boutiques</span>
+            <span class="search-tab" data-type="product" onclick="window.location.href='index.html'">Produits</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher boutique ou produit...">
+            <button id="searchBtn" onclick="window.location.href='index.html'"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
 </div>
+
 <div class="nav-row">
     <div class="nav-container">
         <div class="nav-links">
-                <a onclick="showHomePage()" class="active">Accueil</a>
-                <a onclick="showHomePage()">Boutiques</a>
-                <a onclick="showCart()">Panier (<span id="cartCountHeader">0</span>)</a>
-                <a onclick="showMyOrders()">Mes commandes</a>
-                <a onclick="goToVendorDashboard()" id="vendorLink" style="display:none;">Ma boutique</a>
-            </div>
+            <a href="index.html">Accueil</a>
+            <a href="index.html">Boutiques</a>
+            <a href="index.html">Panier</a>
+            <a href="index.html">Commandes</a>
+            <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
+        </div>
         <div class="dropdown">
-            <button class="dropdown-btn" id="dropdownBtn" style="background:none;border:none;padding:10px 0;font-size:13px;cursor:pointer;color:var(--gray-500);"><i class="fas fa-bars"></i> Menu</button>
-            <div class="dropdown-content" id="dropdownContent" style="position:absolute;top:100%;right:0;background:var(--white);min-width:200px;border:1px solid var(--gray-200);border-radius:12px;opacity:0;visibility:hidden;transition:0.2s;z-index:100;">
+            <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent">
                 <a href="about.html">À propos</a>
-                <a href="privacy.html">Confidentialité</a>
+                <a href="privacy.html" class="active">Confidentialité</a>
                 <a href="help.html">Aide</a>
                 <a href="invest.html">Investir</a>
-                <a href="tracking.html">Livraison</a>
-                
+                <a href="tracking.html">Suivi livraison</a>
             </div>
         </div>
     </div>
@@ -97,8 +139,8 @@
             <h2>1. Collecte des informations</h2>
             <p>Nous collectons les informations que vous nous fournissez directement, notamment lors de :</p>
             <ul>
-                <li>La création de votre compte (nom, email, adresse, numéro de téléphone)</li>
-                <li>La création d'une boutique (informations professionnelles, coordonnées bancaires)</li>
+                <li>La création de votre compte (nom, prénom, date et lieu de naissance, numéro carte d'identité, email, adresse, téléphone)</li>
+                <li>La création d'une boutique (informations professionnelles, coordonnées bancaires ou Mobile Money)</li>
                 <li>La passation d'une commande (adresse de livraison, mode de paiement)</li>
                 <li>La communication avec notre service client</li>
             </ul>
@@ -113,6 +155,7 @@
                 <li>Vous informer sur l'état de vos commandes</li>
                 <li>Améliorer nos services et personnaliser votre expérience</li>
                 <li>Assurer la sécurité des transactions</li>
+                <li>Calculer le niveau de votre boutique (Or, Argent, Bronze) et les commissions associées</li>
             </ul>
         </div>
         
@@ -177,30 +220,50 @@
         </div>
         
         <div class="section">
-            <h2>9. Modifications de la politique</h2>
+            <h2>9. Niveaux de boutique et commissions</h2>
+            <p>Pour les vendeurs, nous appliquons un système de niveaux basé sur les performances :</p>
+            <ul>
+                <li><strong>Niveau Or</strong> (⭐≥4.5, CA >10M FCFA, valorisation >1M FCFA, boutique physique) → Commission Ouenze: 21% + Bonus vendeur: 1%</li>
+                <li><strong>Niveau Argent</strong> (⭐≥4, CA 5-10M FCFA, valorisation >500k FCFA) → Commission Ouenze: 21.5% + Bonus vendeur: 0.5%</li>
+                <li><strong>Niveau Bronze</strong> (⭐≥3) → Commission Ouenze: 22%</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>10. Modifications de la politique</h2>
             <p>Nous pouvons modifier cette politique de confidentialité. Toute modification sera publiée sur cette page avec une date de mise à jour. Nous vous encourageons à consulter régulièrement cette page.</p>
         </div>
         
         <div class="last-updated">
-            Dernière mise à jour : 28 mars 2024
+            Dernière mise à jour : 31 mars 2024
         </div>
     </div>
 </div>
 
 <div class="footer">
-    <p>© 2024 Ouenze Marketplace - Brazzaville, Congo | <a href="privacy.html" style="color:var(--primary);">Confidentialité</a> | <a href="help.html" style="color:var(--primary);">Aide</a> | <a href="about.html" style="color:var(--primary);">À propos</a></p>
+    <p>© 2024 Ouenze Marketplace - Brazzaville, Congo | <a href="privacy.html">Confidentialité</a> | <a href="help.html">Aide</a> | <a href="about.html">À propos</a></p>
 </div>
 
 <script>
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    let cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
+    
+    function updateCartCount() {
+        const count = cart.reduce((s, i) => s + i.quantity, 0);
+        document.querySelectorAll('.cart-count').forEach(el => { if(el) el.innerText = count; });
+    }
     
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}</div><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="window.location.href='index.html'"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
         } else {
-            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button>`;
+            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button><div class="cart-icon" onclick="window.location.href='index.html'"><i class="fas fa-shopping-cart"></i><span class="cart-count">0</span></div>`;
         }
+        updateCartCount();
+        
+        const vendorLink = document.getElementById('vendorLink');
+        if (vendorLink) vendorLink.style.display = currentUser && currentUser.type === 'vendeur' ? 'inline-block' : 'none';
     }
     
     function logout() {
@@ -212,19 +275,16 @@
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
+        
         const dropBtn = document.getElementById('dropdownBtn');
         const dropCont = document.getElementById('dropdownContent');
         if(dropBtn) {
             dropBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 dropCont.classList.toggle('show');
-                dropCont.style.opacity = dropCont.classList.contains('show') ? '1' : '0';
-                dropCont.style.visibility = dropCont.classList.contains('show') ? 'visible' : 'hidden';
             });
             window.addEventListener('click', () => {
                 dropCont.classList.remove('show');
-                dropCont.style.opacity = '0';
-                dropCont.style.visibility = 'hidden';
             });
         }
     });
