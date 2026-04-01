@@ -48,27 +48,12 @@
         .nav-links { display: flex; gap: 20px; }
         .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; }
         .nav-links a.active { color: var(--primary); font-weight: 600; }
-        .dropdown { position: relative; }
-        .dropdown-btn { background: none; border: none; font-size: 11px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 20px; background: var(--gray-100); }
-        .dropdown-btn:hover { background: var(--gray-200); }
-        .dropdown-content { 
-            position: absolute; 
-            top: 100%; 
-            right: 0; 
-            background: var(--white); 
-            min-width: 160px; 
-            border: 1px solid var(--gray-200); 
-            border-radius: 12px; 
-            opacity: 0; 
-            visibility: hidden; 
-            transition: 0.2s; 
-            z-index: 1000; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+        .dropdown { position: relative; z-index: 200; }
+        .dropdown-btn { background: none; border: none; font-size: 11px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; gap: 4px; }
+        .dropdown-content { position: absolute; top: 100%; right: 0; background: var(--white); min-width: 160px; border: 1px solid var(--gray-200); border-radius: 12px; opacity: 0; visibility: hidden; transition: 0.2s; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .dropdown-content.show { opacity: 1; visibility: visible; }
-        .dropdown-content a { display: block; padding: 8px 14px; text-decoration: none; color: var(--gray-700); font-size: 11px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; }
-        .dropdown-content a:hover { background: var(--gray-100); color: var(--primary); }
-        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a { display: block; padding: 8px 14px; text-decoration: none; color: var(--gray-700); font-size: 11px; border-bottom: 1px solid var(--gray-200); cursor: pointer; }
+        .dropdown-content a:hover { background: var(--gray-100); }
         
         .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
         
@@ -256,18 +241,106 @@
     let carouselInterval = null;
     let selectedPayment = null;
     
-    // Variables pour la réinitialisation de mot de passe
+    // ============ FONCTIONS DE RÉINITIALISATION MOT DE PASSE ============
     let resetStep = 1;
     let resetEmail = "";
     let resetCode = "";
-    let resetToken = "";
     
-    // Fonction d'envoi d'email (simulation)
+    function openForgotPasswordModal() {
+        resetStep = 1;
+        renderForgotPasswordStep();
+        document.getElementById('forgotPasswordModal').classList.add('active');
+    }
+    
+    function renderForgotPasswordStep() {
+        const stepContent = document.getElementById('forgotStepContent');
+        if (!stepContent) return;
+        
+        if (resetStep === 1) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Email *</label><input type="email" id="resetEmail" placeholder="exemple@email.com"></div>
+                <button class="btn-next" onclick="sendResetCode()">Envoyer le code</button>
+                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
+            `;
+        } else if (resetStep === 2) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Code de vérification</label><input type="text" id="resetVerifCode" placeholder="123456"></div>
+                <div class="button-group"><button class="btn-prev" onclick="prevResetStep()">Retour</button><button class="btn-next" onclick="verifyResetCode()">Vérifier</button></div>
+            `;
+        } else if (resetStep === 3) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Nouveau mot de passe *</label><input type="password" id="newPassword" placeholder="••••••••"></div>
+                <div class="form-group"><label>Confirmer le mot de passe *</label><input type="password" id="confirmNewPassword" placeholder="••••••••"></div>
+                <button class="btn-submit" onclick="resetPassword()">Réinitialiser</button>
+                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
+            `;
+        }
+        
+        document.querySelectorAll('#forgotPasswordModal .step').forEach((el, idx) => {
+            el.classList.remove('active', 'completed');
+            if (idx + 1 === resetStep) el.classList.add('active');
+            else if (idx + 1 < resetStep) el.classList.add('completed');
+        });
+    }
+    
+    function sendResetCode() {
+        const email = document.getElementById('resetEmail').value.trim();
+        if (!email) { alert("Veuillez entrer votre email"); return; }
+        
+        // Vérifier si l'email existe dans localStorage
+        const existingUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+        if (existingUser && existingUser.email === email) {
+            resetEmail = email;
+            resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            sendEmail(email, "Code de réinitialisation Ouenze", `Bonjour,\n\nVotre code de réinitialisation est: ${resetCode}\n\nCe code expire dans 10 minutes.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\nL'équipe Ouenze`);
+            alert(`Un code de vérification a été envoyé à ${email}`);
+            resetStep = 2;
+            renderForgotPasswordStep();
+        } else {
+            alert("Aucun compte trouvé avec cet email");
+        }
+    }
+    
+    function verifyResetCode() {
+        const code = document.getElementById('resetVerifCode').value;
+        if (code !== resetCode) { alert("Code incorrect"); return; }
+        resetStep = 3;
+        renderForgotPasswordStep();
+    }
+    
+    function prevResetStep() {
+        resetStep--;
+        renderForgotPasswordStep();
+    }
+    
+    function resetPassword() {
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+        
+        if (!newPassword) { alert("Veuillez entrer un mot de passe"); return; }
+        if (newPassword !== confirmNewPassword) { alert("Les mots de passe ne correspondent pas"); return; }
+        
+        // Mettre à jour l'utilisateur dans localStorage
+        if (currentUser && currentUser.email === resetEmail) {
+            currentUser.password = newPassword;
+            localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+        }
+        
+        alert("✅ Mot de passe réinitialisé avec succès !");
+        closeForgotPasswordModal();
+    }
+    
+    function closeForgotPasswordModal() {
+        document.getElementById('forgotPasswordModal').classList.remove('active');
+        resetStep = 1;
+        resetEmail = "";
+        resetCode = "";
+    }
+    
     function sendEmail(to, subject, body) {
         console.log(`📧 EMAIL ENVOYÉ À: ${to}`);
         console.log(`📧 OBJET: ${subject}`);
         console.log(`📧 MESSAGE: ${body}`);
-        console.log('---');
         return true;
     }
     
@@ -316,7 +389,6 @@
         return stars;
     }
     
-    // Calcul du niveau de la boutique (Or, Argent, Bronze)
     function getShopLevel(shop) {
         const annualRevenue = (shop.monthlyRevenue || (shop.totalSales || 0) * 1000) * 12;
         const valuation = calculateValuation(shop);
@@ -973,9 +1045,6 @@
         orders.push(newOrder);
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         
-        const emailBody = `Bonjour ${currentUser?.name || 'Client'},\n\nVotre commande #${orderId} a été confirmée.\n\nDétails:\n- Total: ${finalTotal.toLocaleString()} FCFA\n- Livraison: ${city}, ${quartier}\n- Paiement: ${selectedPayment === 'card' ? 'Carte bancaire' : selectedPayment === 'mobile' ? 'Mobile Money' : selectedPayment === 'paypal' ? 'PayPal' : 'Espèce'}\n\nVous pouvez suivre votre commande ici: tracking.html?id=${orderId}\n\nMerci de votre confiance !\n\nL'équipe Ouenze`;
-        sendEmail(currentUser?.email || 'client@email.com', `Confirmation de commande #${orderId}`, emailBody);
-        
         cart = [];
         saveData();
         
@@ -1007,128 +1076,7 @@
         `;
     }
     
-    // ============ MOT DE PASSE OUBLIÉ (3 ÉTAPES) ============
-    let forgotStep = 1;
-    let forgotEmail = "";
-    let forgotCode = "";
-    let forgotNewPassword = "";
-    
-    function openForgotPasswordModal() {
-        forgotStep = 1;
-        renderForgotStep();
-        const modal = document.createElement('div');
-        modal.className = 'modal active';
-        modal.id = 'forgotModal';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <div class="step-indicator">
-                    <div class="step" id="forgotStep1">1. Email</div>
-                    <div class="step" id="forgotStep2">2. Code</div>
-                    <div class="step" id="forgotStep3">3. Nouveau mot de passe</div>
-                </div>
-                <div id="forgotStepContent"></div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        renderForgotStep();
-    }
-    
-    function renderForgotStep() {
-        const stepContent = document.getElementById('forgotStepContent');
-        if (!stepContent) return;
-        
-        // Mettre à jour les indicateurs
-        document.querySelectorAll('#forgotStep1, #forgotStep2, #forgotStep3').forEach((el, idx) => {
-            el.classList.remove('active', 'completed');
-            if (idx + 1 === forgotStep) el.classList.add('active');
-            else if (idx + 1 < forgotStep) el.classList.add('completed');
-        });
-        
-        if (forgotStep === 1) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Adresse email</label><input type="email" id="forgotEmail" placeholder="exemple@email.com"></div>
-                <button class="btn-next" onclick="sendResetCode()">Envoyer le code</button>
-                <button onclick="closeForgotModal()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
-            `;
-        } else if (forgotStep === 2) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Code de vérification</label><input type="text" id="forgotCode" placeholder="123456"></div>
-                <div class="info-text" style="font-size:11px;color:var(--gray-500);margin-bottom:12px;">Un code a été envoyé à ${forgotEmail}</div>
-                <div class="button-group"><button class="btn-prev" onclick="forgotPrevStep()">Retour</button><button class="btn-next" onclick="verifyResetCode()">Vérifier</button></div>
-            `;
-        } else if (forgotStep === 3) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="newPassword" placeholder="••••••••"></div>
-                <div class="form-group"><label>Confirmer le mot de passe</label><input type="password" id="confirmPassword" placeholder="••••••••"></div>
-                <button class="btn-submit" onclick="resetPassword()">Réinitialiser</button>
-                <button onclick="closeForgotModal()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
-            `;
-        }
-    }
-    
-    function sendResetCode() {
-        const email = document.getElementById('forgotEmail').value.trim();
-        if (!email) {
-            alert("Veuillez entrer votre email");
-            return;
-        }
-        
-        // Vérifier si l'email existe dans les utilisateurs (simulation)
-        // Pour la démo, on accepte n'importe quel email
-        forgotEmail = email;
-        forgotCode = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        sendEmail(email, "Code de réinitialisation Ouenze", `Bonjour,\n\nVous avez demandé la réinitialisation de votre mot de passe.\n\nVotre code de vérification est: ${forgotCode}\n\nCe code expire dans 10 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\nL'équipe Ouenze`);
-        
-        alert(`Un code de vérification a été envoyé à ${email}\n\nCode (simulation): ${forgotCode}`);
-        
-        forgotStep = 2;
-        renderForgotStep();
-    }
-    
-    function verifyResetCode() {
-        const code = document.getElementById('forgotCode').value.trim();
-        if (code !== forgotCode) {
-            alert("Code incorrect");
-            return;
-        }
-        forgotStep = 3;
-        renderForgotStep();
-    }
-    
-    function forgotPrevStep() {
-        forgotStep--;
-        renderForgotStep();
-    }
-    
-    function resetPassword() {
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        
-        if (!newPassword || newPassword.length < 4) {
-            alert("Le mot de passe doit contenir au moins 4 caractères");
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            alert("Les mots de passe ne correspondent pas");
-            return;
-        }
-        
-        // Mettre à jour le mot de passe de l'utilisateur (simulation)
-        if (currentUser && currentUser.email === forgotEmail) {
-            currentUser.password = newPassword;
-            saveData();
-        }
-        
-        alert("✅ Votre mot de passe a été réinitialisé avec succès !\n\nVous pouvez maintenant vous connecter avec votre nouveau mot de passe.");
-        closeForgotModal();
-    }
-    
-    function closeForgotModal() {
-        document.getElementById('forgotModal')?.remove();
-    }
-    
-    // ============ INSCRIPTION 3 ÉTAPES ============
+    // ============ INSCRIPTION ============
     let currentStep = 1;
     let tempUserData = {};
     let generatedCode = "";
@@ -1186,9 +1134,7 @@
         tempUserData = { fullName, firstName, birthDate, birthPlace, idNumber, city: document.getElementById('city').value, address: document.getElementById('address').value, email, password };
         generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         alert(`Code vérification: ${generatedCode}`);
-        
-        sendEmail(email, "Code de vérification Ouenze", `Bonjour ${fullName},\n\nVotre code de vérification est: ${generatedCode}\n\nCe code expire dans 10 minutes.\n\nL'équipe Ouenze`);
-        
+        sendEmail(email, "Code de vérification Ouenze", `Bonjour ${fullName},\n\nVotre code de vérification est: ${generatedCode}`);
         currentStep = 2;
         renderRegisterStep();
     }
@@ -1221,8 +1167,7 @@
         saveData();
         closeRegisterModal();
         
-        const welcomeBody = `Bonjour ${currentUser.name},\n\nVotre compte ${accountType === 'vendeur' ? 'vendeur' : 'client'} a été créé avec succès sur Ouenze Marketplace !\n\n${accountType === 'vendeur' ? 'Vous pouvez maintenant créer votre boutique depuis votre tableau de bord vendeur.' : 'Vous pouvez maintenant parcourir les boutiques et passer vos commandes.'}\n\nCordialement,\nL'équipe Ouenze`;
-        sendEmail(currentUser.email, "Bienvenue sur Ouenze Marketplace", welcomeBody);
+        sendEmail(currentUser.email, "Bienvenue sur Ouenze Marketplace", `Bonjour ${currentUser.name},\n\nVotre compte ${accountType === 'vendeur' ? 'vendeur' : 'client'} a été créé avec succès !`);
         
         alert(`Compte ${accountType} créé !\nUn email de bienvenue a été envoyé à ${currentUser.email}`);
         updateHeaderUI();
@@ -1249,7 +1194,7 @@
                 modal.remove(); 
                 resetToHome(); 
                 alert(`Bienvenue ${currentUser.name}`);
-                sendEmail(email, "Connexion à Ouenze", `Bonjour ${currentUser.name},\n\nVous vous êtes connecté à votre compte Ouenze Marketplace.\n\nSi ce n'est pas vous, veuillez contacter notre support.`);
+                sendEmail(email, "Connexion à Ouenze", `Bonjour ${currentUser.name},\n\nVous vous êtes connecté à votre compte Ouenze Marketplace.`);
             } else alert("Email requis");
         };
     }
@@ -1293,6 +1238,7 @@
     window.showCheckout = showCheckout;
     window.validateAndPay = validateAndPay;
     window.openForgotPasswordModal = openForgotPasswordModal;
+    window.closeForgotPasswordModal = closeForgotPasswordModal;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
@@ -1310,9 +1256,13 @@
             dropBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 dropCont.classList.toggle('show');
+                dropCont.style.opacity = dropCont.classList.contains('show') ? '1' : '0';
+                dropCont.style.visibility = dropCont.classList.contains('show') ? 'visible' : 'hidden';
             });
             window.addEventListener('click', () => {
                 dropCont.classList.remove('show');
+                dropCont.style.opacity = '0';
+                dropCont.style.visibility = 'hidden';
             });
         }
         
@@ -1321,7 +1271,17 @@
         modalDiv.className = 'modal';
         modalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Identité</div><div class="step">2. Vérification</div><div class="step">3. Compte</div></div><div id="stepContent"></div></div>`;
         document.body.appendChild(modalDiv);
-        window.onclick = (event) => { if(event.target === document.getElementById('registerModal')) closeRegisterModal(); };
+        
+        const forgotModalDiv = document.createElement('div');
+        forgotModalDiv.id = 'forgotPasswordModal';
+        forgotModalDiv.className = 'modal';
+        forgotModalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Email</div><div class="step">2. Code</div><div class="step">3. Nouveau mot de passe</div></div><div id="forgotStepContent"></div></div>`;
+        document.body.appendChild(forgotModalDiv);
+        
+        window.onclick = (event) => { 
+            if(event.target === document.getElementById('registerModal')) closeRegisterModal();
+            if(event.target === document.getElementById('forgotPasswordModal')) closeForgotPasswordModal();
+        };
     });
 </script>
 </body>
