@@ -1,39 +1,32 @@
-# Ouenze
+# Ouenze - Documentation technique
 
-## Présation
+## Présentation
 
-Ouenze est une plateforme de création et de gestion de boutiques en ligne, permettant aux vendeurs de créer facilement leur espace de vente et aux utilisateurs de découvrir, commander et suivre leurs produits.
-
----
-
-## Fonctionnement global
-
-### Utilisateur non connecté / client
-
-1. Accès à la plateforme
-
-* Inscription ou connexion
-* Accès à la page d’accueil
-
-2. Navigation
-
-* Recherche de boutiques ou produits
-* Consultation d’une boutique
-* Ajout de produits au panier
-
-3. Achat
-
-* Validation du panier
-* Passage de commande
-
-4. Suivi
-
-* Accès au suivi de livraison
-* Possibilité de noter la boutique après réception
+Ouenze est une plateforme complète de marketplace e-commerce dédiée au Congo Brazzaville. Elle permet aux vendeurs de créer et personnaliser leurs boutiques en ligne, et aux clients d'acheter des produits avec un système de suivi de livraison en temps réel, de notation, et d'investissement.
 
 ---
 
-### Parcours utilisateur
+## Architecture du projet
+
+Le projet est composé de plusieurs pages HTML interconnectées :
+
+| Fichier | Rôle | Accès |
+|---------|------|-------|
+| `index.html` | Page d'accueil de la marketplace | Public |
+| `shop-designer.html` | Création et personnalisation de boutique | Vendeur (lien email) |
+| `vendor-dashboard.html` | Tableau de bord vendeur | Vendeur connecté |
+| `tracking.html` | Suivi de livraison en temps réel | Client après commande |
+| `invest.html` | Plateforme d'investissement | Public |
+| `accounting.html` | Comptabilité vendeur | Vendeur connecté |
+| `help.html` | Centre d'aide | Public |
+| `privacy.html` | Politique de confidentialité | Public |
+| `about.html` | À propos | Public |
+
+---
+
+## Parcours utilisateur
+
+### Client non connecté
 
 ```
 Inscription / Connexion
@@ -46,130 +39,194 @@ Recherche / Navigation
         ↓
     Panier
         ↓
- Validation
+ Validation + Paiement
         ↓
-  Suivi commande
+  Suivi commande (tracking.html)
         ↓
-   Notation
+   Notation de la boutique
 ```
 
----
-
-## Pages principales
-
-* `index.html`
-  Page d’accueil avec recherche et affichage des boutiques
-
-* `shop.html`
-  Page d’une boutique avec ses produits
-
-* `tracking.html`
-  Suivi des commandes et de la livraison
-
----
-
-## Espace vendeur
-
-### Accès
-
-Le vendeur doit être connecté pour accéder à son espace.
-
-### Fonctionnalités
-
-* Création de boutique
-* Ajout et gestion de produits
-* Gestion du stock
-* Ravitaillement
-
-### Tableau de bord
-
-* `ouenze-vendor-dashboard`
-  Interface principale de gestion
-
----
-
-## Création de boutique
-
-* `ouenze-shop-designer.html`
-
-Permet de :
-
-* Personnaliser le design
-* Ajouter des catégories
-* Ajouter des produits
-* Configurer le menu
-* Gérer le carrousel
-* Définir les couleurs et le style
-
----
-
-## Architecture du projet
+### Vendeur
 
 ```
-Utilisateur
-│
-├── index.html (Accueil)
-│
-├── shop.html (Boutique)
-│
-├── tracking.html (Suivi)
-│
-└── Panier / Commande
-
-Vendeur
-│
-├── Dashboard
-│
-├── Création boutique
-│   └── ouenze-shop-designer.html
-│
+Inscription (type vendeur)
+        ↓
+Email avec lien de création
+        ↓
+shop-designer.html (personnalisation)
+        ↓
+Publication de la boutique
+        ↓
+vendor-dashboard.html (gestion)
+        ↓
 ├── Gestion produits
-│
-└── Ravitaillement
+├── Gestion stock / ravitaillement
+├── Gestion actifs / passifs
+├── Proposition à l'investissement
+└── Comptabilité (accounting.html)
+```
+
+### Investisseur
+
+```
+Accès à invest.html
+        ↓
+Consultation des boutiques éligibles (≥3⭐)
+        ↓
+Analyse des indicateurs financiers
+        ↓
+Achat d'actions / Acquisition de boutique
+        ↓
+Soumission de demande (vérification 48h)
 ```
 
 ---
 
-## Fonctionnalités clés
+## Fonctionnalités principales
 
-* Création de boutiques personnalisées
-* Produits illimités
-* Gestion des catégories et sous-catégories
-* Système de panier
-* Suivi des commandes
-* Système de notation
-* Interface vendeur complète
+### Marketplace (index.html)
+
+- **Classement des boutiques** : par note, date, ventes
+- **Recherche avancée** : boutiques, produits, tous
+- **Système de niveaux** (Or, Argent, Bronze) avec commissions personnalisées
+- **Inscription 3 étapes** avec pièce d'identité
+- **Panier** avec calcul des frais de livraison (10%)
+- **Paiement sécurisé** : carte bancaire (Visa/MasterCard), Mobile Money (MTN/Airtel), PayPal, espèces
+- **Modale produit** avec galerie photos, couleurs, tailles, infos alimentaires
+
+### Création de boutique (shop-designer.html)
+
+- **Logo personnalisable** (carré, arrondi, cercle)
+- **Menu de navigation** (horizontal, vertical gauche/droite) avec sous-catégories déroulantes
+- **Carrousel** (images/vidéos) avec hauteur, arrondi, vitesse auto réglables
+- **Personnalisation complète** : couleurs, dimensions produits, disposition (grille/liste)
+- **Produits illimités** avec photos, couleurs, tailles
+- **Type alimentaire** avec champs spécifiques (expiration, poids, origine, ingrédients)
+- **Aperçu en temps réel**
+
+### Tableau de bord vendeur (vendor-dashboard.html)
+
+- **Statistiques globales** (boutiques, produits, commandes, CA)
+- **Gestion des actifs et passifs** avec valorisation professionnelle
+- **Ajout de produits** avec quantité
+- **Ravitaillement de stock**
+- **Système de niveaux** (Or, Argent, Bronze) avec commissions et bonus
+- **Partage de boutique** sur les réseaux sociaux
+- **Vente de boutique** (transfert ou suppression)
+- **Lien vers la comptabilité**
+
+### Suivi de livraison (tracking.html)
+
+- **Jauge de progression** dynamique
+- **Étapes détaillées** (6 étapes)
+- **Animation de voiture** en temps réel
+- **Historique complet** avec dates
+- **Notification email** à chaque étape
+- **Système de notation** après livraison
+
+### Plateforme d'investissement (invest.html)
+
+- **Classement des boutiques** par note, prix, croissance, niveau
+- **Fourchettes d'investissement** selon le niveau (Or, Argent, Bronze)
+- **Graphiques interactifs** (évolution du prix, volume, CA, actifs/passifs)
+- **Achat/vente d'actions**
+- **Acquisition de boutique**
+- **Système de vérification** 48h
+- **Validation des informations de paiement**
+
+### Comptabilité (accounting.html)
+
+- **Livre journal** automatisé (généré depuis les commandes)
+- **Compte de résultat (CPC)** avec produits/charges
+- **Balance générale**
+- **Saisie manuelle d'écritures**
+- **Graphiques d'évolution du CA**
+- **Export CSV**
 
 ---
 
-## Limitations actuelles
+## Système de niveaux et commissions
 
-* Les données sont stockées en local (localStorage)
-* Les boutiques ne sont pas partagées entre utilisateurs
-* Pas encore de base de données distante
+| Niveau | Conditions | Commission Ouenze | Bonus vendeur |
+|--------|------------|-------------------|---------------|
+| **Or** | ⭐ ≥ 4.5, CA > 10M FCFA, valorisation > 1M FCFA, boutique physique | 21% | +1% |
+| **Argent** | ⭐ ≥ 4, CA 5-10M FCFA, valorisation > 500k FCFA | 21.5% | +0.5% |
+| **Bronze** | ⭐ ≥ 3 | 22% | 0% |
+
+---
+
+## Formules de calcul
+
+### Valorisation d'une boutique
+```
+Valorisation = (Résultat × Multiple) + Trésorerie estimée + Actifs - Dettes
+```
+- Résultat = CA - Charges estimées (35%)
+- Multiple = 2 à 8 selon la note et le nombre de produits
+- Trésorerie estimée = CA × 0.2
+
+### Prix par action
+```
+Prix par action = Valorisation / 1000
+```
+
+### Frais de livraison
+```
+Frais de livraison = Sous-total × 10%
+```
+
+---
+
+## Technologies utilisées
+
+- **HTML5** : Structure des pages
+- **CSS3** : Styles, animations, grid, flexbox
+- **JavaScript ES6** : Logique métier, gestion localStorage
+- **Chart.js** : Graphiques et visualisations
+- **Font Awesome 6** : Icônes
+- **Google Fonts (Inter)** : Typographie
+
+---
+
+## Stockage des données
+
+Toutes les données sont stockées dans le `localStorage` du navigateur :
+
+| Clé | Contenu |
+|-----|---------|
+| `ouenze_shops` | Liste des boutiques |
+| `ouenze_orders` | Historique des commandes |
+| `ouenze_cart` | Panier utilisateur |
+| `ouenze_current_user` | Utilisateur connecté |
+| `ouenze_investments` | Investissements réalisés |
+| `ouenze_investment_requests` | Demandes d'investissement |
+| `ouenze_manual_entries` | Écritures comptables manuelles |
+| `ouenze_holdings` | Actions détenues par les investisseurs |
+
+---
+
+## Sécurité
+
+- **Système de séquestre** : les fonds sont bloqués jusqu'à validation
+- **Validation des coordonnées bancaires** pour les vendeurs
+- **Pièce d'identité** obligatoire à l'inscription
+- **Garantie anti-escroquerie** : remboursement intégral en cas de fraude prouvée
+- **Simulation d'envoi d'email** pour toutes les notifications
 
 ---
 
 ## Évolutions prévues
 
-* Intégration d’une base de données (Firebase / Supabase)
-* Système de comptes utilisateurs avancé
-* Paiement en ligne sécurisé
-* Système d’investissement dans les boutiques
-* Système de livraison avec suivi en temps réel
-
----
-
-## Objectif
-
-Créer une plateforme simple, accessible et performante pour permettre :
-
-* Aux vendeurs de gérer leur activité facilement
-* Aux utilisateurs de commander en toute confiance
-* Aux investisseurs de soutenir des boutiques fiables
+- Intégration d'une base de données distante (Firebase / Supabase)
+- Système de paiement réel avec API (Stripe, Orange Money, MTN Money)
+- Notifications push et emails réels
+- Application mobile
+- Système de livraison avec API de suivi
+- Chat entre vendeurs et acheteurs
 
 ---
 
 ## Statut
 
-Projet en cours de développement.
+Projet en développement actif - Version 2.0
+Dernière mise à jour : 31 mars 2024
