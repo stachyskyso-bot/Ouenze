@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ouenze | Mon portefeuille d'investissement</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,6 @@
         :root {
             --primary: #1e40af;
             --primary-dark: #1e3a8a;
-            --primary-light: #3b82f6;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
@@ -22,7 +21,6 @@
             --gray-200: #e2e8f0;
             --gray-500: #64748b;
             --gray-700: #334155;
-            --gray-900: #0f172a;
         }
         
         .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
@@ -31,66 +29,55 @@
         .auth-btn { padding: 8px 18px; border-radius: 40px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
         .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
         .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
-        .nav-tabs { display: flex; gap: 4px; background: var(--white); padding: 8px 24px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
-        .nav-tab { padding: 8px 20px; background: none; border: none; border-radius: 30px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; color: var(--gray-500); }
-        .nav-tab.active { background: var(--primary); color: white; }
         
-        .main { max-width: 1200px; margin: 24px auto; padding: 0 24px; }
+        .main { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
         
-        /* Cartes statistiques */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 28px; }
-        .stat-card { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); transition: 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        /* Stats portefeuille */
+        .portfolio-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .stat-card { background: var(--white); border-radius: 20px; padding: 24px; border: 1px solid var(--gray-200); transition: 0.2s; }
         .stat-card h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
         .stat-change { font-size: 12px; margin-top: 6px; }
         .stat-change.positive { color: var(--success); }
         .stat-change.negative { color: var(--danger); }
         
-        /* Graphique */
-        .chart-container { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); margin-bottom: 28px; }
-        .chart-container h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--gray-900); }
-        .chart-wrapper { height: 280px; position: relative; }
+        /* Graphiques */
+        .chart-container { background: var(--white); border-radius: 20px; padding: 24px; border: 1px solid var(--gray-200); margin-bottom: 32px; }
+        .chart-container h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+        .chart-wrapper { height: 320px; position: relative; }
+        
+        /* Filtres */
+        .portfolio-filters { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 20px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         
         /* Liste des investissements */
-        .investments-list { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 28px; }
-        .investment-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; }
+        .investments-list { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
+        .investment-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; cursor: pointer; }
         .investment-item:hover { background: var(--gray-100); }
-        .investment-info h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .investment-info h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
         .investment-info p { font-size: 12px; color: var(--gray-500); }
         .investment-value { text-align: right; }
         .investment-amount { font-size: 18px; font-weight: 700; color: var(--primary); }
-        .investment-shares { font-size: 12px; color: var(--gray-500); }
-        .investment-performance { font-size: 13px; font-weight: 600; margin-top: 4px; }
-        .investment-performance.positive { color: var(--success); }
-        .investment-performance.negative { color: var(--danger); }
+        .investment-change { font-size: 12px; margin-top: 4px; }
         
-        .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); }
-        .btn-outline { background: var(--gray-100); border: 1px solid var(--gray-200); color: var(--gray-700); }
-        .btn-outline:hover { background: var(--gray-200); }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #059669; }
-        
+        /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+        .modal-card { background: var(--white); border-radius: 24px; max-width: 500px; width: 100%; padding: 28px; max-height: 90vh; overflow-y: auto; }
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
-        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; }
-        .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 40px; border: none; width: 100%; cursor: pointer; font-weight: 600; margin-top: 8px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 10px; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 40px; cursor: pointer; font-weight: 500; width: 100%; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
         
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--gray-500); }
-        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 48px; padding: 20px; text-align: center; font-size: 11px; color: var(--gray-500); }
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
         
-        @media (max-width: 700px) {
-            .investment-item { flex-direction: column; text-align: center; gap: 12px; }
-            .investment-value { text-align: center; }
-            .stats-grid { grid-template-columns: 1fr; }
-        }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+        .live-badge { background: var(--danger); color: white; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-left: 12px; animation: pulse 1.5s infinite; }
+        
+        @media (max-width: 700px) { .investment-item { flex-direction: column; text-align: center; gap: 12px; } .investment-value { text-align: center; } }
     </style>
 </head>
 <body>
@@ -100,49 +87,36 @@
     <div class="header-actions" id="headerActions"></div>
 </div>
 
-<div class="nav-tabs">
-    <button class="nav-tab active" data-tab="overview">Vue d'ensemble</button>
-    <button class="nav-tab" data-tab="holdings">Mes investissements</button>
-    <button class="nav-tab" data-tab="history">Historique</button>
-    <button class="nav-tab" data-tab="withdraw">Retirer des fonds</button>
-</div>
-
-<div id="appContainer" class="main"></div>
+<div class="main" id="appContainer"></div>
 
 <div class="footer">
-    <p>© 2024 Ouenze Invest - Portefeuille confidentiel | Données en temps réel</p>
+    <p>© 2024 Ouenze Invest - Portefeuille personnel | Données en temps réel</p>
 </div>
 
 <script>
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    let investments = JSON.parse(localStorage.getItem('ouenze_investments') || '[]');
-    let transactions = JSON.parse(localStorage.getItem('ouenze_transactions') || '[]');
-    let portfolioHistory = JSON.parse(localStorage.getItem('ouenze_portfolio_history') || '[]');
-    let chartInstance = null;
+    let portfolioInvestments = JSON.parse(localStorage.getItem('ouenze_portfolio_investments') || '[]');
+    let withdrawalHistory = JSON.parse(localStorage.getItem('ouenze_withdrawal_history') || '[]');
+    let currentPortfolioFilter = 'all';
     let portfolioChart = null;
+    let liveUpdateInterval = null;
     
-    // Redirection si non connecté
-    if(!currentUser) {
+    // Vérifier si l'utilisateur est connecté
+    if (!currentUser) {
         window.location.href = 'index.html';
     }
     
-    function updateHeaderUI() {
-        const container = document.getElementById('headerActions');
-        if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
-        } else {
-            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button>`;
-        }
+    // Fonction pour calculer la valeur actuelle d'un investissement
+    function calculateCurrentValue(investment) {
+        const shop = shops.find(s => s.id === investment.shopId);
+        if (!shop) return investment.amount;
+        const valuation = calculateShopValuation(shop);
+        const sharePrice = valuation / 1000;
+        return investment.shares * sharePrice;
     }
     
-    function logout() {
-        currentUser = null;
-        localStorage.removeItem('ouenze_current_user');
-        window.location.href = 'index.html';
-    }
-    
-    function calculateValuation(shop) {
+    function calculateShopValuation(shop) {
         const baseValue = 1000000;
         const productValue = (shop.products?.length || 0) * 50000;
         const ratingBonus = (shop.rating || 0) * 150000;
@@ -151,429 +125,393 @@
         return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
     }
     
-    function calculateSharePrice(valuation) {
-        return Math.round(valuation / 1000);
-    }
-    
-    // Récupérer les investissements de l'utilisateur
-    function getUserHoldings() {
-        const userInvestments = investments.filter(i => i.investor === currentUser.email && i.status === 'approved');
-        const holdings = [];
-        
-        userInvestments.forEach(inv => {
-            const shop = shops.find(s => s.id === inv.shopId);
-            if(shop) {
-                const valuation = calculateValuation(shop);
-                const currentPrice = calculateSharePrice(valuation);
-                const initialPrice = inv.pricePerShare || inv.amount / inv.quantity;
-                const currentValue = inv.quantity * currentPrice;
-                const performance = ((currentValue - inv.amount) / inv.amount) * 100;
-                
-                holdings.push({
-                    id: inv.id,
-                    shopId: shop.id,
-                    shopName: shop.name,
-                    shopLogo: shop.logo,
-                    quantity: inv.quantity,
-                    initialAmount: inv.amount,
-                    currentValue: currentValue,
-                    currentPrice: currentPrice,
-                    initialPrice: initialPrice,
-                    performance: performance,
-                    date: inv.date
-                });
-            }
-        });
-        
-        return holdings;
-    }
-    
-    // Générer l'historique du portefeuille (simulation)
+    // Générer l'historique des prix pour le graphique
     function generatePortfolioHistory() {
-        if(portfolioHistory.length > 0) return portfolioHistory;
-        
         const history = [];
-        let value = 1000000;
-        for(let i = 30; i >= 0; i--) {
-            const change = (Math.random() - 0.5) * 0.03;
-            value = value * (1 + change);
+        let totalValue = portfolioInvestments.reduce((sum, inv) => sum + inv.amount, 0);
+        for (let i = 30; i >= 0; i--) {
+            const change = (Math.random() - 0.48) * 0.03;
+            totalValue = totalValue * (1 + change);
             history.push({
                 date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-                value: Math.round(value)
+                value: Math.max(totalValue, portfolioInvestments.reduce((s,inv)=>s+inv.amount,0) * 0.7)
             });
         }
         return history;
     }
     
-    // Vérifier si l'utilisateur a des infos de paiement
-    function hasPaymentInfo() {
-        return currentUser && currentUser.paymentMethod && currentUser.paymentDetails;
+    let portfolioHistory = generatePortfolioHistory();
+    
+    function updatePortfolioHistory() {
+        const lastValue = portfolioHistory[portfolioHistory.length - 1].value;
+        const change = (Math.random() - 0.48) * 0.02;
+        const newValue = lastValue * (1 + change);
+        portfolioHistory.push({
+            date: new Date().toISOString().split('T')[0],
+            value: Math.max(newValue, portfolioInvestments.reduce((s,inv)=>s+inv.amount,0) * 0.7)
+        });
+        if (portfolioHistory.length > 60) portfolioHistory.shift();
+        localStorage.setItem('ouenze_portfolio_history', JSON.stringify(portfolioHistory));
+        return portfolioHistory;
     }
     
-    // Sauvegarder les infos de paiement
-    function savePaymentInfo(method, details) {
-        currentUser.paymentMethod = method;
-        currentUser.paymentDetails = details;
-        localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+    function loadPortfolioHistory() {
+        const saved = localStorage.getItem('ouenze_portfolio_history');
+        if (saved) {
+            portfolioHistory = JSON.parse(saved);
+        } else {
+            portfolioHistory = generatePortfolioHistory();
+            localStorage.setItem('ouenze_portfolio_history', JSON.stringify(portfolioHistory));
+        }
     }
     
-    // Vue d'ensemble
-    function showOverview() {
-        const holdings = getUserHoldings();
-        const totalInvested = holdings.reduce((sum, h) => sum + h.initialAmount, 0);
-        const currentTotal = holdings.reduce((sum, h) => sum + h.currentValue, 0);
-        const totalPerformance = totalInvested > 0 ? ((currentTotal - totalInvested) / totalInvested) * 100 : 0;
-        const history = generatePortfolioHistory();
-        const lastValue = history[history.length-1]?.value || currentTotal;
+    function getTotalPortfolioValue() {
+        return portfolioInvestments.reduce((sum, inv) => sum + calculateCurrentValue(inv), 0);
+    }
+    
+    function getTotalInvested() {
+        return portfolioInvestments.reduce((sum, inv) => sum + inv.amount, 0);
+    }
+    
+    function getTotalProfit() {
+        return getTotalPortfolioValue() - getTotalInvested();
+    }
+    
+    function showPortfolioPage() {
+        const totalValue = getTotalPortfolioValue();
+        const totalInvested = getTotalInvested();
+        const totalProfit = getTotalProfit();
+        const profitPercent = totalInvested > 0 ? (totalProfit / totalInvested * 100) : 0;
+        
+        const filteredInvestments = currentPortfolioFilter === 'all' 
+            ? portfolioInvestments 
+            : portfolioInvestments.filter(inv => inv.shopId === parseInt(currentPortfolioFilter));
         
         document.getElementById('appContainer').innerHTML = `
-            <div class="stats-grid">
-                <div class="stat-card"><h3>Capital investi</h3><div class="stat-value">${totalInvested.toLocaleString()} FCFA</div><div class="stat-change">Total investi</div></div>
-                <div class="stat-card"><h3>Valeur actuelle</h3><div class="stat-value">${currentTotal.toLocaleString()} FCFA</div><div class="stat-change ${totalPerformance >= 0 ? 'positive' : 'negative'}">${totalPerformance >= 0 ? '+' : ''}${totalPerformance.toFixed(2)}%</div></div>
-                <div class="stat-card"><h3>Plus-value latente</h3><div class="stat-value ${(currentTotal - totalInvested) >= 0 ? 'positive' : 'negative'}">${(currentTotal - totalInvested) >= 0 ? '+' : ''}${(currentTotal - totalInvested).toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Boutiques</h3><div class="stat-value">${holdings.length}</div><div class="stat-change">investissements actifs</div></div>
+            <div class="portfolio-stats">
+                <div class="stat-card"><h3>Valeur totale du portefeuille</h3><div class="stat-value">${totalValue.toLocaleString()} FCFA</div><div class="stat-change ${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? '+' : ''}${totalProfit.toLocaleString()} FCFA</div></div>
+                <div class="stat-card"><h3>Total investi</h3><div class="stat-value">${totalInvested.toLocaleString()} FCFA</div><div class="stat-change">${portfolioInvestments.length} investissement(s)</div></div>
+                <div class="stat-card"><h3>Performance</h3><div class="stat-value ${profitPercent >= 0 ? 'positive' : 'negative'}">${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%</div><div class="stat-change">depuis l'ouverture</div></div>
+                <div class="stat-card"><h3>Retraits disponibles</h3><div class="stat-value">${totalValue.toLocaleString()} FCFA</div><div class="stat-change"><button class="filter-btn" onclick="openWithdrawModal()" style="margin-top:8px;">Retirer des fonds</button></div></div>
             </div>
             
             <div class="chart-container">
-                <h3>Évolution de mon portefeuille</h3>
+                <h3>Évolution du portefeuille <span class="live-badge">LIVE</span></h3>
                 <div class="chart-wrapper"><canvas id="portfolioChart"></canvas></div>
             </div>
             
+            <div class="portfolio-filters">
+                <button class="filter-btn ${currentPortfolioFilter === 'all' ? 'active' : ''}" onclick="filterPortfolio('all')">Tous les investissements</button>
+                ${shops.filter(s => portfolioInvestments.some(inv => inv.shopId === s.id)).map(shop => `
+                    <button class="filter-btn ${currentPortfolioFilter == shop.id ? 'active' : ''}" onclick="filterPortfolio(${shop.id})">${escapeHtml(shop.name)}</button>
+                `).join('')}
+            </div>
+            
             <div class="investments-list">
-                <div style="padding: 16px 20px; background: var(--gray-100); border-bottom: 1px solid var(--gray-200);">
-                    <strong>Mes investissements</strong>
-                </div>
-                ${holdings.length > 0 ? holdings.map(h => `
-                    <div class="investment-item">
-                        <div class="investment-info">
-                            <h4>${escapeHtml(h.shopName)}</h4>
-                            <p>${h.quantity} actions | Investi le ${new Date(h.date).toLocaleDateString()}</p>
+                ${filteredInvestments.length ? filteredInvestments.map(inv => {
+                    const shop = shops.find(s => s.id === inv.shopId);
+                    const currentValue = calculateCurrentValue(inv);
+                    const profit = currentValue - inv.amount;
+                    const profitPercent = (profit / inv.amount * 100);
+                    return `
+                        <div class="investment-item" onclick="showInvestmentDetail(${inv.shopId})">
+                            <div class="investment-info">
+                                <h4>${escapeHtml(shop?.name || 'Boutique inconnue')}</h4>
+                                <p>${inv.shares} actions · Investi le ${new Date(inv.date).toLocaleDateString()}</p>
+                            </div>
+                            <div class="investment-value">
+                                <div class="investment-amount">${currentValue.toLocaleString()} FCFA</div>
+                                <div class="investment-change ${profit >= 0 ? 'positive' : 'negative'}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()} FCFA (${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%)</div>
+                            </div>
                         </div>
-                        <div class="investment-value">
-                            <div class="investment-amount">${h.currentValue.toLocaleString()} FCFA</div>
-                            <div class="investment-shares">${h.quantity} parts à ${h.currentPrice.toLocaleString()} FCFA</div>
-                            <div class="investment-performance ${h.performance >= 0 ? 'positive' : 'negative'}">${h.performance >= 0 ? '+' : ''}${h.performance.toFixed(2)}%</div>
-                            <button class="btn-sm btn-outline" style="margin-top: 8px;" onclick="showShopDetail(${h.shopId})">Détails</button>
-                            <button class="btn-sm btn-danger" style="margin-top: 8px; margin-left: 8px;" onclick="openSellModal(${h.shopId}, ${h.quantity}, ${h.currentPrice})">Vendre</button>
-                        </div>
-                    </div>
-                `).join('') : '<div class="empty-state">Aucun investissement pour le moment. Rendez-vous sur la page Investir pour commencer.</div>'}
+                    `;
+                }).join('') : '<div style="text-align:center;padding:40px;">Aucun investissement pour le moment</div>'}
             </div>
         `;
         
-        // Créer le graphique animé
-        setTimeout(() => {
-            const ctx = document.getElementById('portfolioChart')?.getContext('2d');
-            if(ctx && portfolioChart) portfolioChart.destroy();
-            if(ctx) {
-                portfolioChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: history.map(h => h.date.slice(5)),
-                        datasets: [{
-                            label: 'Valeur du portefeuille (FCFA)',
-                            data: history.map(h => h.value),
-                            borderColor: '#1e40af',
-                            backgroundColor: 'rgba(30,64,175,0.05)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 2,
-                            pointBackgroundColor: '#1e40af'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } },
-                        animation: { duration: 1500, easing: 'easeOutQuart' }
-                    }
-                });
-            }
-        }, 100);
+        drawPortfolioChart();
+        startLiveUpdates();
     }
     
-    // Détail d'une boutique
-    function showShopDetail(shopId) {
+    function drawPortfolioChart() {
+        const ctx = document.getElementById('portfolioChart')?.getContext('2d');
+        if (!ctx) return;
+        if (portfolioChart) portfolioChart.destroy();
+        
+        portfolioChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: portfolioHistory.map(h => h.date.slice(5)),
+                datasets: [{
+                    label: 'Valeur du portefeuille (FCFA)',
+                    data: portfolioHistory.map(h => h.value),
+                    borderColor: '#1e40af',
+                    backgroundColor: 'rgba(30,64,175,0.05)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#1e40af',
+                    pointBorderColor: '#1e40af'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 } } },
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toLocaleString()} FCFA` } }
+                },
+                scales: { y: { ticks: { callback: (val) => val.toLocaleString() } } }
+            }
+        });
+    }
+    
+    function startLiveUpdates() {
+        if (liveUpdateInterval) clearInterval(liveUpdateInterval);
+        liveUpdateInterval = setInterval(() => {
+            const newHistory = updatePortfolioHistory();
+            if (portfolioChart) {
+                portfolioChart.data.labels = newHistory.map(h => h.date.slice(5));
+                portfolioChart.data.datasets[0].data = newHistory.map(h => h.value);
+                portfolioChart.update('none');
+            }
+            // Mettre à jour les stats
+            const totalValue = getTotalPortfolioValue();
+            const totalInvested = getTotalInvested();
+            const totalProfit = totalValue - totalInvested;
+            const profitPercent = totalInvested > 0 ? (totalProfit / totalInvested * 100) : 0;
+            const statElements = document.querySelectorAll('.stat-value');
+            if (statElements[0]) statElements[0].innerText = totalValue.toLocaleString() + ' FCFA';
+            if (statElements[2]) statElements[2].innerText = (profitPercent >= 0 ? '+' : '') + profitPercent.toFixed(2) + '%';
+        }, 5000);
+    }
+    
+    function filterPortfolio(filter) {
+        currentPortfolioFilter = filter;
+        showPortfolioPage();
+    }
+    
+    function showInvestmentDetail(shopId) {
         const shop = shops.find(s => s.id === shopId);
-        if(!shop) return;
-        const holdings = getUserHoldings();
-        const holding = holdings.find(h => h.shopId === shopId);
-        if(!holding) return;
+        const investment = portfolioInvestments.find(inv => inv.shopId === shopId);
+        if (!shop || !investment) return;
         
-        const valuation = calculateValuation(shop);
-        const sharePrice = calculateSharePrice(valuation);
-        
-        // Générer l'historique des prix
-        const priceHistory = [];
-        let price = sharePrice;
-        for(let i = 30; i >= 0; i--) {
-            const change = (Math.random() - 0.5) * 0.04;
-            price = price * (1 + change);
-            priceHistory.push({ date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0], price: Math.max(50, Math.round(price)) });
-        }
+        const currentValue = calculateCurrentValue(investment);
+        const profit = currentValue - investment.amount;
         
         document.getElementById('appContainer').innerHTML = `
-            <button onclick="showOverview()" style="background:none;border:none;color:var(--primary);cursor:pointer;margin-bottom:20px;"><i class="fas fa-arrow-left"></i> Retour au portefeuille</button>
-            <div class="chart-container">
-                <h3>${escapeHtml(shop.name)} - Évolution du prix</h3>
-                <div class="chart-wrapper"><canvas id="priceChart"></canvas></div>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-card"><h3>Mes parts</h3><div class="stat-value">${holding.quantity}</div><div class="stat-change">actions</div></div>
-                <div class="stat-card"><h3>Valeur investie</h3><div class="stat-value">${holding.initialAmount.toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Valeur actuelle</h3><div class="stat-value ${holding.performance >= 0 ? 'positive' : 'negative'}">${holding.currentValue.toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Performance</h3><div class="stat-value ${holding.performance >= 0 ? 'positive' : 'negative'}">${holding.performance >= 0 ? '+' : ''}${holding.performance.toFixed(2)}%</div></div>
-            </div>
-            <div class="investments-list">
-                <div style="padding: 16px 20px; background: var(--gray-100);"><strong>Actions détenues</strong></div>
-                <div class="investment-item">
-                    <div><strong>${escapeHtml(shop.name)}</strong><br><span style="font-size:12px;">Prix actuel: ${sharePrice.toLocaleString()} FCFA</span></div>
-                    <div class="investment-value">
-                        <div>${holding.quantity} actions</div>
-                        <div class="investment-amount">${holding.currentValue.toLocaleString()} FCFA</div>
-                        <button class="btn-sm btn-danger" style="margin-top:8px;" onclick="openSellModal(${shop.id}, ${holding.quantity}, ${sharePrice})">Vendre des parts</button>
-                    </div>
+            <button onclick="showPortfolioPage()" style="background:none;border:none;color:var(--primary);cursor:pointer;margin-bottom:20px;"><i class="fas fa-arrow-left"></i> Retour au portefeuille</button>
+            <div class="shop-detail-container" style="background:var(--white);border-radius:24px;border:1px solid var(--gray-200);padding:24px;">
+                <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:24px;">
+                    <div style="width:80px;height:80px;background:var(--gray-100);border-radius:50%;display:flex;align-items:center;justify-content:center;">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:40px;"></i>'}</div>
+                    <div><h1>${escapeHtml(shop.name)}</h1><div class="shop-rating">${'⭐'.repeat(Math.floor(shop.rating || 0))} ${shop.rating || 0}/5</div><div>📍 ${escapeHtml(shop.city || 'Brazzaville')}</div></div>
+                </div>
+                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+                    <div class="stat-card"><h3>Actions détenues</h3><div class="stat-value">${investment.shares}</div></div>
+                    <div class="stat-card"><h3>Valeur actuelle</h3><div class="stat-value">${currentValue.toLocaleString()} FCFA</div></div>
+                    <div class="stat-card"><h3>Plus-value</h3><div class="stat-value ${profit >= 0 ? 'positive' : 'negative'}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()} FCFA</div></div>
+                </div>
+                <div class="chart-container" style="margin-bottom:24px;"><h3>Évolution de la valeur</h3><canvas id="detailChart"></canvas></div>
+                <div class="action-buttons" style="display:flex;gap:12px;">
+                    <button class="btn-primary" onclick="openSellFromPortfolio(${shop.id}, ${investment.shares}, ${currentValue / investment.shares})">Vendre des actions</button>
+                    <button class="btn-success" onclick="window.location.href='invest.html'">Investir davantage</button>
                 </div>
             </div>
         `;
         
+        const detailHistory = generateInvestmentHistory(shop.id);
         setTimeout(() => {
-            const ctx = document.getElementById('priceChart')?.getContext('2d');
-            if(ctx) {
+            const ctx = document.getElementById('detailChart')?.getContext('2d');
+            if (ctx) {
                 new Chart(ctx, {
                     type: 'line',
-                    data: {
-                        labels: priceHistory.map(h => h.date.slice(5)),
-                        datasets: [{ label: 'Prix par action (FCFA)', data: priceHistory.map(h => h.price), borderColor: '#1e40af', backgroundColor: 'rgba(30,64,175,0.05)', fill: true, tension: 0.3 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: true, animation: { duration: 1200, easing: 'easeOutQuart' } }
+                    data: { labels: detailHistory.map(h => h.date.slice(5)), datasets: [{ label: 'Valeur (FCFA)', data: detailHistory.map(h => h.value), borderColor: '#1e40af', fill: true, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: true }
                 });
             }
         }, 100);
     }
     
-    // Modale de vente
-    function openSellModal(shopId, maxQuantity, currentPrice) {
+    function generateInvestmentHistory(shopId) {
         const shop = shops.find(s => s.id === shopId);
-        if(!shop) return;
+        const valuation = calculateShopValuation(shop);
+        const sharePrice = valuation / 1000;
+        const history = [];
+        let price = sharePrice;
+        for (let i = 30; i >= 0; i--) {
+            const change = (Math.random() - 0.48) * 0.03;
+            price = price * (1 + change);
+            history.push({ date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0], value: price });
+        }
+        return history;
+    }
+    
+    function openSellFromPortfolio(shopId, maxShares, sharePrice) {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom:20px;">Vendre des actions</h3>
+                <div class="form-group"><label>Nombre d'actions (max ${maxShares})</label><input type="number" id="sellQty" min="1" max="${maxShares}" value="1"></div>
+                <div class="form-group"><label>Prix unitaire</label><input type="text" id="sharePrice" value="${Math.round(sharePrice)}" readonly disabled></div>
+                <div class="form-group"><strong>Total: <span id="sellTotal">${Math.round(sharePrice)}</span> FCFA</strong></div>
+                <button class="btn-danger" style="width:100%;margin-top:16px;" onclick="submitSellFromPortfolio(${shopId}, ${maxShares}, ${sharePrice})">Confirmer la vente</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;cursor:pointer;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        document.getElementById('sellQty').addEventListener('input', (e) => {
+            const total = e.target.value * sharePrice;
+            document.getElementById('sellTotal').innerText = total.toLocaleString();
+        });
+    }
+    
+    function submitSellFromPortfolio(shopId, maxShares, sharePrice) {
+        const quantity = parseInt(document.getElementById('sellQty').value);
+        if (!quantity || quantity < 1 || quantity > maxShares) { alert("Quantité invalide"); return; }
+        const total = quantity * sharePrice;
+        
+        const investment = portfolioInvestments.find(inv => inv.shopId === shopId);
+        if (investment) {
+            if (quantity === investment.shares) {
+                const index = portfolioInvestments.findIndex(inv => inv.shopId === shopId);
+                portfolioInvestments.splice(index, 1);
+            } else {
+                investment.shares -= quantity;
+                investment.amount = investment.shares * (investment.amount / (investment.shares + quantity));
+            }
+            localStorage.setItem('ouenze_portfolio_investments', JSON.stringify(portfolioInvestments));
+            
+            withdrawalHistory.push({
+                id: Date.now(),
+                shopId, quantity, amount: total,
+                date: new Date().toISOString(),
+                method: 'pending'
+            });
+            localStorage.setItem('ouenze_withdrawal_history', JSON.stringify(withdrawalHistory));
+            
+            alert(`✅ Vente de ${quantity} actions effectuée !\nMontant: ${total.toLocaleString()} FCFA\n\nLes fonds seront disponibles sous 48h sur votre compte.`);
+            document.querySelector('.modal.active')?.remove();
+            showPortfolioPage();
+        }
+    }
+    
+    function openWithdrawModal() {
+        const totalValue = getTotalPortfolioValue();
+        if (!currentUser.paymentMethod || !currentUser.paymentDetails) {
+            openPaymentInfoModal(() => openWithdrawModal());
+            return;
+        }
         
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
-                <h3 style="margin-bottom: 20px;">Vendre des actions</h3>
-                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
-                    Boutique: ${escapeHtml(shop.name)}<br>
-                    Prix actuel: ${currentPrice.toLocaleString()} FCFA/action<br>
-                    Actions disponibles: ${maxQuantity}
-                </div>
-                <div class="form-group"><label>Nombre d'actions à vendre</label><input type="number" id="sellQuantity" min="1" max="${maxQuantity}" value="1"></div>
-                <div class="form-group"><strong>Montant estimé: <span id="estimatedAmount">${currentPrice}</span> FCFA</strong></div>
-                <div class="form-group"><label>Mode de réception des fonds</label>
-                    <select id="withdrawMethod">
-                        <option value="airtel">Airtel Money</option>
-                        <option value="mtn">MTN Mobile Money</option>
-                        <option value="paypal">PayPal</option>
-                        <option value="bank">Virement bancaire</option>
-                    </select>
-                </div>
-                <div id="paymentFields" style="display:block;">
-                    <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="paymentAccount" placeholder="Numéro de téléphone ou email PayPal"></div>
-                </div>
-                <button class="btn-submit" onclick="submitSell(${shopId}, ${currentPrice}, ${maxQuantity})">Confirmer la vente</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+                <h3 style="margin-bottom:20px;">Retirer des fonds</h3>
+                <div class="form-group"><label>Montant à retirer (FCFA)</label><input type="number" id="withdrawAmount" min="10000" max="${totalValue}" value="${Math.min(100000, totalValue)}"></div>
+                <div class="form-group"><label>Mode de retrait</label><select id="withdrawMethod"><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="paypal">PayPal</option><option value="bank">Virement bancaire</option></select></div>
+                <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="withdrawAccount" placeholder="Numéro de compte ou email" value="${currentUser.paymentDetails || ''}"></div>
+                <button class="btn-success" style="width:100%;margin-top:16px;" onclick="submitWithdraw(${totalValue})">Confirmer le retrait</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;cursor:pointer;">Annuler</button>
             </div>`;
         document.body.appendChild(modal);
-        
-        const qtyInput = document.getElementById('sellQuantity');
-        const amountSpan = document.getElementById('estimatedAmount');
-        qtyInput.addEventListener('input', () => {
-            amountSpan.innerText = (qtyInput.value * currentPrice).toLocaleString();
-        });
-        
-        const methodSelect = document.getElementById('withdrawMethod');
-        const paymentFields = document.getElementById('paymentFields');
-        methodSelect.addEventListener('change', () => {
-            if(hasPaymentInfo() && (methodSelect.value === 'airtel' || methodSelect.value === 'mtn' || methodSelect.value === 'paypal')) {
-                paymentFields.innerHTML = `<div class="form-group"><label>Vos coordonnées enregistrées</label><input type="text" value="${currentUser.paymentDetails}" readonly style="background:var(--gray-100);"></div>`;
-            } else {
-                paymentFields.innerHTML = `<div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="paymentAccount" placeholder="Numéro de téléphone ou email PayPal"></div>`;
-            }
-        });
     }
     
-    function submitSell(shopId, currentPrice, maxQuantity) {
-        const quantity = parseInt(document.getElementById('sellQuantity').value);
-        const withdrawMethod = document.getElementById('withdrawMethod').value;
-        let paymentAccount = document.getElementById('paymentAccount')?.value;
-        
-        if(!quantity || quantity < 1 || quantity > maxQuantity) {
-            alert("Quantité invalide");
-            return;
-        }
-        
-        if(!paymentAccount && !hasPaymentInfo()) {
-            alert("Veuillez renseigner vos coordonnées de retrait");
-            return;
-        }
-        
-        const totalAmount = quantity * currentPrice;
-        
-        // Enregistrer la transaction de vente
-        const sellTransaction = {
-            id: Date.now(),
-            type: 'sell',
-            shopId: shopId,
-            shopName: shops.find(s => s.id === shopId)?.name,
-            investor: currentUser.email,
-            quantity: quantity,
-            pricePerShare: currentPrice,
-            total: totalAmount,
-            withdrawMethod: withdrawMethod,
-            paymentAccount: paymentAccount || currentUser.paymentDetails,
-            date: new Date().toISOString(),
-            status: 'pending'
+    function openPaymentInfoModal(callback) {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Informations de paiement requises</h3>
+                <p style="margin-bottom:16px;">Veuillez renseigner vos coordonnées pour effectuer des retraits.</p>
+                <div class="form-group"><label>Mode de paiement</label><select id="payMethod"><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa/Mastercard</option><option value="paypal">PayPal</option></select></div>
+                <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="payDetails" placeholder="Numéro de compte ou email PayPal"></div>
+                <button class="btn-primary" onclick="savePaymentInfoAndProceed('${callback}')">Enregistrer</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
+            </div>`;
+        document.body.appendChild(modal);
+        window.savePaymentInfoAndProceed = (cb) => {
+            const method = document.getElementById('payMethod').value;
+            const details = document.getElementById('payDetails').value;
+            if (!details) { alert("Veuillez entrer vos coordonnées"); return; }
+            currentUser.paymentMethod = method;
+            currentUser.paymentDetails = details;
+            localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+            modal.remove();
+            if (cb) eval(cb)();
         };
-        
-        transactions.push(sellTransaction);
-        localStorage.setItem('ouenze_transactions', JSON.stringify(transactions));
-        
-        // Mettre à jour les investissements
-        const userInvestments = investments.filter(i => i.investor === currentUser.email && i.shopId === shopId && i.status === 'approved');
-        let remainingQuantity = quantity;
-        for(let inv of userInvestments) {
-            if(remainingQuantity <= 0) break;
-            const sellQty = Math.min(inv.quantity, remainingQuantity);
-            inv.quantity -= sellQty;
-            remainingQuantity -= sellQty;
-        }
-        localStorage.setItem('ouenze_investments', JSON.stringify(investments));
-        
-        alert(`✅ Demande de vente enregistrée !\n\n${quantity} actions vendues\nMontant: ${totalAmount.toLocaleString()} FCFA\nMode de retrait: ${withdrawMethod.toUpperCase()}\n\nLes fonds seront transférés sous 48h.`);
-        
-        document.querySelector('.modal.active')?.remove();
-        showOverview();
     }
     
-    // Historique des transactions
-    function showHistory() {
-        const userTransactions = transactions.filter(t => t.investor === currentUser.email).sort((a,b) => new Date(b.date) - new Date(a.date));
-        
-        document.getElementById('appContainer').innerHTML = `
-            <div class="investments-list">
-                <div style="padding: 16px 20px; background: var(--gray-100); border-bottom: 1px solid var(--gray-200);">
-                    <strong>Historique des transactions</strong>
-                </div>
-                ${userTransactions.length > 0 ? userTransactions.map(t => `
-                    <div class="investment-item">
-                        <div class="investment-info">
-                            <h4>${t.type === 'buy' ? 'Achat' : 'Vente'} - ${escapeHtml(t.shopName)}</h4>
-                            <p>${new Date(t.date).toLocaleDateString()} | ${t.quantity} actions à ${t.pricePerShare.toLocaleString()} FCFA</p>
-                        </div>
-                        <div class="investment-value">
-                            <div class="investment-amount">${t.total.toLocaleString()} FCFA</div>
-                            <div class="investment-shares">Statut: ${t.status === 'approved' ? 'Confirmé' : 'En attente'}</div>
-                            ${t.type === 'sell' ? `<div class="investment-shares">Retrait: ${t.withdrawMethod}</div>` : ''}
-                        </div>
-                    </div>
-                `).join('') : '<div class="empty-state">Aucune transaction</div>'}
-            </div>
-        `;
-    }
-    
-    // Retrait de fonds
-    function showWithdraw() {
-        const holdings = getUserHoldings();
-        const totalValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
-        
-        document.getElementById('appContainer').innerHTML = `
-            <div class="stats-grid">
-                <div class="stat-card"><h3>Valeur totale</h3><div class="stat-value">${totalValue.toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Disponible à retirer</h3><div class="stat-value">${Math.round(totalValue * 0.8).toLocaleString()} FCFA</div><div class="stat-change">80% du portefeuille</div></div>
-            </div>
-            <div class="chart-container">
-                <h3>Retirer des fonds</h3>
-                <div class="form-group"><label>Montant à retirer (FCFA)</label><input type="number" id="withdrawAmount" placeholder="0" min="5000" max="${Math.round(totalValue * 0.8)}"></div>
-                <div class="form-group"><label>Mode de retrait</label>
-                    <select id="withdrawMethod">
-                        <option value="airtel">Airtel Money</option>
-                        <option value="mtn">MTN Mobile Money</option>
-                        <option value="paypal">PayPal</option>
-                        <option value="bank">Virement bancaire</option>
-                    </select>
-                </div>
-                <div id="withdrawPaymentFields">
-                    <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="paymentAccount" placeholder="Numéro de téléphone ou email PayPal"></div>
-                </div>
-                <button class="btn-submit" onclick="requestWithdrawal()">Demander le retrait</button>
-            </div>
-        `;
-        
-        const methodSelect = document.getElementById('withdrawMethod');
-        const paymentFields = document.getElementById('withdrawPaymentFields');
-        methodSelect.addEventListener('change', () => {
-            if(hasPaymentInfo() && (methodSelect.value === 'airtel' || methodSelect.value === 'mtn' || methodSelect.value === 'paypal')) {
-                paymentFields.innerHTML = `<div class="form-group"><label>Vos coordonnées enregistrées</label><input type="text" value="${currentUser.paymentDetails}" readonly style="background:var(--gray-100);"></div>`;
-            } else {
-                paymentFields.innerHTML = `<div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="paymentAccount" placeholder="Numéro de téléphone ou email PayPal"></div>`;
-            }
-        });
-    }
-    
-    function requestWithdrawal() {
+    function submitWithdraw(totalValue) {
         const amount = parseInt(document.getElementById('withdrawAmount').value);
         const method = document.getElementById('withdrawMethod').value;
-        let paymentAccount = document.getElementById('paymentAccount')?.value;
+        const account = document.getElementById('withdrawAccount').value;
         
-        if(!amount || amount < 5000) {
-            alert("Montant minimum: 5 000 FCFA");
-            return;
-        }
+        if (!amount || amount < 10000) { alert("Montant minimum 10 000 FCFA"); return; }
+        if (amount > totalValue) { alert("Montant supérieur au solde disponible"); return; }
+        if (!account) { alert("Veuillez entrer votre identifiant"); return; }
         
-        if(!paymentAccount && !hasPaymentInfo()) {
-            alert("Veuillez renseigner vos coordonnées de retrait");
-            return;
-        }
-        
-        const withdrawRequest = {
+        withdrawalHistory.push({
             id: Date.now(),
-            investor: currentUser.email,
-            amount: amount,
-            method: method,
-            account: paymentAccount || currentUser.paymentDetails,
+            amount, method, account,
             date: new Date().toISOString(),
             status: 'pending'
-        };
+        });
+        localStorage.setItem('ouenze_withdrawal_history', JSON.stringify(withdrawalHistory));
         
-        let withdrawRequests = JSON.parse(localStorage.getItem('ouenze_withdraw_requests') || '[]');
-        withdrawRequests.push(withdrawRequest);
-        localStorage.setItem('ouenze_withdraw_requests', JSON.stringify(withdrawRequests));
-        
-        alert(`✅ Demande de retrait enregistrée !\n\nMontant: ${amount.toLocaleString()} FCFA\nMode: ${method.toUpperCase()}\n\nLes fonds seront transférés sous 72h.`);
-        
-        showOverview();
+        alert(`✅ Demande de retrait de ${amount.toLocaleString()} FCFA enregistrée !\n\nMode: ${method.toUpperCase()}\nCompte: ${account}\n\nTraitement sous 48h maximum.`);
+        document.querySelector('.modal.active')?.remove();
     }
     
-    // Navigation
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            const tabName = tab.dataset.tab;
-            if(tabName === 'overview') showOverview();
-            else if(tabName === 'holdings') showOverview();
-            else if(tabName === 'history') showHistory();
-            else if(tabName === 'withdraw') showWithdraw();
-        });
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (currentUser) {
+            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+        } else {
+            container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button>`;
+        }
+    }
+    
+    function openLoginModal() {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `<div class="modal-card"><h3>Connexion</h3><div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div><button class="btn-primary" onclick="doLogin()">Se connecter</button><div style="text-align:center;margin-top:16px;"><a href="#" onclick="window.location.href='index.html'">Inscription</a></div></div>`;
+        document.body.appendChild(modal);
+        window.doLogin = () => {
+            const email = document.getElementById('loginEmail').value.trim();
+            if (email) { currentUser = { name: email.split('@')[0], email, type: 'investor' }; localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser)); updateHeaderUI(); modal.remove(); showPortfolioPage(); alert(`Bienvenue ${currentUser.name}`); }
+            else alert("Email requis");
+        };
+    }
+    
+    function logout() { currentUser = null; localStorage.removeItem('ouenze_current_user'); updateHeaderUI(); window.location.href = 'index.html'; }
+    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    window.showPortfolioPage = showPortfolioPage;
+    window.filterPortfolio = filterPortfolio;
+    window.showInvestmentDetail = showInvestmentDetail;
+    window.openSellFromPortfolio = openSellFromPortfolio;
+    window.submitSellFromPortfolio = submitSellFromPortfolio;
+    window.openWithdrawModal = openWithdrawModal;
+    window.submitWithdraw = submitWithdraw;
+    
+    loadPortfolioHistory();
+    
+    if (shops.length === 0) {
+        shops = [
+            { id: 1, name: "Élégance Africaine", rating: 5.0, totalRatings: 342, products: [], city: "Brazzaville", assets: [], totalSales: 1250, hasPhysicalStore: true },
+            { id: 2, name: "Tech Congo", rating: 4.8, totalRatings: 124, products: [], city: "Brazzaville", assets: [], totalSales: 342, hasPhysicalStore: false }
+        ];
+        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+    }
+    
+    if (portfolioInvestments.length === 0 && currentUser) {
+        portfolioInvestments = [
+            { id: 1, shopId: 1, shopName: "Élégance Africaine", shares: 50, amount: 250000, date: new Date().toISOString() },
+            { id: 2, shopId: 2, shopName: "Tech Congo", shares: 30, amount: 120000, date: new Date(Date.now() - 15*86400000).toISOString() }
+        ];
+        localStorage.setItem('ouenze_portfolio_investments', JSON.stringify(portfolioInvestments));
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        updateHeaderUI();
+        showPortfolioPage();
     });
-    
-    function escapeHtml(s) { return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-    
-    window.showOverview = showOverview;
-    window.showShopDetail = showShopDetail;
-    window.openSellModal = openSellModal;
-    
-    updateHeaderUI();
-    showOverview();
 </script>
 </body>
 </html>
