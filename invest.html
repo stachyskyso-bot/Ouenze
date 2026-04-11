@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -143,6 +142,33 @@
     let currentShop = null;
     let currentChart = null;
     
+    // Synchronisation des données avec portfolio.html
+    function syncPortfolioData() {
+        // Mettre à jour les avoirs (holdings) à partir des investissements approuvés
+        const approvedRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+        const approvedInvestments = approvedRequests.filter(r => r.status === 'approved' && r.type === 'buy_shares');
+        
+        approvedInvestments.forEach(req => {
+            const existingHolding = userHoldings.find(h => h.shopId === req.shopId && h.userId === currentUser?.email);
+            if (existingHolding) {
+                existingHolding.shares += req.quantity;
+                existingHolding.investedAmount += req.total;
+            } else {
+                userHoldings.push({
+                    id: Date.now(),
+                    shopId: req.shopId,
+                    shopName: req.shopName,
+                    userId: currentUser?.email,
+                    shares: req.quantity,
+                    investedAmount: req.total,
+                    buyPrice: req.pricePerShare,
+                    date: req.date
+                });
+            }
+        });
+        localStorage.setItem('ouenze_holdings', JSON.stringify(userHoldings));
+    }
+    
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
@@ -170,6 +196,7 @@
                 localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
                 updateHeaderUI();
                 modal.remove();
+                syncPortfolioData();
                 showInvestPage();
                 alert(`Bienvenue ${currentUser.name}`);
             } else alert("Email requis");
@@ -181,6 +208,20 @@
         localStorage.removeItem('ouenze_current_user');
         updateHeaderUI();
         showInvestPage();
+    }
+    
+    // Calcul cohérent de la valorisation
+    function calculateValuation(shop) {
+        const baseValue = 1000000;
+        const productValue = (shop.products?.length || 0) * 50000;
+        const ratingBonus = (shop.rating || 0) * 150000;
+        const salesBonus = (shop.totalSales || 0) * 1000;
+        const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+        return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
+    }
+    
+    function calculateSharePrice(valuation) {
+        return Math.round(valuation / 1000);
     }
     
     function getShopLevel(shop) {
@@ -201,19 +242,7 @@
         return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, minInvestment: 0, maxInvestment: 0, color: '#64748b', bg: '#f1f5f9' };
     }
     
-    function calculateValuation(shop) {
-        const baseValue = 1000000;
-        const productValue = (shop.products?.length || 0) * 50000;
-        const ratingBonus = (shop.rating || 0) * 150000;
-        const salesBonus = (shop.totalSales || 0) * 1000;
-        const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-        return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
-    }
-    
-    function calculateSharePrice(valuation) {
-        return Math.round(valuation / 1000);
-    }
-    
+    // Génération d'historique cohérente pour les graphiques
     function generatePriceHistory(shopId, valuation) {
         const history = [];
         let currentPrice = valuation / 1000;
@@ -294,11 +323,10 @@
                         <div class="shop-price">${valuation.toLocaleString()} FCFA</div>
                         <div class="shop-level"><span class="level-badge level-${level.level}"><i class="fas fa-crown"></i> ${level.name}</span></div>
                         <div style="font-size:11px; margin-top:6px;">💰 Commission: ${level.ouenzeFee}%</div>
-                        <div style="font-size:10px;">✨ Bonus vendeur: +${level.vendorBonus}%</div>
                     </div>
                     <div class="shop-stats">
                         <span><i class="fas fa-box"></i> ${shop.products?.length || 0} produits</span>
-                        <span class="trend-up"><i class="fas fa-arrow-up"></i> ${(Math.random() * 10).toFixed(1)}%</span>
+                        <span class="trend-up"><i class="fas fa-arrow-up"></i> ${((Math.random() * 10) + 5).toFixed(1)}%</span>
                     </div>
                 </div>
             `;
@@ -317,74 +345,76 @@
         showInvestPage();
     }
     
-    // ============ MES ACTIVITÉS (boutiques où j'ai déjà eu des activités) ============
+    // ============ MES ACTIVITÉS ============
     function showActivitiesPage() {
         document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.tab === 'activities');
         });
         
-        // Récupérer les boutiques où l'utilisateur a eu des activités
+        syncPortfolioData();
+        
         const userInvestments = investments.filter(i => i.investor === currentUser?.email);
         const userOrders = orders.filter(o => o.userId === currentUser?.email);
+        const userHoldingsList = userHoldings.filter(h => h.userId === currentUser?.email);
         
-        // Collecter les IDs des boutiques concernées
         const investedShopIds = [...new Set(userInvestments.map(i => i.shopId))];
         const orderedShopIds = [...new Set(userOrders.flatMap(o => o.items.map(i => i.shopId)))];
-        const allActivityShopIds = [...new Set([...investedShopIds, ...orderedShopIds])];
+        const holdingShopIds = [...new Set(userHoldingsList.map(h => h.shopId))];
+        const allActivityShopIds = [...new Set([...investedShopIds, ...orderedShopIds, ...holdingShopIds])];
         
         const activityShops = shops.filter(s => allActivityShopIds.includes(s.id));
         
-        // Créer les activités
-        const activities = [];
-        
-        activityShops.forEach(shop => {
+        const activities = activityShops.map(shop => {
             const shopInvestments = userInvestments.filter(i => i.shopId === shop.id);
             const shopOrders = userOrders.filter(o => o.items.some(i => i.shopId === shop.id));
+            const shopHoldings = userHoldingsList.filter(h => h.shopId === shop.id);
             const totalOrders = shopOrders.length;
             const totalSpent = shopOrders.reduce((sum, o) => sum + o.total, 0);
             const totalInvested = shopInvestments.reduce((sum, i) => sum + i.amount, 0);
+            const currentShares = shopHoldings.reduce((sum, h) => sum + h.shares, 0);
+            const valuation = calculateValuation(shop);
+            const currentValue = currentShares * (valuation / 1000);
             
-            activities.push({
+            return {
                 shopId: shop.id,
                 shopName: shop.name,
                 shopLogo: shop.logo,
                 rating: shop.rating,
-                totalOrders: totalOrders,
-                totalSpent: totalSpent,
-                totalInvested: totalInvested,
-                lastActivity: [...shopOrders, ...shopInvestments].sort((a,b) => new Date(b.date) - new Date(a.date))[0]?.date,
-                hasActiveInvestment: shopInvestments.some(i => i.status === 'approved' && i.quantity > 0)
-            });
+                totalOrders, totalSpent, totalInvested, currentShares, currentValue,
+                hasActiveInvestment: currentShares > 0,
+                lastActivity: [...shopOrders, ...shopInvestments, ...shopHoldings].sort((a,b) => new Date(b.date) - new Date(a.date))[0]?.date
+            };
         });
         
         document.getElementById('appContainer').innerHTML = `
-            <div class="stats-grid">
-                <div class="stat-card"><h3>Boutiques visitées</h3><div class="stat-value">${activities.length}</div></div>
-                <div class="stat-card"><h3>Commandes passées</h3><div class="stat-value">${activities.reduce((s,a)=>s+a.totalOrders,0)}</div></div>
-                <div class="stat-card"><h3>Montant dépensé</h3><div class="stat-value">${activities.reduce((s,a)=>s+a.totalSpent,0).toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Capital investi</h3><div class="stat-value">${activities.reduce((s,a)=>s+a.totalInvested,0).toLocaleString()} FCFA</div></div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; margin-bottom:32px;">
+                <div class="stat-card" style="background:white; border-radius:20px; padding:20px; border:1px solid var(--gray-200);"><h3>Boutiques visitées</h3><div class="stat-value" style="font-size:28px; font-weight:700;">${activities.length}</div></div>
+                <div class="stat-card" style="background:white; border-radius:20px; padding:20px; border:1px solid var(--gray-200);"><h3>Commandes passées</h3><div class="stat-value" style="font-size:28px; font-weight:700;">${activities.reduce((s,a)=>s+a.totalOrders,0)}</div></div>
+                <div class="stat-card" style="background:white; border-radius:20px; padding:20px; border:1px solid var(--gray-200);"><h3>Dépenses totales</h3><div class="stat-value" style="font-size:28px; font-weight:700;">${activities.reduce((s,a)=>s+a.totalSpent,0).toLocaleString()} FCFA</div></div>
+                <div class="stat-card" style="background:white; border-radius:20px; padding:20px; border:1px solid var(--gray-200);"><h3>Capital investi</h3><div class="stat-value" style="font-size:28px; font-weight:700;">${activities.reduce((s,a)=>s+a.totalInvested,0).toLocaleString()} FCFA</div></div>
             </div>
             
-            <div class="investments-list" style="background:white; border-radius:20px; border:1px solid var(--gray-200); overflow:hidden;">
+            <div style="background:white; border-radius:20px; border:1px solid var(--gray-200); overflow:hidden;">
                 <div style="padding: 16px 20px; background: var(--gray-100); border-bottom: 1px solid var(--gray-200);">
                     <strong>Mes activités</strong>
                 </div>
                 ${activities.length > 0 ? activities.map(a => `
-                    <div class="activity-item">
+                    <div class="activity-item" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--gray-200);">
                         <div class="activity-info">
-                            <h4>${escapeHtml(a.shopName)}</h4>
+                            <h4 style="font-size:16px; font-weight:600;">${escapeHtml(a.shopName)}</h4>
                             <p>${'⭐'.repeat(Math.floor(a.rating || 0))} ${a.rating || 0}/5</p>
                             <p style="font-size:11px; margin-top:4px;">
                                 ${a.totalOrders > 0 ? `${a.totalOrders} commande(s) - ${a.totalSpent.toLocaleString()} FCFA` : ''}
                                 ${a.totalInvested > 0 ? ` | Investi: ${a.totalInvested.toLocaleString()} FCFA` : ''}
+                                ${a.currentShares > 0 ? ` | Actions: ${a.currentShares} (${a.currentValue.toLocaleString()} FCFA)` : ''}
                             </p>
                         </div>
-                        <div class="activity-status ${a.hasActiveInvestment ? 'status-active' : (a.totalOrders > 0 ? 'status-completed' : 'status-pending')}">
+                        <div class="activity-status ${a.hasActiveInvestment ? 'status-active' : (a.totalOrders > 0 ? 'status-completed' : 'status-pending')}" style="font-size:12px; padding:4px 12px; border-radius:20px;">
                             ${a.hasActiveInvestment ? 'Investissement actif' : (a.totalOrders > 0 ? 'Commandes passées' : 'Activité récente')}
                         </div>
-                        <button class="btn-sm btn-outline" style="margin-left:12px;" onclick="showShopDetail(${a.shopId})">Voir la boutique</button>
+                        <button class="btn-sm btn-outline" style="margin-left:12px; padding:6px 12px; border-radius:8px; background:var(--gray-100); border:1px solid var(--gray-200); cursor:pointer;" onclick="showShopDetail(${a.shopId})">Voir la boutique</button>
                     </div>
-                `).join('') : '<div class="empty-state" style="text-align:center;padding:60px;">Aucune activité pour le moment</div>'}
+                `).join('') : '<div style="text-align:center;padding:60px;">Aucune activité pour le moment</div>'}
             </div>
         `;
     }
@@ -400,7 +430,6 @@
         const userHolding = userHoldings.find(h => h.shopId === shopId && h.userId === currentUser?.email);
         const annualRevenue = (shop.monthlyRevenue || valuation * 0.1) * 12;
         
-        // Vérifier les investissements existants
         const userInvestments = investments.filter(i => i.investor === currentUser?.email && i.shopId === shopId);
         const totalInvested = userInvestments.reduce((s,i)=>s+i.amount,0);
         const totalShares = userInvestments.reduce((s,i)=>s+i.quantity,0);
@@ -458,7 +487,7 @@
                         <tbody>
                             ${(shop.assets || []).map(a => `<tr><td>Actif</td><td>${escapeHtml(a.name)}</td><td>${a.value.toLocaleString()} FCFA</td></tr>`).join('')}
                             ${(shop.liabilities || []).map(l => `<tr><td>Passif</td><td>${escapeHtml(l.name)}</td><td>${l.value.toLocaleString()} FCFA</td></tr>`).join('')}
-                            ${(!shop.assets || shop.assets.length === 0) && (!shop.liabilities || shop.liabilities.length === 0) ? '<tr><td colspan="3">Aucune donnée disponible</td>' : ''}
+                            ${(!shop.assets || shop.assets.length === 0) && (!shop.liabilities || shop.liabilities.length === 0) ? '<tr><td colspan="3">Aucune donnée disponible</td></tr>' : ''}
                         </tbody>
                     </table>
                 </div>
@@ -470,7 +499,7 @@
                     <button class="btn-success" onclick="openAcquisitionModal(${shop.id}, ${valuation})">Acquérir la boutique</button>
                     <button class="btn-outline" onclick="window.location.href='index.html?id=${shop.id}'">Voir la boutique</button>
                 </div>
-                ` : `<div class="info-box" style="background:var(--gray-100);padding:16px;border-radius:12px;text-align:center;">Connectez-vous pour investir dans cette boutique</div>`}
+                ` : `<div style="background:var(--gray-100);padding:16px;border-radius:12px;text-align:center;">Connectez-vous pour investir dans cette boutique</div>`}
             </div>
         `;
         
@@ -631,6 +660,9 @@
         requests.push(request);
         localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
         
+        // Mettre à jour les holdings pour le portefeuille
+        syncPortfolioData();
+        
         alert(`✅ Demande d'investissement envoyée !\n\nMontant: ${total.toLocaleString()} FCFA\nBoutique: ${request.shopName}\n\nUn email a été envoyé à notre équipe pour vérification.`);
         document.querySelector('.modal')?.remove();
         showShopDetail(shopId);
@@ -766,12 +798,14 @@
     
     if (shops.length === 0) {
         shops = [
-            { id: 1, name: "Élégance Africaine", rating: 5.0, totalRatings: 342, products: [], city: "Brazzaville", quartier: "Moungali", monthlyRevenue: 950000, growthRate: 18, hasPhysicalStore: true, assets: [{ name: "Boutique physique", value: 2500000 }], liabilities: [] },
-            { id: 2, name: "Tech Congo", rating: 4.8, totalRatings: 124, products: [], city: "Brazzaville", quartier: "Centre-ville", monthlyRevenue: 450000, growthRate: 15, hasPhysicalStore: false, assets: [{ name: "Matériel informatique", value: 850000 }], liabilities: [] },
-            { id: 3, name: "Saveurs du Congo", rating: 4.2, totalRatings: 203, products: [], city: "Pointe-Noire", quartier: "Centre", monthlyRevenue: 380000, growthRate: 12, hasPhysicalStore: true, assets: [{ name: "Équipement cuisine", value: 600000 }], liabilities: [] }
+            { id: 1, name: "Élégance Africaine", rating: 5.0, totalRatings: 342, products: [], city: "Brazzaville", quartier: "Moungali", monthlyRevenue: 950000, growthRate: 18, hasPhysicalStore: true, assets: [{ name: "Boutique physique", value: 2500000 }], liabilities: [], totalSales: 1250 },
+            { id: 2, name: "Tech Congo", rating: 4.8, totalRatings: 124, products: [], city: "Brazzaville", quartier: "Centre-ville", monthlyRevenue: 450000, growthRate: 15, hasPhysicalStore: false, assets: [{ name: "Matériel informatique", value: 850000 }], liabilities: [], totalSales: 342 },
+            { id: 3, name: "Saveurs du Congo", rating: 4.2, totalRatings: 203, products: [], city: "Pointe-Noire", quartier: "Centre", monthlyRevenue: 380000, growthRate: 12, hasPhysicalStore: true, assets: [{ name: "Équipement cuisine", value: 600000 }], liabilities: [], totalSales: 567 }
         ];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
     }
+    
+    syncPortfolioData();
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
