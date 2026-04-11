@@ -9,44 +9,43 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; }
+        body { font-family: 'Inter', sans-serif; background: #0a0e17; color: #e2e8f0; }
         :root { 
-            --primary: #1e40af; 
-            --primary-dark: #1e3a8a; 
-            --primary-light: #3b82f6; 
-            --success: #10b981; 
+            --primary: #3b82f6; 
+            --primary-dark: #2563eb; 
+            --success: #22c55e; 
             --danger: #ef4444; 
             --warning: #f59e0b; 
             --gold: #f59e0b;
             --silver: #94a3b8;
             --bronze: #b45309;
             --white: #ffffff; 
-            --gray-50: #f8fafc;
-            --gray-100: #f1f5f9; 
-            --gray-200: #e2e8f0; 
-            --gray-500: #64748b; 
-            --gray-700: #334155; 
-            --gray-900: #0f172a;
+            --gray-100: #1e2430;
+            --gray-200: #2a3140;
+            --gray-500: #6b7280;
+            --gray-700: #9ca3af;
+            --gray-900: #f1f5f9;
+            --card-bg: #111827;
         }
         
-        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-        .logo h1 { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; }
-        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; transition: all 0.2s; }
-        .user-menu:hover { background: var(--gray-200); }
+        .header { background: var(--card-bg); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-200); padding: 6px 16px; border-radius: 40px; cursor: pointer; transition: all 0.2s; }
+        .user-menu:hover { background: var(--gray-100); }
         .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
         .container { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
-        .stat-card { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); transition: all 0.2s; }
-        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .stat-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); transition: all 0.2s; }
+        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .stat-card h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .stat-value { font-size: 28px; font-weight: 700; color: white; }
         
         .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-dark); }
-        .btn-outline { background: var(--gray-100); border: 1px solid var(--gray-200); color: var(--gray-700); }
-        .btn-outline:hover { background: var(--gray-200); }
+        .btn-outline { background: var(--gray-200); border: 1px solid var(--gray-200); color: var(--gray-700); }
+        .btn-outline:hover { background: var(--gray-100); }
         .btn-warning { background: var(--warning); color: white; }
         .btn-warning:hover { background: #e67e22; }
         .btn-success { background: var(--success); color: white; }
@@ -59,30 +58,30 @@
         .level-silver { background: #f1f5f9; color: #334155; }
         .level-bronze { background: #ffedd5; color: #9a3412; }
         
-        .shop-card { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; transition: all 0.2s; }
-        .shop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
-        .shop-header { padding: 20px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .shop-card { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--gray-200); margin-bottom: 24px; overflow: hidden; transition: all 0.2s; }
+        .shop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .shop-header { padding: 20px; background: var(--gray-100); border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
         .shop-info { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .shop-logo { width: 50px; height: 50px; border-radius: 12px; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); overflow: hidden; }
+        .shop-logo { width: 50px; height: 50px; border-radius: 12px; background: var(--card-bg); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); overflow: hidden; }
         .shop-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .shop-info h3 { font-size: 18px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+        .shop-info h3 { font-size: 18px; font-weight: 700; color: white; margin-bottom: 4px; }
         .shop-rating { font-size: 12px; color: var(--gray-500); }
         .shop-rating i { color: #f59e0b; }
         .shop-body { padding: 20px; }
         
         .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .metric-card { background: var(--gray-50); border-radius: 12px; padding: 12px; text-align: center; }
+        .metric-card { background: var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; }
         .metric-value { font-size: 20px; font-weight: 700; color: var(--primary); }
         .metric-label { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
         
         .product-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
-        .product-name { font-weight: 500; }
+        .product-name { font-weight: 500; color: var(--gray-700); }
         .product-price { font-weight: 600; color: var(--primary); }
         .product-stock { font-size: 12px; color: var(--gray-500); }
         
-        .assets-section { background: var(--gray-50); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+        .assets-section { background: var(--gray-200); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
         .assets-section h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--gray-700); }
-        .asset-item, .liability-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--gray-200); }
+        .asset-item, .liability-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
         
         .share-section { margin: 16px 0; }
         .share-section strong { font-size: 13px; font-weight: 600; color: var(--gray-700); }
@@ -99,12 +98,12 @@
         
         .shop-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
         
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+        .modal-card { background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--gray-200); }
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-500); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; color: white; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
         .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 40px; border: none; width: 100%; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .btn-submit:hover { background: var(--primary-dark); }
@@ -236,15 +235,15 @@
                         datasets: [{ 
                             label: 'CA (FCFA)', 
                             data: monthlyData, 
-                            borderColor: '#1e40af', 
-                            backgroundColor: 'rgba(30,64,175,0.05)',
+                            borderColor: '#3b82f6', 
+                            backgroundColor: 'rgba(59,130,246,0.1)',
                             fill: true, 
                             tension: 0.3,
                             pointRadius: 3,
-                            pointBackgroundColor: '#1e40af'
+                            pointBackgroundColor: '#3b82f6'
                         }] 
                     },
-                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } } }
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top', labels: { color: '#9ca3af', font: { size: 10 } } } } }
                 });
             }
         });
@@ -290,7 +289,7 @@
                         <div class="metric-card"><div class="metric-value">${revenue.toLocaleString()} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
                     </div>
                     
-                    <div class="info-box" style="background:var(--gray-50); padding:12px; border-radius:12px; margin-bottom:16px;">
+                    <div class="info-box" style="background:var(--gray-200); padding:12px; border-radius:12px; margin-bottom:16px;">
                         <strong><i class="fas fa-chart-line"></i> Indicateurs de niveau</strong><br>
                         <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px;">
                             <span>📊 CA annuel: ${annualRevenue.toLocaleString()} FCFA</span>
@@ -368,7 +367,7 @@
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Gestion des actifs - ${escapeHtml(shop.name)}</h3>
                 <div id="assetsList">${(shop.assets || []).map((a, i) => `
-                    <div class="asset-item" style="background:var(--gray-100);padding:10px;border-radius:8px;margin-bottom:8px;">
+                    <div class="asset-item" style="background:var(--gray-200);padding:10px;border-radius:8px;margin-bottom:8px;">
                         <span><strong>${escapeHtml(a.name)}</strong> - ${a.value.toLocaleString()} FCFA</span>
                         <button onclick="removeAsset(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>
                     </div>
@@ -408,7 +407,7 @@
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Gestion des passifs - ${escapeHtml(shop.name)}</h3>
                 <div id="liabilitiesList">${(shop.liabilities || []).map((l, i) => `
-                    <div class="asset-item" style="background:var(--gray-100);padding:10px;border-radius:8px;margin-bottom:8px;">
+                    <div class="asset-item" style="background:var(--gray-200);padding:10px;border-radius:8px;margin-bottom:8px;">
                         <span><strong>${escapeHtml(l.name)}</strong> - ${l.value.toLocaleString()} FCFA</span>
                         <button onclick="removeLiability(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>
                     </div>
@@ -579,13 +578,13 @@
         modal.innerHTML = `
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
-                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-bottom:16px;">
                     <strong>${escapeHtml(shop.name)}</strong><br>
                     Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
                 </div>
                 <div class="form-group">
                     <label>Action à effectuer</label>
-                    <select id="sellAction" style="width:100%;padding:10px; border:1px solid var(--gray-200); border-radius:10px;">
+                    <select id="sellAction" style="width:100%;padding:10px; background:var(--gray-200); border:1px solid var(--gray-200); border-radius:10px; color:white;">
                         <option value="transfer">Affecter la boutique à un nouvel acheteur</option>
                         <option value="delete">Supprimer définitivement la boutique</option>
                     </select>
@@ -670,7 +669,7 @@
         modal.innerHTML = `
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Proposer à l'investissement</h3>
-                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
+                <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-bottom:16px;">
                     Boutique: ${escapeHtml(shop.name)}<br>
                     Note actuelle: ${shop.rating}/5<br>
                     Valorisation estimée: ${calculateValuation(shop).toLocaleString()} FCFA
@@ -725,7 +724,7 @@
             <div class="modal-card">
                 <h3 style="margin-bottom: 20px;">Demandes d'investissement</h3>
                 ${relevantRequests.map(r => `
-                    <div style="background:var(--gray-100);padding:16px;border-radius:12px;margin-bottom:16px;">
+                    <div style="background:var(--gray-200);padding:16px;border-radius:12px;margin-bottom:16px;">
                         <strong>${r.type === 'buy_shares' ? 'Achat d\'actions' : r.type === 'sell_shares' ? 'Vente d\'actions' : 'Acquisition'}</strong><br>
                         Investisseur: ${escapeHtml(r.investorName)}<br>
                         ${r.type === 'buy_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` : 
@@ -776,7 +775,7 @@
             <div class="modal-card" style="max-width:700px;">
                 <h3 style="margin-bottom: 20px;">Statistiques - ${escapeHtml(shop.name)}</h3>
                 <div style="height: 250px;"><canvas id="statsChart"></canvas></div>
-                <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-top:16px;">
+                <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-top:16px;">
                     <strong>Chiffre d'affaires total:</strong> ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>
                     <strong>Commandes:</strong> ${shopOrders.length}<br>
                     <strong>Note moyenne:</strong> ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)
@@ -793,13 +792,13 @@
                     datasets: [{ 
                         label: 'CA (FCFA)', 
                         data: monthlyData, 
-                        borderColor: '#1e40af',
-                        backgroundColor: 'rgba(30,64,175,0.05)',
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
                         fill: true, 
                         tension: 0.3 
                     }] 
                 }, 
-                options: { responsive: true, maintainAspectRatio: true } 
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#9ca3af' } } } }
             });
         }, 100);
     }
