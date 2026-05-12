@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ouenze | Devenir livreur</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 22px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .container { max-width: 600px; margin: 32px auto; padding: 0 20px; }
+        .register-card { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); padding: 32px; }
+        .register-header { text-align: center; margin-bottom: 28px; }
+        .register-header h2 { font-size: 24px; margin-bottom: 8px; }
+        .register-header p { color: var(--gray-500); font-size: 13px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: 12px; font-size: 14px; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .file-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; background: var(--gray-100); margin-top: 8px; }
+        .file-preview { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .file-preview-item { position: relative; width: 80px; height: 80px; background: var(--white); border-radius: 8px; border: 1px solid var(--gray-200); overflow: hidden; }
+        .file-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .remove-file { position: absolute; top: 2px; right: 2px; background: var(--danger); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-submit:hover { background: var(--primary-dark); }
+        .step-indicator { display: flex; gap: 8px; margin-bottom: 24px; justify-content: center; }
+        .step { width: 12px; height: 12px; border-radius: 50%; background: var(--gray-200); transition: 0.2s; }
+        .step.active { background: var(--primary); width: 30px; border-radius: 20px; }
+        .step.completed { background: var(--success); }
+        .info-text { font-size: 12px; color: var(--gray-500); margin-top: 4px; text-align: center; }
+        .footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .container { padding: 0 16px; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
+    <div><button onclick="window.location.href='index.html'" style="background:none;border:none;color:var(--primary);cursor:pointer;"><i class="fas fa-arrow-left"></i> Retour</button></div>
+</div>
+
+<div class="container">
+    <div class="register-card">
+        <div class="register-header">
+            <h2>Devenir livreur partenaire</h2>
+            <p>Rejoignez notre réseau de livraison et gagnez de l'argent</p>
+        </div>
+        
+        <div class="step-indicator" id="stepIndicator">
+            <div class="step active"></div>
+            <div class="step"></div>
+            <div class="step"></div>
+        </div>
+        
+        <div id="stepContent"></div>
+    </div>
+</div>
+
+<div class="footer">
+    <p>© 2024 Ouenze - Programme livreur partenaire</p>
+</div>
+
+<script>
+    let currentStep = 1;
+    let tempData = {};
+    let generatedCode = "";
+    let uploadedFiles = { photo: null, idCard: null, transport: null };
+    
+    function renderStep() {
+        const container = document.getElementById('stepContent');
+        if (currentStep === 1) {
+            container.innerHTML = `
+                <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
+                <div class="form-group"><label>Numéro de téléphone *</label><input type="tel" id="phone" placeholder="+242 06 XX XX XX"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Ville *</label><input type="text" id="city" placeholder="Brazzaville"></div>
+                    <div class="form-group"><label>Quartier *</label><input type="text" id="quartier" placeholder="Votre quartier"></div>
+                </div>
+                <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Mot de passe *</label><input type="password" id="password" placeholder="••••••••"></div>
+                    <div class="form-group"><label>Confirmer *</label><input type="password" id="confirmPassword" placeholder="••••••••"></div>
+                </div>
+                <button class="btn-submit" onclick="validateStep1()">Continuer</button>
+            `;
+        } else if (currentStep === 2) {
+            container.innerHTML = `
+                <div class="form-group"><label>Photo de profil</label>
+                    <div class="file-upload" onclick="document.getElementById('profilePhoto').click()">
+                        <i class="fas fa-camera"></i> Cliquez pour ajouter votre photo
+                    </div>
+                    <input type="file" id="profilePhoto" accept="image/*" style="display:none;" onchange="previewFile(this, 'profile')">
+                    <div id="profilePreview" class="file-preview"></div>
+                </div>
+                <div class="form-group"><label>Photo de la pièce d'identité (CNI/Passeport)</label>
+                    <div class="file-upload" onclick="document.getElementById('idPhoto').click()">
+                        <i class="fas fa-id-card"></i> Cliquez pour ajouter votre pièce d'identité
+                    </div>
+                    <input type="file" id="idPhoto" accept="image/*" style="display:none;" onchange="previewFile(this, 'id')">
+                    <div id="idPreview" class="file-preview"></div>
+                </div>
+                <div class="form-group"><label>Photo du moyen de transport</label>
+                    <div class="file-upload" onclick="document.getElementById('transportPhoto').click()">
+                        <i class="fas fa-motorcycle"></i> Cliquez pour ajouter la photo de votre véhicule
+                    </div>
+                    <input type="file" id="transportPhoto" accept="image/*" style="display:none;" onchange="previewFile(this, 'transport')">
+                    <div id="transportPreview" class="file-preview"></div>
+                </div>
+                <div class="button-group" style="display:flex; gap:12px; margin-top:16px;">
+                    <button class="btn-submit" onclick="prevStep()" style="background:var(--gray-200);color:var(--gray-700);">Retour</button>
+                    <button class="btn-submit" onclick="validateStep2()">Continuer</button>
+                </div>
+            `;
+        } else if (currentStep === 3) {
+            container.innerHTML = `
+                <div class="form-group"><label>Code de vérification</label>
+                    <input type="text" id="verifCode" placeholder="123456">
+                    <div class="info-text">Un code a été envoyé à ${tempData.email || 'votre email'}</div>
+                </div>
+                <div class="button-group" style="display:flex; gap:12px; margin-top:16px;">
+                    <button class="btn-submit" onclick="prevStep()" style="background:var(--gray-200);color:var(--gray-700);">Retour</button>
+                    <button class="btn-submit" onclick="finalizeRegistration()">Soumettre ma candidature</button>
+                </div>
+                <div class="info-text" style="margin-top:16px;">* Votre compte sera en attente de validation par notre équipe</div>
+            `;
+        }
+        
+        document.querySelectorAll('.step').forEach((el, idx) => {
+            el.classList.remove('active', 'completed');
+            if (idx + 1 === currentStep) el.classList.add('active');
+            else if (idx + 1 < currentStep) el.classList.add('completed');
+        });
+    }
+    
+    function previewFile(input, type) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById(`${type}Preview`);
+                preview.innerHTML = `<div class="file-preview-item"><img src="${e.target.result}"><div class="remove-file" onclick="removeFile('${type}')">✕</div></div>`;
+                uploadedFiles[type === 'profile' ? 'photo' : type === 'id' ? 'idCard' : 'transport'] = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    function removeFile(type) {
+        uploadedFiles[type === 'profile' ? 'photo' : type === 'id' ? 'idCard' : 'transport'] = null;
+        document.getElementById(`${type === 'profile' ? 'profile' : type === 'id' ? 'id' : 'transport'}Preview`).innerHTML = '';
+    }
+    
+    function validateStep1() {
+        const fullName = document.getElementById('fullName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const city = document.getElementById('city').value.trim();
+        const quartier = document.getElementById('quartier').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        
+        if (!fullName || !phone || !city || !quartier || !email || !password) {
+            alert("Veuillez remplir tous les champs obligatoires");
+            return;
+        }
+        if (password !== confirm) {
+            alert("Les mots de passe ne correspondent pas");
+            return;
+        }
+        if (password.length < 4) {
+            alert("Mot de passe trop court (minimum 4 caractères)");
+            return;
+        }
+        
+        tempData = { fullName, phone, city, quartier, email, password };
+        generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        console.log(`📧 Email envoyé à ${email}: Votre code de vérification est ${generatedCode}`);
+        alert(`Code de vérification: ${generatedCode} (simulation envoyée par email)`);
+        
+        currentStep = 2;
+        renderStep();
+    }
+    
+    function validateStep2() {
+        if (!uploadedFiles.photo) {
+            alert("Veuillez ajouter votre photo de profil");
+            return;
+        }
+        if (!uploadedFiles.idCard) {
+            alert("Veuillez ajouter votre pièce d'identité");
+            return;
+        }
+        if (!uploadedFiles.transport) {
+            alert("Veuillez ajouter la photo de votre moyen de transport");
+            return;
+        }
+        currentStep = 3;
+        renderStep();
+    }
+    
+    function prevStep() {
+        currentStep--;
+        renderStep();
+    }
+    
+    function finalizeRegistration() {
+        const code = document.getElementById('verifCode').value;
+        if (code !== generatedCode) {
+            alert("Code de vérification incorrect");
+            return;
+        }
+        
+        // Récupérer la liste des demandes livreurs existantes
+        let deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
+        
+        const newRequest = {
+            id: Date.now(),
+            fullName: tempData.fullName,
+            phone: tempData.phone,
+            city: tempData.city,
+            quartier: tempData.quartier,
+            email: tempData.email,
+            password: tempData.password,
+            photo: uploadedFiles.photo,
+            idCard: uploadedFiles.idCard,
+            transport: uploadedFiles.transport,
+            status: 'pending',
+            date: new Date().toISOString(),
+            earnings: 0,
+            deliveries: 0,
+            rating: 0,
+            reviews: []
+        };
+        
+        deliveryRequests.push(newRequest);
+        localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
+        
+        alert(`✅ Votre candidature a été envoyée avec succès !\n\nUn email de confirmation a été envoyé à ${tempData.email}\n\nNotre équipe examinera votre dossier et vous serez notifié dès que votre compte sera activé.\n\nDélai de traitement: 24 à 48h.`);
+        
+        window.location.href = 'index.html';
+    }
+    
+    renderStep();
+</script>
+</body>
+</html>
