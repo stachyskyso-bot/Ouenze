@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ouenze | Espace livreur</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 22px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .user-menu { display: flex; align-items: center; gap: 12px; background: var(--gray-100); padding: 6px 16px; border-radius: 40px; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .nav-tabs { display: flex; gap: 4px; background: var(--white); padding: 8px 24px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
+        .nav-tab { padding: 8px 20px; background: none; border: none; border-radius: 30px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; color: var(--gray-500); }
+        .nav-tab.active { background: var(--primary); color: white; }
+        
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .stat-card { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); }
+        .stat-card h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-700); }
+        
+        .status-toggle { background: var(--gray-100); border-radius: 40px; padding: 4px; display: inline-flex; margin-bottom: 20px; }
+        .status-btn { padding: 8px 24px; border-radius: 40px; cursor: pointer; border: none; font-weight: 500; transition: 0.2s; }
+        .status-btn.active { background: var(--success); color: white; }
+        .status-btn.inactive { background: var(--gray-200); color: var(--gray-500); }
+        
+        .orders-list { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
+        .order-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; }
+        .order-item:hover { background: var(--gray-100); }
+        .order-info h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .order-info p { font-size: 12px; color: var(--gray-500); }
+        .delivery-fee { font-weight: 700; color: var(--primary); }
+        .btn-accept { padding: 6px 16px; background: var(--success); color: white; border: none; border-radius: 30px; cursor: pointer; font-size: 12px; }
+        .delivery-status { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; display: inline-block; }
+        .status-pending { background: #fed7aa; color: #b45309; }
+        .status-accepted { background: #dbeafe; color: #1e40af; }
+        .status-delivering { background: #fef3c7; color: #d97706; }
+        .status-completed { background: #d1fae5; color: #059669; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 10px; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 40px; cursor: pointer; width: 100%; font-weight: 600; }
+        .btn-success { background: var(--success); }
+        
+        .footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }
+        @media (max-width: 700px) { .order-item { flex-direction: column; text-align: center; gap: 12px; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
+    <div class="user-menu" id="userMenu">
+        <div class="user-avatar" id="userAvatar">L</div>
+        <div><span id="userName">Livreur</span><br><small>Espace livreur</small></div>
+        <i class="fas fa-arrow-right" style="color: var(--gray-500);"></i>
+    </div>
+</div>
+
+<div class="nav-tabs">
+    <button class="nav-tab active" data-tab="available">Livraisons disponibles</button>
+    <button class="nav-tab" data-tab="active">Mes livraisons</button>
+    <button class="nav-tab" data-tab="history">Historique</button>
+    <button class="nav-tab" data-tab="profile">Mon profil</button>
+</div>
+
+<div class="container" id="appContainer"></div>
+
+<div class="footer">
+    <p>© 2024 Ouenze - Programme livreur partenaire</p>
+</div>
+
+<script>
+    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    let deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
+    let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    let deliveries = JSON.parse(localStorage.getItem('ouenze_deliveries') || '[]');
+    let currentTab = 'available';
+    let isOnline = true;
+    
+    // Vérifier si l'utilisateur est un livreur validé
+    let currentDeliveryUser = null;
+    if (currentUser && currentUser.type === 'livreur') {
+        currentDeliveryUser = deliveryRequests.find(d => d.email === currentUser.email && d.status === 'approved');
+        if (!currentDeliveryUser) {
+            alert("Votre compte livreur n'est pas encore activé. Veuillez attendre la validation.");
+            window.location.href = 'index.html';
+        }
+    } else {
+        // Si ce n'est pas un livreur, rediriger
+        window.location.href = 'index.html';
+    }
+    
+    document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
+    document.getElementById('userName').innerText = currentUser.name;
+    
+    function calculateDeliveryFee(shopId, totalAmount) {
+        const baseFee = 1500;
+        const percentageFee = totalAmount * 0.05;
+        return Math.max(baseFee, Math.min(percentageFee, 5000));
+    }
+    
+    function getAvailableDeliveries() {
+        // Commandes en attente de livraison
+        const pendingOrders = orders.filter(o => o.status === 'confirmée' && !o.deliveryId);
+        return pendingOrders.map(order => {
+            const shop = shops.find(s => s.id === order.items[0]?.shopId);
+            const deliveryFee = calculateDeliveryFee(shop?.id, order.total);
+            return { ...order, deliveryFee, shop };
+        });
+    }
+    
+    function getMyDeliveries() {
+        return deliveries.filter(d => d.deliveryUserId === currentUser.email && d.status !== 'completed');
+    }
+    
+    function getDeliveryHistory() {
+        return deliveries.filter(d => d.deliveryUserId === currentUser.email && d.status === 'completed');
+    }
+    
+    function renderPage() {
+        if (currentTab === 'available') {
+            const availableDeliveries = getAvailableDeliveries();
+            document.getElementById('appContainer').innerHTML = `
+                <div class="status-toggle">
+                    <button class="status-btn ${isOnline ? 'active' : ''}" onclick="setStatus(true)">En ligne</button>
+                    <button class="status-btn ${!isOnline ? 'active' : ''}" onclick="setStatus(false)">Hors ligne</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>Gains totaux</h3><div class="stat-value">${currentDeliveryUser?.earnings?.toLocaleString() || 0} FCFA</div></div>
+                    <div class="stat-card"><h3>Livraisons effectuées</h3><div class="stat-value">${currentDeliveryUser?.deliveries || 0}</div></div>
+                    <div class="stat-card"><h3>Note moyenne</h3><div class="stat-value">${currentDeliveryUser?.rating || 0}/5</div></div>
+                </div>
+                <h3 style="margin-bottom: 16px;">📦 Livraisons disponibles (${isOnline ? availableDeliveries.length : 'hors ligne'})</h3>
+                <div class="orders-list">
+                    ${isOnline && availableDeliveries.length ? availableDeliveries.map(order => `
+                        <div class="order-item">
+                            <div class="order-info">
+                                <h4>${escapeHtml(order.shop?.name || 'Boutique')}</h4>
+                                <p>📍 ${escapeHtml(order.shop?.quartier || 'Quartier')} → ${escapeHtml(order.deliveryInfo?.quartier || 'Livraison')}</p>
+                                <p>🛒 ${order.items.length} produit(s) - Total: ${order.total.toLocaleString()} FCFA</p>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="delivery-fee">💰 ${order.deliveryFee.toLocaleString()} FCFA</div>
+                                <button class="btn-accept" onclick="acceptDelivery('${order.id}', ${order.deliveryFee})">Accepter</button>
+                            </div>
+                        </div>
+                    `).join('') : '<div style="text-align:center;padding:40px;">Aucune livraison disponible pour le moment</div>'}
+                </div>
+            `;
+        } else if (currentTab === 'active') {
+            const myDeliveries = getMyDeliveries();
+            document.getElementById('appContainer').innerHTML = `
+                <h3 style="margin-bottom: 16px;">🚚 Mes livraisons en cours</h3>
+                <div class="orders-list">
+                    ${myDeliveries.length ? myDeliveries.map(delivery => {
+                        const order = orders.find(o => o.id === delivery.orderId);
+                        const shop = shops.find(s => s.id === order?.items[0]?.shopId);
+                        return `
+                            <div class="order-item">
+                                <div class="order-info">
+                                    <h4>Commande #${delivery.orderId}</h4>
+                                    <p>🏪 ${escapeHtml(shop?.name)} → 📍 ${escapeHtml(order?.deliveryInfo?.quartier)}</p>
+                                    <p>👤 Client: ${escapeHtml(order?.userName)} - 📞 ${escapeHtml(order?.deliveryInfo?.phone)}</p>
+                                    <p>📦 Produits: ${order?.items.map(i => i.productName).join(', ')}</p>
+                                    <p>💰 Livraison: ${delivery.fee.toLocaleString()} FCFA</p>
+                                    <div style="margin-top:8px;"><span class="delivery-status status-${delivery.status}">${getStatusText(delivery.status)}</span></div>
+                                </div>
+                                <div>
+                                    ${delivery.status === 'accepted' ? `<button class="btn-accept" onclick="updateDeliveryStatus('${delivery.id}', 'delivering')">Démarrer livraison</button>` : ''}
+                                    ${delivery.status === 'delivering' ? `<button class="btn-accept" onclick="updateDeliveryStatus('${delivery.id}', 'completed')">Marquer livrée</button>` : ''}
+                                    <button class="btn-accept" style="background:var(--warning);margin-top:8px;" onclick="viewDeliveryDetails('${delivery.id}')">Détails</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div style="text-align:center;padding:40px;">Aucune livraison en cours</div>'}
+                </div>
+            `;
+        } else if (currentTab === 'history') {
+            const history = getDeliveryHistory();
+            document.getElementById('appContainer').innerHTML = `
+                <h3 style="margin-bottom: 16px;">📋 Historique des livraisons</h3>
+                <div class="orders-list">
+                    ${history.length ? history.map(delivery => {
+                        const order = orders.find(o => o.id === delivery.orderId);
+                        return `
+                            <div class="order-item">
+                                <div class="order-info">
+                                    <h4>Commande #${delivery.orderId}</h4>
+                                    <p>📅 ${new Date(delivery.completedDate || delivery.date).toLocaleDateString()}</p>
+                                    <p>💰 Gain: ${delivery.fee.toLocaleString()} FCFA</p>
+                                    ${delivery.rating ? `<p>⭐ Note reçue: ${delivery.rating}/5</p>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div style="text-align:center;padding:40px;">Aucun historique</div>'}
+                </div>
+            `;
+        } else if (currentTab === 'profile') {
+            document.getElementById('appContainer').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>Statut</h3><div class="stat-value">${currentDeliveryUser?.status === 'approved' ? '✅ Actif' : currentDeliveryUser?.status === 'pending' ? '⏳ En attente' : '❌ Suspendu'}</div></div>
+                    <div class="stat-card"><h3>Livraisons</h3><div class="stat-value">${currentDeliveryUser?.deliveries || 0}</div></div>
+                    <div class="stat-card"><h3>Gains totaux</h3><div class="stat-value">${(currentDeliveryUser?.earnings || 0).toLocaleString()} FCFA</div></div>
+                    <div class="stat-card"><h3>Note</h3><div class="stat-value">${currentDeliveryUser?.rating || 0}/5</div></div>
+                </div>
+                <div class="orders-list">
+                    <div style="padding:20px;">
+                        <p><strong>👤 Nom:</strong> ${escapeHtml(currentDeliveryUser?.fullName)}</p>
+                        <p><strong>📞 Téléphone:</strong> ${escapeHtml(currentDeliveryUser?.phone)}</p>
+                        <p><strong>📍 Ville:</strong> ${escapeHtml(currentDeliveryUser?.city)}</p>
+                        <p><strong>🏠 Quartier:</strong> ${escapeHtml(currentDeliveryUser?.quartier)}</p>
+                        <p><strong>📧 Email:</strong> ${escapeHtml(currentDeliveryUser?.email)}</p>
+                        <p><strong>📅 Inscription:</strong> ${new Date(currentDeliveryUser?.date).toLocaleDateString()}</p>
+                    </div>
+                </div>
+                <button class="btn-primary" style="margin-top:20px;" onclick="logout()">Se déconnecter</button>
+            `;
+        }
+    }
+    
+    function setStatus(online) {
+        isOnline = online;
+        renderPage();
+    }
+    
+    function acceptDelivery(orderId, fee) {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        
+        const newDelivery = {
+            id: Date.now(),
+            orderId: orderId,
+            deliveryUserId: currentUser.email,
+            deliveryUserName: currentUser.name,
+            fee: fee,
+            status: 'accepted',
+            date: new Date().toISOString(),
+            shopId: order.items[0]?.shopId,
+            customerName: order.userName,
+            customerPhone: order.deliveryInfo?.phone,
+            customerAddress: `${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.address}`,
+            shopName: shops.find(s => s.id === order.items[0]?.shopId)?.name
+        };
+        
+        deliveries.push(newDelivery);
+        localStorage.setItem('ouenze_deliveries', JSON.stringify(deliveries));
+        
+        // Mettre à jour la commande avec l'ID du livreur
+        order.deliveryId = newDelivery.id;
+        order.deliveryStatus = 'accepted';
+        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+        
+        // Envoi de notification (simulation)
+        console.log(`📧 Notification envoyée au client ${order.userName}: Un livreur a accepté votre livraison !`);
+        console.log(`📧 Notification envoyée au vendeur: Le livreur ${currentUser.name} a accepté la livraison`);
+        
+        alert(`✅ Livraison acceptée !\n\nClient: ${order.userName}\nTéléphone: ${order.deliveryInfo?.phone}\nAdresse: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.address}\n\nUn email de confirmation a été envoyé.`);
+        
+        renderPage();
+    }
+    
+    function updateDeliveryStatus(deliveryId, newStatus) {
+        const delivery = deliveries.find(d => d.id == deliveryId);
+        if (delivery) {
+            delivery.status = newStatus;
+            if (newStatus === 'completed') {
+                delivery.completedDate = new Date().toISOString();
+                // Mettre à jour les gains du livreur
+                if (currentDeliveryUser) {
+                    currentDeliveryUser.earnings = (currentDeliveryUser.earnings || 0) + delivery.fee;
+                    currentDeliveryUser.deliveries = (currentDeliveryUser.deliveries || 0) + 1;
+                    // Mettre à jour dans deliveryRequests
+                    const index = deliveryRequests.findIndex(d => d.email === currentUser.email);
+                    if (index !== -1) {
+                        deliveryRequests[index] = currentDeliveryUser;
+                        localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
+                    }
+                }
+                // Ouvrir la modale de notation
+                openRatingModal(delivery.orderId);
+            }
+            localStorage.setItem('ouenze_deliveries', JSON.stringify(deliveries));
+            
+            // Mettre à jour la commande
+            const order = orders.find(o => o.id === delivery.orderId);
+            if (order) {
+                order.deliveryStatus = newStatus;
+                if (newStatus === 'completed') order.status = 'livrée';
+                localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+            }
+            
+            renderPage();
+        }
+    }
+    
+    function openRatingModal(orderId) {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3 style="margin-bottom: 20px;">Noter le livreur</h3>
+                <div class="form-group"><label>Note (1 à 5 étoiles)</label>
+                    <div style="display:flex; gap:8px; font-size:24px; cursor:pointer; justify-content:center;" id="ratingStars">
+                        <i class="far fa-star" data-value="1"></i>
+                        <i class="far fa-star" data-value="2"></i>
+                        <i class="far fa-star" data-value="3"></i>
+                        <i class="far fa-star" data-value="4"></i>
+                        <i class="far fa-star" data-value="5"></i>
+                    </div>
+                </div>
+                <div class="form-group"><label>Commentaire</label><textarea id="ratingComment" rows="3" placeholder="Votre avis sur le livreur..."></textarea></div>
+                <button class="btn-primary" onclick="submitRating('${orderId}')">Envoyer ma note</button>
+                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;cursor:pointer;">Passer</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        let selectedRating = 0;
+        document.querySelectorAll('#ratingStars i').forEach(star => {
+            star.addEventListener('click', () => {
+                selectedRating = parseInt(star.dataset.value);
+                document.querySelectorAll('#ratingStars i').forEach((s, idx) => {
+                    s.className = idx < selectedRating ? 'fas fa-star' : 'far fa-star';
+                });
+            });
+        });
+        
+        window.submitRating = (orderId) => {
+            const comment = document.getElementById('ratingComment').value;
+            const delivery = deliveries.find(d => d.orderId === orderId);
+            if (delivery && selectedRating > 0) {
+                delivery.rating = selectedRating;
+                delivery.comment = comment;
+                localStorage.setItem('ouenze_deliveries', JSON.stringify(deliveries));
+                
+                // Mettre à jour la note moyenne du livreur
+                const allDeliveries = deliveries.filter(d => d.deliveryUserId === currentUser.email && d.rating);
+                const avgRating = allDeliveries.reduce((s, d) => s + d.rating, 0) / allDeliveries.length;
+                if (currentDeliveryUser) {
+                    currentDeliveryUser.rating = avgRating.toFixed(1);
+                    const index = deliveryRequests.findIndex(d => d.email === currentUser.email);
+                    if (index !== -1) {
+                        deliveryRequests[index] = currentDeliveryUser;
+                        localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
+                    }
+                }
+            }
+            alert("Merci pour votre avis !");
+            modal.remove();
+            renderPage();
+        };
+    }
+    
+    function viewDeliveryDetails(deliveryId) {
+        const delivery = deliveries.find(d => d.id == deliveryId);
+        if (delivery) {
+            const order = orders.find(o => o.id === delivery.orderId);
+            alert(`📦 Détails de la livraison\n\nCommande: #${delivery.orderId}\nClient: ${delivery.customerName}\nTéléphone: ${delivery.customerPhone}\nAdresse: ${delivery.customerAddress}\nBoutique: ${delivery.shopName}\nStatut: ${getStatusText(delivery.status)}\nGain: ${delivery.fee.toLocaleString()} FCFA`);
+        }
+    }
+    
+    function getStatusText(status) {
+        const statusMap = { accepted: 'Acceptée', delivering: 'En livraison', completed: 'Livrée' };
+        return statusMap[status] || status;
+    }
+    
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            renderPage();
+        });
+    });
+    
+    renderPage();
+</script>
+</body>
+</html>
