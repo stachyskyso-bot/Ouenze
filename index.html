@@ -258,8 +258,17 @@
             <a onclick="showProfile()">Mon Profil</a>
             <a onclick="goToVendorDashboard()" id="vendorLink" style="display:none;">Ma boutique</a>
             <a onclick="showDeliveryDashboard()" id="deliveryLink" style="display:none;">Livraisons</a>
+            <a onclick="goToDeliveryDashboard()" id="deliveryLink" style="display:none;">Mes livraisons</a>
+            <a href="delivery-register.html">Devenir livreur</a>
         </div>
-        <div class="dropdown">
+
+
+
+
+        
+    </div>
+
+ <div class="dropdown">
             <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
             <div class="dropdown-content" id="dropdownContent">
                 <a href="about.html">À propos</a>
@@ -269,7 +278,7 @@
                 <a href="tracking.html">Suivi livraison</a>
             </div>
         </div>
-    </div>
+    
 </div>
 
 <div id="appContainer" class="main"></div>
@@ -1942,6 +1951,33 @@
             if(event.target === document.getElementById('forgotPasswordModal')) closeForgotPasswordModal();
         };
     });
+
+
+
+
+
+
+function goToDeliveryDashboard() {
+    window.location.href = 'delivery-dashboard.html';
+}
+
+function updateDeliveryLink() {
+    const deliveryLink = document.getElementById('deliveryLink');
+    if (currentUser && currentUser.type === 'livreur') {
+        const deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
+        const deliveryUser = deliveryRequests.find(d => d.email === currentUser.email && d.status === 'approved');
+        if (deliveryUser) deliveryLink.style.display = 'inline-block';
+        else deliveryLink.style.display = 'none';
+    } else {
+        deliveryLink.style.display = 'none';
+    }
+}
+
+
+
+
+
+    
 </script>
 </body>
 </html>
