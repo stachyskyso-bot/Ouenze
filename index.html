@@ -20,8 +20,10 @@
             --gold: #f59e0b;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
         }
         
+        /* Styles existants conservés */
         .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 10px 16px; position: sticky; top: 0; z-index: 100; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
         .logo h1 { font-size: 20px; font-weight: 800; color: var(--primary); cursor: pointer; }
@@ -157,24 +159,69 @@
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; padding: 28px; }
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--gray-700); }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 12px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .step-indicator { display: flex; gap: 8px; margin-bottom: 20px; }
-        .step { flex: 1; text-align: center; padding: 6px; background: var(--gray-100); border-radius: 20px; font-size: 10px; font-weight: 500; color: var(--gray-500); }
+        .step { flex: 1; text-align: center; padding: 8px; background: var(--gray-100); border-radius: 30px; font-size: 11px; font-weight: 500; color: var(--gray-500); }
         .step.active { background: var(--primary); color: white; }
         .step.completed { background: var(--success); color: white; }
-        .btn-next, .btn-submit { padding: 10px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; background: var(--primary); color: white; width: 100%; font-size: 12px; }
-        .btn-prev { background: var(--gray-100); color: var(--gray-700); width: 48%; padding: 10px; border-radius: 30px; font-weight: 500; border: none; cursor: pointer; }
+        .step.error { background: var(--danger); color: white; }
+        .btn-next, .btn-submit { padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; background: var(--primary); color: white; width: 100%; font-size: 13px; transition: 0.2s; }
+        .btn-next:hover, .btn-submit:hover { background: var(--primary-dark); }
+        .btn-prev { background: var(--gray-100); color: var(--gray-700); width: 48%; padding: 12px; border-radius: 40px; font-weight: 500; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-prev:hover { background: var(--gray-200); }
         .button-group { display: flex; gap: 12px; margin-top: 16px; }
+        .error-message { color: var(--danger); font-size: 11px; margin-top: 4px; display: none; }
+        .error-message.show { display: block; }
+        .success-message { color: var(--success); font-size: 11px; margin-top: 4px; }
+        .info-text { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
+        .file-info { font-size: 10px; color: var(--gray-500); margin-top: 4px; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500; }
+        .status-pending { background: #fef3c7; color: #b45309; }
+        .status-verified { background: #d1fae5; color: #059669; }
+        .status-suspended { background: #fee2e2; color: #dc2626; }
         
-        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 12px; text-align: center; font-size: 9px; color: var(--gray-500); }
+        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 16px; text-align: center; font-size: 10px; color: var(--gray-500); }
+        
+        /* NOUVEAUX STYLES POUR LE PROFIL SANS MODIFIER LE DESIGN EXISTANT */
+        .profile-container { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
+        .profile-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 30px 20px; text-align: center; color: white; }
+        .profile-avatar { width: 100px; height: 100px; margin: 0 auto 15px; position: relative; }
+        .profile-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid white; background: white; }
+        .edit-avatar-btn { position: absolute; bottom: 0; right: 0; background: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .profile-tabs { display: flex; border-bottom: 1px solid var(--gray-200); background: var(--white); padding: 0 20px; gap: 20px; overflow-x: auto; }
+        .profile-tab { padding: 12px 0; font-size: 13px; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+        .profile-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .profile-section { padding: 20px; display: none; }
+        .profile-section.active { display: block; }
+        .info-card { background: var(--gray-100); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+        .info-row { display: flex; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-200); }
+        .info-label { width: 120px; font-weight: 600; font-size: 12px; color: var(--gray-700); }
+        .info-value { flex: 1; font-size: 13px; color: var(--gray-700); }
+        .info-actions { text-align: right; }
+        .edit-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 11px; }
+        .payment-methods-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .payment-item { background: var(--gray-100); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .payment-info { display: flex; align-items: center; gap: 10px; }
+        .payment-icon { width: 40px; height: 40px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .payment-details { font-size: 12px; }
+        .payment-details strong { display: block; font-size: 13px; }
+        .payment-actions button { background: none; border: none; cursor: pointer; margin-left: 8px; font-size: 14px; }
+        .btn-add-payment { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .commandes-list { display: flex; flex-direction: column; gap: 12px; }
+        .commande-item { background: var(--gray-100); border-radius: 12px; padding: 12px; border-left: 3px solid var(--success); }
         
         @media (max-width: 480px) {
             .shops-grid { grid-template-columns: 1fr; }
             .products-container { grid-template-columns: repeat(2, 1fr); }
             .dropdown-content { left: 0; right: auto; }
+            .form-row { grid-template-columns: 1fr; gap: 8px; }
+            .info-row { flex-direction: column; }
+            .info-label { width: auto; margin-bottom: 5px; }
         }
     </style>
 </head>
@@ -208,7 +255,9 @@
             <a onclick="resetToHome()">Boutiques</a>
             <a onclick="showCart()">Panier (<span id="cartCountHeader">0</span>)</a>
             <a onclick="showMyOrders()">Commandes</a>
+            <a onclick="showProfile()">Mon Profil</a>
             <a onclick="goToVendorDashboard()" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a onclick="showDeliveryDashboard()" id="deliveryLink" style="display:none;">Livraisons</a>
         </div>
         <div class="dropdown">
             <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
@@ -235,116 +284,65 @@
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
     let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
     let cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
+    let deliveryDrivers = JSON.parse(localStorage.getItem('ouenze_delivery_drivers') || '[]');
     let currentRanking = 'rating';
     let currentShop = null;
     let currentCategory = 'all';
     let carouselInterval = null;
     let selectedPayment = null;
+    let lastAttemptTime = 0;
+    let attemptCount = 0;
     
-    // ============ FONCTIONS DE RÉINITIALISATION MOT DE PASSE ============
-    let resetStep = 1;
-    let resetEmail = "";
-    let resetCode = "";
-    
-    function openForgotPasswordModal() {
-        resetStep = 1;
-        renderForgotPasswordStep();
-        document.getElementById('forgotPasswordModal').classList.add('active');
-    }
-    
-    function renderForgotPasswordStep() {
-        const stepContent = document.getElementById('forgotStepContent');
-        if (!stepContent) return;
-        
-        if (resetStep === 1) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Email *</label><input type="email" id="resetEmail" placeholder="exemple@email.com"></div>
-                <button class="btn-next" onclick="sendResetCode()">Envoyer le code</button>
-                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
-            `;
-        } else if (resetStep === 2) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Code de vérification</label><input type="text" id="resetVerifCode" placeholder="123456"></div>
-                <div class="button-group"><button class="btn-prev" onclick="prevResetStep()">Retour</button><button class="btn-next" onclick="verifyResetCode()">Vérifier</button></div>
-            `;
-        } else if (resetStep === 3) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Nouveau mot de passe *</label><input type="password" id="newPassword" placeholder="••••••••"></div>
-                <div class="form-group"><label>Confirmer le mot de passe *</label><input type="password" id="confirmNewPassword" placeholder="••••••••"></div>
-                <button class="btn-submit" onclick="resetPassword()">Réinitialiser</button>
-                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
-            `;
-        }
-        
-        document.querySelectorAll('#forgotPasswordModal .step').forEach((el, idx) => {
-            el.classList.remove('active', 'completed');
-            if (idx + 1 === resetStep) el.classList.add('active');
-            else if (idx + 1 < resetStep) el.classList.add('completed');
-        });
-    }
-    
-    function sendResetCode() {
-        const email = document.getElementById('resetEmail').value.trim();
-        if (!email) { alert("Veuillez entrer votre email"); return; }
-        
-        // Vérifier si l'email existe dans localStorage
-        const existingUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-        if (existingUser && existingUser.email === email) {
-            resetEmail = email;
-            resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-            sendEmail(email, "Code de réinitialisation Ouenze", `Bonjour,\n\nVotre code de réinitialisation est: ${resetCode}\n\nCe code expire dans 10 minutes.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\nL'équipe Ouenze`);
-            alert(`Un code de vérification a été envoyé à ${email}`);
-            resetStep = 2;
-            renderForgotPasswordStep();
+    // ============ FONCTIONS DE VÉRIFICATION ============
+    function checkRateLimit() {
+        const now = Date.now();
+        if (now - lastAttemptTime < 5000) {
+            attemptCount++;
+            if (attemptCount > 3) {
+                return false;
+            }
         } else {
-            alert("Aucun compte trouvé avec cet email");
+            attemptCount = 1;
+            lastAttemptTime = now;
         }
+        return true;
     }
     
-    function verifyResetCode() {
-        const code = document.getElementById('resetVerifCode').value;
-        if (code !== resetCode) { alert("Code incorrect"); return; }
-        resetStep = 3;
-        renderForgotPasswordStep();
+    function validateEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
     }
     
-    function prevResetStep() {
-        resetStep--;
-        renderForgotPasswordStep();
-    }
-    
-    function resetPassword() {
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-        
-        if (!newPassword) { alert("Veuillez entrer un mot de passe"); return; }
-        if (newPassword !== confirmNewPassword) { alert("Les mots de passe ne correspondent pas"); return; }
-        
-        // Mettre à jour l'utilisateur dans localStorage
-        if (currentUser && currentUser.email === resetEmail) {
-            currentUser.password = newPassword;
-            localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
-        }
-        
-        alert("✅ Mot de passe réinitialisé avec succès !");
-        closeForgotPasswordModal();
-    }
-    
-    function closeForgotPasswordModal() {
-        document.getElementById('forgotPasswordModal').classList.remove('active');
-        resetStep = 1;
-        resetEmail = "";
-        resetCode = "";
+    function validatePhone(phone) {
+        const clean = phone.replace(/\s/g, '');
+        return /^(\+242|0)[56]\d{8}$/.test(clean);
     }
     
     function sendEmail(to, subject, body) {
         console.log(`📧 EMAIL ENVOYÉ À: ${to}`);
         console.log(`📧 OBJET: ${subject}`);
         console.log(`📧 MESSAGE: ${body}`);
+        console.log('---');
         return true;
     }
     
-    // Boutiques par défaut
+    function showError(elementId, message) {
+        const errorEl = document.getElementById(elementId);
+        if (errorEl) {
+            errorEl.innerText = message;
+            errorEl.classList.add('show');
+            setTimeout(() => {
+                errorEl.classList.remove('show');
+            }, 5000);
+        }
+    }
+    
+    function clearError(elementId) {
+        const errorEl = document.getElementById(elementId);
+        if (errorEl) errorEl.classList.remove('show');
+    }
+    
+    // ============ BOUTIQUES ============
     if (shops.length === 0) {
         shops = [
             { id: 1, name: "Élégance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250, 
@@ -361,6 +359,7 @@
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         localStorage.setItem('ouenze_cart', JSON.stringify(cart));
+        localStorage.setItem('ouenze_delivery_drivers', JSON.stringify(deliveryDrivers));
         if (currentUser) localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
         else localStorage.removeItem('ouenze_current_user');
         updateCartCount();
@@ -374,11 +373,21 @@
     
     function updateVendorLink() {
         const vendorLink = document.getElementById('vendorLink');
+        const deliveryLink = document.getElementById('deliveryLink');
         if (currentUser && currentUser.type === 'vendeur') vendorLink.style.display = 'inline-block';
         else vendorLink.style.display = 'none';
+        if (currentUser && currentUser.type === 'livreur') deliveryLink.style.display = 'inline-block';
+        else deliveryLink.style.display = 'none';
     }
     
     function goToVendorDashboard() { window.location.href = 'vendor-dashboard.html'; }
+    function showDeliveryDashboard() { 
+        if (currentUser && currentUser.type === 'livreur') {
+            alert(`📦 Espace livreur\nStatut: ${currentUser.deliveryStatus || 'En attente de validation'}\n\nVotre compte est en cours de vérification par l'administrateur.`);
+        } else {
+            alert("Vous n'avez pas de compte livreur");
+        }
+    }
     
     function generateStars(rating) {
         const full = Math.floor(rating);
@@ -948,8 +957,8 @@
             container.innerHTML = `
                 <div class="card-details">
                     <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
-                    <div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div>
-                    <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group" style="flex:1;"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div>
+                    <div class="form-group"><label>Numéro de compte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div>
+                    <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group" style="flex:1;"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div>
                     <div id="cardTypeDisplay" style="font-size:10px;color:var(--gray-500);"></div>
                 </div>
             `;
@@ -1048,6 +1057,8 @@
         cart = [];
         saveData();
         
+        sendEmail(currentUser?.email || 'client@email.com', `Confirmation commande #${orderId}`, `Bonjour,\n\nVotre commande #${orderId} a été confirmée.\nTotal: ${finalTotal.toLocaleString()} FCFA\n\nMerci de votre confiance !`);
+        
         alert(`✅ Commande ${orderId} confirmée !\n\nUn email de confirmation a été envoyé à ${currentUser?.email || 'votre email'}\nTotal: ${finalTotal.toLocaleString()} FCFA`);
         
         window.location.href = `tracking.html?id=${orderId}`;
@@ -1076,133 +1087,767 @@
         `;
     }
     
-    // ============ INSCRIPTION ============
+    // ============ PROFIL COMPLET (NOUVEAU) ============
+    function showProfile() {
+        if (!currentUser) { alert("Veuillez vous connecter"); openLoginModal(); return; }
+        
+        const userData = getUserData();
+        const paymentMethods = userData.paymentMethods || [];
+        
+        document.getElementById('appContainer').innerHTML = `
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="profileAvatarImg" src="${userData.profilePhoto || 'https://via.placeholder.com/100'}" class="profile-avatar-img" onerror="this.src='https://via.placeholder.com/100'">
+                        <div class="edit-avatar-btn" onclick="editProfilePhoto()"><i class="fas fa-camera"></i></div>
+                    </div>
+                    <div class="profile-name">${escapeHtml(userData.fullName || userData.name || currentUser.name || 'Utilisateur')}</div>
+                    <div class="profile-email">${escapeHtml(currentUser.email)}</div>
+                    <div class="profile-badge">${currentUser.type === 'vendeur' ? 'Vendeur' : currentUser.type === 'livreur' ? 'Livreur' : 'Client'}</div>
+                </div>
+                <div class="profile-tabs">
+                    <div class="profile-tab active" data-tab="info">Informations</div>
+                    <div class="profile-tab" data-tab="payment">Moyens de paiement</div>
+                    <div class="profile-tab" data-tab="orders">Commandes</div>
+                </div>
+                <div id="profileTabInfo" class="profile-section active">
+                    <div class="info-card">
+                        <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value" id="displayFullName">${escapeHtml(userData.fullName || userData.name || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('fullName')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Prénom(s)</div><div class="info-value" id="displayFirstName">${escapeHtml(userData.firstName || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('firstName')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Localisation</div><div class="info-value" id="displayLocation">${escapeHtml(userData.city || 'Non renseigné')}${userData.quartier ? ', ' + userData.quartier : ''}</div><div class="info-actions"><button class="edit-btn" onclick="editField('location')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value" id="displayPhone">${escapeHtml(userData.phone || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('phone')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value" id="displayBirthDate">${escapeHtml(userData.birthDate || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('birthDate')">Modifier</button></div></div>
+                    </div>
+                </div>
+                <div id="profileTabPayment" class="profile-section">
+                    <div id="paymentMethodsList" class="payment-methods-list"></div>
+                    <button class="btn-add-payment" onclick="showAddPaymentModal()"><i class="fas fa-plus"></i> Ajouter un moyen de paiement</button>
+                </div>
+                <div id="profileTabOrders" class="profile-section">
+                    <div id="profileOrdersList" class="commandes-list"></div>
+                </div>
+            </div>
+        `;
+        
+        renderPaymentMethods();
+        renderProfileOrders();
+        
+        document.querySelectorAll('.profile-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.profile-section').forEach(s => s.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`profileTab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.add('active');
+            });
+        });
+    }
+    
+    function getUserData() {
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const user = allUsers.find(u => u.email === currentUser?.email);
+        return user || {};
+    }
+    
+    function saveUserData(updates) {
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const index = allUsers.findIndex(u => u.email === currentUser?.email);
+        if (index !== -1) {
+            allUsers[index] = { ...allUsers[index], ...updates };
+            localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
+        }
+        if (updates.fullName) currentUser.name = updates.fullName;
+        if (updates.profilePhoto) currentUser.profilePhoto = updates.profilePhoto;
+        saveData();
+        showProfile();
+    }
+    
+    function editField(field) {
+        const userData = getUserData();
+        let currentValue = '';
+        let inputType = 'text';
+        let placeholder = '';
+        
+        switch(field) {
+            case 'fullName': currentValue = userData.fullName || ''; placeholder = "Nom complet"; break;
+            case 'firstName': currentValue = userData.firstName || ''; placeholder = "Prénom(s)"; break;
+            case 'location': currentValue = `${userData.city || ''}${userData.quartier ? ', ' + userData.quartier : ''}`; placeholder = "Ville, Quartier"; break;
+            case 'phone': currentValue = userData.phone || ''; placeholder = "+242 XX XXX XXX"; inputType = "tel"; break;
+            case 'birthDate': currentValue = userData.birthDate || ''; placeholder = "AAAA-MM-JJ"; inputType = "date"; break;
+            default: return;
+        }
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Modifier ${field === 'fullName' ? 'le nom' : field === 'firstName' ? 'le prénom' : field === 'location' ? 'la localisation' : field === 'phone' ? 'le téléphone' : 'la date de naissance'}</h3>
+                <div class="form-group"><input type="${inputType}" id="editValue" value="${escapeHtml(currentValue)}" placeholder="${placeholder}"></div>
+                <button class="btn-submit" onclick="saveFieldValue('${field}')">Enregistrer</button>
+                <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    function saveFieldValue(field) {
+        const value = document.getElementById('editValue')?.value.trim();
+        if (!value && field !== 'birthDate') { alert("Veuillez remplir le champ"); return; }
+        
+        const userData = getUserData();
+        let updates = {};
+        if (field === 'fullName') updates.fullName = value;
+        else if (field === 'firstName') updates.firstName = value;
+        else if (field === 'location') {
+            const parts = value.split(',');
+            updates.city = parts[0].trim();
+            updates.quartier = parts[1] ? parts[1].trim() : '';
+        }
+        else if (field === 'phone') updates.phone = value;
+        else if (field === 'birthDate') updates.birthDate = value;
+        
+        saveUserData(updates);
+        document.querySelector('.modal')?.remove();
+    }
+    
+    function editProfilePhoto() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    saveUserData({ profilePhoto: ev.target.result });
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+    
+    function renderPaymentMethods() {
+        const container = document.getElementById('paymentMethodsList');
+        if (!container) return;
+        const userData = getUserData();
+        const methods = userData.paymentMethods || [];
+        
+        if (methods.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--gray-500);">Aucun moyen de paiement enregistré</div>';
+            return;
+        }
+        
+        container.innerHTML = methods.map((method, idx) => {
+            let icon = '<i class="fas fa-credit-card"></i>';
+            let displayInfo = '';
+            
+            if (method.type === 'mtn') { icon = '<i class="fas fa-mobile-alt"></i>'; displayInfo = method.number || ''; }
+            else if (method.type === 'airtel') { icon = '<i class="fas fa-mobile-alt"></i>'; displayInfo = method.number || ''; }
+            else if (method.type === 'momo') { icon = '<i class="fas fa-money-bill"></i>'; displayInfo = method.number || ''; }
+            else if (method.type === 'paypal') { icon = '<i class="fab fa-paypal"></i>'; displayInfo = method.details || ''; }
+            else if (method.type === 'visa') { icon = '<i class="fab fa-cc-visa"></i>'; displayInfo = `**** ${method.cardNumber?.slice(-4) || ''}`; }
+            else if (method.type === 'mastercard') { icon = '<i class="fab fa-cc-mastercard"></i>'; displayInfo = `**** ${method.cardNumber?.slice(-4) || ''}`; }
+            else { displayInfo = method.details || method.number || ''; }
+            
+            return `
+                <div class="payment-item">
+                    <div class="payment-info">
+                        <div class="payment-icon">${icon}</div>
+                        <div class="payment-details">
+                            <strong>${method.type === 'mtn' ? 'MTN Mobile Money' : method.type === 'airtel' ? 'Airtel Money' : method.type === 'momo' ? 'MOMO' : method.type === 'paypal' ? 'PayPal' : method.type === 'visa' ? 'VISA' : method.type === 'mastercard' ? 'Mastercard' : method.type}</strong>
+                            <span>${escapeHtml(displayInfo)}</span>
+                        </div>
+                    </div>
+                    <div class="payment-actions">
+                        <button onclick="editPaymentMethod(${idx})" style="color:var(--primary);"><i class="fas fa-edit"></i></button>
+                        <button onclick="deletePaymentMethod(${idx})" style="color:var(--danger);"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function showAddPaymentModal() {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Ajouter un moyen de paiement</h3>
+                <div class="form-group"><label>Type</label>
+                    <select id="paymentType">
+                        <option value="visa">VISA</option>
+                        <option value="mastercard">Mastercard</option>
+                        <option value="mtn">MTN Mobile Money</option>
+                        <option value="airtel">Airtel Money</option>
+                        <option value="momo">MOMO</option>
+                        <option value="paypal">PayPal</option>
+                    </select>
+                </div>
+                <div id="paymentTypeFields">
+                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
+                    <div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"></div>
+                    <div class="form-row"><div class="form-group"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input type="password" id="cardCvv" placeholder="XXX"></div></div>
+                </div>
+                <button class="btn-submit" onclick="addPaymentMethod()">Ajouter</button>
+                <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button>
+            </div>
+        `;
+        
+        const typeSelect = document.getElementById('paymentType');
+        if(typeSelect) {
+            typeSelect.addEventListener('change', (e) => {
+                const fieldsDiv = document.getElementById('paymentTypeFields');
+                const type = e.target.value;
+                if (type === 'mtn' || type === 'airtel' || type === 'momo') {
+                    fieldsDiv.innerHTML = `<div class="form-group"><label>Numéro de téléphone</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div>`;
+                } else if (type === 'paypal') {
+                    fieldsDiv.innerHTML = `<div class="form-group"><label>Email PayPal</label><input type="email" id="paypalEmail" placeholder="exemple@paypal.com"></div>`;
+                } else {
+                    fieldsDiv.innerHTML = `
+                        <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
+                        <div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"></div>
+                        <div class="form-row"><div class="form-group"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input type="password" id="cardCvv" placeholder="XXX"></div></div>
+                    `;
+                }
+            });
+        }
+        
+        document.body.appendChild(modal);
+    }
+    
+    function addPaymentMethod() {
+        const type = document.getElementById('paymentType').value;
+        let method = { type };
+        
+        if (type === 'visa' || type === 'mastercard') {
+            const cardName = document.getElementById('cardName')?.value.trim();
+            const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
+            const cardExpiry = document.getElementById('cardExpiry')?.value.trim();
+            const cardCvv = document.getElementById('cardCvv')?.value.trim();
+            if (!cardName || !cardNumber || !cardExpiry || !cardCvv) { alert("Veuillez remplir tous les champs"); return; }
+            if (cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
+            if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) { alert("Date d'expiration invalide (MM/AA)"); return; }
+            if (cardCvv.length !== 3) { alert("CVV invalide"); return; }
+            method.cardName = cardName;
+            method.cardNumber = cardNumber;
+            method.cardExpiry = cardExpiry;
+            method.cardCvv = cardCvv;
+        } else if (type === 'mtn' || type === 'airtel' || type === 'momo') {
+            const number = document.getElementById('mobileNumber')?.value.trim();
+            if (!number) { alert("Numéro de téléphone requis"); return; }
+            const cleanNumber = number.replace(/\s/g, '');
+            if (!/^(\+242|0)[56]\d{8}$/.test(cleanNumber)) { alert("Numéro invalide. Format: +242 06 XX XX XX"); return; }
+            method.number = number;
+        } else if (type === 'paypal') {
+            const email = document.getElementById('paypalEmail')?.value.trim();
+            if (!email || !validateEmail(email)) { alert("Email PayPal invalide"); return; }
+            method.details = email;
+        }
+        
+        const userData = getUserData();
+        const methods = userData.paymentMethods || [];
+        methods.push(method);
+        saveUserData({ paymentMethods: methods });
+        document.querySelector('.modal')?.remove();
+        renderPaymentMethods();
+    }
+    
+    function editPaymentMethod(index) {
+        const userData = getUserData();
+        const method = userData.paymentMethods?.[index];
+        if (!method) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        let innerHtml = `<div class="modal-card"><h3>Modifier ${method.type === 'visa' ? 'VISA' : method.type === 'mastercard' ? 'Mastercard' : method.type}</h3>`;
+        
+        if (method.type === 'visa' || method.type === 'mastercard') {
+            innerHtml += `
+                <div class="form-group"><label>Nom sur la carte</label><input type="text" id="editCardName" value="${escapeHtml(method.cardName || '')}"></div>
+                <div class="form-group"><label>Numéro de carte</label><input type="text" id="editCardNumber" value="${escapeHtml(method.cardNumber || '')}" placeholder="XXXX XXXX XXXX XXXX"></div>
+                <div class="form-row"><div class="form-group"><label>Date d'expiration</label><input type="text" id="editCardExpiry" value="${escapeHtml(method.cardExpiry || '')}" placeholder="MM/AA"></div></div>
+            `;
+        } else if (method.type === 'mtn' || method.type === 'airtel' || method.type === 'momo') {
+            innerHtml += `<div class="form-group"><label>Numéro</label><input type="tel" id="editNumber" value="${escapeHtml(method.number || '')}"></div>`;
+        } else if (method.type === 'paypal') {
+            innerHtml += `<div class="form-group"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(method.details || '')}"></div>`;
+        }
+        
+        innerHtml += `<button class="btn-submit" onclick="updatePaymentMethod(${index})">Enregistrer</button>
+                      <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button></div>`;
+        modal.innerHTML = innerHtml;
+        document.body.appendChild(modal);
+    }
+    
+    function updatePaymentMethod(index) {
+        const userData = getUserData();
+        const method = userData.paymentMethods?.[index];
+        if (!method) return;
+        
+        if (method.type === 'visa' || method.type === 'mastercard') {
+            method.cardName = document.getElementById('editCardName')?.value.trim();
+            method.cardNumber = document.getElementById('editCardNumber')?.value.replace(/\s/g, '');
+            method.cardExpiry = document.getElementById('editCardExpiry')?.value.trim();
+        } else if (method.type === 'mtn' || method.type === 'airtel' || method.type === 'momo') {
+            method.number = document.getElementById('editNumber')?.value.trim();
+        } else if (method.type === 'paypal') {
+            method.details = document.getElementById('editEmail')?.value.trim();
+        }
+        
+        saveUserData({ paymentMethods: userData.paymentMethods });
+        document.querySelector('.modal')?.remove();
+        renderPaymentMethods();
+    }
+    
+    function deletePaymentMethod(index) {
+        if (confirm("Supprimer ce moyen de paiement ?")) {
+            const userData = getUserData();
+            const methods = userData.paymentMethods || [];
+            methods.splice(index, 1);
+            saveUserData({ paymentMethods: methods });
+            renderPaymentMethods();
+        }
+    }
+    
+    function renderProfileOrders() {
+        const container = document.getElementById('profileOrdersList');
+        if (!container) return;
+        const userOrders = orders.filter(o => o.userId === currentUser?.email);
+        if (userOrders.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:20px;">Aucune commande</div>';
+            return;
+        }
+        container.innerHTML = userOrders.map(o => `
+            <div class="commande-item">
+                <div><strong>${o.id}</strong> - ${new Date(o.date).toLocaleDateString()}</div>
+                <div>${o.items?.length || 0} article(s) - ${o.total?.toLocaleString() || '0'} FCFA</div>
+                <div style="color:var(--success);">${o.status || 'Confirmée'}</div>
+                <button onclick="window.location.href='tracking.html?id=${o.id}'" style="margin-top:8px; background:var(--primary); color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:10px;">Suivre</button>
+            </div>
+        `).join('');
+    }
+    
+    // ============ NOUVEAU SYSTÈME D'INSCRIPTION 4 ÉTAPES ============
     let currentStep = 1;
     let tempUserData = {};
     let generatedCode = "";
     
-    function openRegisterModal() { currentStep = 1; tempUserData = {}; renderRegisterStep(); document.getElementById('registerModal').classList.add('active'); }
+    function openRegisterModal() { 
+        currentStep = 1; 
+        tempUserData = {}; 
+        generatedCode = "";
+        renderRegisterStep(); 
+        document.getElementById('registerModal').classList.add('active'); 
+    }
     
     function renderRegisterStep() {
         const stepContent = document.getElementById('stepContent');
         if (!stepContent) return;
+        
         if (currentStep === 1) {
             stepContent.innerHTML = `
-                <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
-                <div class="form-group"><label>Prénom(s) *</label><input type="text" id="firstName" placeholder="Jean"></div>
-                <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
-                <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
-                <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: 123456789"></div>
-                <div class="form-group"><label>Ville de résidence</label><input type="text" id="city" placeholder="Brazzaville"></div>
-                <div class="form-group"><label>Adresse</label><textarea id="address" rows="2"></textarea></div>
-                <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
-                <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Mot de passe *</label><input type="password" id="password"></div><div class="form-group" style="flex:1;"><label>Confirmer *</label><input type="password" id="confirmPassword"></div></div>
-                <button class="btn-next" onclick="validateRegisterStep1()">Continuer</button>
-            `;
-        } else if (currentStep === 2) {
-            stepContent.innerHTML = `<div class="form-group"><label>Code de vérification</label><input type="text" id="verifCode" placeholder="123456"></div><div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-next" onclick="validateRegisterStep2()">Vérifier</button></div>`;
-        } else if (currentStep === 3) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Type de compte</label><select id="accountType" onchange="togglePaymentFields()"><option value="client">Client</option><option value="vendeur">Vendeur</option></select></div>
-                <div id="paymentFields" style="display:none">
+                <div class="form-group"><label>Type de compte *</label>
+                    <select id="accountType" onchange="toggleAccountTypeFields()">
+                        <option value="client">Client (acheteur)</option>
+                        <option value="vendeur">Vendeur (boutique)</option>
+                        <option value="livreur">Livreur</option>
+                    </select>
+                </div>
+                <div id="standardFields">
+                    <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
+                    <div class="form-group"><label>Prénom(s) *</label><input type="text" id="firstName" placeholder="Jean"></div>
+                    <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
+                    <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
+                    <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: 123456789"></div>
+                    <div class="form-group"><label>Ville de résidence *</label><input type="text" id="city" placeholder="Brazzaville"></div>
+                    <div class="form-group"><label>Adresse *</label><textarea id="address" rows="2" placeholder="Quartier, rue, numéro"></textarea></div>
+                    <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
+                    <div class="form-group"><label>Téléphone *</label><input type="tel" id="phone" placeholder="+242 06 XX XX XX"></div>
+                    <div class="form-row"><div class="form-group"><label>Mot de passe *</label><input type="password" id="password" placeholder="••••••••"></div><div class="form-group"><label>Confirmer *</label><input type="password" id="confirmPassword" placeholder="••••••••"></div></div>
+                </div>
+                <div id="deliveryFields" style="display:none;">
+                    <div class="form-group"><label>Photo de profil *</label><input type="file" id="profilePhoto" accept="image/*"></div>
+                    <div class="form-group"><label>Photo pièce d'identité *</label><input type="file" id="idPhoto" accept="image/*"></div>
+                    <div class="form-group"><label>Photo moyen de transport *</label><input type="file" id="transportPhoto" accept="image/*"></div>
+                    <div class="info-text">Ces documents seront vérifiés par l'administrateur avant activation de votre compte livreur.</div>
+                </div>
+                <div id="vendorFields" style="display:none;">
                     <div class="form-group"><label>Coordonnées bancaires / Mobile Money *</label><select id="paymentMethod"><option value="">Sélectionner</option><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa / Mastercard</option><option value="paypal">PayPal</option></select></div>
                     <div class="form-group"><input type="text" id="paymentDetails" placeholder="Numéro de compte ou identifiant"></div>
                 </div>
-                <div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-submit" onclick="finalizeRegistration()">Créer mon compte</button></div>
+                <button class="btn-next" onclick="validateStep1()">Continuer</button>
             `;
-            togglePaymentFields();
+            toggleAccountTypeFields();
+        } else if (currentStep === 2) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Code de vérification</label><input type="text" id="verifCode" placeholder="123456"></div>
+                <div class="info-text">Un code a été envoyé à ${tempUserData.email || 'votre email'}</div>
+                <div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-next" onclick="validateStep2()">Vérifier</button></div>
+            `;
+        } else if (currentStep === 3) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Vérification des documents</label>
+                    <div class="info-text">Pour les comptes livreurs, l'administrateur vérifiera vos documents avant activation.</div>
+                    <div class="info-text" style="margin-top:8px;">⏱️ Délai estimé: 24-48 heures</div>
+                </div>
+                <button class="btn-next" onclick="finalizeRegistration()">Finaliser l'inscription</button>
+                <div class="button-group" style="margin-top:12px;"><button class="btn-prev" onclick="prevStep()">Retour</button></div>
+            `;
         }
-        document.querySelectorAll('.step').forEach((el, idx) => { el.classList.remove('active', 'completed'); if (idx+1 === currentStep) el.classList.add('active'); else if (idx+1 < currentStep) el.classList.add('completed'); });
+        
+        document.querySelectorAll('#registerModal .step').forEach((el, idx) => {
+            el.classList.remove('active', 'completed', 'error');
+            if (idx + 1 === currentStep) el.classList.add('active');
+            else if (idx + 1 < currentStep) el.classList.add('completed');
+        });
     }
     
-    function togglePaymentFields() {
-        const paymentFields = document.getElementById('paymentFields');
-        if (paymentFields) paymentFields.style.display = document.getElementById('accountType').value === 'vendeur' ? 'block' : 'none';
+    function toggleAccountTypeFields() {
+        const accountType = document.getElementById('accountType')?.value;
+        const standardFields = document.getElementById('standardFields');
+        const deliveryFields = document.getElementById('deliveryFields');
+        const vendorFields = document.getElementById('vendorFields');
+        
+        if (standardFields) standardFields.style.display = 'block';
+        if (deliveryFields) deliveryFields.style.display = accountType === 'livreur' ? 'block' : 'none';
+        if (vendorFields) vendorFields.style.display = accountType === 'vendeur' ? 'block' : 'none';
     }
     
-    function validateRegisterStep1() {
+    function validateStep1() {
+        const accountType = document.getElementById('accountType').value;
         const fullName = document.getElementById('fullName').value.trim();
         const firstName = document.getElementById('firstName').value.trim();
         const birthDate = document.getElementById('birthDate').value;
         const birthPlace = document.getElementById('birthPlace').value.trim();
         const idNumber = document.getElementById('idNumber').value.trim();
+        const city = document.getElementById('city').value.trim();
+        const address = document.getElementById('address').value.trim();
         const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
         const password = document.getElementById('password').value;
         const confirm = document.getElementById('confirmPassword').value;
-        if (!fullName || !firstName || !birthDate || !birthPlace || !idNumber || !email || !password) { alert("Tous les champs sont obligatoires"); return; }
-        if (password !== confirm) { alert("Mots de passe différents"); return; }
-        tempUserData = { fullName, firstName, birthDate, birthPlace, idNumber, city: document.getElementById('city').value, address: document.getElementById('address').value, email, password };
-        generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-        alert(`Code vérification: ${generatedCode}`);
-        sendEmail(email, "Code de vérification Ouenze", `Bonjour ${fullName},\n\nVotre code de vérification est: ${generatedCode}`);
-        currentStep = 2;
-        renderRegisterStep();
+        
+        if (!fullName || !firstName || !birthDate || !birthPlace || !idNumber || !city || !address || !email || !phone || !password) {
+            alert("Tous les champs sont obligatoires");
+            return;
+        }
+        
+        if (!validateEmail(email)) {
+            alert("Email invalide");
+            return;
+        }
+        
+        if (!validatePhone(phone)) {
+            alert("Numéro de téléphone invalide. Format: +242 06 XX XX XX");
+            return;
+        }
+        
+        if (password !== confirm) {
+            alert("Les mots de passe ne correspondent pas");
+            return;
+        }
+        
+        if (password.length < 6) {
+            alert("Le mot de passe doit contenir au moins 6 caractères");
+            return;
+        }
+        
+        // Vérifier si l'email existe déjà
+        const existingUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        if (existingUsers.some(u => u.email === email)) {
+            alert("Cet email est déjà utilisé");
+            return;
+        }
+        
+        if (accountType === 'livreur') {
+            const profilePhoto = document.getElementById('profilePhoto').files[0];
+            const idPhoto = document.getElementById('idPhoto').files[0];
+            const transportPhoto = document.getElementById('transportPhoto').files[0];
+            
+            if (!profilePhoto || !idPhoto || !transportPhoto) {
+                alert("Veuillez fournir toutes les photos requises pour le compte livreur");
+                return;
+            }
+        }
+        
+        if (accountType === 'vendeur') {
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentDetails = document.getElementById('paymentDetails').value.trim();
+            if (!paymentMethod || !paymentDetails) {
+                alert("Coordonnées bancaires requises pour les vendeurs");
+                return;
+            }
+        }
+        
+        tempUserData = {
+            fullName, firstName, birthDate, birthPlace, idNumber, city, address, email, phone, password,
+            accountType: accountType,
+            paymentMethod: accountType === 'vendeur' ? document.getElementById('paymentMethod').value : null,
+            paymentDetails: accountType === 'vendeur' ? document.getElementById('paymentDetails').value.trim() : null
+        };
+        
+        if (accountType === 'livreur') {
+            const profilePhoto = document.getElementById('profilePhoto').files[0];
+            const idPhoto = document.getElementById('idPhoto').files[0];
+            const transportPhoto = document.getElementById('transportPhoto').files[0];
+            
+            const reader1 = new FileReader();
+            const reader2 = new FileReader();
+            const reader3 = new FileReader();
+            
+            let completed = 0;
+            function checkComplete() {
+                completed++;
+                if (completed === 3) {
+                    proceedToStep2();
+                }
+            }
+            
+            reader1.onload = (e) => { tempUserData.profilePhoto = e.target.result; checkComplete(); };
+            reader2.onload = (e) => { tempUserData.idPhoto = e.target.result; checkComplete(); };
+            reader3.onload = (e) => { tempUserData.transportPhoto = e.target.result; checkComplete(); };
+            
+            reader1.readAsDataURL(profilePhoto);
+            reader2.readAsDataURL(idPhoto);
+            reader3.readAsDataURL(transportPhoto);
+        } else {
+            proceedToStep2();
+        }
+        
+        function proceedToStep2() {
+            generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+            sendEmail(tempUserData.email, "Code de vérification Ouenze", `Bonjour ${tempUserData.fullName},\n\nVotre code de vérification est: ${generatedCode}\n\nCe code expire dans 15 minutes.\n\nL'équipe Ouenze`);
+            alert(`Code de vérification envoyé à ${tempUserData.email}`);
+            currentStep = 2;
+            renderRegisterStep();
+        }
     }
     
-    function validateRegisterStep2() {
-        if (document.getElementById('verifCode').value !== generatedCode) { alert("Code incorrect"); return; }
+    function validateStep2() {
+        const code = document.getElementById('verifCode').value;
+        if (code !== generatedCode) {
+            showError('verifCode', 'Code incorrect. Veuillez réessayer.');
+            return;
+        }
         currentStep = 3;
         renderRegisterStep();
     }
     
-    function prevStep() { currentStep--; renderRegisterStep(); }
+    function prevStep() {
+        if (currentStep > 1) {
+            currentStep--;
+            renderRegisterStep();
+        }
+    }
     
     function finalizeRegistration() {
-        const accountType = document.getElementById('accountType').value;
-        const paymentMethod = document.getElementById('paymentMethod')?.value || '';
-        const paymentDetails = document.getElementById('paymentDetails')?.value || '';
-        if (accountType === 'vendeur' && (!paymentMethod || !paymentDetails)) { alert("Coordonnées bancaires requises pour les vendeurs"); return; }
+        // Sauvegarder l'utilisateur
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
         
-        currentUser = { 
-            name: tempUserData.fullName, 
-            firstName: tempUserData.firstName, 
-            birthDate: tempUserData.birthDate, 
-            birthPlace: tempUserData.birthPlace, 
-            idNumber: tempUserData.idNumber, 
-            email: tempUserData.email, 
-            type: accountType,
-            paymentMethod: accountType === 'vendeur' ? paymentMethod : null,
-            paymentDetails: accountType === 'vendeur' ? paymentDetails : null
+        const newUser = {
+            id: Date.now(),
+            ...tempUserData,
+            createdAt: new Date().toISOString(),
+            emailVerified: true,
+            status: tempUserData.accountType === 'livreur' ? 'pending_verification' : 'active',
+            deliveryStatus: tempUserData.accountType === 'livreur' ? 'En attente de validation' : null,
+            paymentMethods: []
         };
+        
+        delete newUser.password;
+        allUsers.push(newUser);
+        localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
+        
+        // Créer la session utilisateur
+        currentUser = {
+            name: tempUserData.fullName,
+            email: tempUserData.email,
+            type: tempUserData.accountType,
+            deliveryStatus: newUser.deliveryStatus,
+            profilePhoto: tempUserData.profilePhoto
+        };
+        
+        if (tempUserData.accountType === 'vendeur') {
+            currentUser.paymentMethod = tempUserData.paymentMethod;
+            currentUser.paymentDetails = tempUserData.paymentDetails;
+        }
+        
         saveData();
         closeRegisterModal();
         
-        sendEmail(currentUser.email, "Bienvenue sur Ouenze Marketplace", `Bonjour ${currentUser.name},\n\nVotre compte ${accountType === 'vendeur' ? 'vendeur' : 'client'} a été créé avec succès !`);
+        const welcomeMessage = tempUserData.accountType === 'livreur' 
+            ? `Votre compte livreur a été créé !\n\nUn email de confirmation a été envoyé à ${tempUserData.email}\n\nVos documents sont en cours de vérification par l'administrateur.\nVous serez notifié sous 48h.`
+            : `Compte ${tempUserData.accountType} créé avec succès !\n\nUn email de bienvenue a été envoyé à ${tempUserData.email}`;
         
-        alert(`Compte ${accountType} créé !\nUn email de bienvenue a été envoyé à ${currentUser.email}`);
+        alert(welcomeMessage);
+        sendEmail(tempUserData.email, "Bienvenue sur Ouenze", `Bonjour ${tempUserData.fullName},\n\nVotre compte ${tempUserData.accountType} a été créé avec succès.\n\nCordialement,\nL'équipe Ouenze`);
+        
         updateHeaderUI();
         resetToHome();
     }
     
     function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); }
     
+    // ============ FONCTIONS DE RÉINITIALISATION MOT DE PASSE ============
+    let resetStep = 1;
+    let resetEmail = "";
+    let resetCode = "";
+    
+    function openForgotPasswordModal() {
+        resetStep = 1;
+        renderForgotPasswordStep();
+        document.getElementById('forgotPasswordModal').classList.add('active');
+    }
+    
+    function renderForgotPasswordStep() {
+        const stepContent = document.getElementById('forgotStepContent');
+        if (!stepContent) return;
+        
+        if (resetStep === 1) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Email *</label><input type="email" id="resetEmail" placeholder="exemple@email.com"></div>
+                <button class="btn-next" onclick="sendResetCode()">Envoyer le code</button>
+                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
+            `;
+        } else if (resetStep === 2) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Code de vérification</label><input type="text" id="resetVerifCode" placeholder="123456"></div>
+                <div class="button-group"><button class="btn-prev" onclick="prevResetStep()">Retour</button><button class="btn-next" onclick="verifyResetCode()">Vérifier</button></div>
+            `;
+        } else if (resetStep === 3) {
+            stepContent.innerHTML = `
+                <div class="form-group"><label>Nouveau mot de passe *</label><input type="password" id="newPassword" placeholder="••••••••"></div>
+                <div class="form-group"><label>Confirmer le mot de passe *</label><input type="password" id="confirmNewPassword" placeholder="••••••••"></div>
+                <button class="btn-submit" onclick="resetPassword()">Réinitialiser</button>
+                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
+            `;
+        }
+        
+        document.querySelectorAll('#forgotPasswordModal .step').forEach((el, idx) => {
+            el.classList.remove('active', 'completed');
+            if (idx + 1 === resetStep) el.classList.add('active');
+            else if (idx + 1 < resetStep) el.classList.add('completed');
+        });
+    }
+    
+    function sendResetCode() {
+        const email = document.getElementById('resetEmail').value.trim();
+        if (!email) { alert("Veuillez entrer votre email"); return; }
+        
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const user = allUsers.find(u => u.email === email);
+        if (user) {
+            resetEmail = email;
+            resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            sendEmail(email, "Code de réinitialisation Ouenze", `Bonjour,\n\nVotre code de réinitialisation est: ${resetCode}\n\nCe code expire dans 10 minutes.`);
+            alert(`Un code de vérification a été envoyé à ${email}`);
+            resetStep = 2;
+            renderForgotPasswordStep();
+        } else {
+            alert("Aucun compte trouvé avec cet email");
+        }
+    }
+    
+    function verifyResetCode() {
+        const code = document.getElementById('resetVerifCode').value;
+        if (code !== resetCode) { alert("Code incorrect"); return; }
+        resetStep = 3;
+        renderForgotPasswordStep();
+    }
+    
+    function prevResetStep() {
+        resetStep--;
+        renderForgotPasswordStep();
+    }
+    
+    function resetPassword() {
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+        
+        if (!newPassword) { alert("Veuillez entrer un mot de passe"); return; }
+        if (newPassword !== confirmNewPassword) { alert("Les mots de passe ne correspondent pas"); return; }
+        if (newPassword.length < 6) { alert("Le mot de passe doit contenir au moins 6 caractères"); return; }
+        
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const userIndex = allUsers.findIndex(u => u.email === resetEmail);
+        if (userIndex !== -1) {
+            allUsers[userIndex].password = newPassword;
+            localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
+            
+            if (currentUser && currentUser.email === resetEmail) {
+                currentUser.password = newPassword;
+                saveData();
+            }
+        }
+        
+        alert("✅ Mot de passe réinitialisé avec succès !");
+        closeForgotPasswordModal();
+    }
+    
+    function closeForgotPasswordModal() {
+        document.getElementById('forgotPasswordModal').classList.remove('active');
+        resetStep = 1;
+        resetEmail = "";
+        resetCode = "";
+    }
+    
+    // ============ AUTHENTIFICATION ============
     function openLoginModal() {
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `<div class="modal-card"><h3>Connexion</h3><div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div><div class="forgot-password" style="text-align:right;margin-bottom:12px;"><a onclick="openForgotPasswordModal()" style="color:var(--primary);font-size:11px;cursor:pointer;">Mot de passe oublié ?</a></div><button class="btn-submit" onclick="doLogin()">Se connecter</button><div style="text-align:center;margin-top:12px;"><a href="#" onclick="this.closest('.modal').remove();openRegisterModal();">Créer un compte</a></div></div>`;
         document.body.appendChild(modal);
+        
         window.doLogin = () => {
             const email = document.getElementById('loginEmail').value.trim();
-            if (email) { 
-                const existingUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-                if (existingUser && existingUser.email === email) {
-                    currentUser = existingUser;
-                } else {
-                    currentUser = { name: email.split('@')[0], email, type: 'client' };
-                }
-                saveData(); 
-                updateHeaderUI(); 
-                modal.remove(); 
-                resetToHome(); 
-                alert(`Bienvenue ${currentUser.name}`);
-                sendEmail(email, "Connexion à Ouenze", `Bonjour ${currentUser.name},\n\nVous vous êtes connecté à votre compte Ouenze Marketplace.`);
-            } else alert("Email requis");
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) { alert("Email et mot de passe requis"); return; }
+            
+            const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+            const user = allUsers.find(u => u.email === email);
+            
+            if (!user) {
+                alert("Email ou mot de passe incorrect");
+                return;
+            }
+            
+            if (user.password !== password) {
+                alert("Email ou mot de passe incorrect");
+                return;
+            }
+            
+            if (user.accountType === 'livreur' && user.status !== 'active') {
+                alert(`Votre compte livreur est ${user.deliveryStatus || 'en attente de vérification'}. Veuillez patienter pendant la validation de vos documents.`);
+                return;
+            }
+            
+            currentUser = {
+                name: user.fullName,
+                email: user.email,
+                type: user.accountType,
+                deliveryStatus: user.deliveryStatus,
+                profilePhoto: user.profilePhoto
+            };
+            
+            if (user.accountType === 'vendeur') {
+                currentUser.paymentMethod = user.paymentMethod;
+                currentUser.paymentDetails = user.paymentDetails;
+            }
+            
+            saveData();
+            updateHeaderUI();
+            modal.remove();
+            resetToHome();
+            alert(`Bienvenue ${currentUser.name}`);
+            sendEmail(email, "Connexion à Ouenze", `Bonjour ${currentUser.name},\n\nVous vous êtes connecté à votre compte Ouenze Marketplace.`);
         };
     }
     
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="goToVendorDashboard()"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}</div><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
+            let statusBadge = '';
+            if (currentUser.type === 'livreur' && currentUser.deliveryStatus === 'En attente de validation') {
+                statusBadge = '<span class="status-badge status-pending" style="margin-left:6px;">⏳ En attente</span>';
+            }
+            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${currentUser.profilePhoto ? `<img src="${currentUser.profilePhoto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}${statusBadge}</div><small>${currentUser.type === 'vendeur' ? 'Vendeur' : currentUser.type === 'livreur' ? 'Livreur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
         } else {
             container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button><button class="auth-btn" onclick="openRegisterModal()">Inscription</button><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">0</span></div>`;
         }
@@ -1239,6 +1884,20 @@
     window.validateAndPay = validateAndPay;
     window.openForgotPasswordModal = openForgotPasswordModal;
     window.closeForgotPasswordModal = closeForgotPasswordModal;
+    window.toggleAccountTypeFields = toggleAccountTypeFields;
+    window.validateStep1 = validateStep1;
+    window.validateStep2 = validateStep2;
+    window.prevStep = prevStep;
+    window.finalizeRegistration = finalizeRegistration;
+    window.showProfile = showProfile;
+    window.editField = editField;
+    window.saveFieldValue = saveFieldValue;
+    window.editProfilePhoto = editProfilePhoto;
+    window.editPaymentMethod = editPaymentMethod;
+    window.updatePaymentMethod = updatePaymentMethod;
+    window.deletePaymentMethod = deletePaymentMethod;
+    window.showAddPaymentModal = showAddPaymentModal;
+    window.addPaymentMethod = addPaymentMethod;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
@@ -1269,7 +1928,7 @@
         const modalDiv = document.createElement('div');
         modalDiv.id = 'registerModal';
         modalDiv.className = 'modal';
-        modalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Identité</div><div class="step">2. Vérification</div><div class="step">3. Compte</div></div><div id="stepContent"></div></div>`;
+        modalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Informations</div><div class="step">2. Vérification</div><div class="step">3. Validation</div></div><div id="stepContent"></div></div>`;
         document.body.appendChild(modalDiv);
         
         const forgotModalDiv = document.createElement('div');
