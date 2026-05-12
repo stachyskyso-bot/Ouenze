@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ouenze | Administration livreurs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+        }
+        
+        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .logo h1 { font-size: 22px; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .container { max-width: 1400px; margin: 24px auto; padding: 0 20px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .stat-card { background: var(--white); border-radius: 20px; padding: 20px; border: 1px solid var(--gray-200); }
+        .stat-card h3 { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-700); }
+        
+        .tabs { display: flex; gap: 4px; background: var(--white); padding: 8px 24px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; margin-bottom: 24px; }
+        .tab { padding: 8px 20px; background: none; border: none; border-radius: 30px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--gray-500); }
+        .tab.active { background: var(--primary); color: white; }
+        
+        .requests-list, .deliverers-list { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
+        .request-item, .deliverer-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; gap: 12px; }
+        .request-info h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .request-info p { font-size: 12px; color: var(--gray-500); }
+        .btn-approve { background: var(--success); color: white; border: none; padding: 6px 16px; border-radius: 30px; cursor: pointer; }
+        .btn-reject { background: var(--danger); color: white; border: none; padding: 6px 16px; border-radius: 30px; cursor: pointer; }
+        .btn-suspend { background: var(--warning); color: white; border: none; padding: 6px 16px; border-radius: 30px; cursor: pointer; }
+        .photo-thumb { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; cursor: pointer; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 600px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+        .photo-gallery { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+        .photo-gallery img { width: 150px; height: 150px; object-fit: cover; border-radius: 12px; border: 1px solid var(--gray-200); }
+        
+        .footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE ADMIN</h1></div>
+    <div><button onclick="window.location.href='index.html'" style="background:none;border:none;color:var(--primary);cursor:pointer;"><i class="fas fa-arrow-left"></i> Retour</button></div>
+</div>
+
+<div class="container">
+    <div class="stats-grid">
+        <div class="stat-card"><h3>Demandes en attente</h3><div class="stat-value" id="pendingCount">0</div></div>
+        <div class="stat-card"><h3>Livreurs actifs</h3><div class="stat-value" id="activeCount">0</div></div>
+        <div class="stat-card"><h3>Livreurs suspendus</h3><div class="stat-value" id="suspendedCount">0</div></div>
+        <div class="stat-card"><h3>Total livraisons</h3><div class="stat-value" id="totalDeliveries">0</div></div>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab active" data-tab="pending">Demandes en attente</button>
+        <button class="tab" data-tab="active">Livreurs actifs</button>
+        <button class="tab" data-tab="suspended">Livreurs suspendus</button>
+        <button class="tab" data-tab="all">Tous les livreurs</button>
+    </div>
+    
+    <div id="appContainer"></div>
+</div>
+
+<div class="footer">
+    <p>© 2024 Ouenze - Administration livreurs</p>
+</div>
+
+<script>
+    let deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
+    let deliveries = JSON.parse(localStorage.getItem('ouenze_deliveries') || '[]');
+    let currentTab = 'pending';
+    
+    function updateStats() {
+        document.getElementById('pendingCount').innerText = deliveryRequests.filter(r => r.status === 'pending').length;
+        document.getElementById('activeCount').innerText = deliveryRequests.filter(r => r.status === 'approved').length;
+        document.getElementById('suspendedCount').innerText = deliveryRequests.filter(r => r.status === 'suspended').length;
+        document.getElementById('totalDeliveries').innerText = deliveries.length;
+    }
+    
+    function renderPage() {
+        let filteredRequests = [];
+        if (currentTab === 'pending') filteredRequests = deliveryRequests.filter(r => r.status === 'pending');
+        else if (currentTab === 'active') filteredRequests = deliveryRequests.filter(r => r.status === 'approved');
+        else if (currentTab === 'suspended') filteredRequests = deliveryRequests.filter(r => r.status === 'suspended');
+        else filteredRequests = deliveryRequests;
+        
+        const container = document.getElementById('appContainer');
+        container.innerHTML = `
+            <div class="requests-list">
+                ${filteredRequests.length ? filteredRequests.map(req => `
+                    <div class="request-item">
+                        <div class="request-info">
+                            <h4>${escapeHtml(req.fullName)}</h4>
+                            <p>📞 ${escapeHtml(req.phone)} | 📧 ${escapeHtml(req.email)}</p>
+                            <p>📍 ${escapeHtml(req.city)}, ${escapeHtml(req.quartier)}</p>
+                            <p>📅 Inscription: ${new Date(req.date).toLocaleDateString()}</p>
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="photo-thumb" onclick="viewPhotos('${req.id}')">📷 Voir documents</button>
+                            </div>
+                        </div>
+                        <div>
+                            ${req.status === 'pending' ? `
+                                <button class="btn-approve" onclick="updateStatus(${req.id}, 'approved')">✅ Approuver</button>
+                                <button class="btn-reject" onclick="updateStatus(${req.id}, 'rejected')">❌ Refuser</button>
+                            ` : req.status === 'approved' ? `
+                                <button class="btn-suspend" onclick="updateStatus(${req.id}, 'suspended')">⛔ Suspendre</button>
+                            ` : req.status === 'suspended' ? `
+                                <button class="btn-approve" onclick="updateStatus(${req.id}, 'approved')">🔄 Réactiver</button>
+                            ` : ''}
+                            ${req.status !== 'pending' ? `<button class="btn-reject" onclick="deleteDeliverer(${req.id})">🗑️ Supprimer</button>` : ''}
+                        </div>
+                    </div>
+                `).join('') : '<div style="text-align:center;padding:40px;">Aucun livreur trouvé</div>'}
+            </div>
+        `;
+        updateStats();
+    }
+    
+    function viewPhotos(requestId) {
+        const request = deliveryRequests.find(r => r.id === requestId);
+        if (!request) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>Documents de ${escapeHtml(request.fullName)}</h3>
+                <div class="photo-gallery">
+                    <div><strong>Photo de profil</strong><br><img src="${request.photo}" style="width:150px;height:150px;object-fit:cover;border-radius:12px;"></div>
+                    <div><strong>Pièce d'identité</strong><br><img src="${request.idCard}" style="width:150px;height:150px;object-fit:cover;border-radius:12px;"></div>
+                    <div><strong>Moyen de transport</strong><br><img src="${request.transport}" style="width:150px;height:150px;object-fit:cover;border-radius:12px;"></div>
+                </div>
+                <button onclick="this.closest('.modal').remove()" class="btn-approve">Fermer</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function updateStatus(requestId, newStatus) {
+        const request = deliveryRequests.find(r => r.id === requestId);
+        if (request) {
+            request.status = newStatus;
+            localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
+            
+            if (newStatus === 'approved') {
+                // Créer un compte utilisateur livreur
+                let users = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+                const existingUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+                if (!existingUser || existingUser.email !== request.email) {
+                    // Simuler la création du compte (en production, cela créerait un vrai compte)
+                    console.log(`📧 Email envoyé à ${request.email}: Votre compte livreur a été activé !`);
+                }
+                alert(`✅ Livreur "${request.fullName}" approuvé ! Un email a été envoyé.`);
+            } else if (newStatus === 'suspended') {
+                alert(`⚠️ Livreur "${request.fullName}" a été suspendu.`);
+            } else if (newStatus === 'rejected') {
+                alert(`❌ Livreur "${request.fullName}" a été refusé.`);
+            }
+            renderPage();
+        }
+    }
+    
+    function deleteDeliverer(requestId) {
+        if (confirm("Êtes-vous sûr de vouloir supprimer définitivement ce livreur ?")) {
+            const index = deliveryRequests.findIndex(r => r.id === requestId);
+            if (index !== -1) {
+                deliveryRequests.splice(index, 1);
+                localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
+                alert("Livreur supprimé");
+                renderPage();
+            }
+        }
+    }
+    
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            renderPage();
+        });
+    });
+    
+    renderPage();
+</script>
+</body>
+</html>
