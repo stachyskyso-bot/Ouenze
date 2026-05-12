@@ -919,7 +919,7 @@
                 <div class="form-group"><label>Ville *</label><input type="text" id="deliveryCity" placeholder="Brazzaville"></div>
                 <div class="form-group"><label>Quartier *</label><input type="text" id="deliveryQuartier" placeholder="Moungali, Bacongo..."></div>
                 <div class="form-group"><label>Adresse *</label><input type="text" id="deliveryAddress" placeholder="Rue, numéro, point de repère"></div>
-                <div class="form-group"><label>Téléphone *</label><input type="tel" id="deliveryPhone" placeholder="+242 06 XX XX XX"></div>
+                <div class="form-group"><label>Téléphone *</label><input type="tel" id="deliveryPhone" placeholder="+242 0X XXX XX XX"></div>
                 
                 <h3 style="font-size:14px;margin:16px 0 12px;">Mode de paiement</h3>
                 <div class="payment-options" id="paymentOptions">
@@ -956,7 +956,7 @@
             container.style.display = 'block';
             container.innerHTML = `
                 <div class="card-details">
-                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
+                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN Désiré MAVOULA"></div>
                     <div class="form-group"><label>Numéro de compte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div>
                     <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group" style="flex:1;"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div>
                     <div id="cardTypeDisplay" style="font-size:10px;color:var(--gray-500);"></div>
@@ -980,7 +980,7 @@
             container.innerHTML = `
                 <div class="card-details">
                     <div class="form-group"><label>Opérateur</label><select id="mobileOperator"><option value="mtn">MTN Mobile Money</option><option value="airtel">Airtel Money</option></select></div>
-                    <div class="form-group"><label>Numéro</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div>
+                    <div class="form-group"><label>Numéro</label><input type="tel" id="mobileNumber" placeholder="+242 06 XXX XX XX"></div>
                 </div>
             `;
         } else if (type === 'paypal') {
@@ -1027,7 +1027,7 @@
             const mobileNumber = document.getElementById('mobileNumber')?.value.trim();
             if (!mobileNumber) { alert("Numéro Mobile Money requis"); return; }
             const cleanNumber = mobileNumber.replace(/\s/g, '');
-            if (!/^(\+242|0)[56]\d{8}$/.test(cleanNumber)) { alert("Numéro invalide. Format: +242 06 XX XX XX"); return; }
+            if (!/^(\+242|0)[56]\d{8}$/.test(cleanNumber)) { alert("Numéro invalide. Format: +242 0X XXX XX XX"); return; }
         }
         
         if (selectedPayment === 'paypal') {
@@ -1459,7 +1459,7 @@
                     <div class="form-group"><label>Ville de résidence *</label><input type="text" id="city" placeholder="Brazzaville"></div>
                     <div class="form-group"><label>Adresse *</label><textarea id="address" rows="2" placeholder="Quartier, rue, numéro"></textarea></div>
                     <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
-                    <div class="form-group"><label>Téléphone *</label><input type="tel" id="phone" placeholder="+242 06 XX XX XX"></div>
+                    <div class="form-group"><label>Téléphone *</label><input type="tel" id="phone" placeholder="+242 0X XXX XX XX"></div>
                     <div class="form-row"><div class="form-group"><label>Mot de passe *</label><input type="password" id="password" placeholder="••••••••"></div><div class="form-group"><label>Confirmer *</label><input type="password" id="confirmPassword" placeholder="••••••••"></div></div>
                 </div>
                 <div id="deliveryFields" style="display:none;">
