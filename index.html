@@ -114,7 +114,7 @@
             cursor: pointer;
         }
         
-        .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
+         .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
         
         .ranking-bar { background: var(--white); border-radius: 16px; padding: 10px 16px; margin-bottom: 16px; border: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .ranking-filters { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -244,48 +244,20 @@
         
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 16px; text-align: center; font-size: 10px; color: var(--gray-500); }
         
-        /* Styles pour le profil */
-        .profile-container { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
-        .profile-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 30px 20px; text-align: center; color: white; }
-        .profile-avatar { width: 100px; height: 100px; margin: 0 auto 15px; position: relative; }
-        .profile-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid white; background: white; }
-        .edit-avatar-btn { position: absolute; bottom: 0; right: 0; background: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .profile-tabs { display: flex; border-bottom: 1px solid var(--gray-200); background: var(--white); padding: 0 20px; gap: 20px; overflow-x: auto; }
-        .profile-tab { padding: 12px 0; font-size: 13px; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
-        .profile-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .profile-section { padding: 20px; display: none; }
-        .profile-section.active { display: block; }
-        .info-card { background: var(--gray-100); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
-        .info-row { display: flex; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-200); }
-        .info-label { width: 120px; font-weight: 600; font-size: 12px; color: var(--gray-700); }
-        .info-value { flex: 1; font-size: 13px; color: var(--gray-700); }
-        .info-actions { text-align: right; }
-        .edit-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 11px; }
-        .payment-methods-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-        .payment-item { background: var(--gray-100); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .payment-info { display: flex; align-items: center; gap: 10px; }
-        .payment-icon { width: 40px; height: 40px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .payment-details { font-size: 12px; }
-        .payment-details strong { display: block; font-size: 13px; }
-        .payment-actions button { background: none; border: none; cursor: pointer; margin-left: 8px; font-size: 14px; }
-        .btn-add-payment { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
-        .commandes-list { display: flex; flex-direction: column; gap: 12px; }
-        .commande-item { background: var(--gray-100); border-radius: 12px; padding: 12px; border-left: 3px solid var(--success); }
-        
-        /* Styles pour la carte de localisation */
-        .location-map { height: 300px; border-radius: 12px; margin-bottom: 15px; z-index: 1; }
-        .location-actions { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        .location-actions button { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
-        .location-coords { background: var(--gray-100); padding: 10px; border-radius: 10px; font-size: 11px; margin-top: 10px; text-align: center; }
-        .gps-link { display: inline-block; background: var(--success); color: white; padding: 8px 16px; border-radius: 30px; text-decoration: none; font-size: 12px; margin-top: 10px; }
+        /* Styles pour la carte */
+        .location-map { height: 350px; border-radius: 16px; margin: 15px 0; z-index: 1; }
+        .location-actions { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+        .location-actions button { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 8px; }
+        .location-actions button i { font-size: 14px; }
+        .location-info { background: var(--gray-100); padding: 12px; border-radius: 12px; margin: 10px 0; font-size: 12px; text-align: center; }
+        .gps-link { display: inline-flex; align-items: center; gap: 6px; background: var(--success); color: white; padding: 8px 16px; border-radius: 30px; text-decoration: none; font-size: 12px; margin: 5px; }
+        .shop-location-badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 2px 8px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
         
         @media (max-width: 480px) {
             .shops-grid { grid-template-columns: 1fr; }
             .products-container { grid-template-columns: repeat(2, 1fr); }
             .dropdown-content { left: 0; right: auto; }
             .form-row { grid-template-columns: 1fr; gap: 8px; }
-            .info-row { flex-direction: column; }
-            .info-label { width: auto; margin-bottom: 5px; }
         }
     </style>
 </head>
@@ -346,7 +318,6 @@
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
     // ============ DONNÉES ============
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
@@ -361,55 +332,20 @@
     let selectedPayment = null;
     let lastAttemptTime = 0;
     let attemptCount = 0;
-    let locationMap = null;
-    let locationMarker = null;
+    let currentLocationMap = null;
+    let currentLocationMarker = null;
+    let tempDeliveryLocation = null;
     
-    // Coordonnées par défaut (Brazzaville)
     const DEFAULT_LAT = -4.2634;
     const DEFAULT_LNG = 15.2429;
     
-    // ============ FONCTIONS DE VÉRIFICATION ============
-    function checkRateLimit() {
-        const now = Date.now();
-        if (now - lastAttemptTime < 5000) {
-            attemptCount++;
-            if (attemptCount > 3) return false;
-        } else {
-            attemptCount = 1;
-            lastAttemptTime = now;
-        }
-        return true;
-    }
-    
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-    
-    function validatePhone(phone) {
-        const clean = phone.replace(/\s/g, '');
-        return /^(\+242|0)[56]\d{8}$/.test(clean);
-    }
-    
-    function sendEmail(to, subject, body) {
-        console.log(`📧 EMAIL ENVOYÉ À: ${to}`);
-        console.log(`📧 OBJET: ${subject}`);
-        console.log(`📧 MESSAGE: ${body}`);
-        return true;
-    }
-    
-    function showError(elementId, message) {
-        const errorEl = document.getElementById(elementId);
-        if (errorEl) {
-            errorEl.innerText = message;
-            errorEl.classList.add('show');
-            setTimeout(() => errorEl.classList.remove('show'), 5000);
-        }
-    }
-    
+    // ============ FONCTIONS DE BASE ============
+    function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+    function validatePhone(phone) { return /^(\+242|0)[56]\d{8}$/.test(phone.replace(/\s/g, '')); }
+    function sendEmail(to, subject, body) { console.log(`📧 ${subject} -> ${to}`); return true; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
-    // ============ BOUTIQUES ============
+    // ============ BOUTIQUES INIT ============
     if (shops.length === 0) {
         shops = [
             { id: 1, name: "Élégance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250, 
@@ -428,7 +364,6 @@
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         localStorage.setItem('ouenze_cart', JSON.stringify(cart));
-        localStorage.setItem('ouenze_delivery_drivers', JSON.stringify(deliveryDrivers));
         if (currentUser) localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
         else localStorage.removeItem('ouenze_current_user');
         updateCartCount();
@@ -449,15 +384,6 @@
         else deliveryLink.style.display = 'none';
     }
     
-    function goToVendorDashboard() { window.location.href = 'vendor-dashboard.html'; }
-    function showDeliveryDashboard() { 
-        if (currentUser && currentUser.type === 'livreur') {
-            showDeliveryOrders();
-        } else {
-            alert("Vous n'avez pas de compte livreur");
-        }
-    }
-    
     function generateStars(rating) {
         const full = Math.floor(rating);
         let stars = '';
@@ -467,24 +393,9 @@
         return stars;
     }
     
-    function getShopLevel(shop) {
-        const rating = shop.rating || 0;
-        if (rating >= 4.5) return { level: 'gold', name: 'Or', ouenzeFee: 21, color: '#f59e0b' };
-        else if (rating >= 4) return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, color: '#94a3b8' };
-        else if (rating >= 3) return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, color: '#b45309' };
-        return { level: null, name: 'Non éligible', ouenzeFee: 22, color: '#64748b' };
-    }
-    
-    function getCertificationBadge(rating, verified) {
-        if (verified) return '<div class="certification-badge blue" title="Certifiée"><i class="fas fa-check-circle"></i></div>';
-        if (rating >= 4.5) return '<div class="certification-badge gold" title="Top vendeur"><i class="fas fa-crown"></i></div>';
-        return '';
-    }
-    
     function sortShops(shopsList, sortBy) {
         return [...shopsList].sort((a, b) => {
             if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-            if (sortBy === 'date') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
             if (sortBy === 'sales') return (b.totalSales || 0) - (a.totalSales || 0);
             return 0;
         });
@@ -497,7 +408,6 @@
             <div class="ranking-bar">
                 <div class="ranking-filters">
                     <button class="ranking-btn ${currentRanking === 'rating' ? 'active' : ''}" onclick="setRanking('rating')">Par note</button>
-                    <button class="ranking-btn ${currentRanking === 'date' ? 'active' : ''}" onclick="setRanking('date')">Récent</button>
                     <button class="ranking-btn ${currentRanking === 'sales' ? 'active' : ''}" onclick="setRanking('sales')">Ventes</button>
                 </div>
                 <div style="display:flex; gap:6px;">
@@ -507,117 +417,34 @@
                 </div>
             </div>
             <div id="shopsGrid" class="shops-grid"></div>
-            <div id="productsGrid" class="products-grid" style="display:none;"></div>
         `;
         displayShops(rankedShops);
-        
-        window.currentSearchType = 'all';
-        document.querySelectorAll('.search-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                window.currentSearchType = tab.dataset.type;
-                performSearch();
-            });
-        });
     }
     
-    function setRanking(type) {
-        currentRanking = type;
-        showHomePage();
-    }
+    function setRanking(type) { currentRanking = type; showHomePage(); }
     
     function displayShops(shopsList) {
         const grid = document.getElementById('shopsGrid');
         if (!grid) return;
         if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:30px;">Aucune boutique</div>'; return; }
-        grid.innerHTML = shopsList.map(shop => {
-            const level = getShopLevel(shop);
-            const levelBadge = level.level ? `<span style="display:inline-block; margin-left:6px; padding:2px 8px; border-radius:20px; font-size:9px; background:${level.color}20; color:${level.color};"><i class="fas fa-crown"></i> ${level.name}</span>` : '';
-            return `
-                <div class="shop-card" onclick="viewShopDetail(${shop.id})" style="position:relative;">
-                    ${getCertificationBadge(shop.rating || 0, shop.verified)}
-                    <div class="shop-logo-area">
-                        <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
-                        <div class="shop-name">${escapeHtml(shop.name)}${levelBadge}</div>
-                        <div class="shop-rating">
-                            <div class="stars">${generateStars(shop.rating || 0)}</div>
-                            <span>(${shop.totalRatings || 0})</span>
-                        </div>
-                        <div style="font-size:10px;color:var(--gray-500);margin-top:4px;">
-                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                        </div>
-                    </div>
-                    <div class="shop-details">
-                        <div class="shop-metrics">
-                            <div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div>
-                            <div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div>
-                        </div>
-                    </div>
+        grid.innerHTML = shopsList.map(shop => `
+            <div class="shop-card" onclick="viewShopDetail(${shop.id})">
+                <div class="shop-logo-area">
+                    <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
+                    <div class="shop-name">${escapeHtml(shop.name)}</div>
+                    <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>(${shop.totalRatings || 0})</span></div>
+                    <div style="font-size:10px;color:var(--gray-500);margin-top:4px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}</div>
+                    ${shop.location ? `<div style="font-size:9px;margin-top:2px;"><i class="fas fa-location-dot"></i> Position GPS disponible</div>` : ''}
                 </div>
-            `;
-        }).join('');
-    }
-    
-    function displayProducts(productsList) {
-        const grid = document.getElementById('productsGrid');
-        if (!grid) return;
-        grid.style.display = 'grid';
-        document.getElementById('shopsGrid').style.display = 'none';
-        if (!productsList.length) { grid.innerHTML = '<div style="text-align:center;padding:30px;">Aucun produit</div>'; return; }
-        grid.innerHTML = productsList.map(p => `
-            <div class="product-card" onclick="openProductModal(${p.shopId}, ${p.id})">
-                <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image">
-                <div class="product-info">
-                    <div class="product-title">${escapeHtml(p.name)}</div>
-                    <div class="product-price">${p.price} FCFA</div>
-                    <div style="font-size:9px;color:var(--gray-500);">${escapeHtml(p.shopName)}</div>
-                    <button class="btn-custom" style="background:var(--primary);padding:5px;border-radius:30px;width:100%;margin-top:5px;border:none;color:white;cursor:pointer;" onclick="event.stopPropagation();addToCart(${p.shopId}, ${p.id}, '${escapeHtml(p.name)}', '${p.price}')">Ajouter</button>
-                </div>
+                <div class="shop-details"><div class="shop-metrics"><div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div><div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div></div></div>
             </div>
         `).join('');
     }
     
-    function performSearch() {
-        const query = document.getElementById('searchInput').value.toLowerCase().trim();
-        if (!query) { displayShops(sortShops(shops, currentRanking)); document.getElementById('productsGrid').style.display = 'none'; document.getElementById('shopsGrid').style.display = 'grid'; return; }
-        
-        if (window.currentSearchType === 'shop') {
-            const filtered = shops.filter(s => s.name.toLowerCase().includes(query));
-            displayShops(filtered);
-            document.getElementById('productsGrid').style.display = 'none';
-            document.getElementById('shopsGrid').style.display = 'grid';
-        } else if (window.currentSearchType === 'product') {
-            const allProducts = [];
-            shops.forEach(shop => {
-                (shop.products || []).forEach(p => {
-                    if (p.name.toLowerCase().includes(query)) allProducts.push({ ...p, shopId: shop.id, shopName: shop.name });
-                });
-            });
-            displayProducts(allProducts);
-        } else {
-            const filteredShops = shops.filter(s => s.name.toLowerCase().includes(query));
-            const allProducts = [];
-            shops.forEach(shop => {
-                (shop.products || []).forEach(p => {
-                    if (p.name.toLowerCase().includes(query)) allProducts.push({ ...p, shopId: shop.id, shopName: shop.name });
-                });
-            });
-            if (filteredShops.length > 0) { displayShops(filteredShops); document.getElementById('productsGrid').style.display = 'none'; }
-            else if (allProducts.length > 0) displayProducts(allProducts);
-            else displayShops([]);
-        }
-    }
-    
-    // ============ VUE BOUTIQUE DÉTAILLÉE ============
+    // ============ VUE BOUTIQUE ============
     function viewShopDetail(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
-        
-        const url = new URL(window.location.href);
-        url.searchParams.set('id', shopId);
-        window.history.pushState({}, '', url);
-        
         currentShop = shop;
         currentCategory = 'all';
         
@@ -625,19 +452,13 @@
             <button class="back-btn" onclick="resetToHome()"><i class="fas fa-arrow-left"></i> Retour</button>
             <div class="shop-header-custom" style="background: linear-gradient(135deg, #1e40af, #1e40afaa);">
                 <div class="shop-header-content">
-                    <div class="shop-logo-large">
-                        ${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
-                    </div>
+                    <div class="shop-logo-large">${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
                     <div class="shop-info">
                         <h1>${escapeHtml(shop.name)}</h1>
                         <p>${escapeHtml(shop.description || '')}</p>
-                        <div class="shop-rating">
-                            <div class="stars">${generateStars(shop.rating || 0)}</div>
-                            <span>${shop.rating || 0} (${shop.totalRatings || 0})</span>
-                            ${shop.verified ? '<span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:20px;margin-left:6px;font-size:10px;"><i class="fas fa-check-circle"></i> Certifiée</span>' : ''}
-                        </div>
+                        <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>${shop.rating || 0} (${shop.totalRatings || 0})</span></div>
                         <div style="margin-top:4px; font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city + ', ' + shop.quartier)}</div>
-                        ${shop.location ? `<button class="share-link" onclick="openInGoogleMaps(${shop.location.lat}, ${shop.location.lng}, '${escapeHtml(shop.name)}')"><i class="fas fa-directions"></i> Voir sur la carte</button>` : ''}
+                        ${shop.location ? `<div class="shop-location-badge" onclick="openShopLocationMap(${shop.location.lat}, ${shop.location.lng}, '${escapeHtml(shop.name)}')"><i class="fas fa-location-dot"></i> Voir sur la carte</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -646,23 +467,9 @@
                 ${(shop.categories || []).map(cat => `<button class="category-btn" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('')}
             </div>
             <div id="shopProductsContainer" class="products-container"></div>
-            <div class="reviews-section">
-                <h3>Avis clients</h3>
-                ${(shop.reviews || []).length ? shop.reviews.map(r => `
-                    <div class="review-item">
-                        <div class="review-header">
-                            <span class="review-user">${escapeHtml(r.user)}</span>
-                            <div class="review-stars">${generateStars(r.rating)}</div>
-                            <span class="review-date">${new Date(r.date).toLocaleDateString()}</span>
-                        </div>
-                        <div class="review-comment">${escapeHtml(r.comment || '')}</div>
-                    </div>
-                `).join('') : '<p style="color:var(--gray-500);">Aucun avis pour le moment</p>'}
-            </div>
+            <div class="reviews-section"><h3>Avis clients</h3>${(shop.reviews || []).length ? shop.reviews.map(r => `<div class="review-item"><div class="review-header"><span class="review-user">${escapeHtml(r.user)}</span><div class="review-stars">${generateStars(r.rating)}</div><span class="review-date">${new Date(r.date).toLocaleDateString()}</span></div><div class="review-comment">${escapeHtml(r.comment || '')}</div></div>`).join('') : '<p style="color:var(--gray-500);">Aucun avis</p>'}</div>
         `;
-        
         displayShopProducts();
-        
         document.querySelectorAll('#shopCategoriesFilter .category-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('#shopCategoriesFilter .category-btn').forEach(b => b.classList.remove('active'));
@@ -673,26 +480,30 @@
         });
     }
     
+    function openShopLocationMap(lat, lng, name) {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `<div class="modal-card" style="max-width:700px;"><h3>Localisation - ${escapeHtml(name)}</h3><div id="shopLocationMap" style="height:400px; border-radius:12px;"></div><div class="location-actions"><button onclick="window.open('https://www.google.com/maps?q=${lat},${lng}', '_blank')" style="background:var(--success);"><i class="fab fa-google"></i> Ouvrir dans Google Maps</button><button onclick="this.closest('.modal').remove()">Fermer</button></div></div>`;
+        document.body.appendChild(modal);
+        setTimeout(() => {
+            const map = L.map('shopLocationMap').setView([lat, lng], 16);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OSM' }).addTo(map);
+            L.marker([lat, lng]).addTo(map).bindPopup(`<b>${escapeHtml(name)}</b>`).openPopup();
+        }, 100);
+    }
+    
     function displayShopProducts() {
         const container = document.getElementById('shopProductsContainer');
         if (!container) return;
         let products = currentShop.products || [];
         if (currentCategory !== 'all') products = products.filter(p => p.category === currentCategory);
-        
-        if (!products.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px;">Aucun produit</div>';
-            return;
-        }
-        
+        if (!products.length) { container.innerHTML = '<div style="text-align:center;padding:30px;">Aucun produit</div>'; return; }
         container.innerHTML = products.map(p => `
             <div class="product-card" onclick="openProductModal(${currentShop.id}, ${p.id})">
-                <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image" style="height:130px;">
+                <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image">
                 <div class="product-info">
-                    ${p.productType === 'food' ? '<div class="product-badge">Alimentaire</div>' : ''}
                     <div class="product-title">${escapeHtml(p.name)}</div>
                     <div class="product-price">${p.price} FCFA</div>
-                    <div class="product-stock">Stock: ${p.stock || 0}</div>
-                    <button class="btn-add-cart" style="background:#1e40af; border-radius:12px;" onclick="event.stopPropagation();addToCart(${currentShop.id}, ${p.id}, '${escapeHtml(p.name)}', '${p.price}')">Ajouter</button>
+                    <button class="btn-add-cart" onclick="event.stopPropagation();addToCart(${currentShop.id}, ${p.id}, '${escapeHtml(p.name)}', '${p.price}')">Ajouter</button>
                 </div>
             </div>
         `).join('');
@@ -702,47 +513,15 @@
         const shop = shops.find(s => s.id === shopId);
         const product = shop?.products?.find(p => p.id === productId);
         if (!product) return;
-        const photos = product.photos && product.photos.length ? product.photos : ['https://via.placeholder.com/600x400'];
-        
         const modal = document.createElement('div'); modal.className = 'product-modal';
-        modal.innerHTML = `
-            <div class="product-modal-content">
-                <div style="display:flex; justify-content:flex-end;"><span style="font-size:22px;cursor:pointer;" onclick="this.closest('.product-modal').remove()">&times;</span></div>
-                <div class="product-modal-body">
-                    <div>
-                        <img id="modalMainImage" src="${photos[0]}" class="product-main-image">
-                        <div class="product-thumbnails">
-                            ${photos.map((p, i) => `<img src="${p}" class="product-thumbnail" data-index="${i}">`).join('')}
-                        </div>
-                    </div>
-                    <div>
-                        <h2 style="font-size:18px;">${escapeHtml(product.name)}</h2>
-                        <div class="product-price" style="font-size:18px;">${product.price} FCFA</div>
-                        <div class="product-stock">Stock: ${product.stock || 0}</div>
-                        <div class="product-description" style="margin:10px 0; font-size:12px;">${escapeHtml(product.description || 'Aucune description')}</div>
-                        <button class="btn-modal-add" style="background:#1e40af;" onclick="addToCartFromModal(${shop.id}, ${product.id}, '${escapeHtml(product.name)}', '${product.price}')">Ajouter au panier</button>
-                    </div>
-                </div>
-            </div>`;
+        modal.innerHTML = `<div class="product-modal-content"><div style="display:flex; justify-content:flex-end;"><span style="font-size:22px;cursor:pointer;" onclick="this.closest('.product-modal').remove()">&times;</span></div><div class="product-modal-body"><div><img src="${product.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-main-image"></div><div><h2>${escapeHtml(product.name)}</h2><div class="product-price">${product.price} FCFA</div><div class="product-stock">Stock: ${product.stock || 0}</div><div class="product-description">${escapeHtml(product.description || '')}</div><button class="btn-modal-add" onclick="addToCartFromModal(${shop.id}, ${product.id}, '${escapeHtml(product.name)}', '${product.price}')">Ajouter au panier</button></div></div></div>`;
         document.body.appendChild(modal);
-        
-        document.querySelectorAll('.product-thumbnail').forEach((thumb, idx) => {
-            thumb.addEventListener('click', () => {
-                document.getElementById('modalMainImage').src = thumb.src;
-                document.querySelectorAll('.product-thumbnail').forEach(t => t.classList.remove('active'));
-                thumb.classList.add('active');
-            });
-        });
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     }
     
     function addToCartFromModal(shopId, productId, productName, price) {
         if (!currentUser) { alert("Connectez-vous"); openLoginModal(); return; }
-        const existing = cart.find(i => i.productId === productId && i.shopId === shopId);
-        if (existing) existing.quantity++;
-        else cart.push({ productId, productName, price: parseFloat(price), quantity: 1, shopId, shopName: shops.find(s=>s.id===shopId)?.name });
-        saveData();
-        alert(`${productName} ajouté au panier`);
+        addToCart(shopId, productId, productName, price);
         document.querySelector('.product-modal')?.remove();
     }
     
@@ -755,90 +534,144 @@
         alert(`${productName} ajouté au panier`);
     }
     
-    // ============ PANIER ET PAIEMENT ============
+    // ============ PANIER AVEC CARTE GPS ============
     function showCart() {
         if (cart.length === 0) {
-            document.getElementById('appContainer').innerHTML = `<div class="cart-container" style="text-align:center;padding:40px;"><i class="fas fa-shopping-cart" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i><h3>Votre panier est vide</h3><button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;width:auto;padding:8px 24px;">Continuer vos achats</button></div>`;
+            document.getElementById('appContainer').innerHTML = `<div class="cart-container" style="text-align:center;padding:40px;"><i class="fas fa-shopping-cart" style="font-size:48px;"></i><h3>Votre panier est vide</h3><button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;">Continuer</button></div>`;
             return;
         }
-        
-        let subtotal = cart.reduce((s,i) => s + i.price * i.quantity, 0);
-        const deliveryFees = subtotal * 0.1;
-        const total = subtotal + deliveryFees;
-        
-        const itemsHtml = cart.map((item, idx) => `
-            <div class="cart-item">
-                <div class="cart-item-info">
-                    <h4 style="font-size:14px;">${escapeHtml(item.productName)}</h4>
-                    <div style="font-size:12px;color:var(--primary);">${item.price} FCFA</div>
-                    <div style="font-size:10px;color:var(--gray-500);">${escapeHtml(item.shopName)}</div>
-                    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
-                        <button onclick="updateQuantity(${idx}, -1)" style="background:var(--gray-100);border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;">-</button>
-                        <span style="font-size:12px;">${item.quantity}</span>
-                        <button onclick="updateQuantity(${idx}, 1)" style="background:var(--gray-100);border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;">+</button>
-                        <button onclick="removeFromCart(${idx})" style="background:none;border:none;color:var(--danger);cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
+        let subtotal = cart.reduce((s,i)=>s+i.price*i.quantity,0);
+        let total = subtotal * 1.1;
+        document.getElementById('appContainer').innerHTML = `
+            <div class="cart-container"><h2>Mon panier</h2>
+            ${cart.map((item, idx) => `<div class="cart-item"><div class="cart-item-info"><h4>${escapeHtml(item.productName)}</h4><div>${item.price} FCFA</div><div>${escapeHtml(item.shopName)}</div><div><button onclick="updateQuantity(${idx}, -1)">-</button> ${item.quantity} <button onclick="updateQuantity(${idx}, 1)">+</button> <button onclick="removeFromCart(${idx})"><i class="fas fa-trash"></i></button></div></div></div>`).join('')}
+            <div class="cart-total"><div>Total: ${total.toLocaleString()} FCFA</div></div>
+            <button class="btn-submit" onclick="showLocationSelection(${total})">Passer à la caisse</button>
+            <button onclick="resetToHome()" style="margin-top:12px;">Continuer</button></div>`;
+    }
+    
+    function updateQuantity(idx, delta) { cart[idx].quantity += delta; if (cart[idx].quantity <= 0) cart.splice(idx,1); saveData(); showCart(); }
+    function removeFromCart(idx) { cart.splice(idx,1); saveData(); showCart(); }
+    
+    // ============ SÉLECTION DE LOCALISATION AVEC CARTE ============
+    function showLocationSelection(total) {
+        tempDeliveryLocation = null;
         document.getElementById('appContainer').innerHTML = `
             <div class="cart-container">
-                <h2 style="font-size:18px;margin-bottom:16px;">Mon panier</h2>
-                ${itemsHtml}
-                <div class="cart-total">
-                    <div>Sous-total: ${subtotal.toLocaleString()} FCFA</div>
-                    <div style="font-size:11px;color:var(--gray-500);">Frais de livraison (10%): ${deliveryFees.toLocaleString()} FCFA</div>
-                    <div style="font-size:20px;margin-top:8px;">Total: ${total.toLocaleString()} FCFA</div>
+                <h2>📍 Où souhaitez-vous être livré ?</h2>
+                <div class="info-text">Déplacez le marqueur ou cliquez sur la carte pour indiquer votre position exacte</div>
+                <div id="deliveryLocationMap" class="location-map"></div>
+                <div class="location-actions">
+                    <button onclick="getCurrentUserLocation()"><i class="fas fa-location-dot"></i> Ma position actuelle</button>
+                    <button onclick="searchAddressLocation()"><i class="fas fa-search"></i> Chercher une adresse</button>
                 </div>
-                <button class="btn-submit" onclick="showCheckout(${total})">Passer à la caisse</button>
-                <button onclick="resetToHome()" style="margin-top:12px;background:none;border:none;color:var(--primary);cursor:pointer;font-size:11px;">Continuer mes achats</button>
+                <div id="locationInfo" class="location-info"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Ville</label><input type="text" id="deliveryCity" placeholder="Brazzaville"></div>
+                    <div class="form-group"><label>Quartier</label><input type="text" id="deliveryQuartier" placeholder="Moungali"></div>
+                </div>
+                <div class="form-group"><label>Adresse détaillée</label><input type="text" id="deliveryAddress" placeholder="Rue, numéro, point de repère"></div>
+                <div class="form-group"><label>Téléphone</label><input type="tel" id="deliveryPhone" placeholder="+242 06 XX XX XX"></div>
+                <button class="btn-submit" onclick="goToPayment(${total})">Continuer vers paiement</button>
+                <button onclick="showCart()" style="margin-top:12px;">Retour</button>
             </div>
         `;
+        
+        // Initialiser la carte
+        setTimeout(() => {
+            if (currentLocationMap) currentLocationMap.remove();
+            currentLocationMap = L.map('deliveryLocationMap').setView([DEFAULT_LAT, DEFAULT_LNG], 14);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© OSM' }).addTo(currentLocationMap);
+            currentLocationMarker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(currentLocationMap);
+            currentLocationMarker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                tempDeliveryLocation = { lat: pos.lat, lng: pos.lng };
+                document.getElementById('locationInfo').innerHTML = `<i class="fas fa-check-circle" style="color:var(--success);"></i> Position sélectionnée: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+                reverseGeocode(pos.lat, pos.lng);
+            });
+            currentLocationMap.on('click', function(e) {
+                currentLocationMarker.setLatLng(e.latlng);
+                tempDeliveryLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+                document.getElementById('locationInfo').innerHTML = `<i class="fas fa-check-circle" style="color:var(--success);"></i> Position sélectionnée: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+                reverseGeocode(e.latlng.lat, e.latlng.lng);
+            });
+        }, 100);
     }
     
-    function updateQuantity(index, delta) {
-        cart[index].quantity += delta;
-        if (cart[index].quantity <= 0) cart.splice(index, 1);
-        saveData();
-        showCart();
+    function getCurrentUserLocation() {
+        if (!navigator.geolocation) { alert("Géolocalisation non supportée"); return; }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                if (currentLocationMarker) currentLocationMarker.setLatLng([lat, lng]);
+                if (currentLocationMap) currentLocationMap.setView([lat, lng], 15);
+                tempDeliveryLocation = { lat, lng };
+                document.getElementById('locationInfo').innerHTML = `<i class="fas fa-check-circle" style="color:var(--success);"></i> Position actuelle: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                reverseGeocode(lat, lng);
+            },
+            () => alert("Impossible d'obtenir votre position")
+        );
     }
     
-    function removeFromCart(index) {
-        cart.splice(index, 1);
-        saveData();
-        showCart();
+    function searchAddressLocation() {
+        const address = prompt("Entrez votre adresse (ex: Moungali, Brazzaville)");
+        if (!address) return;
+        document.getElementById('locationInfo').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Recherche en cours...`;
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+        fetch(url).then(r => r.json()).then(data => {
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+                if (currentLocationMarker) currentLocationMarker.setLatLng([lat, lng]);
+                if (currentLocationMap) currentLocationMap.setView([lat, lng], 15);
+                tempDeliveryLocation = { lat, lng };
+                document.getElementById('locationInfo').innerHTML = `<i class="fas fa-check-circle" style="color:var(--success);"></i> Adresse trouvée: ${data[0].display_name.substring(0, 100)}`;
+            } else { document.getElementById('locationInfo').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Adresse non trouvée`; }
+        }).catch(() => { document.getElementById('locationInfo').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erreur de recherche`; });
     }
     
-    function showCheckout(total) {
-        const userLocation = getUserData().location || {};
+    function reverseGeocode(lat, lng) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+            .then(r => r.json()).then(data => {
+                if (data && data.display_name) {
+                    const cityInput = document.getElementById('deliveryCity');
+                    if (cityInput && !cityInput.value) {
+                        const cityMatch = data.display_name.match(/([^,]+),?.*(Brazzaville|Pointe-Noire)/i);
+                        if (cityMatch) cityInput.value = cityMatch[2] || 'Brazzaville';
+                    }
+                }
+            }).catch(() => {});
+    }
+    
+    // ============ PAIEMENT ============
+    function goToPayment(total) {
+        if (!tempDeliveryLocation) { alert("Veuillez sélectionner votre position sur la carte"); return; }
+        const city = document.getElementById('deliveryCity')?.value.trim() || 'Brazzaville';
+        const quartier = document.getElementById('deliveryQuartier')?.value.trim() || '';
+        const address = document.getElementById('deliveryAddress')?.value.trim() || '';
+        const phone = document.getElementById('deliveryPhone')?.value.trim();
+        if (!phone) { alert("Veuillez entrer votre numéro de téléphone"); return; }
+        if (!validatePhone(phone)) { alert("Numéro invalide. Format: +242 06 XX XX XX"); return; }
+        
+        window.tempDeliveryInfo = { city, quartier, address, phone, location: tempDeliveryLocation };
+        showPaymentSelection(total);
+    }
+    
+    function showPaymentSelection(total) {
+        selectedPayment = null;
         document.getElementById('appContainer').innerHTML = `
             <div class="cart-container">
-                <h2 style="font-size:18px;margin-bottom:16px;">Livraison et paiement</h2>
-                <div class="form-group"><label>Ville *</label><input type="text" id="deliveryCity" placeholder="Brazzaville" value="${escapeHtml(userLocation.city || '')}"></div>
-                <div class="form-group"><label>Quartier *</label><input type="text" id="deliveryQuartier" placeholder="Moungali, Bacongo..." value="${escapeHtml(userLocation.quartier || '')}"></div>
-                <div class="form-group"><label>Adresse *</label><input type="text" id="deliveryAddress" placeholder="Rue, numéro, point de repère" value="${escapeHtml(userLocation.address || '')}"></div>
-                <div class="form-group"><label>Téléphone *</label><input type="tel" id="deliveryPhone" placeholder="+242 06 XX XX XX" value="${escapeHtml(userLocation.phone || '')}"></div>
-                
-                <h3 style="font-size:14px;margin:16px 0 12px;">Mode de paiement</h3>
+                <h2>💳 Mode de paiement</h2>
                 <div class="payment-options" id="paymentOptions">
                     <div class="payment-option" data-payment="card"><i class="fas fa-credit-card"></i> Carte bancaire</div>
                     <div class="payment-option" data-payment="mobile"><i class="fas fa-mobile-alt"></i> Mobile Money</div>
-                    <div class="payment-option" data-payment="paypal"><i class="fab fa-paypal"></i> PayPal</div>
                     <div class="payment-option" data-payment="cash"><i class="fas fa-money-bill"></i> Espèce</div>
                 </div>
-                
                 <div id="paymentDetailsContainer" style="display:none;"></div>
-                
-                <div style="margin-top:16px; padding:12px; background:var(--gray-100); border-radius:12px;">
-                    <strong>Total à payer:</strong> <span style="font-size:18px;font-weight:700;color:var(--primary);">${total.toLocaleString()} FCFA</span>
-                </div>
-                
-                <button class="btn-submit" onclick="validateAndPay(${total})" style="margin-top:16px;">Confirmer la commande</button>
-                <button onclick="showCart()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Retour</button>
+                <div class="cart-total">Total: ${total.toLocaleString()} FCFA</div>
+                <button class="btn-submit" onclick="validateOrder(${total})">Confirmer la commande</button>
+                <button onclick="showLocationSelection(${total})" style="margin-top:12px;">Retour</button>
             </div>
         `;
-        
         document.querySelectorAll('.payment-option').forEach(opt => {
             opt.addEventListener('click', () => {
                 document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
@@ -851,525 +684,197 @@
     
     function showPaymentDetails(type) {
         const container = document.getElementById('paymentDetailsContainer');
+        if (!container) return;
         if (type === 'card') {
             container.style.display = 'block';
-            container.innerHTML = `
-                <div class="card-details">
-                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
-                    <div class="form-group"><label>Numéro de compte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div>
-                    <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group" style="flex:1;"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div>
-                </div>
-            `;
+            container.innerHTML = `<div class="card-details"><div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div><div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div><div class="form-row"><div class="form-group"><label>Expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div></div>`;
         } else if (type === 'mobile') {
             container.style.display = 'block';
-            container.innerHTML = `<div class="card-details"><div class="form-group"><label>Numéro Mobile Money</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div></div>`;
-        } else if (type === 'paypal') {
-            container.style.display = 'block';
-            container.innerHTML = `<div class="card-details"><div class="form-group"><label>Email PayPal</label><input type="email" id="paypalEmail" placeholder="exemple@paypal.com"></div></div>`;
+            container.innerHTML = `<div class="card-details"><div class="form-group"><label>Opérateur</label><select id="mobileOperator"><option value="mtn">MTN</option><option value="airtel">Airtel</option></select></div><div class="form-group"><label>Numéro</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div></div>`;
         } else if (type === 'cash') {
             container.style.display = 'block';
-            container.innerHTML = `<div class="card-details"><p>Paiement à la livraison</p></div>`;
+            container.innerHTML = `<div class="card-details"><p>💰 Paiement à la livraison en espèces</p></div>`;
         }
     }
     
-    function validateAndPay(total) {
-        const city = document.getElementById('deliveryCity')?.value.trim();
-        const quartier = document.getElementById('deliveryQuartier')?.value.trim();
-        const address = document.getElementById('deliveryAddress')?.value.trim();
-        const phone = document.getElementById('deliveryPhone')?.value.trim();
-        
-        if (!city || !quartier || !address || !phone) {
-            alert("Veuillez remplir toutes les informations de livraison");
-            return;
-        }
-        
-        if (!selectedPayment) {
-            alert("Veuillez choisir un mode de paiement");
-            return;
-        }
-        
+    function validateOrder(total) {
+        if (!selectedPayment) { alert("Choisissez un mode de paiement"); return; }
         if (selectedPayment === 'card') {
-            const cardName = document.getElementById('cardName')?.value.trim();
             const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
-            const cardExpiry = document.getElementById('cardExpiry')?.value.trim();
-            const cardCvv = document.getElementById('cardCvv')?.value.trim();
-            if (!cardName || !cardNumber || !cardExpiry || !cardCvv) { alert("Veuillez remplir toutes les informations de la carte"); return; }
-            if (cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
+            const cardExpiry = document.getElementById('cardExpiry')?.value;
+            const cardCvv = document.getElementById('cardCvv')?.value;
+            if (!cardNumber || cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
             if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) { alert("Date d'expiration invalide (MM/AA)"); return; }
-            if (cardCvv.length !== 3) { alert("CVV invalide"); return; }
+            if (!cardCvv || cardCvv.length !== 3) { alert("CVV invalide"); return; }
         }
-        
         if (selectedPayment === 'mobile') {
             const mobileNumber = document.getElementById('mobileNumber')?.value.trim();
-            if (!mobileNumber) { alert("Numéro Mobile Money requis"); return; }
+            if (!mobileNumber || !validatePhone(mobileNumber)) { alert("Numéro Mobile Money invalide"); return; }
         }
         
-        if (selectedPayment === 'paypal') {
-            const paypalEmail = document.getElementById('paypalEmail')?.value.trim();
-            if (!paypalEmail || !validateEmail(paypalEmail)) { alert("Email PayPal invalide"); return; }
-        }
-        
-        const subtotal = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-        const deliveryFees = subtotal * 0.1;
-        const finalTotal = subtotal + deliveryFees;
         const orderId = 'CMD-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+        const subtotal = cart.reduce((s,i)=>s+i.price*i.quantity,0);
+        const deliveryFees = subtotal * 0.1;
         
-        // Récupérer les positions des boutiques
-        const shopItems = cart.map(item => {
-            const shop = shops.find(s => s.id === item.shopId);
-            return { shopId: item.shopId, shopName: item.shopName, shopLocation: shop?.location || null };
+        // Récupérer les boutiques concernées
+        const shopIds = [...new Set(cart.map(i => i.shopId))];
+        const shopsInfo = shopIds.map(sid => {
+            const shop = shops.find(s => s.id === sid);
+            return { shopId: sid, shopName: shop?.name, shopLocation: shop?.location || null };
         });
-        const uniqueShops = [...new Map(shopItems.map(s => [s.shopId, s])).values()];
         
         const newOrder = {
             id: orderId, userId: currentUser?.email, userName: currentUser?.name,
-            items: cart.map(item => ({ productId: item.productId, productName: item.productName, price: item.price, quantity: item.quantity, shopId: item.shopId, shopName: item.shopName })),
-            subtotal, deliveryFees, total: finalTotal,
-            deliveryInfo: { city, quartier, address, phone, location: getUserData().location || null },
-            shops: uniqueShops,
+            items: cart.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, shopId: i.shopId, shopName: i.shopName })),
+            shops: shopsInfo,
+            subtotal, deliveryFees, total: subtotal + deliveryFees,
+            deliveryInfo: { ...window.tempDeliveryInfo },
             paymentMethod: selectedPayment,
-            date: new Date().toISOString(), status: 'confirmée', trackingStep: 1,
-            statusHistory: [{ status: 'Commande confirmée', date: new Date().toISOString(), message: `Votre commande #${orderId} a été confirmée` }],
-            rated: false
+            date: new Date().toISOString(), status: 'confirmée',
+            statusHistory: [{ status: 'Commande confirmée', date: new Date().toISOString() }]
         };
         
         orders.push(newOrder);
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-        
         cart = [];
         saveData();
         
-        sendEmail(currentUser?.email, `Confirmation commande #${orderId}`, `Bonjour,\n\nVotre commande #${orderId} a été confirmée.\nTotal: ${finalTotal.toLocaleString()} FCFA\n\nMerci de votre confiance !`);
+        // Générer les liens GPS pour le livreur
+        let gpsLinks = [];
+        shopsInfo.forEach(shop => {
+            if (shop.shopLocation) {
+                gpsLinks.push(`🛍️ ${shop.shopName}: https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}`);
+            }
+        });
+        if (window.tempDeliveryInfo.location) {
+            gpsLinks.push(`🏠 Client: https://www.google.com/maps?q=${window.tempDeliveryInfo.location.lat},${window.tempDeliveryInfo.location.lng}`);
+        }
         
-        alert(`✅ Commande ${orderId} confirmée !\n\nTotal: ${finalTotal.toLocaleString()} FCFA`);
+        const emailBody = `Bonjour,\n\nVotre commande #${orderId} a été confirmée.\nTotal: ${newOrder.total.toLocaleString()} FCFA\n\nItinéraire pour le livreur:\n${gpsLinks.join('\n')}\n\nMerci de votre confiance !`;
+        sendEmail(currentUser?.email, `Confirmation #${orderId}`, emailBody);
+        
+        alert(`✅ Commande #${orderId} confirmée !\n\nTotal: ${newOrder.total.toLocaleString()} FCFA\n\nUn email avec les informations de livraison a été envoyé.`);
         resetToHome();
     }
     
+    // ============ COMMANDES ET LIVRAISON ============
     function showMyOrders() {
         const userOrders = orders.filter(o => o.userId === currentUser?.email);
         if (userOrders.length === 0) {
-            document.getElementById('appContainer').innerHTML = `<div class="cart-container" style="text-align:center;padding:40px;"><i class="fas fa-truck" style="font-size:48px;color:var(--gray-500);"></i><h3>Aucune commande</h3><button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;">Commencer</button></div>`;
+            document.getElementById('appContainer').innerHTML = `<div class="cart-container"><h3>Aucune commande</h3><button onclick="resetToHome()" class="btn-submit">Retour</button></div>`;
             return;
         }
-        
         document.getElementById('appContainer').innerHTML = `
-            <div class="cart-container">
-                <h2>Mes commandes</h2>
-                ${userOrders.map(order => `
-                    <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
-                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;"><strong>#${order.id}</strong><span>${new Date(order.date).toLocaleDateString()}</span></div>
-                        <div>Total: ${order.total.toLocaleString()} FCFA</div>
-                        <div>Statut: <span style="color:var(--success);">${order.status}</span></div>
-                        ${order.status === 'confirmée' ? `<button onclick="acceptDelivery('${order.id}')" style="margin-top:8px; background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:20px; cursor:pointer;">Accepter la livraison</button>` : ''}
-                        <button onclick="viewOrderMap('${order.id}')" style="margin-top:8px; background:var(--success); color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:10px;"><i class="fas fa-map-marker-alt"></i> Voir sur la carte</button>
-                    </div>
-                `).join('')}
-                <button onclick="resetToHome()" class="btn-submit">Continuer</button>
-            </div>
-        `;
+            <div class="cart-container"><h2>Mes commandes</h2>
+            ${userOrders.map(order => `
+                <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
+                    <div><strong>#${order.id}</strong> - ${new Date(order.date).toLocaleDateString()}</div>
+                    <div>Total: ${order.total.toLocaleString()} FCFA</div>
+                    <div>Statut: <span style="color:var(--success);">${order.status}</span></div>
+                    ${order.deliveryInfo?.location ? `<button onclick="viewOrderOnMap(${order.deliveryInfo.location.lat}, ${order.deliveryInfo.location.lng})" style="margin-top:8px;background:var(--primary);color:white;border:none;padding:4px 12px;border-radius:20px;cursor:pointer;"><i class="fas fa-map-marker-alt"></i> Voir ma position</button>` : ''}
+                    <button onclick="trackOrder('${order.id}')" style="margin-top:8px;">Suivre la livraison</button>
+                </div>
+            `).join('')}
+            <button onclick="resetToHome()" class="btn-submit">Continuer</button></div>`;
     }
     
-    // ============ LIVREUR - ACCEPTATION DE COMMANDE AVEC GPS ============
-    function acceptDelivery(orderId) {
-        if (!currentUser || currentUser.type !== 'livreur') {
-            alert("Seuls les livreurs peuvent accepter les livraisons");
-            return;
-        }
-        
+    function viewOrderOnMap(lat, lng) {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `<div class="modal-card" style="max-width:600px;"><h3>Ma position de livraison</h3><div id="orderMap" style="height:350px; border-radius:12px;"></div><button onclick="window.open('https://www.google.com/maps?q=${lat},${lng}', '_blank')" style="margin-top:10px;width:100%;">Ouvrir dans Google Maps</button><button onclick="this.closest('.modal').remove()">Fermer</button></div>`;
+        document.body.appendChild(modal);
+        setTimeout(() => {
+            const map = L.map('orderMap').setView([lat, lng], 16);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+            L.marker([lat, lng]).addTo(map).bindPopup('📍 Votre position').openPopup();
+        }, 100);
+    }
+    
+    function trackOrder(orderId) {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
-        
-        order.status = 'en_livraison';
-        order.deliveryDriver = currentUser.email;
-        order.trackingStep = 2;
-        order.statusHistory.push({ status: 'Livreur assigné', date: new Date().toISOString(), message: `Le livreur ${currentUser.name} a pris en charge votre commande` });
-        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-        
-        // Générer le lien GPS pour le livreur
         let gpsLinks = [];
-        if (order.shops && order.shops.length) {
+        if (order.shops) {
             order.shops.forEach(shop => {
-                if (shop.shopLocation) {
-                    gpsLinks.push(`🛍️ Boutique ${shop.shopName}: https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}`);
-                }
+                if (shop.shopLocation) gpsLinks.push(`🛍️ ${shop.shopName}: https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}`);
             });
         }
         if (order.deliveryInfo?.location) {
             gpsLinks.push(`🏠 Client: https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`);
-        } else if (order.deliveryInfo?.address) {
-            gpsLinks.push(`🏠 Client: ${order.deliveryInfo.address}, ${order.deliveryInfo.quartier}, ${order.deliveryInfo.city}`);
         }
-        
-        const gpsMessage = `📦 Commande #${orderId}\n\nItinéraire de livraison:\n${gpsLinks.join('\n\n')}\n\nMerci de suivre le GPS pour la livraison.`;
-        
-        alert(`✅ Commande #${orderId} acceptée !\n\nUn lien GPS a été généré.\n\n${gpsMessage}`);
-        sendEmail(currentUser.email, `Livraison #${orderId}`, gpsMessage);
-        
-        showMyOrders();
+        alert(`📍 Itinéraire de livraison:\n\n${gpsLinks.join('\n\n')}\n\n${order.status === 'confirmée' ? 'En attente d\'un livreur' : 'En cours de livraison'}`);
     }
     
-    function viewOrderMap(orderId) {
-        const order = orders.find(o => o.id === orderId);
-        if (!order) return;
-        
-        let gpsLinks = [];
-        if (order.shops && order.shops.length) {
-            order.shops.forEach(shop => {
-                if (shop.shopLocation) {
-                    gpsLinks.push({ type: 'shop', name: shop.shopName, lat: shop.shopLocation.lat, lng: shop.shopLocation.lng });
-                }
-            });
-        }
-        if (order.deliveryInfo?.location) {
-            gpsLinks.push({ type: 'client', name: 'Client', lat: order.deliveryInfo.location.lat, lng: order.deliveryInfo.location.lng });
-        }
-        
-        if (gpsLinks.length === 0) {
-            alert("Aucune position GPS disponible pour cette commande");
+    function showDeliveryDashboard() {
+        if (!currentUser || currentUser.type !== 'livreur') { alert("Espace réservé aux livreurs"); return; }
+        const pendingOrders = orders.filter(o => o.status === 'confirmée');
+        if (pendingOrders.length === 0) {
+            document.getElementById('appContainer').innerHTML = `<div class="cart-container"><h3>Aucune commande à livrer</h3><button onclick="resetToHome()">Retour</button></div>`;
             return;
         }
-        
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card" style="max-width: 700px;">
-                <h3>Itinéraire de livraison - ${order.id}</h3>
-                <div id="deliveryMap" style="height: 400px; border-radius: 12px; margin: 15px 0;"></div>
-                <div class="location-actions">
-                    ${gpsLinks.map(link => `<button onclick="openInGoogleMaps(${link.lat}, ${link.lng}, '${link.name}')" style="background:var(--primary); color:white; border:none; padding:8px 12px; border-radius:30px; cursor:pointer;"><i class="fas fa-directions"></i> ${link.type === 'shop' ? 'Aller à la boutique ' + link.name : 'Aller chez le client'}</button>`).join('')}
+        document.getElementById('appContainer').innerHTML = `
+            <div class="cart-container"><h2>📦 Commandes à livrer</h2>
+            ${pendingOrders.map(order => `
+                <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
+                    <div><strong>#${order.id}</strong> - ${new Date(order.date).toLocaleDateString()}</div>
+                    <div>Client: ${order.userName}</div>
+                    <div>Livraison: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.city}</div>
+                    <div>Total: ${order.total.toLocaleString()} FCFA</div>
+                    <button onclick="showDeliveryRoute(${JSON.stringify(order).replace(/"/g, '&quot;')})" style="margin-top:8px;background:var(--primary);color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;"><i class="fas fa-route"></i> Voir itinéraire</button>
+                    <button onclick="acceptDeliveryOrder('${order.id}')" style="margin-top:8px;background:var(--success);color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;">Accepter la livraison</button>
                 </div>
-                <button class="btn-submit btn-secondary" onclick="this.closest('.modal').remove()">Fermer</button>
-            </div>
-        `;
+            `).join('')}
+            <button onclick="resetToHome()">Retour</button></div>`;
+    }
+    
+    function showDeliveryRoute(order) {
+        const orderObj = typeof order === 'string' ? JSON.parse(order) : order;
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `<div class="modal-card" style="max-width:800px;"><h3>📍 Itinéraire - ${orderObj.id}</h3><div id="routeMap" style="height:450px; border-radius:12px;"></div><div class="location-actions">${orderObj.shops?.map(shop => shop.shopLocation ? `<button onclick="window.open('https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}', '_blank')" style="background:#1e40af;"><i class="fas fa-store"></i> ${shop.shopName}</button>` : '').join('')}${orderObj.deliveryInfo?.location ? `<button onclick="window.open('https://www.google.com/maps?q=${orderObj.deliveryInfo.location.lat},${orderObj.deliveryInfo.location.lng}', '_blank')" style="background:#10b981;"><i class="fas fa-home"></i> Client</button>` : ''}</div><button onclick="this.closest('.modal').remove()" style="margin-top:10px;">Fermer</button></div>`;
         document.body.appendChild(modal);
-        
-        // Initialiser la carte
         setTimeout(() => {
-            const map = L.map('deliveryMap').setView([gpsLinks[0].lat, gpsLinks[0].lng], 13);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' }).addTo(map);
-            
-            gpsLinks.forEach(link => {
-                const icon = L.divIcon({ html: link.type === 'shop' ? '🛍️' : '🏠', className: 'custom-div-icon', iconSize: [30, 30] });
-                L.marker([link.lat, link.lng], { icon: L.divIcon({ html: `<div style="background:${link.type === 'shop' ? '#1e40af' : '#10b981'}; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:16px;">${link.type === 'shop' ? '🛍️' : '🏠'}</div>`, className: '', iconSize: [30, 30] }) }).addTo(map).bindPopup(link.name);
+            const map = L.map('routeMap').setView([DEFAULT_LAT, DEFAULT_LNG], 12);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+            const bounds = [];
+            orderObj.shops?.forEach(shop => {
+                if (shop.shopLocation) {
+                    L.marker([shop.shopLocation.lat, shop.shopLocation.lng], { icon: L.divIcon({ html: '<div style="background:#1e40af;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">🛍️</div>', iconSize: [30,30] }) }).addTo(map).bindPopup(`<b>${shop.shopName}</b><br><a href="https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}" target="_blank">Ouvrir dans Google Maps</a>`);
+                    bounds.push([shop.shopLocation.lat, shop.shopLocation.lng]);
+                }
             });
+            if (orderObj.deliveryInfo?.location) {
+                L.marker([orderObj.deliveryInfo.location.lat, orderObj.deliveryInfo.location.lng], { icon: L.divIcon({ html: '<div style="background:#10b981;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">🏠</div>', iconSize: [30,30] }) }).addTo(map).bindPopup(`<b>Client</b><br>${orderObj.deliveryInfo.address}<br><a href="https://www.google.com/maps?q=${orderObj.deliveryInfo.location.lat},${orderObj.deliveryInfo.location.lng}" target="_blank">Ouvrir dans Google Maps</a>`);
+                bounds.push([orderObj.deliveryInfo.location.lat, orderObj.deliveryInfo.location.lng]);
+            }
+            if (bounds.length) map.fitBounds(bounds);
         }, 100);
     }
     
-    function openInGoogleMaps(lat, lng, name) {
-        window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    function acceptDeliveryOrder(orderId) {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        order.status = 'en_livraison';
+        order.deliveryDriver = currentUser?.email;
+        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+        let gpsMsg = `📦 Commande #${orderId}\n\n`;
+        if (order.shops) order.shops.forEach(shop => { if(shop.shopLocation) gpsMsg += `🛍️ ${shop.shopName}: https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}\n`; });
+        if (order.deliveryInfo?.location) gpsMsg += `🏠 Client: https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}\n`;
+        alert(`✅ Livraison acceptée !\n\n${gpsMsg}\n\nUn email avec l'itinéraire a été envoyé.`);
+        sendEmail(currentUser?.email, `Livraison #${orderId}`, gpsMsg);
+        showDeliveryDashboard();
     }
     
-    // ============ PROFIL AVEC LOCALISATION GPS ============
+    // ============ PROFIL ============
     function showProfile() {
-        if (!currentUser) { alert("Veuillez vous connecter"); openLoginModal(); return; }
-        
-        const userData = getUserData();
-        const paymentMethods = userData.paymentMethods || [];
-        const userLocation = userData.location || {};
-        
+        if (!currentUser) { alert("Connectez-vous"); openLoginModal(); return; }
         document.getElementById('appContainer').innerHTML = `
-            <div class="profile-container">
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        <img id="profileAvatarImg" src="${userData.profilePhoto || 'https://via.placeholder.com/100'}" class="profile-avatar-img" onerror="this.src='https://via.placeholder.com/100'">
-                        <div class="edit-avatar-btn" onclick="editProfilePhoto()"><i class="fas fa-camera"></i></div>
-                    </div>
-                    <div class="profile-name">${escapeHtml(userData.fullName || userData.name || currentUser.name || 'Utilisateur')}</div>
-                    <div class="profile-email">${escapeHtml(currentUser.email)}</div>
-                    <div class="profile-badge">${currentUser.type === 'vendeur' ? 'Vendeur' : currentUser.type === 'livreur' ? 'Livreur' : 'Client'}</div>
-                </div>
-                <div class="profile-tabs">
-                    <div class="profile-tab active" data-tab="info">Informations</div>
-                    <div class="profile-tab" data-tab="location">📍 Localisation</div>
-                    <div class="profile-tab" data-tab="payment">Moyens de paiement</div>
-                    <div class="profile-tab" data-tab="orders">Commandes</div>
-                </div>
-                <div id="profileTabInfo" class="profile-section active">
-                    <div class="info-card">
-                        <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value">${escapeHtml(userData.fullName || userData.name || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('fullName')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">${escapeHtml(userData.phone || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('phone')">Modifier</button></div></div>
-                    </div>
-                </div>
-                <div id="profileTabLocation" class="profile-section">
-                    <div class="info-card">
-                        <h4 style="margin-bottom:15px;">Ma position de livraison</h4>
-                        <div class="info-row"><div class="info-label">Adresse</div><div class="info-value">${escapeHtml(userLocation.address || 'Non renseigné')}</div></div>
-                        <div class="info-row"><div class="info-label">Quartier</div><div class="info-value">${escapeHtml(userLocation.quartier || 'Non renseigné')}</div></div>
-                        <div class="info-row"><div class="info-label">Ville</div><div class="info-value">${escapeHtml(userLocation.city || 'Brazzaville')}</div></div>
-                        <div id="locationMap" class="location-map"></div>
-                        <div class="location-actions">
-                            <button onclick="getCurrentLocation()"><i class="fas fa-location-dot"></i> Ma position actuelle</button>
-                            <button onclick="saveUserLocation()"><i class="fas fa-save"></i> Enregistrer cette position</button>
-                        </div>
-                        <div id="locationCoords" class="location-coords"></div>
-                        ${userLocation.lat && userLocation.lng ? `<a href="https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}" target="_blank" class="gps-link"><i class="fas fa-map-marked-alt"></i> Ouvrir dans Google Maps</a>` : ''}
-                        <div class="info-text" style="margin-top:15px;">👉 Cliquez sur la carte pour ajuster votre position, ou utilisez "Ma position actuelle" pour vous géolocaliser automatiquement.</div>
-                    </div>
-                </div>
-                <div id="profileTabPayment" class="profile-section">
-                    <div id="paymentMethodsList" class="payment-methods-list"></div>
-                    <button class="btn-add-payment" onclick="showAddPaymentModal()"><i class="fas fa-plus"></i> Ajouter un moyen de paiement</button>
-                </div>
-                <div id="profileTabOrders" class="profile-section">
-                    <div id="profileOrdersList" class="commandes-list"></div>
-                </div>
-            </div>
-        `;
-        
-        renderPaymentMethods();
-        renderProfileOrders();
-        initLocationMap(userLocation.lat || DEFAULT_LAT, userLocation.lng || DEFAULT_LNG, userLocation);
-        
-        document.querySelectorAll('.profile-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.profile-section').forEach(s => s.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(`profileTab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.add('active');
-                if (tab.dataset.tab === 'location' && locationMap) {
-                    setTimeout(() => locationMap.invalidateSize(), 100);
-                }
-            });
-        });
+            <div class="profile-container" style="background:white; border-radius:20px; padding:20px;">
+                <div style="text-align:center; margin-bottom:20px;"><div class="user-avatar" style="width:80px;height:80px;margin:0 auto;font-size:32px;">${currentUser.name.charAt(0)}</div><h3>${escapeHtml(currentUser.name)}</h3><p>${currentUser.email}</p><p>Type: ${currentUser.type}</p></div>
+                <div class="info-card"><h4>Informations personnelles</h4><div class="info-row"><div class="info-label">Nom</div><div class="info-value">${escapeHtml(currentUser.name)}</div></div><div class="info-row"><div class="info-label">Email</div><div class="info-value">${currentUser.email}</div></div></div>
+                <button onclick="logout()" class="btn-submit">Se déconnecter</button>
+            </div>`;
     }
     
-    function initLocationMap(lat, lng, userLocation) {
-        if (locationMap) locationMap.remove();
-        locationMap = L.map('locationMap').setView([lat, lng], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' }).addTo(locationMap);
-        
-        locationMarker = L.marker([lat, lng], { draggable: true }).addTo(locationMap);
-        locationMarker.on('dragend', function(e) {
-            const pos = e.target.getLatLng();
-            document.getElementById('locationCoords').innerHTML = `Position sélectionnée: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
-            window.tempLocation = { lat: pos.lat, lng: pos.lng };
-        });
-        
-        locationMap.on('click', function(e) {
-            locationMarker.setLatLng(e.latlng);
-            document.getElementById('locationCoords').innerHTML = `Position sélectionnée: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-            window.tempLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
-        });
-        
-        if (userLocation.lat && userLocation.lng) {
-            document.getElementById('locationCoords').innerHTML = `Position enregistrée: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
-        }
-    }
-    
-    function getCurrentLocation() {
-        if (!navigator.geolocation) {
-            alert("La géolocalisation n'est pas supportée par votre navigateur");
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                if (locationMarker) locationMarker.setLatLng([lat, lng]);
-                if (locationMap) locationMap.setView([lat, lng], 15);
-                document.getElementById('locationCoords').innerHTML = `Position actuelle: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                window.tempLocation = { lat, lng };
-                alert("Position actuelle obtenue ! Vous pouvez maintenant l'enregistrer.");
-            },
-            (error) => {
-                alert("Impossible d'obtenir votre position: " + error.message);
-            }
-        );
-    }
-    
-    function saveUserLocation() {
-        if (!window.tempLocation && !locationMarker) {
-            alert("Veuillez d'abord sélectionner une position sur la carte");
-            return;
-        }
-        const pos = window.tempLocation || locationMarker.getLatLng();
-        const city = document.querySelector('#profileTabLocation .info-value')?.innerText.split(',')[0] || 'Brazzaville';
-        
-        const locationData = {
-            lat: pos.lat,
-            lng: pos.lng,
-            city: city,
-            quartier: document.querySelector('#profileTabLocation .info-value:nth-child(2)')?.innerText || '',
-            address: document.querySelector('#profileTabLocation .info-value:first-child')?.innerText || '',
-            phone: document.querySelector('#profileTabInfo .info-value:nth-child(2)')?.innerText || ''
-        };
-        
-        saveUserData({ location: locationData });
-        alert("✅ Position enregistrée avec succès ! Les livreurs pourront maintenant vous localiser précisément.");
-        showProfile();
-    }
-    
-    function getUserData() {
-        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        const user = allUsers.find(u => u.email === currentUser?.email);
-        return user || {};
-    }
-    
-    function saveUserData(updates) {
-        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        const index = allUsers.findIndex(u => u.email === currentUser?.email);
-        if (index !== -1) {
-            allUsers[index] = { ...allUsers[index], ...updates };
-            localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
-        }
-        if (updates.fullName) currentUser.name = updates.fullName;
-        if (updates.profilePhoto) currentUser.profilePhoto = updates.profilePhoto;
-        saveData();
-    }
-    
-    function editField(field) {
-        const userData = getUserData();
-        let currentValue = '';
-        let inputType = 'text';
-        let placeholder = '';
-        
-        switch(field) {
-            case 'fullName': currentValue = userData.fullName || ''; placeholder = "Nom complet"; break;
-            case 'phone': currentValue = userData.phone || ''; placeholder = "+242 06 XX XX XX"; inputType = "tel"; break;
-            default: return;
-        }
-        
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <h3>Modifier ${field === 'fullName' ? 'le nom' : 'le téléphone'}</h3>
-                <div class="form-group"><input type="${inputType}" id="editValue" value="${escapeHtml(currentValue)}" placeholder="${placeholder}"></div>
-                <button class="btn-submit" onclick="saveFieldValue('${field}')">Enregistrer</button>
-                <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
-    function saveFieldValue(field) {
-        const value = document.getElementById('editValue')?.value.trim();
-        if (!value) { alert("Veuillez remplir le champ"); return; }
-        
-        let updates = {};
-        if (field === 'fullName') updates.fullName = value;
-        else if (field === 'phone') updates.phone = value;
-        
-        saveUserData(updates);
-        document.querySelector('.modal')?.remove();
-        showProfile();
-    }
-    
-    function editProfilePhoto() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => saveUserData({ profilePhoto: ev.target.result });
-                reader.readAsDataURL(file);
-            }
-        };
-        input.click();
-    }
-    
-    function renderPaymentMethods() {
-        const container = document.getElementById('paymentMethodsList');
-        if (!container) return;
-        const userData = getUserData();
-        const methods = userData.paymentMethods || [];
-        
-        if (methods.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--gray-500);">Aucun moyen de paiement enregistré</div>';
-            return;
-        }
-        
-        container.innerHTML = methods.map((method, idx) => {
-            let icon = '<i class="fas fa-credit-card"></i>';
-            let displayInfo = '';
-            if (method.type === 'mtn') { icon = '<i class="fas fa-mobile-alt"></i>'; displayInfo = method.number || ''; }
-            else if (method.type === 'airtel') { icon = '<i class="fas fa-mobile-alt"></i>'; displayInfo = method.number || ''; }
-            else if (method.type === 'paypal') { icon = '<i class="fab fa-paypal"></i>'; displayInfo = method.details || ''; }
-            else if (method.type === 'visa') { icon = '<i class="fab fa-cc-visa"></i>'; displayInfo = `**** ${method.cardNumber?.slice(-4) || ''}`; }
-            else if (method.type === 'mastercard') { icon = '<i class="fab fa-cc-mastercard"></i>'; displayInfo = `**** ${method.cardNumber?.slice(-4) || ''}`; }
-            
-            return `<div class="payment-item"><div class="payment-info"><div class="payment-icon">${icon}</div><div class="payment-details"><strong>${method.type === 'mtn' ? 'MTN' : method.type === 'airtel' ? 'Airtel' : method.type === 'paypal' ? 'PayPal' : method.type === 'visa' ? 'VISA' : 'Mastercard'}</strong><span>${escapeHtml(displayInfo)}</span></div></div><div class="payment-actions"><button onclick="editPaymentMethod(${idx})" style="color:var(--primary);"><i class="fas fa-edit"></i></button><button onclick="deletePaymentMethod(${idx})" style="color:var(--danger);"><i class="fas fa-trash"></i></button></div></div>`;
-        }).join('');
-    }
-    
-    function showAddPaymentModal() {
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <h3>Ajouter un moyen de paiement</h3>
-                <div class="form-group"><label>Type</label><select id="paymentType"><option value="visa">VISA</option><option value="mastercard">Mastercard</option><option value="mtn">MTN Mobile Money</option><option value="airtel">Airtel Money</option><option value="paypal">PayPal</option></select></div>
-                <div id="paymentTypeFields"><div class="form-group"><label>Numéro</label><input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"></div></div>
-                <button class="btn-submit" onclick="addPaymentMethod()">Ajouter</button>
-                <button class="btn-submit btn-secondary" style="margin-top:8px;" onclick="this.closest('.modal').remove()">Annuler</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
-    function addPaymentMethod() {
-        const type = document.getElementById('paymentType').value;
-        let method = { type };
-        if (type === 'visa' || type === 'mastercard') {
-            const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
-            if (!cardNumber || cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
-            method.cardNumber = cardNumber;
-        } else {
-            const number = document.getElementById('cardNumber')?.value.trim();
-            if (!number) { alert("Numéro requis"); return; }
-            method.number = number;
-        }
-        const userData = getUserData();
-        const methods = userData.paymentMethods || [];
-        methods.push(method);
-        saveUserData({ paymentMethods: methods });
-        document.querySelector('.modal')?.remove();
-        showProfile();
-    }
-    
-    function editPaymentMethod(index) {
-        const userData = getUserData();
-        const method = userData.paymentMethods?.[index];
-        if (!method) return;
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `<div class="modal-card"><h3>Modifier</h3><div class="form-group"><input type="text" id="editValue" value="${escapeHtml(method.number || method.cardNumber || '')}"></div><button class="btn-submit" onclick="updatePaymentMethod(${index})">Enregistrer</button><button class="btn-submit btn-secondary" onclick="this.closest('.modal').remove()">Annuler</button></div>`;
-        document.body.appendChild(modal);
-    }
-    
-    function updatePaymentMethod(index) {
-        const value = document.getElementById('editValue')?.value.trim();
-        if (!value) { alert("Veuillez remplir le champ"); return; }
-        const userData = getUserData();
-        const method = userData.paymentMethods?.[index];
-        if (method) {
-            if (method.number) method.number = value;
-            else if (method.cardNumber) method.cardNumber = value.replace(/\s/g, '');
-            saveUserData({ paymentMethods: userData.paymentMethods });
-        }
-        document.querySelector('.modal')?.remove();
-        showProfile();
-    }
-    
-    function deletePaymentMethod(index) {
-        if (confirm("Supprimer ce moyen de paiement ?")) {
-            const userData = getUserData();
-            userData.paymentMethods.splice(index, 1);
-            saveUserData({ paymentMethods: userData.paymentMethods });
-            showProfile();
-        }
-    }
-    
-    function renderProfileOrders() {
-        const container = document.getElementById('profileOrdersList');
-        if (!container) return;
-        const userOrders = orders.filter(o => o.userId === currentUser?.email);
-        if (userOrders.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px;">Aucune commande</div>';
-            return;
-        }
-        container.innerHTML = userOrders.map(o => `<div class="commande-item"><div><strong>${o.id}</strong> - ${new Date(o.date).toLocaleDateString()}</div><div>${o.items?.length || 0} article(s) - ${o.total?.toLocaleString() || '0'} FCFA</div><div style="color:var(--success);">${o.status || 'Confirmée'}</div><button onclick="viewOrderMap('${o.id}')" style="margin-top:8px; background:var(--primary); color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:10px;"><i class="fas fa-map-marker-alt"></i> Voir itinéraire</button></div>`).join('');
-    }
-    
-    // ============ AUTHENTIFICATION ============
+    // ============ AUTH ============
     function openLoginModal() {
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `<div class="modal-card"><h3>Connexion</h3><div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div><button class="btn-submit" onclick="doLogin()">Se connecter</button><div style="text-align:center;margin-top:12px;"><a onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a></div></div>`;
@@ -1382,7 +887,7 @@
         const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
         const user = allUsers.find(u => u.email === email && u.password === password);
         if (!user) { alert("Email ou mot de passe incorrect"); return; }
-        currentUser = { name: user.fullName || user.name, email: user.email, type: user.accountType || 'client', profilePhoto: user.profilePhoto };
+        currentUser = { name: user.fullName || user.name, email: user.email, type: user.accountType || 'client' };
         saveData();
         updateHeaderUI();
         document.querySelector('.modal')?.remove();
@@ -1402,24 +907,23 @@
         const phone = document.getElementById('regPhone').value.trim();
         const password = document.getElementById('regPassword').value;
         const type = document.getElementById('regType').value;
-        if (!name || !email || !phone || !password) { alert("Tous les champs sont requis"); return; }
+        if (!name || !email || !phone || !password) { alert("Tous les champs requis"); return; }
         const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
         if (allUsers.find(u => u.email === email)) { alert("Email déjà utilisé"); return; }
-        const newUser = { fullName: name, email, phone, password, accountType: type, paymentMethods: [], location: null };
-        allUsers.push(newUser);
+        allUsers.push({ fullName: name, email, phone, password, accountType: type });
         localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
         currentUser = { name, email, type };
         saveData();
         updateHeaderUI();
         document.querySelector('.modal')?.remove();
         resetToHome();
-        alert(`Inscription réussie ! Bienvenue ${name}`);
+        alert(`Inscription réussie !`);
     }
     
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${currentUser.profilePhoto ? `<img src="${currentUser.profilePhoto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}</div><small>${currentUser.type}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
+            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}</div><small>${currentUser.type}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
         } else {
             container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button><button class="auth-btn" onclick="openRegisterModal()">Inscription</button><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">0</span></div>`;
         }
@@ -1428,73 +932,37 @@
     }
     
     function logout() { currentUser = null; saveData(); updateHeaderUI(); resetToHome(); alert("Déconnexion réussie"); }
+    function resetToHome() { showHomePage(); }
+    function goToVendorDashboard() { window.location.href = 'vendor-dashboard.html'; }
+    function showAbout() { alert("À propos - Ouenze Marketplace"); }
+    function showHelp() { alert("Aide - Contactez-nous"); }
+    function showInvest() { alert("Investir dans Ouenze"); }
+    function showTracking() { alert("Suivi de livraison"); }
     
-    function resetToHome() {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('id');
-        window.history.pushState({}, '', url);
-        showHomePage();
-    }
-    
-    function showAbout() { alert("À propos - Ouenze Marketplace Congo Brazzaville"); }
-    function showHelp() { alert("Aide - Contactez-nous au +242 12345678"); }
-    function showInvest() { alert("Investir dans Ouenze - Devenez partenaire"); }
-    function showTracking() { alert("Suivi de livraison - Entrez votre numéro de commande"); }
-    
-    // Fonctions pour les livreurs
-    function showDeliveryOrders() {
-        const pendingOrders = orders.filter(o => o.status === 'confirmée');
-        if (pendingOrders.length === 0) {
-            document.getElementById('appContainer').innerHTML = `<div class="cart-container"><h3>Aucune commande en attente de livraison</h3><button onclick="resetToHome()" class="btn-submit">Retour</button></div>`;
-            return;
-        }
-        document.getElementById('appContainer').innerHTML = `
-            <div class="cart-container">
-                <h2>Commandes à livrer</h2>
-                ${pendingOrders.map(order => `
-                    <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
-                        <div><strong>#${order.id}</strong> - ${new Date(order.date).toLocaleDateString()}</div>
-                        <div>Client: ${order.userName}</div>
-                        <div>Livraison: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.city}</div>
-                        <div>Total: ${order.total.toLocaleString()} FCFA</div>
-                        <button onclick="acceptDelivery('${order.id}')" style="margin-top:8px; background:var(--success); color:white; border:none; padding:6px 12px; border-radius:20px; cursor:pointer;">Accepter la livraison</button>
-                    </div>
-                `).join('')}
-                <button onclick="resetToHome()" class="btn-submit">Retour</button>
-            </div>
-        `;
-    }
-    
-    // Initialisation
+    // ============ INITIALISATION ============
     window.showHomePage = showHomePage;
     window.viewShopDetail = viewShopDetail;
-    window.openProductModal = openProductModal;
     window.addToCart = addToCart;
     window.setRanking = setRanking;
     window.resetToHome = resetToHome;
-    window.performSearch = performSearch;
-    window.goToVendorDashboard = goToVendorDashboard;
     window.showCart = showCart;
     window.showMyOrders = showMyOrders;
+    window.showProfile = showProfile;
+    window.showDeliveryDashboard = showDeliveryDashboard;
+    window.showDeliveryRoute = showDeliveryRoute;
+    window.acceptDeliveryOrder = acceptDeliveryOrder;
+    window.viewOrderOnMap = viewOrderOnMap;
+    window.trackOrder = trackOrder;
+    window.getCurrentUserLocation = getCurrentUserLocation;
+    window.searchAddressLocation = searchAddressLocation;
+    window.goToPayment = goToPayment;
+    window.validateOrder = validateOrder;
     window.updateQuantity = updateQuantity;
     window.removeFromCart = removeFromCart;
-    window.showCheckout = showCheckout;
-    window.validateAndPay = validateAndPay;
-    window.showProfile = showProfile;
-    window.editField = editField;
-    window.saveFieldValue = saveFieldValue;
-    window.editProfilePhoto = editProfilePhoto;
-    window.editPaymentMethod = editPaymentMethod;
-    window.updatePaymentMethod = updatePaymentMethod;
-    window.deletePaymentMethod = deletePaymentMethod;
-    window.showAddPaymentModal = showAddPaymentModal;
-    window.addPaymentMethod = addPaymentMethod;
-    window.acceptDelivery = acceptDelivery;
-    window.viewOrderMap = viewOrderMap;
-    window.openInGoogleMaps = openInGoogleMaps;
-    window.getCurrentLocation = getCurrentLocation;
-    window.saveUserLocation = saveUserLocation;
-    window.showDeliveryOrders = showDeliveryOrders;
+    window.doLogin = doLogin;
+    window.doRegister = doRegister;
+    window.logout = logout;
+    window.goToVendorDashboard = goToVendorDashboard;
     window.showAbout = showAbout;
     window.showHelp = showHelp;
     window.showInvest = showInvest;
@@ -1502,30 +970,16 @@
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
-        const urlParams = new URLSearchParams(window.location.search);
-        const shopId = parseInt(urlParams.get('id'));
-        if (shopId && shops.find(s => s.id === shopId)) viewShopDetail(shopId);
-        else showHomePage();
-        
-        document.getElementById('searchBtn').addEventListener('click', performSearch);
-        document.getElementById('searchInput').addEventListener('keypress', e => { if(e.key === 'Enter') performSearch(); });
-        
+        showHomePage();
+        document.getElementById('searchBtn').addEventListener('click', () => alert("Recherche: " + document.getElementById('searchInput').value));
         const dropBtn = document.getElementById('dropdownBtn');
         const dropCont = document.getElementById('dropdownContent');
         if(dropBtn) {
-            dropBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropCont.classList.toggle('show');
-            });
+            dropBtn.addEventListener('click', (e) => { e.stopPropagation(); dropCont.classList.toggle('show'); });
             window.addEventListener('click', () => dropCont.classList.remove('show'));
         }
-        
-        const modalDiv = document.createElement('div');
-        modalDiv.id = 'registerModal';
-        modalDiv.className = 'modal';
-        modalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Informations</div><div class="step">2. Vérification</div><div class="step">3. Validation</div></div><div id="stepContent"></div></div>`;
-        document.body.appendChild(modalDiv);
     });
 </script>
 </body>
 </html>
+
