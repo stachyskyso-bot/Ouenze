@@ -244,7 +244,7 @@
         
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 16px; text-align: center; font-size: 10px; color: var(--gray-500); }
         
-        /* NOUVEAUX STYLES POUR LE PROFIL SANS MODIFIER LE DESIGN EXISTANT */
+        /* Styles pour le profil */
         .profile-container { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
         .profile-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 30px 20px; text-align: center; color: white; }
         .profile-avatar { width: 100px; height: 100px; margin: 0 auto 15px; position: relative; }
@@ -271,6 +271,13 @@
         .btn-add-payment { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
         .commandes-list { display: flex; flex-direction: column; gap: 12px; }
         .commande-item { background: var(--gray-100); border-radius: 12px; padding: 12px; border-left: 3px solid var(--success); }
+        
+        /* Styles pour la carte de localisation */
+        .location-map { height: 300px; border-radius: 12px; margin-bottom: 15px; z-index: 1; }
+        .location-actions { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .location-actions button { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .location-coords { background: var(--gray-100); padding: 10px; border-radius: 10px; font-size: 11px; margin-top: 10px; text-align: center; }
+        .gps-link { display: inline-block; background: var(--success); color: white; padding: 8px 16px; border-radius: 30px; text-decoration: none; font-size: 12px; margin-top: 10px; }
         
         @media (max-width: 480px) {
             .shops-grid { grid-template-columns: 1fr; }
@@ -320,21 +327,15 @@
             <a href="delivery-register.html">Devenir livreur</a>
             </div>
             <div class="dropdown">
-                <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
-                <div class="dropdown-content" id="dropdownContent">
-                    <a href="about.html">À propos</a>
-                <a href="privacy.html">Confidentialité</a>
-                <a href="help.html">Aide</a>
-                <a href="invest.html">Investir</a>
-                <a href="tracking.html">Suivi livraison</a>
-                </div>
+               <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent">
+                <a onclick="showAbout()">À propos</a>
+                <a onclick="showHelp()">Aide</a>
+                <a onclick="showInvest()">Investir</a>
+                <a onclick="showTracking()">Suivi livraison</a>
             </div>
         </div>
     </div>
-
-
- 
-    
 </div>
 
 <div id="appContainer" class="main"></div>
@@ -342,6 +343,9 @@
 <div class="footer">
     <p>© 2024 Ouenze Marketplace - Brazzaville, Congo</p>
 </div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
     // ============ DONNÉES ============
@@ -357,15 +361,19 @@
     let selectedPayment = null;
     let lastAttemptTime = 0;
     let attemptCount = 0;
+    let locationMap = null;
+    let locationMarker = null;
+    
+    // Coordonnées par défaut (Brazzaville)
+    const DEFAULT_LAT = -4.2634;
+    const DEFAULT_LNG = 15.2429;
     
     // ============ FONCTIONS DE VÉRIFICATION ============
     function checkRateLimit() {
         const now = Date.now();
         if (now - lastAttemptTime < 5000) {
             attemptCount++;
-            if (attemptCount > 3) {
-                return false;
-            }
+            if (attemptCount > 3) return false;
         } else {
             attemptCount = 1;
             lastAttemptTime = now;
@@ -387,7 +395,6 @@
         console.log(`📧 EMAIL ENVOYÉ À: ${to}`);
         console.log(`📧 OBJET: ${subject}`);
         console.log(`📧 MESSAGE: ${body}`);
-        console.log('---');
         return true;
     }
     
@@ -396,26 +403,23 @@
         if (errorEl) {
             errorEl.innerText = message;
             errorEl.classList.add('show');
-            setTimeout(() => {
-                errorEl.classList.remove('show');
-            }, 5000);
+            setTimeout(() => errorEl.classList.remove('show'), 5000);
         }
     }
     
-    function clearError(elementId) {
-        const errorEl = document.getElementById(elementId);
-        if (errorEl) errorEl.classList.remove('show');
-    }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
     // ============ BOUTIQUES ============
     if (shops.length === 0) {
         shops = [
             { id: 1, name: "Élégance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250, 
               products: [{ id: 1, name: "Boubou Cérémonie", price: "65000", photos: [], stock: 25, colors: ["Or", "Bleu Royal"], sizes: ["S", "M", "L", "XL"], description: "Boubou traditionnel", productType: "standard" }], 
-              categories: ["Boubou", "Accessoires"], reviews: [{ user: "Marie K.", rating: 5, comment: "Superbe qualité !", date: "2024-03-15" }], verified: true },
+              categories: ["Boubou", "Accessoires"], reviews: [{ user: "Marie K.", rating: 5, comment: "Superbe qualité !", date: "2024-03-15" }], verified: true,
+              location: { lat: -4.2634, lng: 15.2429, address: "Moungali, Brazzaville" } },
             { id: 2, name: "Tech Congo", city: "Brazzaville", quartier: "Centre-ville", rating: 4.8, totalRatings: 124, totalSales: 342, 
               products: [{ id: 1, name: "Smartphone", price: "85000", photos: [], stock: 10, colors: ["Noir", "Bleu"], sizes: [], description: "Smartphone haute performance", productType: "standard" }], 
-              categories: ["Electronique"], reviews: [], verified: true }
+              categories: ["Electronique"], reviews: [], verified: true,
+              location: { lat: -4.2690, lng: 15.2430, address: "Centre-ville, Brazzaville" } }
         ];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
     }
@@ -448,7 +452,7 @@
     function goToVendorDashboard() { window.location.href = 'vendor-dashboard.html'; }
     function showDeliveryDashboard() { 
         if (currentUser && currentUser.type === 'livreur') {
-            alert(`📦 Espace livreur\nStatut: ${currentUser.deliveryStatus || 'En attente de validation'}\n\nVotre compte est en cours de vérification par l'administrateur.`);
+            showDeliveryOrders();
         } else {
             alert("Vous n'avez pas de compte livreur");
         }
@@ -464,30 +468,11 @@
     }
     
     function getShopLevel(shop) {
-        const annualRevenue = (shop.monthlyRevenue || (shop.totalSales || 0) * 1000) * 12;
-        const valuation = calculateValuation(shop);
         const rating = shop.rating || 0;
-        const hasPhysicalStore = shop.hasPhysicalStore || false;
-        
-        if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
-            return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b' };
-        }
-        else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
-            return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8' };
-        }
-        else if (rating >= 3) {
-            return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309' };
-        }
-        return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b' };
-    }
-    
-    function calculateValuation(shop) {
-        const baseValue = 1000000;
-        const productValue = (shop.products?.length || 0) * 50000;
-        const ratingBonus = (shop.rating || 0) * 150000;
-        const salesBonus = (shop.totalSales || 0) * 1000;
-        const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-        return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
+        if (rating >= 4.5) return { level: 'gold', name: 'Or', ouenzeFee: 21, color: '#f59e0b' };
+        else if (rating >= 4) return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, color: '#94a3b8' };
+        else if (rating >= 3) return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, color: '#b45309' };
+        return { level: null, name: 'Non éligible', ouenzeFee: 22, color: '#64748b' };
     }
     
     function getCertificationBadge(rating, verified) {
@@ -548,9 +533,7 @@
         if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:30px;">Aucune boutique</div>'; return; }
         grid.innerHTML = shopsList.map(shop => {
             const level = getShopLevel(shop);
-            const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
-            const levelBadge = level.level ? `<span class="level-badge level-${levelClass}" style="display:inline-block; margin-left:6px; padding:2px 8px; border-radius:20px; font-size:9px; background:${level.color}20; color:${level.color};"><i class="fas fa-crown"></i> ${level.name}</span>` : '';
-            
+            const levelBadge = level.level ? `<span style="display:inline-block; margin-left:6px; padding:2px 8px; border-radius:20px; font-size:9px; background:${level.color}20; color:${level.color};"><i class="fas fa-crown"></i> ${level.name}</span>` : '';
             return `
                 <div class="shop-card" onclick="viewShopDetail(${shop.id})" style="position:relative;">
                     ${getCertificationBadge(shop.rating || 0, shop.verified)}
@@ -563,7 +546,6 @@
                         </div>
                         <div style="font-size:10px;color:var(--gray-500);margin-top:4px;">
                             <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                            ${level.level ? `<br><span style="color:${level.color};">💰 Commission: ${level.ouenzeFee}%</span>` : ''}
                         </div>
                     </div>
                     <div class="shop-details">
@@ -639,57 +621,9 @@
         currentShop = shop;
         currentCategory = 'all';
         
-        const design = shop.design || {};
-        const menu = shop.menu || { categories: [], position: 'horizontal', bg: design.primary || '#1e40af', text: '#ffffff', radius: 0 };
-        const primaryColor = design.primary || '#1e40af';
-        const buttonColor = design.button || primaryColor;
-        const productRadius = design.prodRadius || 12;
-        const productImgHeight = design.prodImgHeight || 130;
-        const productWidth = design.prodWidth || 160;
-        const productGap = design.prodGap || 12;
-        const layout = design.layout || 'grid';
-        const carouselRadius = design.carouselRadius || 12;
-        const carouselHeight = design.carouselHeight || 200;
-        const logoBorderRadius = design.logoShape === 'square' ? '0px' : design.logoShape === 'circle' ? '50%' : '12px';
-        const shareUrl = window.location.href;
-        
-        let menuHtml = '';
-        if (menu.categories && menu.categories.length > 0) {
-            if (menu.position === 'horizontal') {
-                menuHtml = `<div class="shop-menu shop-menu-horizontal" style="background:${menu.bg}; color:${menu.text}; border-radius:${menu.radius}px; overflow-x:auto;">
-                    ${menu.categories.map(cat => `
-                        <div class="shop-menu-item">
-                            ${escapeHtml(cat.name)}
-                            ${cat.subcategories && cat.subcategories.length ? `<div class="shop-submenu">${cat.subcategories.map(sub => `<div class="shop-submenu-item">${escapeHtml(sub)}</div>`).join('')}</div>` : ''}
-                        </div>
-                    `).join('')}
-                </div>`;
-            } else {
-                menuHtml = `<div class="shop-menu shop-menu-vertical" style="background:${menu.bg}; color:${menu.text}; border-radius:${menu.radius}px; overflow-x:auto; white-space:nowrap;">
-                    ${menu.categories.map(cat => `
-                        <div class="shop-menu-item" style="display:inline-block;">
-                            ${escapeHtml(cat.name)}
-                            ${cat.subcategories && cat.subcategories.length ? `<div class="shop-submenu">${cat.subcategories.map(sub => `<div class="shop-submenu-item">${escapeHtml(sub)}</div>`).join('')}</div>` : ''}
-                        </div>
-                    `).join('')}
-                </div>`;
-            }
-        }
-        
         document.getElementById('appContainer').innerHTML = `
             <button class="back-btn" onclick="resetToHome()"><i class="fas fa-arrow-left"></i> Retour</button>
-            <style>
-                .shop-header-custom { background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}aa); }
-                .category-btn.active { background: ${primaryColor}; }
-                .btn-add-cart { background: ${buttonColor}; border-radius: ${productRadius}px; }
-                .product-card { border-radius: ${productRadius}px; }
-                .product-image { height: ${productImgHeight}px; }
-                .products-container { display: ${layout === 'grid' ? 'grid' : 'flex'}; ${layout === 'grid' ? `grid-template-columns: repeat(auto-fill, minmax(${productWidth}px, 1fr));` : 'flex-direction: column;'} gap: ${productGap}px; }
-                .carousel-container { border-radius: ${carouselRadius}px; height: ${carouselHeight}px; }
-                .carousel-slide { height: ${carouselHeight}px; }
-                .shop-logo-large { border-radius: ${logoBorderRadius}; }
-            </style>
-            <div class="shop-header-custom">
+            <div class="shop-header-custom" style="background: linear-gradient(135deg, #1e40af, #1e40afaa);">
                 <div class="shop-header-content">
                     <div class="shop-logo-large">
                         ${shop.logo ? `<img src="${shop.logo}">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
@@ -703,45 +637,27 @@
                             ${shop.verified ? '<span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:20px;margin-left:6px;font-size:10px;"><i class="fas fa-check-circle"></i> Certifiée</span>' : ''}
                         </div>
                         <div style="margin-top:4px; font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city + ', ' + shop.quartier)}</div>
-                        <button class="share-link" onclick="copyShopLink('${shareUrl}')"><i class="fas fa-share-alt"></i> Partager</button>
+                        ${shop.location ? `<button class="share-link" onclick="openInGoogleMaps(${shop.location.lat}, ${shop.location.lng}, '${escapeHtml(shop.name)}')"><i class="fas fa-directions"></i> Voir sur la carte</button>` : ''}
                     </div>
                 </div>
             </div>
-            ${menuHtml}
-            <div>
-                ${shop.carousel && shop.carousel.length ? `
-                <div class="carousel-container" id="shopCarousel">
-                    ${shop.carousel.map((media, idx) => `
-                        ${media.type === 'image' ? `<img src="${media.src}" class="carousel-slide ${idx === 0 ? 'active' : ''}">` : `<video src="${media.src}" class="carousel-slide ${idx === 0 ? 'active' : ''}" autoplay muted loop></video>`}
-                    `).join('')}
-                    <button class="carousel-btn carousel-prev" onclick="changeCarouselSlide(-1)">❮</button>
-                    <button class="carousel-btn carousel-next" onclick="changeCarouselSlide(1)">❯</button>
-                    <div class="carousel-dots">
-                        ${shop.carousel.map((_, idx) => `<div class="carousel-dot ${idx === 0 ? 'active' : ''}" onclick="goToCarouselSlide(${idx})"></div>`).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                
-                <div class="categories-filter" id="shopCategoriesFilter">
-                    <button class="category-btn active" data-cat="all">Tous</button>
-                    ${(shop.categories || []).map(cat => `<button class="category-btn" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('')}
-                </div>
-                
-                <div id="shopProductsContainer" class="products-container"></div>
-                
-                <div class="reviews-section">
-                    <h3>Avis clients</h3>
-                    ${(shop.reviews || []).length ? shop.reviews.map(r => `
-                        <div class="review-item">
-                            <div class="review-header">
-                                <span class="review-user">${escapeHtml(r.user)}</span>
-                                <div class="review-stars">${generateStars(r.rating)}</div>
-                                <span class="review-date">${new Date(r.date).toLocaleDateString()}</span>
-                            </div>
-                            <div class="review-comment">${escapeHtml(r.comment || '')}</div>
+            <div class="categories-filter" id="shopCategoriesFilter">
+                <button class="category-btn active" data-cat="all">Tous</button>
+                ${(shop.categories || []).map(cat => `<button class="category-btn" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('')}
+            </div>
+            <div id="shopProductsContainer" class="products-container"></div>
+            <div class="reviews-section">
+                <h3>Avis clients</h3>
+                ${(shop.reviews || []).length ? shop.reviews.map(r => `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <span class="review-user">${escapeHtml(r.user)}</span>
+                            <div class="review-stars">${generateStars(r.rating)}</div>
+                            <span class="review-date">${new Date(r.date).toLocaleDateString()}</span>
                         </div>
-                    `).join('') : '<p style="color:var(--gray-500);">Aucun avis pour le moment</p>'}
-                </div>
+                        <div class="review-comment">${escapeHtml(r.comment || '')}</div>
+                    </div>
+                `).join('') : '<p style="color:var(--gray-500);">Aucun avis pour le moment</p>'}
             </div>
         `;
         
@@ -755,13 +671,6 @@
                 displayShopProducts();
             });
         });
-        
-        startShopCarousel();
-    }
-    
-    function copyShopLink(url) {
-        navigator.clipboard.writeText(url);
-        alert("Lien copié !");
     }
     
     function displayShopProducts() {
@@ -770,11 +679,6 @@
         let products = currentShop.products || [];
         if (currentCategory !== 'all') products = products.filter(p => p.category === currentCategory);
         
-        const design = currentShop.design || {};
-        const buttonColor = design.button || '#1e40af';
-        const productRadius = design.prodRadius || 12;
-        const productImgHeight = design.prodImgHeight || 130;
-        
         if (!products.length) {
             container.innerHTML = '<div style="text-align:center;padding:30px;">Aucun produit</div>';
             return;
@@ -782,68 +686,23 @@
         
         container.innerHTML = products.map(p => `
             <div class="product-card" onclick="openProductModal(${currentShop.id}, ${p.id})">
-                <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image" style="height:${productImgHeight}px;">
+                <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image" style="height:130px;">
                 <div class="product-info">
                     ${p.productType === 'food' ? '<div class="product-badge">Alimentaire</div>' : ''}
                     <div class="product-title">${escapeHtml(p.name)}</div>
                     <div class="product-price">${p.price} FCFA</div>
                     <div class="product-stock">Stock: ${p.stock || 0}</div>
-                    <button class="btn-add-cart" style="background:${buttonColor}; border-radius:${productRadius}px;" onclick="event.stopPropagation();addToCart(${currentShop.id}, ${p.id}, '${escapeHtml(p.name)}', '${p.price}')">Ajouter</button>
+                    <button class="btn-add-cart" style="background:#1e40af; border-radius:12px;" onclick="event.stopPropagation();addToCart(${currentShop.id}, ${p.id}, '${escapeHtml(p.name)}', '${p.price}')">Ajouter</button>
                 </div>
             </div>
         `).join('');
     }
     
-    function startShopCarousel() {
-        if (carouselInterval) clearInterval(carouselInterval);
-        const speed = currentShop.design?.carouselSpeed || 0;
-        if (speed > 0 && currentShop.carousel && currentShop.carousel.length > 1) {
-            carouselInterval = setInterval(() => {
-                const slides = document.querySelectorAll('#shopCarousel .carousel-slide');
-                if (!slides.length) return;
-                let activeIdx = Array.from(slides).findIndex(s => s.classList.contains('active'));
-                slides[activeIdx].classList.remove('active');
-                const nextIdx = (activeIdx + 1) % slides.length;
-                slides[nextIdx].classList.add('active');
-                document.querySelectorAll('#shopCarousel .carousel-dot').forEach((dot, i) => {
-                    dot.classList.toggle('active', i === nextIdx);
-                });
-            }, speed * 1000);
-        }
-    }
-    
-    window.changeCarouselSlide = function(direction) {
-        const slides = document.querySelectorAll('#shopCarousel .carousel-slide');
-        if (!slides.length) return;
-        let activeIdx = Array.from(slides).findIndex(s => s.classList.contains('active'));
-        slides[activeIdx].classList.remove('active');
-        let newIdx = (activeIdx + direction + slides.length) % slides.length;
-        slides[newIdx].classList.add('active');
-        document.querySelectorAll('#shopCarousel .carousel-dot').forEach((dot, i) => {
-            dot.classList.toggle('active', i === newIdx);
-        });
-        if (carouselInterval) { clearInterval(carouselInterval); startShopCarousel(); }
-    };
-    
-    window.goToCarouselSlide = function(idx) {
-        const slides = document.querySelectorAll('#shopCarousel .carousel-slide');
-        if (!slides.length) return;
-        slides.forEach(s => s.classList.remove('active'));
-        slides[idx].classList.add('active');
-        document.querySelectorAll('#shopCarousel .carousel-dot').forEach((dot, i) => {
-            dot.classList.toggle('active', i === idx);
-        });
-        if (carouselInterval) { clearInterval(carouselInterval); startShopCarousel(); }
-    };
-    
-    // ============ MODALE PRODUIT ============
     function openProductModal(shopId, productId) {
         const shop = shops.find(s => s.id === shopId);
         const product = shop?.products?.find(p => p.id === productId);
         if (!product) return;
         const photos = product.photos && product.photos.length ? product.photos : ['https://via.placeholder.com/600x400'];
-        const design = shop.design || {};
-        const buttonColor = design.button || '#1e40af';
         
         const modal = document.createElement('div'); modal.className = 'product-modal';
         modal.innerHTML = `
@@ -860,27 +719,8 @@
                         <h2 style="font-size:18px;">${escapeHtml(product.name)}</h2>
                         <div class="product-price" style="font-size:18px;">${product.price} FCFA</div>
                         <div class="product-stock">Stock: ${product.stock || 0}</div>
-                        ${product.productType === 'food' ? `
-                        <div class="food-details">
-                            <strong>Informations alimentaires</strong><br>
-                            ${product.expiryDate ? `Expiration: ${escapeHtml(product.expiryDate)}<br>` : ''}
-                            ${product.weight ? `Poids: ${escapeHtml(product.weight)}<br>` : ''}
-                            ${product.origin ? `Origine: ${escapeHtml(product.origin)}<br>` : ''}
-                            ${product.ingredients ? `Ingrédients: ${escapeHtml(product.ingredients)}` : ''}
-                        </div>
-                        ` : ''}
-                        ${product.colors && product.colors.length ? `
-                            <div class="variant-selector"><strong>Couleurs:</strong><br>
-                                ${product.colors.map(c => `<span class="variant-option" style="background:${c}; color:white;">${c}</span>`).join('')}
-                            </div>
-                        ` : ''}
-                        ${product.sizes && product.sizes.length ? `
-                            <div class="variant-selector"><strong>Tailles:</strong><br>
-                                ${product.sizes.map(s => `<span class="variant-option">${s}</span>`).join('')}
-                            </div>
-                        ` : ''}
                         <div class="product-description" style="margin:10px 0; font-size:12px;">${escapeHtml(product.description || 'Aucune description')}</div>
-                        <button class="btn-modal-add" style="background:${buttonColor};" onclick="addToCartFromModal(${shop.id}, ${product.id}, '${escapeHtml(product.name)}', '${product.price}')">Ajouter au panier</button>
+                        <button class="btn-modal-add" style="background:#1e40af;" onclick="addToCartFromModal(${shop.id}, ${product.id}, '${escapeHtml(product.name)}', '${product.price}')">Ajouter au panier</button>
                     </div>
                 </div>
             </div>`;
@@ -918,18 +758,11 @@
     // ============ PANIER ET PAIEMENT ============
     function showCart() {
         if (cart.length === 0) {
-            document.getElementById('appContainer').innerHTML = `
-                <div class="cart-container" style="text-align:center;padding:40px;">
-                    <i class="fas fa-shopping-cart" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
-                    <h3>Votre panier est vide</h3>
-                    <button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;width:auto;padding:8px 24px;">Continuer vos achats</button>
-                </div>
-            `;
+            document.getElementById('appContainer').innerHTML = `<div class="cart-container" style="text-align:center;padding:40px;"><i class="fas fa-shopping-cart" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i><h3>Votre panier est vide</h3><button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;width:auto;padding:8px 24px;">Continuer vos achats</button></div>`;
             return;
         }
         
-        let subtotal = 0;
-        cart.forEach(item => { subtotal += item.price * item.quantity; });
+        let subtotal = cart.reduce((s,i) => s + i.price * i.quantity, 0);
         const deliveryFees = subtotal * 0.1;
         const total = subtotal + deliveryFees;
         
@@ -978,13 +811,14 @@
     }
     
     function showCheckout(total) {
+        const userLocation = getUserData().location || {};
         document.getElementById('appContainer').innerHTML = `
             <div class="cart-container">
                 <h2 style="font-size:18px;margin-bottom:16px;">Livraison et paiement</h2>
-                <div class="form-group"><label>Ville *</label><input type="text" id="deliveryCity" placeholder="Brazzaville"></div>
-                <div class="form-group"><label>Quartier *</label><input type="text" id="deliveryQuartier" placeholder="Moungali, Bacongo..."></div>
-                <div class="form-group"><label>Adresse *</label><input type="text" id="deliveryAddress" placeholder="Rue, numéro, point de repère"></div>
-                <div class="form-group"><label>Téléphone *</label><input type="tel" id="deliveryPhone" placeholder="+242 0X XXX XX XX"></div>
+                <div class="form-group"><label>Ville *</label><input type="text" id="deliveryCity" placeholder="Brazzaville" value="${escapeHtml(userLocation.city || '')}"></div>
+                <div class="form-group"><label>Quartier *</label><input type="text" id="deliveryQuartier" placeholder="Moungali, Bacongo..." value="${escapeHtml(userLocation.quartier || '')}"></div>
+                <div class="form-group"><label>Adresse *</label><input type="text" id="deliveryAddress" placeholder="Rue, numéro, point de repère" value="${escapeHtml(userLocation.address || '')}"></div>
+                <div class="form-group"><label>Téléphone *</label><input type="tel" id="deliveryPhone" placeholder="+242 06 XX XX XX" value="${escapeHtml(userLocation.phone || '')}"></div>
                 
                 <h3 style="font-size:14px;margin:16px 0 12px;">Mode de paiement</h3>
                 <div class="payment-options" id="paymentOptions">
@@ -1021,40 +855,17 @@
             container.style.display = 'block';
             container.innerHTML = `
                 <div class="card-details">
-                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN Désiré MAVOULA"></div>
+                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
                     <div class="form-group"><label>Numéro de compte</label><input type="text" id="cardNumber" maxlength="19" placeholder="XXXX XXXX XXXX XXXX"></div>
                     <div class="form-row" style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group" style="flex:1;"><label>CVV</label><input type="password" id="cardCvv" maxlength="3" placeholder="XXX"></div></div>
-                    <div id="cardTypeDisplay" style="font-size:10px;color:var(--gray-500);"></div>
                 </div>
             `;
-            const cardInput = document.getElementById('cardNumber');
-            if(cardInput) {
-                cardInput.addEventListener('input', (e) => {
-                    let val = e.target.value.replace(/\s/g, '');
-                    if(val.length > 16) val = val.slice(0,16);
-                    e.target.value = val.replace(/(\d{4})/g, '$1 ').trim();
-                    let firstDigit = val.charAt(0);
-                    let typeDisplay = document.getElementById('cardTypeDisplay');
-                    if(firstDigit === '4') typeDisplay.innerHTML = 'VISA';
-                    else if(firstDigit === '5') typeDisplay.innerHTML = 'MasterCard';
-                    else typeDisplay.innerHTML = '';
-                });
-            }
         } else if (type === 'mobile') {
             container.style.display = 'block';
-            container.innerHTML = `
-                <div class="card-details">
-                    <div class="form-group"><label>Opérateur</label><select id="mobileOperator"><option value="mtn">MTN Mobile Money</option><option value="airtel">Airtel Money</option></select></div>
-                    <div class="form-group"><label>Numéro</label><input type="tel" id="mobileNumber" placeholder="+242 06 XXX XX XX"></div>
-                </div>
-            `;
+            container.innerHTML = `<div class="card-details"><div class="form-group"><label>Numéro Mobile Money</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div></div>`;
         } else if (type === 'paypal') {
             container.style.display = 'block';
-            container.innerHTML = `
-                <div class="card-details">
-                    <div class="form-group"><label>Email PayPal</label><input type="email" id="paypalEmail" placeholder="exemple@paypal.com"></div>
-                </div>
-            `;
+            container.innerHTML = `<div class="card-details"><div class="form-group"><label>Email PayPal</label><input type="email" id="paypalEmail" placeholder="exemple@paypal.com"></div></div>`;
         } else if (type === 'cash') {
             container.style.display = 'block';
             container.innerHTML = `<div class="card-details"><p>Paiement à la livraison</p></div>`;
@@ -1091,13 +902,11 @@
         if (selectedPayment === 'mobile') {
             const mobileNumber = document.getElementById('mobileNumber')?.value.trim();
             if (!mobileNumber) { alert("Numéro Mobile Money requis"); return; }
-            const cleanNumber = mobileNumber.replace(/\s/g, '');
-            if (!/^(\+242|0)[56]\d{8}$/.test(cleanNumber)) { alert("Numéro invalide. Format: +242 0X XXX XX XX"); return; }
         }
         
         if (selectedPayment === 'paypal') {
             const paypalEmail = document.getElementById('paypalEmail')?.value.trim();
-            if (!paypalEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) { alert("Email PayPal invalide"); return; }
+            if (!paypalEmail || !validateEmail(paypalEmail)) { alert("Email PayPal invalide"); return; }
         }
         
         const subtotal = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
@@ -1105,11 +914,19 @@
         const finalTotal = subtotal + deliveryFees;
         const orderId = 'CMD-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
         
+        // Récupérer les positions des boutiques
+        const shopItems = cart.map(item => {
+            const shop = shops.find(s => s.id === item.shopId);
+            return { shopId: item.shopId, shopName: item.shopName, shopLocation: shop?.location || null };
+        });
+        const uniqueShops = [...new Map(shopItems.map(s => [s.shopId, s])).values()];
+        
         const newOrder = {
-            id: orderId, userId: currentUser?.email || 'client@email.com', userName: currentUser?.name || 'Client',
+            id: orderId, userId: currentUser?.email, userName: currentUser?.name,
             items: cart.map(item => ({ productId: item.productId, productName: item.productName, price: item.price, quantity: item.quantity, shopId: item.shopId, shopName: item.shopName })),
             subtotal, deliveryFees, total: finalTotal,
-            deliveryInfo: { city, quartier, address, phone },
+            deliveryInfo: { city, quartier, address, phone, location: getUserData().location || null },
+            shops: uniqueShops,
             paymentMethod: selectedPayment,
             date: new Date().toISOString(), status: 'confirmée', trackingStep: 1,
             statusHistory: [{ status: 'Commande confirmée', date: new Date().toISOString(), message: `Votre commande #${orderId} a été confirmée` }],
@@ -1122,15 +939,14 @@
         cart = [];
         saveData();
         
-        sendEmail(currentUser?.email || 'client@email.com', `Confirmation commande #${orderId}`, `Bonjour,\n\nVotre commande #${orderId} a été confirmée.\nTotal: ${finalTotal.toLocaleString()} FCFA\n\nMerci de votre confiance !`);
+        sendEmail(currentUser?.email, `Confirmation commande #${orderId}`, `Bonjour,\n\nVotre commande #${orderId} a été confirmée.\nTotal: ${finalTotal.toLocaleString()} FCFA\n\nMerci de votre confiance !`);
         
-        alert(`✅ Commande ${orderId} confirmée !\n\nUn email de confirmation a été envoyé à ${currentUser?.email || 'votre email'}\nTotal: ${finalTotal.toLocaleString()} FCFA`);
-        
-        window.location.href = `tracking.html?id=${orderId}`;
+        alert(`✅ Commande ${orderId} confirmée !\n\nTotal: ${finalTotal.toLocaleString()} FCFA`);
+        resetToHome();
     }
     
     function showMyOrders() {
-        const userOrders = orders.filter(o => o.userId === (currentUser?.email || 'client@email.com'));
+        const userOrders = orders.filter(o => o.userId === currentUser?.email);
         if (userOrders.length === 0) {
             document.getElementById('appContainer').innerHTML = `<div class="cart-container" style="text-align:center;padding:40px;"><i class="fas fa-truck" style="font-size:48px;color:var(--gray-500);"></i><h3>Aucune commande</h3><button onclick="resetToHome()" class="btn-submit" style="margin-top:16px;">Commencer</button></div>`;
             return;
@@ -1144,7 +960,8 @@
                         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;"><strong>#${order.id}</strong><span>${new Date(order.date).toLocaleDateString()}</span></div>
                         <div>Total: ${order.total.toLocaleString()} FCFA</div>
                         <div>Statut: <span style="color:var(--success);">${order.status}</span></div>
-                        <button onclick="window.location.href='tracking.html?id=${order.id}'" class="btn-sm btn-outline" style="margin-top:8px;">Suivre</button>
+                        ${order.status === 'confirmée' ? `<button onclick="acceptDelivery('${order.id}')" style="margin-top:8px; background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:20px; cursor:pointer;">Accepter la livraison</button>` : ''}
+                        <button onclick="viewOrderMap('${order.id}')" style="margin-top:8px; background:var(--success); color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:10px;"><i class="fas fa-map-marker-alt"></i> Voir sur la carte</button>
                     </div>
                 `).join('')}
                 <button onclick="resetToHome()" class="btn-submit">Continuer</button>
@@ -1152,12 +969,102 @@
         `;
     }
     
-    // ============ PROFIL COMPLET (NOUVEAU) ============
+    // ============ LIVREUR - ACCEPTATION DE COMMANDE AVEC GPS ============
+    function acceptDelivery(orderId) {
+        if (!currentUser || currentUser.type !== 'livreur') {
+            alert("Seuls les livreurs peuvent accepter les livraisons");
+            return;
+        }
+        
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        
+        order.status = 'en_livraison';
+        order.deliveryDriver = currentUser.email;
+        order.trackingStep = 2;
+        order.statusHistory.push({ status: 'Livreur assigné', date: new Date().toISOString(), message: `Le livreur ${currentUser.name} a pris en charge votre commande` });
+        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+        
+        // Générer le lien GPS pour le livreur
+        let gpsLinks = [];
+        if (order.shops && order.shops.length) {
+            order.shops.forEach(shop => {
+                if (shop.shopLocation) {
+                    gpsLinks.push(`🛍️ Boutique ${shop.shopName}: https://www.google.com/maps?q=${shop.shopLocation.lat},${shop.shopLocation.lng}`);
+                }
+            });
+        }
+        if (order.deliveryInfo?.location) {
+            gpsLinks.push(`🏠 Client: https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`);
+        } else if (order.deliveryInfo?.address) {
+            gpsLinks.push(`🏠 Client: ${order.deliveryInfo.address}, ${order.deliveryInfo.quartier}, ${order.deliveryInfo.city}`);
+        }
+        
+        const gpsMessage = `📦 Commande #${orderId}\n\nItinéraire de livraison:\n${gpsLinks.join('\n\n')}\n\nMerci de suivre le GPS pour la livraison.`;
+        
+        alert(`✅ Commande #${orderId} acceptée !\n\nUn lien GPS a été généré.\n\n${gpsMessage}`);
+        sendEmail(currentUser.email, `Livraison #${orderId}`, gpsMessage);
+        
+        showMyOrders();
+    }
+    
+    function viewOrderMap(orderId) {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        
+        let gpsLinks = [];
+        if (order.shops && order.shops.length) {
+            order.shops.forEach(shop => {
+                if (shop.shopLocation) {
+                    gpsLinks.push({ type: 'shop', name: shop.shopName, lat: shop.shopLocation.lat, lng: shop.shopLocation.lng });
+                }
+            });
+        }
+        if (order.deliveryInfo?.location) {
+            gpsLinks.push({ type: 'client', name: 'Client', lat: order.deliveryInfo.location.lat, lng: order.deliveryInfo.location.lng });
+        }
+        
+        if (gpsLinks.length === 0) {
+            alert("Aucune position GPS disponible pour cette commande");
+            return;
+        }
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card" style="max-width: 700px;">
+                <h3>Itinéraire de livraison - ${order.id}</h3>
+                <div id="deliveryMap" style="height: 400px; border-radius: 12px; margin: 15px 0;"></div>
+                <div class="location-actions">
+                    ${gpsLinks.map(link => `<button onclick="openInGoogleMaps(${link.lat}, ${link.lng}, '${link.name}')" style="background:var(--primary); color:white; border:none; padding:8px 12px; border-radius:30px; cursor:pointer;"><i class="fas fa-directions"></i> ${link.type === 'shop' ? 'Aller à la boutique ' + link.name : 'Aller chez le client'}</button>`).join('')}
+                </div>
+                <button class="btn-submit btn-secondary" onclick="this.closest('.modal').remove()">Fermer</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Initialiser la carte
+        setTimeout(() => {
+            const map = L.map('deliveryMap').setView([gpsLinks[0].lat, gpsLinks[0].lng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' }).addTo(map);
+            
+            gpsLinks.forEach(link => {
+                const icon = L.divIcon({ html: link.type === 'shop' ? '🛍️' : '🏠', className: 'custom-div-icon', iconSize: [30, 30] });
+                L.marker([link.lat, link.lng], { icon: L.divIcon({ html: `<div style="background:${link.type === 'shop' ? '#1e40af' : '#10b981'}; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:16px;">${link.type === 'shop' ? '🛍️' : '🏠'}</div>`, className: '', iconSize: [30, 30] }) }).addTo(map).bindPopup(link.name);
+            });
+        }, 100);
+    }
+    
+    function openInGoogleMaps(lat, lng, name) {
+        window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    }
+    
+    // ============ PROFIL AVEC LOCALISATION GPS ============
     function showProfile() {
         if (!currentUser) { alert("Veuillez vous connecter"); openLoginModal(); return; }
         
         const userData = getUserData();
         const paymentMethods = userData.paymentMethods || [];
+        const userLocation = userData.location || {};
         
         document.getElementById('appContainer').innerHTML = `
             <div class="profile-container">
@@ -1172,16 +1079,30 @@
                 </div>
                 <div class="profile-tabs">
                     <div class="profile-tab active" data-tab="info">Informations</div>
+                    <div class="profile-tab" data-tab="location">📍 Localisation</div>
                     <div class="profile-tab" data-tab="payment">Moyens de paiement</div>
                     <div class="profile-tab" data-tab="orders">Commandes</div>
                 </div>
                 <div id="profileTabInfo" class="profile-section active">
                     <div class="info-card">
-                        <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value" id="displayFullName">${escapeHtml(userData.fullName || userData.name || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('fullName')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Prénom(s)</div><div class="info-value" id="displayFirstName">${escapeHtml(userData.firstName || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('firstName')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Localisation</div><div class="info-value" id="displayLocation">${escapeHtml(userData.city || 'Non renseigné')}${userData.quartier ? ', ' + userData.quartier : ''}</div><div class="info-actions"><button class="edit-btn" onclick="editField('location')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value" id="displayPhone">${escapeHtml(userData.phone || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('phone')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value" id="displayBirthDate">${escapeHtml(userData.birthDate || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('birthDate')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value">${escapeHtml(userData.fullName || userData.name || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('fullName')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">${escapeHtml(userData.phone || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('phone')">Modifier</button></div></div>
+                    </div>
+                </div>
+                <div id="profileTabLocation" class="profile-section">
+                    <div class="info-card">
+                        <h4 style="margin-bottom:15px;">Ma position de livraison</h4>
+                        <div class="info-row"><div class="info-label">Adresse</div><div class="info-value">${escapeHtml(userLocation.address || 'Non renseigné')}</div></div>
+                        <div class="info-row"><div class="info-label">Quartier</div><div class="info-value">${escapeHtml(userLocation.quartier || 'Non renseigné')}</div></div>
+                        <div class="info-row"><div class="info-label">Ville</div><div class="info-value">${escapeHtml(userLocation.city || 'Brazzaville')}</div></div>
+                        <div id="locationMap" class="location-map"></div>
+                        <div class="location-actions">
+                            <button onclick="getCurrentLocation()"><i class="fas fa-location-dot"></i> Ma position actuelle</button>
+                            <button onclick="saveUserLocation()"><i class="fas fa-save"></i> Enregistrer cette position</button>
+                        </div>
+                        <div id="locationCoords" class="location-coords"></div>
+                        ${userLocation.lat && userLocation.lng ? `<a href="https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}" target="_blank" class="gps-link"><i class="fas fa-map-marked-alt"></i> Ouvrir dans Google Maps</a>` : ''}
+                        <div class="info-text" style="margin-top:15px;">👉 Cliquez sur la carte pour ajuster votre position, ou utilisez "Ma position actuelle" pour vous géolocaliser automatiquement.</div>
                     </div>
                 </div>
                 <div id="profileTabPayment" class="profile-section">
@@ -1196,6 +1117,7 @@
         
         renderPaymentMethods();
         renderProfileOrders();
+        initLocationMap(userLocation.lat || DEFAULT_LAT, userLocation.lng || DEFAULT_LNG, userLocation);
         
         document.querySelectorAll('.profile-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -1203,8 +1125,77 @@
                 document.querySelectorAll('.profile-section').forEach(s => s.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById(`profileTab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.add('active');
+                if (tab.dataset.tab === 'location' && locationMap) {
+                    setTimeout(() => locationMap.invalidateSize(), 100);
+                }
             });
         });
+    }
+    
+    function initLocationMap(lat, lng, userLocation) {
+        if (locationMap) locationMap.remove();
+        locationMap = L.map('locationMap').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' }).addTo(locationMap);
+        
+        locationMarker = L.marker([lat, lng], { draggable: true }).addTo(locationMap);
+        locationMarker.on('dragend', function(e) {
+            const pos = e.target.getLatLng();
+            document.getElementById('locationCoords').innerHTML = `Position sélectionnée: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+            window.tempLocation = { lat: pos.lat, lng: pos.lng };
+        });
+        
+        locationMap.on('click', function(e) {
+            locationMarker.setLatLng(e.latlng);
+            document.getElementById('locationCoords').innerHTML = `Position sélectionnée: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+            window.tempLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+        });
+        
+        if (userLocation.lat && userLocation.lng) {
+            document.getElementById('locationCoords').innerHTML = `Position enregistrée: ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
+        }
+    }
+    
+    function getCurrentLocation() {
+        if (!navigator.geolocation) {
+            alert("La géolocalisation n'est pas supportée par votre navigateur");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                if (locationMarker) locationMarker.setLatLng([lat, lng]);
+                if (locationMap) locationMap.setView([lat, lng], 15);
+                document.getElementById('locationCoords').innerHTML = `Position actuelle: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                window.tempLocation = { lat, lng };
+                alert("Position actuelle obtenue ! Vous pouvez maintenant l'enregistrer.");
+            },
+            (error) => {
+                alert("Impossible d'obtenir votre position: " + error.message);
+            }
+        );
+    }
+    
+    function saveUserLocation() {
+        if (!window.tempLocation && !locationMarker) {
+            alert("Veuillez d'abord sélectionner une position sur la carte");
+            return;
+        }
+        const pos = window.tempLocation || locationMarker.getLatLng();
+        const city = document.querySelector('#profileTabLocation .info-value')?.innerText.split(',')[0] || 'Brazzaville';
+        
+        const locationData = {
+            lat: pos.lat,
+            lng: pos.lng,
+            city: city,
+            quartier: document.querySelector('#profileTabLocation .info-value:nth-child(2)')?.innerText || '',
+            address: document.querySelector('#profileTabLocation .info-value:first-child')?.innerText || '',
+            phone: document.querySelector('#profileTabInfo .info-value:nth-child(2)')?.innerText || ''
+        };
+        
+        saveUserData({ location: locationData });
+        alert("✅ Position enregistrée avec succès ! Les livreurs pourront maintenant vous localiser précisément.");
+        showProfile();
     }
     
     function getUserData() {
@@ -1223,7 +1214,6 @@
         if (updates.fullName) currentUser.name = updates.fullName;
         if (updates.profilePhoto) currentUser.profilePhoto = updates.profilePhoto;
         saveData();
-        showProfile();
     }
     
     function editField(field) {
@@ -1234,17 +1224,14 @@
         
         switch(field) {
             case 'fullName': currentValue = userData.fullName || ''; placeholder = "Nom complet"; break;
-            case 'firstName': currentValue = userData.firstName || ''; placeholder = "Prénom(s)"; break;
-            case 'location': currentValue = `${userData.city || ''}${userData.quartier ? ', ' + userData.quartier : ''}`; placeholder = "Ville, Quartier"; break;
-            case 'phone': currentValue = userData.phone || ''; placeholder = "+242 XX XXX XXX"; inputType = "tel"; break;
-            case 'birthDate': currentValue = userData.birthDate || ''; placeholder = "AAAA-MM-JJ"; inputType = "date"; break;
+            case 'phone': currentValue = userData.phone || ''; placeholder = "+242 06 XX XX XX"; inputType = "tel"; break;
             default: return;
         }
         
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
-                <h3>Modifier ${field === 'fullName' ? 'le nom' : field === 'firstName' ? 'le prénom' : field === 'location' ? 'la localisation' : field === 'phone' ? 'le téléphone' : 'la date de naissance'}</h3>
+                <h3>Modifier ${field === 'fullName' ? 'le nom' : 'le téléphone'}</h3>
                 <div class="form-group"><input type="${inputType}" id="editValue" value="${escapeHtml(currentValue)}" placeholder="${placeholder}"></div>
                 <button class="btn-submit" onclick="saveFieldValue('${field}')">Enregistrer</button>
                 <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button>
@@ -1255,22 +1242,15 @@
     
     function saveFieldValue(field) {
         const value = document.getElementById('editValue')?.value.trim();
-        if (!value && field !== 'birthDate') { alert("Veuillez remplir le champ"); return; }
+        if (!value) { alert("Veuillez remplir le champ"); return; }
         
-        const userData = getUserData();
         let updates = {};
         if (field === 'fullName') updates.fullName = value;
-        else if (field === 'firstName') updates.firstName = value;
-        else if (field === 'location') {
-            const parts = value.split(',');
-            updates.city = parts[0].trim();
-            updates.quartier = parts[1] ? parts[1].trim() : '';
-        }
         else if (field === 'phone') updates.phone = value;
-        else if (field === 'birthDate') updates.birthDate = value;
         
         saveUserData(updates);
         document.querySelector('.modal')?.remove();
+        showProfile();
     }
     
     function editProfilePhoto() {
@@ -1281,9 +1261,7 @@
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (ev) => {
-                    saveUserData({ profilePhoto: ev.target.result });
-                };
+                reader.onload = (ev) => saveUserData({ profilePhoto: ev.target.result });
                 reader.readAsDataURL(file);
             }
         };
@@ -1304,30 +1282,13 @@
         container.innerHTML = methods.map((method, idx) => {
             let icon = '<i class="fas fa-credit-card"></i>';
             let displayInfo = '';
-            
             if (method.type === 'mtn') { icon = '<i class="fas fa-mobile-alt"></i>'; displayInfo = method.number || ''; }
             else if (method.type === 'airtel') { icon = '<i class="fas fa-mobile-alt"></i>'; displayInfo = method.number || ''; }
-            else if (method.type === 'momo') { icon = '<i class="fas fa-money-bill"></i>'; displayInfo = method.number || ''; }
             else if (method.type === 'paypal') { icon = '<i class="fab fa-paypal"></i>'; displayInfo = method.details || ''; }
             else if (method.type === 'visa') { icon = '<i class="fab fa-cc-visa"></i>'; displayInfo = `**** ${method.cardNumber?.slice(-4) || ''}`; }
             else if (method.type === 'mastercard') { icon = '<i class="fab fa-cc-mastercard"></i>'; displayInfo = `**** ${method.cardNumber?.slice(-4) || ''}`; }
-            else { displayInfo = method.details || method.number || ''; }
             
-            return `
-                <div class="payment-item">
-                    <div class="payment-info">
-                        <div class="payment-icon">${icon}</div>
-                        <div class="payment-details">
-                            <strong>${method.type === 'mtn' ? 'MTN Mobile Money' : method.type === 'airtel' ? 'Airtel Money' : method.type === 'momo' ? 'MOMO' : method.type === 'paypal' ? 'PayPal' : method.type === 'visa' ? 'VISA' : method.type === 'mastercard' ? 'Mastercard' : method.type}</strong>
-                            <span>${escapeHtml(displayInfo)}</span>
-                        </div>
-                    </div>
-                    <div class="payment-actions">
-                        <button onclick="editPaymentMethod(${idx})" style="color:var(--primary);"><i class="fas fa-edit"></i></button>
-                        <button onclick="deletePaymentMethod(${idx})" style="color:var(--danger);"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `;
+            return `<div class="payment-item"><div class="payment-info"><div class="payment-icon">${icon}</div><div class="payment-details"><strong>${method.type === 'mtn' ? 'MTN' : method.type === 'airtel' ? 'Airtel' : method.type === 'paypal' ? 'PayPal' : method.type === 'visa' ? 'VISA' : 'Mastercard'}</strong><span>${escapeHtml(displayInfo)}</span></div></div><div class="payment-actions"><button onclick="editPaymentMethod(${idx})" style="color:var(--primary);"><i class="fas fa-edit"></i></button><button onclick="deletePaymentMethod(${idx})" style="color:var(--danger);"><i class="fas fa-trash"></i></button></div></div>`;
         }).join('');
     }
     
@@ -1336,138 +1297,64 @@
         modal.innerHTML = `
             <div class="modal-card">
                 <h3>Ajouter un moyen de paiement</h3>
-                <div class="form-group"><label>Type</label>
-                    <select id="paymentType">
-                        <option value="visa">VISA</option>
-                        <option value="mastercard">Mastercard</option>
-                        <option value="mtn">MTN Mobile Money</option>
-                        <option value="airtel">Airtel Money</option>
-                        <option value="momo">MOMO</option>
-                        <option value="paypal">PayPal</option>
-                    </select>
-                </div>
-                <div id="paymentTypeFields">
-                    <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
-                    <div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"></div>
-                    <div class="form-row"><div class="form-group"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input type="password" id="cardCvv" placeholder="XXX"></div></div>
-                </div>
+                <div class="form-group"><label>Type</label><select id="paymentType"><option value="visa">VISA</option><option value="mastercard">Mastercard</option><option value="mtn">MTN Mobile Money</option><option value="airtel">Airtel Money</option><option value="paypal">PayPal</option></select></div>
+                <div id="paymentTypeFields"><div class="form-group"><label>Numéro</label><input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"></div></div>
                 <button class="btn-submit" onclick="addPaymentMethod()">Ajouter</button>
-                <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button>
+                <button class="btn-submit btn-secondary" style="margin-top:8px;" onclick="this.closest('.modal').remove()">Annuler</button>
             </div>
         `;
-        
-        const typeSelect = document.getElementById('paymentType');
-        if(typeSelect) {
-            typeSelect.addEventListener('change', (e) => {
-                const fieldsDiv = document.getElementById('paymentTypeFields');
-                const type = e.target.value;
-                if (type === 'mtn' || type === 'airtel' || type === 'momo') {
-                    fieldsDiv.innerHTML = `<div class="form-group"><label>Numéro de téléphone</label><input type="tel" id="mobileNumber" placeholder="+242 06 XX XX XX"></div>`;
-                } else if (type === 'paypal') {
-                    fieldsDiv.innerHTML = `<div class="form-group"><label>Email PayPal</label><input type="email" id="paypalEmail" placeholder="exemple@paypal.com"></div>`;
-                } else {
-                    fieldsDiv.innerHTML = `
-                        <div class="form-group"><label>Nom sur la carte</label><input type="text" id="cardName" placeholder="JEAN DUPONT"></div>
-                        <div class="form-group"><label>Numéro de carte</label><input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX"></div>
-                        <div class="form-row"><div class="form-group"><label>Date d'expiration</label><input type="text" id="cardExpiry" placeholder="MM/AA"></div><div class="form-group"><label>CVV</label><input type="password" id="cardCvv" placeholder="XXX"></div></div>
-                    `;
-                }
-            });
-        }
-        
         document.body.appendChild(modal);
     }
     
     function addPaymentMethod() {
         const type = document.getElementById('paymentType').value;
         let method = { type };
-        
         if (type === 'visa' || type === 'mastercard') {
-            const cardName = document.getElementById('cardName')?.value.trim();
             const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
-            const cardExpiry = document.getElementById('cardExpiry')?.value.trim();
-            const cardCvv = document.getElementById('cardCvv')?.value.trim();
-            if (!cardName || !cardNumber || !cardExpiry || !cardCvv) { alert("Veuillez remplir tous les champs"); return; }
-            if (cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
-            if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) { alert("Date d'expiration invalide (MM/AA)"); return; }
-            if (cardCvv.length !== 3) { alert("CVV invalide"); return; }
-            method.cardName = cardName;
+            if (!cardNumber || cardNumber.length !== 16) { alert("Numéro de carte invalide"); return; }
             method.cardNumber = cardNumber;
-            method.cardExpiry = cardExpiry;
-            method.cardCvv = cardCvv;
-        } else if (type === 'mtn' || type === 'airtel' || type === 'momo') {
-            const number = document.getElementById('mobileNumber')?.value.trim();
-            if (!number) { alert("Numéro de téléphone requis"); return; }
-            const cleanNumber = number.replace(/\s/g, '');
-            if (!/^(\+242|0)[56]\d{8}$/.test(cleanNumber)) { alert("Numéro invalide. Format: +242 06 XX XX XX"); return; }
+        } else {
+            const number = document.getElementById('cardNumber')?.value.trim();
+            if (!number) { alert("Numéro requis"); return; }
             method.number = number;
-        } else if (type === 'paypal') {
-            const email = document.getElementById('paypalEmail')?.value.trim();
-            if (!email || !validateEmail(email)) { alert("Email PayPal invalide"); return; }
-            method.details = email;
         }
-        
         const userData = getUserData();
         const methods = userData.paymentMethods || [];
         methods.push(method);
         saveUserData({ paymentMethods: methods });
         document.querySelector('.modal')?.remove();
-        renderPaymentMethods();
+        showProfile();
     }
     
     function editPaymentMethod(index) {
         const userData = getUserData();
         const method = userData.paymentMethods?.[index];
         if (!method) return;
-        
         const modal = document.createElement('div'); modal.className = 'modal active';
-        let innerHtml = `<div class="modal-card"><h3>Modifier ${method.type === 'visa' ? 'VISA' : method.type === 'mastercard' ? 'Mastercard' : method.type}</h3>`;
-        
-        if (method.type === 'visa' || method.type === 'mastercard') {
-            innerHtml += `
-                <div class="form-group"><label>Nom sur la carte</label><input type="text" id="editCardName" value="${escapeHtml(method.cardName || '')}"></div>
-                <div class="form-group"><label>Numéro de carte</label><input type="text" id="editCardNumber" value="${escapeHtml(method.cardNumber || '')}" placeholder="XXXX XXXX XXXX XXXX"></div>
-                <div class="form-row"><div class="form-group"><label>Date d'expiration</label><input type="text" id="editCardExpiry" value="${escapeHtml(method.cardExpiry || '')}" placeholder="MM/AA"></div></div>
-            `;
-        } else if (method.type === 'mtn' || method.type === 'airtel' || method.type === 'momo') {
-            innerHtml += `<div class="form-group"><label>Numéro</label><input type="tel" id="editNumber" value="${escapeHtml(method.number || '')}"></div>`;
-        } else if (method.type === 'paypal') {
-            innerHtml += `<div class="form-group"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(method.details || '')}"></div>`;
-        }
-        
-        innerHtml += `<button class="btn-submit" onclick="updatePaymentMethod(${index})">Enregistrer</button>
-                      <button class="btn-submit btn-secondary" style="margin-top:8px; background:var(--gray-100); color:var(--gray-700);" onclick="this.closest('.modal').remove()">Annuler</button></div>`;
-        modal.innerHTML = innerHtml;
+        modal.innerHTML = `<div class="modal-card"><h3>Modifier</h3><div class="form-group"><input type="text" id="editValue" value="${escapeHtml(method.number || method.cardNumber || '')}"></div><button class="btn-submit" onclick="updatePaymentMethod(${index})">Enregistrer</button><button class="btn-submit btn-secondary" onclick="this.closest('.modal').remove()">Annuler</button></div>`;
         document.body.appendChild(modal);
     }
     
     function updatePaymentMethod(index) {
+        const value = document.getElementById('editValue')?.value.trim();
+        if (!value) { alert("Veuillez remplir le champ"); return; }
         const userData = getUserData();
         const method = userData.paymentMethods?.[index];
-        if (!method) return;
-        
-        if (method.type === 'visa' || method.type === 'mastercard') {
-            method.cardName = document.getElementById('editCardName')?.value.trim();
-            method.cardNumber = document.getElementById('editCardNumber')?.value.replace(/\s/g, '');
-            method.cardExpiry = document.getElementById('editCardExpiry')?.value.trim();
-        } else if (method.type === 'mtn' || method.type === 'airtel' || method.type === 'momo') {
-            method.number = document.getElementById('editNumber')?.value.trim();
-        } else if (method.type === 'paypal') {
-            method.details = document.getElementById('editEmail')?.value.trim();
+        if (method) {
+            if (method.number) method.number = value;
+            else if (method.cardNumber) method.cardNumber = value.replace(/\s/g, '');
+            saveUserData({ paymentMethods: userData.paymentMethods });
         }
-        
-        saveUserData({ paymentMethods: userData.paymentMethods });
         document.querySelector('.modal')?.remove();
-        renderPaymentMethods();
+        showProfile();
     }
     
     function deletePaymentMethod(index) {
         if (confirm("Supprimer ce moyen de paiement ?")) {
             const userData = getUserData();
-            const methods = userData.paymentMethods || [];
-            methods.splice(index, 1);
-            saveUserData({ paymentMethods: methods });
-            renderPaymentMethods();
+            userData.paymentMethods.splice(index, 1);
+            saveUserData({ paymentMethods: userData.paymentMethods });
+            showProfile();
         }
     }
     
@@ -1479,440 +1366,60 @@
             container.innerHTML = '<div style="text-align:center; padding:20px;">Aucune commande</div>';
             return;
         }
-        container.innerHTML = userOrders.map(o => `
-            <div class="commande-item">
-                <div><strong>${o.id}</strong> - ${new Date(o.date).toLocaleDateString()}</div>
-                <div>${o.items?.length || 0} article(s) - ${o.total?.toLocaleString() || '0'} FCFA</div>
-                <div style="color:var(--success);">${o.status || 'Confirmée'}</div>
-                <button onclick="window.location.href='tracking.html?id=${o.id}'" style="margin-top:8px; background:var(--primary); color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:10px;">Suivre</button>
-            </div>
-        `).join('');
-    }
-    
-    // ============ NOUVEAU SYSTÈME D'INSCRIPTION 4 ÉTAPES ============
-    let currentStep = 1;
-    let tempUserData = {};
-    let generatedCode = "";
-    
-    function openRegisterModal() { 
-        currentStep = 1; 
-        tempUserData = {}; 
-        generatedCode = "";
-        renderRegisterStep(); 
-        document.getElementById('registerModal').classList.add('active'); 
-    }
-    
-    function renderRegisterStep() {
-        const stepContent = document.getElementById('stepContent');
-        if (!stepContent) return;
-        
-        if (currentStep === 1) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Type de compte *</label>
-                    <select id="accountType" onchange="toggleAccountTypeFields()">
-                        <option value="client">Client (acheteur)</option>
-                        <option value="vendeur">Vendeur (boutique)</option>
-                        <option value="livreur">Livreur</option>
-                    </select>
-                </div>
-                <div id="standardFields">
-                    <div class="form-group"><label>Nom complet *</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
-                    <div class="form-group"><label>Prénom(s) *</label><input type="text" id="firstName" placeholder="Jean"></div>
-                    <div class="form-group"><label>Date de naissance *</label><input type="date" id="birthDate"></div>
-                    <div class="form-group"><label>Lieu de naissance *</label><input type="text" id="birthPlace" placeholder="Brazzaville"></div>
-                    <div class="form-group"><label>Numéro carte d'identité *</label><input type="text" id="idNumber" placeholder="EX: 123456789"></div>
-                    <div class="form-group"><label>Ville de résidence *</label><input type="text" id="city" placeholder="Brazzaville"></div>
-                    <div class="form-group"><label>Adresse *</label><textarea id="address" rows="2" placeholder="Quartier, rue, numéro"></textarea></div>
-                    <div class="form-group"><label>Email *</label><input type="email" id="email" placeholder="exemple@email.com"></div>
-                    <div class="form-group"><label>Téléphone *</label><input type="tel" id="phone" placeholder="+242 0X XXX XX XX"></div>
-                    <div class="form-row"><div class="form-group"><label>Mot de passe *</label><input type="password" id="password" placeholder="••••••••"></div><div class="form-group"><label>Confirmer *</label><input type="password" id="confirmPassword" placeholder="••••••••"></div></div>
-                </div>
-                <div id="deliveryFields" style="display:none;">
-                    <div class="form-group"><label>Photo de profil *</label><input type="file" id="profilePhoto" accept="image/*"></div>
-                    <div class="form-group"><label>Photo pièce d'identité *</label><input type="file" id="idPhoto" accept="image/*"></div>
-                    <div class="form-group"><label>Photo moyen de transport *</label><input type="file" id="transportPhoto" accept="image/*"></div>
-                    <div class="info-text">Ces documents seront vérifiés par l'administrateur avant activation de votre compte livreur.</div>
-                </div>
-                <div id="vendorFields" style="display:none;">
-                    <div class="form-group"><label>Coordonnées bancaires / Mobile Money *</label><select id="paymentMethod"><option value="">Sélectionner</option><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa / Mastercard</option><option value="paypal">PayPal</option></select></div>
-                    <div class="form-group"><input type="text" id="paymentDetails" placeholder="Numéro de compte ou identifiant"></div>
-                </div>
-                <button class="btn-next" onclick="validateStep1()">Continuer</button>
-            `;
-            toggleAccountTypeFields();
-        } else if (currentStep === 2) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Code de vérification</label><input type="text" id="verifCode" placeholder="123456"></div>
-                <div class="info-text">Un code a été envoyé à ${tempUserData.email || 'votre email'}</div>
-                <div class="button-group"><button class="btn-prev" onclick="prevStep()">Retour</button><button class="btn-next" onclick="validateStep2()">Vérifier</button></div>
-            `;
-        } else if (currentStep === 3) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Vérification des documents</label>
-                    <div class="info-text">Pour les comptes livreurs, l'administrateur vérifiera vos documents avant activation.</div>
-                    <div class="info-text" style="margin-top:8px;">⏱️ Délai estimé: 24-48 heures</div>
-                </div>
-                <button class="btn-next" onclick="finalizeRegistration()">Finaliser l'inscription</button>
-                <div class="button-group" style="margin-top:12px;"><button class="btn-prev" onclick="prevStep()">Retour</button></div>
-            `;
-        }
-        
-        document.querySelectorAll('#registerModal .step').forEach((el, idx) => {
-            el.classList.remove('active', 'completed', 'error');
-            if (idx + 1 === currentStep) el.classList.add('active');
-            else if (idx + 1 < currentStep) el.classList.add('completed');
-        });
-    }
-    
-    function toggleAccountTypeFields() {
-        const accountType = document.getElementById('accountType')?.value;
-        const standardFields = document.getElementById('standardFields');
-        const deliveryFields = document.getElementById('deliveryFields');
-        const vendorFields = document.getElementById('vendorFields');
-        
-        if (standardFields) standardFields.style.display = 'block';
-        if (deliveryFields) deliveryFields.style.display = accountType === 'livreur' ? 'block' : 'none';
-        if (vendorFields) vendorFields.style.display = accountType === 'vendeur' ? 'block' : 'none';
-    }
-    
-    function validateStep1() {
-        const accountType = document.getElementById('accountType').value;
-        const fullName = document.getElementById('fullName').value.trim();
-        const firstName = document.getElementById('firstName').value.trim();
-        const birthDate = document.getElementById('birthDate').value;
-        const birthPlace = document.getElementById('birthPlace').value.trim();
-        const idNumber = document.getElementById('idNumber').value.trim();
-        const city = document.getElementById('city').value.trim();
-        const address = document.getElementById('address').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const password = document.getElementById('password').value;
-        const confirm = document.getElementById('confirmPassword').value;
-        
-        if (!fullName || !firstName || !birthDate || !birthPlace || !idNumber || !city || !address || !email || !phone || !password) {
-            alert("Tous les champs sont obligatoires");
-            return;
-        }
-        
-        if (!validateEmail(email)) {
-            alert("Email invalide");
-            return;
-        }
-        
-        if (!validatePhone(phone)) {
-            alert("Numéro de téléphone invalide. Format: +242 06 XX XX XX");
-            return;
-        }
-        
-        if (password !== confirm) {
-            alert("Les mots de passe ne correspondent pas");
-            return;
-        }
-        
-        if (password.length < 6) {
-            alert("Le mot de passe doit contenir au moins 6 caractères");
-            return;
-        }
-        
-        // Vérifier si l'email existe déjà
-        const existingUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        if (existingUsers.some(u => u.email === email)) {
-            alert("Cet email est déjà utilisé");
-            return;
-        }
-        
-        if (accountType === 'livreur') {
-            const profilePhoto = document.getElementById('profilePhoto').files[0];
-            const idPhoto = document.getElementById('idPhoto').files[0];
-            const transportPhoto = document.getElementById('transportPhoto').files[0];
-            
-            if (!profilePhoto || !idPhoto || !transportPhoto) {
-                alert("Veuillez fournir toutes les photos requises pour le compte livreur");
-                return;
-            }
-        }
-        
-        if (accountType === 'vendeur') {
-            const paymentMethod = document.getElementById('paymentMethod').value;
-            const paymentDetails = document.getElementById('paymentDetails').value.trim();
-            if (!paymentMethod || !paymentDetails) {
-                alert("Coordonnées bancaires requises pour les vendeurs");
-                return;
-            }
-        }
-        
-        tempUserData = {
-            fullName, firstName, birthDate, birthPlace, idNumber, city, address, email, phone, password,
-            accountType: accountType,
-            paymentMethod: accountType === 'vendeur' ? document.getElementById('paymentMethod').value : null,
-            paymentDetails: accountType === 'vendeur' ? document.getElementById('paymentDetails').value.trim() : null
-        };
-        
-        if (accountType === 'livreur') {
-            const profilePhoto = document.getElementById('profilePhoto').files[0];
-            const idPhoto = document.getElementById('idPhoto').files[0];
-            const transportPhoto = document.getElementById('transportPhoto').files[0];
-            
-            const reader1 = new FileReader();
-            const reader2 = new FileReader();
-            const reader3 = new FileReader();
-            
-            let completed = 0;
-            function checkComplete() {
-                completed++;
-                if (completed === 3) {
-                    proceedToStep2();
-                }
-            }
-            
-            reader1.onload = (e) => { tempUserData.profilePhoto = e.target.result; checkComplete(); };
-            reader2.onload = (e) => { tempUserData.idPhoto = e.target.result; checkComplete(); };
-            reader3.onload = (e) => { tempUserData.transportPhoto = e.target.result; checkComplete(); };
-            
-            reader1.readAsDataURL(profilePhoto);
-            reader2.readAsDataURL(idPhoto);
-            reader3.readAsDataURL(transportPhoto);
-        } else {
-            proceedToStep2();
-        }
-        
-        function proceedToStep2() {
-            generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-            sendEmail(tempUserData.email, "Code de vérification Ouenze", `Bonjour ${tempUserData.fullName},\n\nVotre code de vérification est: ${generatedCode}\n\nCe code expire dans 15 minutes.\n\nL'équipe Ouenze`);
-            alert(`Code de vérification envoyé à ${tempUserData.email}`);
-            currentStep = 2;
-            renderRegisterStep();
-        }
-    }
-    
-    function validateStep2() {
-        const code = document.getElementById('verifCode').value;
-        if (code !== generatedCode) {
-            showError('verifCode', 'Code incorrect. Veuillez réessayer.');
-            return;
-        }
-        currentStep = 3;
-        renderRegisterStep();
-    }
-    
-    function prevStep() {
-        if (currentStep > 1) {
-            currentStep--;
-            renderRegisterStep();
-        }
-    }
-    
-    function finalizeRegistration() {
-        // Sauvegarder l'utilisateur
-        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        
-        const newUser = {
-            id: Date.now(),
-            ...tempUserData,
-            createdAt: new Date().toISOString(),
-            emailVerified: true,
-            status: tempUserData.accountType === 'livreur' ? 'pending_verification' : 'active',
-            deliveryStatus: tempUserData.accountType === 'livreur' ? 'En attente de validation' : null,
-            paymentMethods: []
-        };
-        
-        delete newUser.password;
-        allUsers.push(newUser);
-        localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
-        
-        // Créer la session utilisateur
-        currentUser = {
-            name: tempUserData.fullName,
-            email: tempUserData.email,
-            type: tempUserData.accountType,
-            deliveryStatus: newUser.deliveryStatus,
-            profilePhoto: tempUserData.profilePhoto
-        };
-        
-        if (tempUserData.accountType === 'vendeur') {
-            currentUser.paymentMethod = tempUserData.paymentMethod;
-            currentUser.paymentDetails = tempUserData.paymentDetails;
-        }
-        
-        saveData();
-        closeRegisterModal();
-        
-        const welcomeMessage = tempUserData.accountType === 'livreur' 
-            ? `Votre compte livreur a été créé !\n\nUn email de confirmation a été envoyé à ${tempUserData.email}\n\nVos documents sont en cours de vérification par l'administrateur.\nVous serez notifié sous 48h.`
-            : `Compte ${tempUserData.accountType} créé avec succès !\n\nUn email de bienvenue a été envoyé à ${tempUserData.email}`;
-        
-        alert(welcomeMessage);
-        sendEmail(tempUserData.email, "Bienvenue sur Ouenze", `Bonjour ${tempUserData.fullName},\n\nVotre compte ${tempUserData.accountType} a été créé avec succès.\n\nCordialement,\nL'équipe Ouenze`);
-        
-        updateHeaderUI();
-        resetToHome();
-    }
-    
-    function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); }
-    
-    // ============ FONCTIONS DE RÉINITIALISATION MOT DE PASSE ============
-    let resetStep = 1;
-    let resetEmail = "";
-    let resetCode = "";
-    
-    function openForgotPasswordModal() {
-        resetStep = 1;
-        renderForgotPasswordStep();
-        document.getElementById('forgotPasswordModal').classList.add('active');
-    }
-    
-    function renderForgotPasswordStep() {
-        const stepContent = document.getElementById('forgotStepContent');
-        if (!stepContent) return;
-        
-        if (resetStep === 1) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Email *</label><input type="email" id="resetEmail" placeholder="exemple@email.com"></div>
-                <button class="btn-next" onclick="sendResetCode()">Envoyer le code</button>
-                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
-            `;
-        } else if (resetStep === 2) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Code de vérification</label><input type="text" id="resetVerifCode" placeholder="123456"></div>
-                <div class="button-group"><button class="btn-prev" onclick="prevResetStep()">Retour</button><button class="btn-next" onclick="verifyResetCode()">Vérifier</button></div>
-            `;
-        } else if (resetStep === 3) {
-            stepContent.innerHTML = `
-                <div class="form-group"><label>Nouveau mot de passe *</label><input type="password" id="newPassword" placeholder="••••••••"></div>
-                <div class="form-group"><label>Confirmer le mot de passe *</label><input type="password" id="confirmNewPassword" placeholder="••••••••"></div>
-                <button class="btn-submit" onclick="resetPassword()">Réinitialiser</button>
-                <div class="modal-link" style="text-align:center;margin-top:12px;"><a onclick="closeForgotPasswordModal()" style="color:var(--primary);cursor:pointer;">Annuler</a></div>
-            `;
-        }
-        
-        document.querySelectorAll('#forgotPasswordModal .step').forEach((el, idx) => {
-            el.classList.remove('active', 'completed');
-            if (idx + 1 === resetStep) el.classList.add('active');
-            else if (idx + 1 < resetStep) el.classList.add('completed');
-        });
-    }
-    
-    function sendResetCode() {
-        const email = document.getElementById('resetEmail').value.trim();
-        if (!email) { alert("Veuillez entrer votre email"); return; }
-        
-        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        const user = allUsers.find(u => u.email === email);
-        if (user) {
-            resetEmail = email;
-            resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-            sendEmail(email, "Code de réinitialisation Ouenze", `Bonjour,\n\nVotre code de réinitialisation est: ${resetCode}\n\nCe code expire dans 10 minutes.`);
-            alert(`Un code de vérification a été envoyé à ${email}`);
-            resetStep = 2;
-            renderForgotPasswordStep();
-        } else {
-            alert("Aucun compte trouvé avec cet email");
-        }
-    }
-    
-    function verifyResetCode() {
-        const code = document.getElementById('resetVerifCode').value;
-        if (code !== resetCode) { alert("Code incorrect"); return; }
-        resetStep = 3;
-        renderForgotPasswordStep();
-    }
-    
-    function prevResetStep() {
-        resetStep--;
-        renderForgotPasswordStep();
-    }
-    
-    function resetPassword() {
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-        
-        if (!newPassword) { alert("Veuillez entrer un mot de passe"); return; }
-        if (newPassword !== confirmNewPassword) { alert("Les mots de passe ne correspondent pas"); return; }
-        if (newPassword.length < 6) { alert("Le mot de passe doit contenir au moins 6 caractères"); return; }
-        
-        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        const userIndex = allUsers.findIndex(u => u.email === resetEmail);
-        if (userIndex !== -1) {
-            allUsers[userIndex].password = newPassword;
-            localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
-            
-            if (currentUser && currentUser.email === resetEmail) {
-                currentUser.password = newPassword;
-                saveData();
-            }
-        }
-        
-        alert("✅ Mot de passe réinitialisé avec succès !");
-        closeForgotPasswordModal();
-    }
-    
-    function closeForgotPasswordModal() {
-        document.getElementById('forgotPasswordModal').classList.remove('active');
-        resetStep = 1;
-        resetEmail = "";
-        resetCode = "";
+        container.innerHTML = userOrders.map(o => `<div class="commande-item"><div><strong>${o.id}</strong> - ${new Date(o.date).toLocaleDateString()}</div><div>${o.items?.length || 0} article(s) - ${o.total?.toLocaleString() || '0'} FCFA</div><div style="color:var(--success);">${o.status || 'Confirmée'}</div><button onclick="viewOrderMap('${o.id}')" style="margin-top:8px; background:var(--primary); color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer; font-size:10px;"><i class="fas fa-map-marker-alt"></i> Voir itinéraire</button></div>`).join('');
     }
     
     // ============ AUTHENTIFICATION ============
     function openLoginModal() {
         const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `<div class="modal-card"><h3>Connexion</h3><div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div><div class="forgot-password" style="text-align:right;margin-bottom:12px;"><a onclick="openForgotPasswordModal()" style="color:var(--primary);font-size:11px;cursor:pointer;">Mot de passe oublié ?</a></div><button class="btn-submit" onclick="doLogin()">Se connecter</button><div style="text-align:center;margin-top:12px;"><a href="#" onclick="this.closest('.modal').remove();openRegisterModal();">Créer un compte</a></div></div>`;
+        modal.innerHTML = `<div class="modal-card"><h3>Connexion</h3><div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div><div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div><button class="btn-submit" onclick="doLogin()">Se connecter</button><div style="text-align:center;margin-top:12px;"><a onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a></div></div>`;
         document.body.appendChild(modal);
-        
-        window.doLogin = () => {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            
-            if (!email || !password) { alert("Email et mot de passe requis"); return; }
-            
-            const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-            const user = allUsers.find(u => u.email === email);
-            
-            if (!user) {
-                alert("Email ou mot de passe incorrect");
-                return;
-            }
-            
-            if (user.password !== password) {
-                alert("Email ou mot de passe incorrect");
-                return;
-            }
-            
-            if (user.accountType === 'livreur' && user.status !== 'active') {
-                alert(`Votre compte livreur est ${user.deliveryStatus || 'en attente de vérification'}. Veuillez patienter pendant la validation de vos documents.`);
-                return;
-            }
-            
-            currentUser = {
-                name: user.fullName,
-                email: user.email,
-                type: user.accountType,
-                deliveryStatus: user.deliveryStatus,
-                profilePhoto: user.profilePhoto
-            };
-            
-            if (user.accountType === 'vendeur') {
-                currentUser.paymentMethod = user.paymentMethod;
-                currentUser.paymentDetails = user.paymentDetails;
-            }
-            
-            saveData();
-            updateHeaderUI();
-            modal.remove();
-            resetToHome();
-            alert(`Bienvenue ${currentUser.name}`);
-            sendEmail(email, "Connexion à Ouenze", `Bonjour ${currentUser.name},\n\nVous vous êtes connecté à votre compte Ouenze Marketplace.`);
-        };
+    }
+    
+    function doLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const user = allUsers.find(u => u.email === email && u.password === password);
+        if (!user) { alert("Email ou mot de passe incorrect"); return; }
+        currentUser = { name: user.fullName || user.name, email: user.email, type: user.accountType || 'client', profilePhoto: user.profilePhoto };
+        saveData();
+        updateHeaderUI();
+        document.querySelector('.modal')?.remove();
+        resetToHome();
+        alert(`Bienvenue ${currentUser.name}`);
+    }
+    
+    function openRegisterModal() {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `<div class="modal-card"><h3>Inscription</h3><div class="form-group"><input type="text" id="regName" placeholder="Nom complet"></div><div class="form-group"><input type="email" id="regEmail" placeholder="Email"></div><div class="form-group"><input type="tel" id="regPhone" placeholder="Téléphone"></div><div class="form-group"><input type="password" id="regPassword" placeholder="Mot de passe"></div><div class="form-group"><select id="regType"><option value="client">Client</option><option value="vendeur">Vendeur</option><option value="livreur">Livreur</option></select></div><button class="btn-submit" onclick="doRegister()">S'inscrire</button></div>`;
+        document.body.appendChild(modal);
+    }
+    
+    function doRegister() {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const type = document.getElementById('regType').value;
+        if (!name || !email || !phone || !password) { alert("Tous les champs sont requis"); return; }
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        if (allUsers.find(u => u.email === email)) { alert("Email déjà utilisé"); return; }
+        const newUser = { fullName: name, email, phone, password, accountType: type, paymentMethods: [], location: null };
+        allUsers.push(newUser);
+        localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
+        currentUser = { name, email, type };
+        saveData();
+        updateHeaderUI();
+        document.querySelector('.modal')?.remove();
+        resetToHome();
+        alert(`Inscription réussie ! Bienvenue ${name}`);
     }
     
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
-            let statusBadge = '';
-            if (currentUser.type === 'livreur' && currentUser.deliveryStatus === 'En attente de validation') {
-                statusBadge = '<span class="status-badge status-pending" style="margin-left:6px;">⏳ En attente</span>';
-            }
-            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${currentUser.profilePhoto ? `<img src="${currentUser.profilePhoto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}${statusBadge}</div><small>${currentUser.type === 'vendeur' ? 'Vendeur' : currentUser.type === 'livreur' ? 'Livreur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
+            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${currentUser.profilePhoto ? `<img src="${currentUser.profilePhoto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}</div><small>${currentUser.type}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
         } else {
             container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button><button class="auth-btn" onclick="openRegisterModal()">Inscription</button><div class="cart-icon" onclick="showCart()"><i class="fas fa-shopping-cart"></i><span class="cart-count">0</span></div>`;
         }
@@ -1929,9 +1436,36 @@
         showHomePage();
     }
     
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function showAbout() { alert("À propos - Ouenze Marketplace Congo Brazzaville"); }
+    function showHelp() { alert("Aide - Contactez-nous au +242 12345678"); }
+    function showInvest() { alert("Investir dans Ouenze - Devenez partenaire"); }
+    function showTracking() { alert("Suivi de livraison - Entrez votre numéro de commande"); }
     
-    // ============ INITIALISATION ============
+    // Fonctions pour les livreurs
+    function showDeliveryOrders() {
+        const pendingOrders = orders.filter(o => o.status === 'confirmée');
+        if (pendingOrders.length === 0) {
+            document.getElementById('appContainer').innerHTML = `<div class="cart-container"><h3>Aucune commande en attente de livraison</h3><button onclick="resetToHome()" class="btn-submit">Retour</button></div>`;
+            return;
+        }
+        document.getElementById('appContainer').innerHTML = `
+            <div class="cart-container">
+                <h2>Commandes à livrer</h2>
+                ${pendingOrders.map(order => `
+                    <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
+                        <div><strong>#${order.id}</strong> - ${new Date(order.date).toLocaleDateString()}</div>
+                        <div>Client: ${order.userName}</div>
+                        <div>Livraison: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.city}</div>
+                        <div>Total: ${order.total.toLocaleString()} FCFA</div>
+                        <button onclick="acceptDelivery('${order.id}')" style="margin-top:8px; background:var(--success); color:white; border:none; padding:6px 12px; border-radius:20px; cursor:pointer;">Accepter la livraison</button>
+                    </div>
+                `).join('')}
+                <button onclick="resetToHome()" class="btn-submit">Retour</button>
+            </div>
+        `;
+    }
+    
+    // Initialisation
     window.showHomePage = showHomePage;
     window.viewShopDetail = viewShopDetail;
     window.openProductModal = openProductModal;
@@ -1942,18 +1476,10 @@
     window.goToVendorDashboard = goToVendorDashboard;
     window.showCart = showCart;
     window.showMyOrders = showMyOrders;
-    window.copyShopLink = copyShopLink;
     window.updateQuantity = updateQuantity;
     window.removeFromCart = removeFromCart;
     window.showCheckout = showCheckout;
     window.validateAndPay = validateAndPay;
-    window.openForgotPasswordModal = openForgotPasswordModal;
-    window.closeForgotPasswordModal = closeForgotPasswordModal;
-    window.toggleAccountTypeFields = toggleAccountTypeFields;
-    window.validateStep1 = validateStep1;
-    window.validateStep2 = validateStep2;
-    window.prevStep = prevStep;
-    window.finalizeRegistration = finalizeRegistration;
     window.showProfile = showProfile;
     window.editField = editField;
     window.saveFieldValue = saveFieldValue;
@@ -1963,6 +1489,16 @@
     window.deletePaymentMethod = deletePaymentMethod;
     window.showAddPaymentModal = showAddPaymentModal;
     window.addPaymentMethod = addPaymentMethod;
+    window.acceptDelivery = acceptDelivery;
+    window.viewOrderMap = viewOrderMap;
+    window.openInGoogleMaps = openInGoogleMaps;
+    window.getCurrentLocation = getCurrentLocation;
+    window.saveUserLocation = saveUserLocation;
+    window.showDeliveryOrders = showDeliveryOrders;
+    window.showAbout = showAbout;
+    window.showHelp = showHelp;
+    window.showInvest = showInvest;
+    window.showTracking = showTracking;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
@@ -1980,14 +1516,8 @@
             dropBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 dropCont.classList.toggle('show');
-                dropCont.style.opacity = dropCont.classList.contains('show') ? '1' : '0';
-                dropCont.style.visibility = dropCont.classList.contains('show') ? 'visible' : 'hidden';
             });
-            window.addEventListener('click', () => {
-                dropCont.classList.remove('show');
-                dropCont.style.opacity = '0';
-                dropCont.style.visibility = 'hidden';
-            });
+            window.addEventListener('click', () => dropCont.classList.remove('show'));
         }
         
         const modalDiv = document.createElement('div');
@@ -1995,45 +1525,7 @@
         modalDiv.className = 'modal';
         modalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Informations</div><div class="step">2. Vérification</div><div class="step">3. Validation</div></div><div id="stepContent"></div></div>`;
         document.body.appendChild(modalDiv);
-        
-        const forgotModalDiv = document.createElement('div');
-        forgotModalDiv.id = 'forgotPasswordModal';
-        forgotModalDiv.className = 'modal';
-        forgotModalDiv.innerHTML = `<div class="modal-card"><div class="step-indicator"><div class="step">1. Email</div><div class="step">2. Code</div><div class="step">3. Nouveau mot de passe</div></div><div id="forgotStepContent"></div></div>`;
-        document.body.appendChild(forgotModalDiv);
-        
-        window.onclick = (event) => { 
-            if(event.target === document.getElementById('registerModal')) closeRegisterModal();
-            if(event.target === document.getElementById('forgotPasswordModal')) closeForgotPasswordModal();
-        };
     });
-
-
-
-
-
-
-function goToDeliveryDashboard() {
-    window.location.href = 'delivery-dashboard.html';
-}
-
-function updateDeliveryLink() {
-    const deliveryLink = document.getElementById('deliveryLink');
-    if (currentUser && currentUser.type === 'livreur') {
-        const deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
-        const deliveryUser = deliveryRequests.find(d => d.email === currentUser.email && d.status === 'approved');
-        if (deliveryUser) deliveryLink.style.display = 'inline-block';
-        else deliveryLink.style.display = 'none';
-    } else {
-        deliveryLink.style.display = 'none';
-    }
-}
-
-
-
-
-
-    
 </script>
 </body>
 </html>
