@@ -100,7 +100,9 @@
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--gray-200); }
+        .modal-card { background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 550px; padding: 28px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--gray-200); position: relative; }
+        .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--gray-500); font-size: 20px; cursor: pointer; }
+        .modal-close:hover { color: var(--gray-700); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-500); }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; color: white; }
@@ -135,6 +137,60 @@
 </div>
 
 <script>
+    // Stockage des charts pour les détruire
+    let activeCharts = {};
+    
+    // ============ FONCTIONS UTILITAIRES CORRIGÉES ============
+    
+    // Escape HTML corrigé (gère null, undefined et les guillemets)
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"]/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        }[m]));
+    }
+    
+    // Calcul du chiffre d'affaires corrigé (uniquement pour les boutiques du vendeur)
+    function getVendorRevenue(userShops) {
+        return orders
+            .filter(o => o.status === 'delivered' && o.items?.some(i => userShops.some(s => s.id === i.shopId)))
+            .reduce((s, o) => s + (o.total || 0), 0);
+    }
+    
+    // getMonthlyRevenue corrigé (gère correctement le changement d'année)
+    function getMonthlyRevenue(shopId) {
+        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
+        const monthly = [];
+        
+        for (let i = 5; i >= 0; i--) {
+            const target = new Date();
+            target.setMonth(target.getMonth() - i);
+            const month = target.getMonth();
+            const year = target.getFullYear();
+            
+            const total = shopOrders
+                .filter(o => {
+                    const d = new Date(o.date);
+                    return d.getMonth() === month && d.getFullYear() === year;
+                })
+                .reduce((s, o) => s + (o.total || 0), 0);
+            
+            monthly.push(total);
+        }
+        return monthly;
+    }
+    
+    // Destruction des charts avant recréation
+    function destroyChart(chartId) {
+        if (activeCharts[chartId]) {
+            activeCharts[chartId].destroy();
+            delete activeCharts[chartId];
+        }
+    }
+    
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
     let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
@@ -147,7 +203,7 @@
     
     function calculateValuation(shop) {
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
-        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        const revenue = shopOrders.reduce((s,o)=>s+(o.total||0),0);
         const estimatedExpenses = revenue * 0.35;
         const result = revenue - estimatedExpenses;
         
@@ -171,7 +227,7 @@
     
     function getShopLevel(shop) {
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
-        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        const revenue = shopOrders.reduce((s,o)=>s+(o.total||0),0);
         const annualRevenue = revenue * 12;
         const valuation = calculateValuation(shop);
         const rating = shop.rating || 0;
@@ -189,20 +245,11 @@
         return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b', bg: '#f1f5f9', class: '' };
     }
     
-    function getMonthlyRevenue(shopId) {
-        const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
-        const monthly = [];
-        for (let i = 5; i >= 0; i--) {
-            monthly.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
-        }
-        return monthly;
-    }
-    
     function showDashboard() {
         const userShops = shops.filter(s => s.owner === currentUser.email);
         const totalProducts = userShops.reduce((s,shop)=>s+(shop.products?.length||0),0);
         const totalOrders = orders.filter(o => o.items?.some(i => userShops.some(s=>s.id===i.shopId))).length;
-        const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s,o)=>s+o.total,0);
+        const totalRevenue = getVendorRevenue(userShops);
         const pendingRequests = investmentRequests.filter(r => r.shopId && userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
         
         document.getElementById('appContainer').innerHTML = `
@@ -226,9 +273,11 @@
         
         userShops.forEach(shop => {
             const monthlyData = getMonthlyRevenue(shop.id);
-            const ctx = document.getElementById(`chart-${shop.id}`)?.getContext('2d');
+            const canvasId = `chart-${shop.id}`;
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
             if (ctx) {
-                new Chart(ctx, {
+                destroyChart(canvasId);
+                activeCharts[canvasId] = new Chart(ctx, {
                     type: 'line',
                     data: { 
                         labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], 
@@ -251,7 +300,7 @@
     
     function renderShop(shop) {
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shop.id));
-        const revenue = shopOrders.reduce((s,o)=>s+o.total,0);
+        const revenue = shopOrders.reduce((s,o)=>s+(o.total||0),0);
         const rating = shop.rating || 0;
         const valuation = calculateValuation(shop);
         const level = getShopLevel(shop);
@@ -332,7 +381,7 @@
                     ${(shop.products||[]).slice(0,3).map(p => `
                         <div class="product-row">
                             <span class="product-name">${escapeHtml(p.name)}</span>
-                            <span class="product-price">${p.price} FCFA</span>
+                            <span class="product-price">${typeof p.price === 'number' ? p.price.toLocaleString() : p.price} FCFA</span>
                             <span class="product-stock">Stock: ${p.stock||0}</span>
                         </div>
                     `).join('')}
@@ -365,20 +414,22 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Gestion des actifs - ${escapeHtml(shop.name)}</h3>
                 <div id="assetsList">${(shop.assets || []).map((a, i) => `
                     <div class="asset-item" style="background:var(--gray-200);padding:10px;border-radius:8px;margin-bottom:8px;">
                         <span><strong>${escapeHtml(a.name)}</strong> - ${a.value.toLocaleString()} FCFA</span>
-                        <button onclick="removeAsset(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>
+                        <button class="btn-sm" style="background:var(--danger);color:white;" onclick="removeAsset(${shop.id}, ${i})">Supprimer</button>
                     </div>
                 `).join('')}</div>
                 <div class="form-group"><label>Nom de l'actif</label><input type="text" id="assetName" placeholder="Ex: Camionnette, Matériel, Stock"></div>
                 <div class="form-group"><label>Valeur (FCFA)</label><input type="number" id="assetValue" placeholder="0"></div>
                 <div class="form-group"><label>Description</label><textarea id="assetDesc" rows="2"></textarea></div>
                 <button class="btn-submit" onclick="addAsset(${shop.id})">Ajouter un actif</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Fermer</button>
+                <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Fermer</button>
             </div>`;
         document.body.appendChild(modal);
+        
         window.addAsset = (sid) => {
             const name = document.getElementById('assetName').value.trim();
             const value = parseInt(document.getElementById('assetValue').value);
@@ -405,20 +456,22 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Gestion des passifs - ${escapeHtml(shop.name)}</h3>
                 <div id="liabilitiesList">${(shop.liabilities || []).map((l, i) => `
                     <div class="asset-item" style="background:var(--gray-200);padding:10px;border-radius:8px;margin-bottom:8px;">
                         <span><strong>${escapeHtml(l.name)}</strong> - ${l.value.toLocaleString()} FCFA</span>
-                        <button onclick="removeLiability(${shop.id}, ${i})" style="background:var(--danger);color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>
+                        <button class="btn-sm" style="background:var(--danger);color:white;" onclick="removeLiability(${shop.id}, ${i})">Supprimer</button>
                     </div>
                 `).join('')}</div>
                 <div class="form-group"><label>Nom du passif</label><input type="text" id="liabilityName" placeholder="Ex: Dette fournisseur, Emprunt"></div>
                 <div class="form-group"><label>Montant (FCFA)</label><input type="number" id="liabilityValue" placeholder="0"></div>
                 <div class="form-group"><label>Description</label><textarea id="liabilityDesc" rows="2"></textarea></div>
                 <button class="btn-submit" onclick="addLiability(${shop.id})">Ajouter un passif</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Fermer</button>
+                <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Fermer</button>
             </div>`;
         document.body.appendChild(modal);
+        
         window.addLiability = (sid) => {
             const name = document.getElementById('liabilityName').value.trim();
             const value = parseInt(document.getElementById('liabilityValue').value);
@@ -446,6 +499,7 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Ajouter un produit - ${escapeHtml(shop.name)}</h3>
                 <div class="form-group"><label>Nom du produit *</label><input type="text" id="productName" placeholder="Nom du produit"></div>
                 <div class="form-group"><label>Prix (FCFA) *</label><input type="number" id="productPrice" placeholder="0"></div>
@@ -454,7 +508,7 @@
                 <div class="form-group"><label>Description</label><textarea id="productDesc" rows="2"></textarea></div>
                 <div class="form-group"><label>Photo (optionnel)</label><input type="file" id="productPhoto" accept="image/*"></div>
                 <button class="btn-submit" onclick="addProductToShop(${shop.id})">Ajouter le produit</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+                <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
             </div>`;
         document.body.appendChild(modal);
         
@@ -489,7 +543,10 @@
                     reader.onload = function(e) {
                         newProduct.photos = [e.target.result];
                         s.products.push(newProduct);
-                        if(!s.categories.includes(category) && category) s.categories.push(category);
+                        if(category && !(s.categories || []).includes(category)) {
+                            s.categories = s.categories || [];
+                            s.categories.push(category);
+                        }
                         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
                         alert(`Produit "${name}" ajouté avec succès (Stock: ${stock})`);
                         modal.remove();
@@ -498,7 +555,10 @@
                     reader.readAsDataURL(fileInput.files[0]);
                 } else {
                     s.products.push(newProduct);
-                    if(!s.categories.includes(category) && category) s.categories.push(category);
+                    if(category && !(s.categories || []).includes(category)) {
+                        s.categories = s.categories || [];
+                        s.categories.push(category);
+                    }
                     localStorage.setItem('ouenze_shops', JSON.stringify(shops));
                     alert(`Produit "${name}" ajouté avec succès (Stock: ${stock})`);
                     modal.remove();
@@ -518,6 +578,7 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Ravitaillement - ${escapeHtml(shop.name)}</h3>
                 <div class="form-group"><label>Produit</label>
                     <select id="restockProduct">
@@ -526,7 +587,7 @@
                 </div>
                 <div class="form-group"><label>Quantité à ajouter *</label><input type="number" id="restockQuantity" placeholder="0" value="1" min="1"></div>
                 <button class="btn-submit" onclick="processRestock(${shop.id})">Ajouter au stock</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+                <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
             </div>`;
         document.body.appendChild(modal);
         
@@ -577,6 +638,7 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
                 <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-bottom:16px;">
                     <strong>${escapeHtml(shop.name)}</strong><br>
@@ -598,7 +660,7 @@
                     <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible.
                 </div>
                 <button class="btn-submit" onclick="submitShopSale(${shop.id})">Confirmer</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+                <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
             </div>`;
         document.body.appendChild(modal);
         
@@ -668,6 +730,7 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Proposer à l'investissement</h3>
                 <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-bottom:16px;">
                     Boutique: ${escapeHtml(shop.name)}<br>
@@ -678,7 +741,7 @@
                 <div class="form-group"><label>Prix demandé (FCFA)</label><input type="number" id="offerPrice" placeholder="0"></div>
                 <div class="form-group"><label>Message aux investisseurs</label><textarea id="offerMessage" rows="3"></textarea></div>
                 <button class="btn-submit" onclick="submitInvestmentOffer(${shop.id})">Envoyer la demande</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;color:var(--gray-500);cursor:pointer;">Annuler</button>
+                <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
             </div>`;
         document.body.appendChild(modal);
     }
@@ -722,6 +785,7 @@
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Demandes d'investissement</h3>
                 ${relevantRequests.map(r => `
                     <div style="background:var(--gray-200);padding:16px;border-radius:12px;margin-bottom:16px;">
@@ -737,9 +801,10 @@
                         </div>
                     </div>
                 `).join('')}
-                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
+                <button class="btn-sm btn-outline" onclick="this.closest('.modal').remove()">Fermer</button>
             </div>`;
         document.body.appendChild(modal);
+        
         window.approveRequest = (id) => {
             const request = investmentRequests.find(r => r.id === id);
             if (request) {
@@ -768,38 +833,48 @@
         const shopOrders = orders.filter(o => o.items?.some(i => i.shopId === shopId));
         const monthlyData = [];
         for (let i = 5; i >= 0; i--) {
-            monthlyData.push(shopOrders.filter(o => new Date(o.date).getMonth() === new Date().getMonth() - i).reduce((s,o)=>s+o.total,0));
+            const target = new Date();
+            target.setMonth(target.getMonth() - i);
+            const month = target.getMonth();
+            const year = target.getFullYear();
+            monthlyData.push(shopOrders.filter(o => {
+                const d = new Date(o.date);
+                return d.getMonth() === month && d.getFullYear() === year;
+            }).reduce((s,o)=>s+(o.total||0),0));
         }
         const modal = document.createElement('div'); modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card" style="max-width:700px;">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom: 20px;">Statistiques - ${escapeHtml(shop.name)}</h3>
                 <div style="height: 250px;"><canvas id="statsChart"></canvas></div>
                 <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-top:16px;">
-                    <strong>Chiffre d'affaires total:</strong> ${shopOrders.reduce((s,o)=>s+o.total,0).toLocaleString()} FCFA<br>
+                    <strong>Chiffre d'affaires total:</strong> ${shopOrders.reduce((s,o)=>s+(o.total||0),0).toLocaleString()} FCFA<br>
                     <strong>Commandes:</strong> ${shopOrders.length}<br>
                     <strong>Note moyenne:</strong> ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)
                 </div>
-                <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline" style="margin-top:16px;">Fermer</button>
+                <button class="btn-sm btn-outline" style="margin-top:16px;" onclick="this.closest('.modal').remove()">Fermer</button>
             </div>`;
         document.body.appendChild(modal);
         setTimeout(() => {
             const ctx = document.getElementById('statsChart')?.getContext('2d');
-            if (ctx) new Chart(ctx, { 
-                type: 'line', 
-                data: { 
-                    labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], 
-                    datasets: [{ 
-                        label: 'CA (FCFA)', 
-                        data: monthlyData, 
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.1)',
-                        fill: true, 
-                        tension: 0.3 
-                    }] 
-                }, 
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#9ca3af' } } } }
-            });
+            if (ctx) {
+                new Chart(ctx, { 
+                    type: 'line', 
+                    data: { 
+                        labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'], 
+                        datasets: [{ 
+                            label: 'CA (FCFA)', 
+                            data: monthlyData, 
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.1)',
+                            fill: true, 
+                            tension: 0.3 
+                        }] 
+                    }, 
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#9ca3af' } } } }
+                });
+            }
         }, 100);
     }
     
@@ -808,9 +883,12 @@
         window.open('shop-designer.html', '_blank'); 
     }
     
-    function escapeHtml(s) { 
-        return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
-    }
+    // Nettoyage avant déchargement
+    window.addEventListener('beforeunload', () => {
+        Object.keys(activeCharts).forEach(key => {
+            if (activeCharts[key]) activeCharts[key].destroy();
+        });
+    });
     
     showDashboard();
 </script>
