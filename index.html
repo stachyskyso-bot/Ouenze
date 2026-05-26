@@ -370,6 +370,21 @@
         { code: "GW", flag: "🇬🇼", name: "Guinée-Bissau", phoneCode: "+245", cities: ["Bissau", "Bafatá", "Gabú", "Bissorã", "Bolama", "Cacheu", "Canchungo", "Farim", "Quinhámel", "Mansôa"] }
     ];
     
+    // ============ FONCTIONS DE NOTIFICATION ============
+    function sendNotification(contact, method, subject, message) {
+        if (method === 'email') {
+            console.log(`📧 EMAIL -> ${contact}: ${subject}\n${message}`);
+            return true;
+        } else if (method === 'sms') {
+            console.log(`📱 SMS -> ${contact}: ${message}`);
+            return true;
+        } else if (method === 'whatsapp') {
+            console.log(`💬 WhatsApp -> ${contact}: ${message}`);
+            return true;
+        }
+        return false;
+    }
+    
     // ============ FONCTIONS DE VALIDATION GÉOGRAPHIQUE ============
     function canDeliverToLocation(shop, countryCode, city) {
         if (!shop.location) return false;
@@ -406,25 +421,21 @@
     function canUserRateShop(userEmail, shopId) {
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        
         const userOrders = orders.filter(o => 
             o.userId === userEmail && 
             o.items.some(i => i.shopId === shopId) &&
             new Date(o.date) > oneYearAgo
         );
-        
         return userOrders.length > 0;
     }
     
     function addShopRating(shopId, rating, comment, userEmail, userName) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return false;
-        
         if (!canUserRateShop(userEmail, shopId)) {
             alert("Vous ne pouvez noter que les boutiques où vous avez acheté dans l'année écoulée.");
             return false;
         }
-        
         const existingReview = shop.reviews.find(r => r.userEmail === userEmail);
         if (existingReview) {
             existingReview.rating = rating;
@@ -439,11 +450,9 @@
                 date: new Date().toISOString()
             });
         }
-        
         const totalRating = shop.reviews.reduce((sum, r) => sum + r.rating, 0);
         shop.rating = totalRating / shop.reviews.length;
         shop.totalRatings = shop.reviews.length;
-        
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
         return true;
     }
@@ -451,33 +460,22 @@
     function canRateDelivery(orderId, userEmail) {
         const order = orders.find(o => o.id === orderId);
         if (!order || order.userId !== userEmail) return false;
-        
         const deliveryDate = new Date(order.deliveryDate || order.date);
         const now = new Date();
         const hoursDiff = (now - deliveryDate) / (1000 * 60 * 60);
-        
         return hoursDiff <= 48 && order.status === 'delivered';
     }
     
     function addDeliveryRating(orderId, rating, comment) {
         const order = orders.find(o => o.id === orderId);
         if (!order) return false;
-        
         if (!canRateDelivery(orderId, currentUser.email)) {
             alert("Vous ne pouvez noter le livreur que dans les 48h suivant la livraison.");
             return false;
         }
-        
         if (!order.deliveryRating) {
             order.deliveryRating = { rating, comment, date: new Date().toISOString() };
             localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-            
-            // Mettre à jour la moyenne du livreur
-            const driverOrders = orders.filter(o => o.deliveryMan === order.deliveryMan && o.deliveryRating);
-            if (driverOrders.length > 0) {
-                const avgRating = driverOrders.reduce((s, o) => s + o.deliveryRating.rating, 0) / driverOrders.length;
-                // Stocker la note moyenne du livreur (à implémenter dans user)
-            }
             return true;
         }
         return false;
@@ -533,7 +531,7 @@
             id: 1, name: "Elegance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250,
             products: [{ id: 1, name: "Boubou Ceremonie", price: "65000", photos: [], stock: 25, description: "Boubou traditionnel" }],
             categories: ["Boubou"], reviews: [{ user: "Marie K.", userEmail: "marie@email.com", rating: 5, comment: "Superbe qualite !", date: "2024-03-15" }],
-            verified: true, location: { lat: -4.2634, lng: 15.2429, country: "CG", address: "Moungali" },
+            verified: true, location: { lat: -4.2634, lng: 15.2429, country: "CG", address: "Moungali", deliveryZones: [{ country: "CG", city: "Brazzaville" }] },
             ownerEmail: "vendeur@example.com", ownerName: "Vendeur Example"
         }];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
@@ -629,7 +627,8 @@
                     <div class="shop-info">
                         <h1>${escapeHtml(shop.name)}</h1>
                         <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>${shop.rating || 0} (${shop.totalRatings || 0} avis)</span></div>
-                        <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}, ${countryName}</div>
+                        <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city)}, ${countryName}</div>
+                        ${shop.location?.lat ? `<div style="font-size:11px;margin-top:4px;"><i class="fas fa-location-dot"></i> Position GPS disponible</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -684,11 +683,8 @@
                 selectedRating = parseInt(star.dataset.rating);
                 document.querySelectorAll('.rating-star').forEach(s => {
                     const rating = parseInt(s.dataset.rating);
-                    if (rating <= selectedRating) {
-                        s.className = 'fas fa-star rating-star active';
-                    } else {
-                        s.className = 'far fa-star rating-star';
-                    }
+                    if (rating <= selectedRating) s.className = 'fas fa-star rating-star active';
+                    else s.className = 'far fa-star rating-star';
                 });
             });
         });
@@ -952,13 +948,14 @@
             items: cart.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, shopId: i.shopId, shopName: i.shopName, vendorEmail: shops.find(s => s.id === i.shopId)?.ownerEmail })),
             subtotal, deliveryFees: subtotal * 0.1, total: subtotal * 1.1,
             deliveryInfo: { ...window.tempDeliveryInfo }, paymentMethod: selectedPayment,
-            date: new Date().toISOString(), status: 'confirmee', deliveryMan: null, deliveryManName: null, deliveryDate: null
+            date: new Date().toISOString(), status: 'confirmee', deliveryMan: null, deliveryManName: null, deliveryDate: null,
+            notificationMethod: null
         };
         orders.push(newOrder);
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         cart = [];
         saveData();
-        alert(`Commande ${orderId} confirmee ! Total: ${newOrder.total.toLocaleString()} FCFA`);
+        alert(`Commande ${orderId} confirmee ! Total: ${newOrder.total.toLocaleString()} FCFA\n\nVous pouvez modifier votre mode de paiement dans "Mes commandes".`);
         resetToHome();
     }
     
@@ -974,15 +971,53 @@
                 <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
                     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;"><strong>${order.id}</strong><span>${new Date(order.date).toLocaleDateString()}</span></div>
                     <div>Total: ${order.total.toLocaleString()} FCFA</div>
+                    <div>Paiement: ${order.paymentMethod || 'Non défini'}</div>
                     <div>Statut: <span style="color:var(--success);">${order.status}</span></div>
-                    <div class="order-actions" style="margin-top:8px;">
+                    <div class="order-actions" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn-sm" onclick="trackOrder('${order.id}')">Suivre</button>
+                        <button class="btn-sm" onclick="openChangePaymentModal('${order.id}')" style="background:var(--warning);color:white;">Modifier le paiement</button>
                         ${order.status === 'delivered' && !order.deliveryRating && canRateDelivery(order.id, currentUser.email) ? 
-                            `<button class="btn-sm" style="background:var(--warning);color:white;" onclick="openDeliveryRatingModal('${order.id}')">Noter le livreur</button>` : ''}
+                            `<button class="btn-sm" style="background:var(--primary);color:white;" onclick="openDeliveryRatingModal('${order.id}')">Noter le livreur</button>` : ''}
                     </div>
                 </div>
             `).join('')}
             <button onclick="resetToHome()" class="btn-cancel">Continuer</button></div>`;
+    }
+    
+    function openChangePaymentModal(orderId) {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3>Modifier le mode de paiement</h3>
+                <div class="form-group"><label>Nouveau mode de paiement</label>
+                    <select id="newPaymentMethod">
+                        <option value="card" ${order.paymentMethod === 'card' ? 'selected' : ''}>Carte bancaire</option>
+                        <option value="mtn" ${order.paymentMethod === 'mtn' ? 'selected' : ''}>MTN Mobile Money</option>
+                        <option value="airtel" ${order.paymentMethod === 'airtel' ? 'selected' : ''}>Airtel Money</option>
+                        <option value="orange" ${order.paymentMethod === 'orange' ? 'selected' : ''}>Orange Money</option>
+                        <option value="cash" ${order.paymentMethod === 'cash' ? 'selected' : ''}>Espèce</option>
+                    </select>
+                </div>
+                <button class="btn-submit" onclick="updatePaymentMethod('${orderId}')">Modifier</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        window.updatePaymentMethod = (id) => {
+            const newMethod = document.getElementById('newPaymentMethod').value;
+            const orderIndex = orders.findIndex(o => o.id === id);
+            if (orderIndex !== -1) {
+                orders[orderIndex].paymentMethod = newMethod;
+                localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+                alert(`Mode de paiement modifié : ${newMethod}`);
+                modal.remove();
+                showMyOrders();
+            }
+        };
     }
     
     function openDeliveryRatingModal(orderId) {
@@ -1042,6 +1077,14 @@
             ${pendingOrders.map(order => `
                 <div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;">
                     <strong>${order.id}</strong><br>Client: ${order.userName}<br>Pays: ${order.deliveryInfo?.country}<br>Ville: ${order.deliveryInfo?.city}<br>Adresse: ${order.deliveryInfo?.address}<br>Total: ${order.total.toLocaleString()} FCFA
+                    <div class="form-group" style="margin-top:8px;"><label>Mode de notification</label>
+                        <select id="notifMethod_${order.id}">
+                            <option value="email">Email</option>
+                            <option value="sms">SMS</option>
+                            <option value="whatsapp">WhatsApp</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Contact</label><input type="text" id="notifContact_${order.id}" placeholder="Email ou numéro de téléphone"></div>
                     <button class="btn-submit" style="margin-top:8px;padding:6px;" onclick="acceptDeliveryOrder('${order.id}')">Accepter la livraison</button>
                 </div>
             `).join('')}
@@ -1051,12 +1094,35 @@
     function acceptDeliveryOrder(orderId) {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
+        
+        const notifMethod = document.getElementById(`notifMethod_${orderId}`)?.value;
+        const contact = document.getElementById(`notifContact_${orderId}`)?.value.trim();
+        
+        if (!contact) {
+            alert("Veuillez renseigner un contact (email ou numéro) pour les notifications");
+            return;
+        }
+        
         order.status = 'en_livraison';
         order.deliveryMan = currentUser.email;
         order.deliveryManName = currentUser.name;
+        order.notificationMethod = notifMethod;
+        order.deliveryContact = contact;
+        
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-        if (order.deliveryInfo?.location) window.open(`https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`, '_blank');
-        alert(`Livraison ${orderId} acceptee !`);
+        
+        // Envoyer les notifications au client
+        const clientContact = order.deliveryInfo?.phone;
+        if (clientContact) {
+            sendNotification(clientContact, notifMethod, "Livraison en cours", `Votre commande ${orderId} est en cours de livraison par ${currentUser.name}.`);
+        }
+        
+        // Afficher l'itinéraire pour le livreur
+        if (order.deliveryInfo?.location) {
+            window.open(`https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`, '_blank');
+        }
+        
+        alert(`Livraison ${orderId} acceptee !\n\nLes notifications seront envoyées par ${notifMethod}.\nClient: ${order.userName}\nAdresse: ${order.deliveryInfo?.address}`);
         showDeliveryDashboard();
     }
     
@@ -1081,7 +1147,7 @@
                 <div class="profile-tabs">
                     <div class="profile-tab ${currentProfileTab === 'info' ? 'active' : ''}" data-tab="info">Informations</div>
                     <div class="profile-tab ${currentProfileTab === 'location' ? 'active' : ''}" data-tab="location">Localisation</div>
-                    <div class="profile-tab ${currentProfileTab === 'documents' ? 'active' : ''}" data-tab="documents">Documents</div>
+                    ${currentUser.type === 'livreur' ? `<div class="profile-tab ${currentProfileTab === 'documents' ? 'active' : ''}" data-tab="documents">Documents</div>` : ''}
                     <div class="profile-tab ${currentProfileTab === 'orders' ? 'active' : ''}" data-tab="orders">Commandes</div>
                 </div>
                 <div id="profileTabInfo" class="profile-section ${currentProfileTab === 'info' ? 'active' : ''}">
@@ -1089,7 +1155,7 @@
                         <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value" id="displayFullName">${escapeHtml(userData.fullName || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('fullName')">Modifier</button></div></div>
                         <div class="info-row"><div class="info-label">Email</div><div class="info-value">${escapeHtml(currentUser.email)}</div></div>
                         <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value" id="displayPhone">${escapeHtml(userData.phone || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('phone')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Statut du compte</div><div class="info-value"><span class="status-badge ${userData.status === 'active' ? 'status-active' : userData.status === 'pending' ? 'status-pending' : 'status-expired'}">${userData.status === 'active' ? 'Actif' : userData.status === 'pending' ? 'En attente' : 'Expiré'}</span></div></div>
+                        <div class="info-row"><div class="info-label">Statut du compte</div><div class="info-value"><span class="status-badge status-active">Actif</span></div></div>
                     </div>
                 </div>
                 <div id="profileTabLocation" class="profile-section ${currentProfileTab === 'location' ? 'active' : ''}">
@@ -1097,24 +1163,27 @@
                         <div class="info-row"><div class="info-label">Pays</div><div class="info-value" id="displayCountry">${escapeHtml(userData.country || 'Congo-Brazzaville')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('country')">Modifier</button></div></div>
                         <div class="info-row"><div class="info-label">Ville</div><div class="info-value" id="displayCity">${escapeHtml(userData.city || 'Brazzaville')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('city')">Modifier</button></div></div>
                         <div class="info-row"><div class="info-label">Adresse</div><div class="info-value" id="displayAddress">${escapeHtml(userData.address || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('address')">Modifier</button></div></div>
+                        <div class="location-map-container"><div id="profileLocationMap" class="location-map" style="height:250px;"></div></div>
+                        <div class="location-actions" style="margin-top:10px;">
+                            <button onclick="getProfileCurrentLocation()"><i class="fas fa-location-dot"></i> Ma position actuelle</button>
+                            <button onclick="saveProfileLocation()"><i class="fas fa-save"></i> Enregistrer cette position</button>
+                        </div>
+                        <div id="profileLocationInfo" class="location-info"></div>
                     </div>
                 </div>
+                ${currentUser.type === 'livreur' ? `
                 <div id="profileTabDocuments" class="profile-section ${currentProfileTab === 'documents' ? 'active' : ''}">
                     <div class="info-card">
-                        <h4>Documents d'identité</h4>
+                        <h4>Documents obligatoires</h4>
                         <div class="info-row"><div class="info-label">Pièce d'identité</div><div class="info-value">${docsStatus.idCard ? '✓ Document fourni' : '❌ Non fourni'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('idCard')">${docsStatus.idCard ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
-                        ${currentUser.type === 'livreur' ? `
-                            <div class="info-row"><div class="info-label">Permis de conduire</div><div class="info-value">${docsStatus.drivingLicense ? '✓ Document fourni' : '❌ Non fourni'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('drivingLicense')">${docsStatus.drivingLicense ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
-                            <div class="info-row"><div class="info-label">Matricule véhicule</div><div class="info-value" id="displayVehiclePlate">${escapeHtml(userData.vehiclePlate || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('vehiclePlate')">Modifier</button></div></div>
-                            <div class="info-row"><div class="info-label">Type de véhicule</div><div class="info-value" id="displayVehicleType">${escapeHtml(userData.vehicleType || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('vehicleType')">Modifier</button></div></div>
-                            <div class="info-row"><div class="info-label">Photo du véhicule</div><div class="info-value">${docsStatus.vehiclePhoto ? '✓ Photo fournie' : '❌ Non fournie'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('vehiclePhoto')">${docsStatus.vehiclePhoto ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
-                            <div class="info-text" style="margin-top:10px;">⚠️ Les documents doivent être mis à jour chaque trimestre pour les livreurs.</div>
-                        ` : ''}
-                        ${currentUser.type === 'vendeur' ? `
-                            <div class="info-text" style="margin-top:10px;">⚠️ Les documents sont vérifiés annuellement par l'administrateur.</div>
-                        ` : ''}
+                        <div class="info-row"><div class="info-label">Permis de conduire</div><div class="info-value">${docsStatus.drivingLicense ? '✓ Document fourni' : '❌ Non fourni'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('drivingLicense')">${docsStatus.drivingLicense ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
+                        <div class="info-row"><div class="info-label">Matricule véhicule</div><div class="info-value" id="displayVehiclePlate">${escapeHtml(userData.vehiclePlate || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('vehiclePlate')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Type de véhicule</div><div class="info-value" id="displayVehicleType">${escapeHtml(userData.vehicleType || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('vehicleType')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Photo du véhicule</div><div class="info-value">${docsStatus.vehiclePhoto ? '✓ Photo fournie' : '❌ Non fournie'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('vehiclePhoto')">${docsStatus.vehiclePhoto ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
+                        <div class="info-text" style="margin-top:10px;">⚠️ Les documents doivent être mis à jour chaque trimestre.</div>
                     </div>
                 </div>
+                ` : ''}
                 <div id="profileTabOrders" class="profile-section ${currentProfileTab === 'orders' ? 'active' : ''}">
                     <div id="profileOrdersList" class="commandes-list"></div>
                 </div>
@@ -1124,6 +1193,61 @@
         
         renderProfileOrders();
         attachProfileTabs();
+        initProfileLocationMap(userData);
+    }
+    
+    function initProfileLocationMap(userData) {
+        const lat = userData.locationLat || DEFAULT_LAT;
+        const lng = userData.locationLng || DEFAULT_LNG;
+        const mapContainer = document.getElementById('profileLocationMap');
+        if (!mapContainer) return;
+        
+        setTimeout(() => {
+            if (window.profileMap) window.profileMap.remove();
+            window.profileMap = L.map('profileLocationMap').setView([lat, lng], 14);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(window.profileMap);
+            window.profileMarker = L.marker([lat, lng], { draggable: true }).addTo(window.profileMap);
+            window.profileMarker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                window.tempProfileLocation = { lat: pos.lat, lng: pos.lng };
+                document.getElementById('profileLocationInfo').innerHTML = `Position sélectionnée: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+            });
+            window.profileMap.on('click', function(e) {
+                window.profileMarker.setLatLng(e.latlng);
+                window.tempProfileLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+                document.getElementById('profileLocationInfo').innerHTML = `Position sélectionnée: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+            });
+        }, 100);
+    }
+    
+    function getProfileCurrentLocation() {
+        if (!navigator.geolocation) { alert("Géolocalisation non supportée"); return; }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                if (window.profileMarker) window.profileMarker.setLatLng([lat, lng]);
+                if (window.profileMap) window.profileMap.setView([lat, lng], 15);
+                window.tempProfileLocation = { lat, lng };
+                document.getElementById('profileLocationInfo').innerHTML = `Position actuelle: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            },
+            () => { document.getElementById('profileLocationInfo').innerHTML = `Impossible d'obtenir votre position`; }
+        );
+    }
+    
+    function saveProfileLocation() {
+        if (!window.tempProfileLocation && !window.profileMarker) {
+            alert("Veuillez d'abord sélectionner une position sur la carte");
+            return;
+        }
+        const pos = window.tempProfileLocation || window.profileMarker.getLatLng();
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const index = allUsers.findIndex(u => u.email === currentUser.email);
+        if (index !== -1) {
+            allUsers[index].locationLat = pos.lat;
+            allUsers[index].locationLng = pos.lng;
+            localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
+            alert("Position enregistrée avec succès !");
+        }
     }
     
     function getUserData() {
@@ -1250,10 +1374,9 @@
             <div class="commande-item" style="background:var(--gray-100);border-radius:12px;padding:12px;margin-bottom:12px;border-left:3px solid var(--success);">
                 <div><strong>${o.id}</strong> - ${new Date(o.date).toLocaleDateString()}</div>
                 <div>${o.items?.length || 0} article(s) - ${o.total?.toLocaleString() || '0'} FCFA</div>
+                <div>Paiement: ${o.paymentMethod || '-'}</div>
                 <div style="color:var(--success);">${o.status || 'Confirmée'}</div>
                 <button onclick="trackOrder('${o.id}')" style="margin-top:8px;background:var(--primary);color:white;border:none;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:10px;">Suivre</button>
-                ${o.status === 'delivered' && !o.deliveryRating && canRateDelivery(o.id, currentUser.email) ? 
-                    `<button onclick="openDeliveryRatingModal('${o.id}')" style="margin-left:8px;background:var(--warning);color:white;border:none;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:10px;">Noter le livreur</button>` : ''}
             </div>
         `).join('');
     }
@@ -1297,23 +1420,24 @@
                     <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="exemple@email.com"></div>
                     <div class="form-group"><label>Pays</label><select id="country"><option value="">Sélectionner</option>${countries.map(c => `<option value="${c.code}">${c.flag} ${c.name}</option>`).join('')}</select></div>
                     <div class="form-group"><label>Ville</label><input type="text" id="city" placeholder="Brazzaville"></div>
+                    <div class="form-group"><label>Adresse</label><input type="text" id="address" placeholder="Rue, numéro"></div>
                     <div class="form-group"><label>Telephone</label><div class="phone-input-group"><select id="phoneCountry">${countries.map(c => `<option value="${c.phoneCode}" ${c.phoneCode === "+242" ? "selected" : ""}>${c.flag} ${c.phoneCode}</option>`).join('')}</select><input type="tel" id="phone" placeholder="06 12 34 56"></div></div>
                     <div class="form-group"><label>Mot de passe</label><input type="password" id="password" placeholder="......"></div>
                     <div class="form-group"><label>Confirmer</label><input type="password" id="confirmPassword" placeholder="......"></div>
                 </div>
-                <div id="vendorFields" style="display:none;">
+                ${currentUser?.type === 'vendeur' ? `
+                <div id="vendorFields">
                     <div class="form-group"><label>Nom de la boutique</label><input type="text" id="shopName" placeholder="Ma boutique"></div>
                     <div class="form-group"><label>Description</label><textarea id="shopDesc" rows="2"></textarea></div>
-                    <div class="form-group"><label>Pièce d'identité (carte d'identité/passeport)</label><input type="file" id="idCard" accept="image/*"></div>
-                    <div class="info-text">Document requis pour la certification de la boutique</div>
                 </div>
+                ` : ''}
                 <div id="deliveryFields" style="display:none;">
                     <div class="form-group"><label>Type de vehicule</label><select id="vehicleType"><option value="moto">Moto</option><option value="voiture">Voiture</option><option value="velo">Velo</option></select></div>
                     <div class="form-group"><label>Matricule du véhicule</label><input type="text" id="vehiclePlate" placeholder="AB-123-CD"></div>
                     <div class="form-group"><label>Pièce d'identité</label><input type="file" id="idCard" accept="image/*"></div>
                     <div class="form-group"><label>Permis de conduire</label><input type="file" id="drivingLicense" accept="image/*"></div>
                     <div class="form-group"><label>Photo du véhicule</label><input type="file" id="vehiclePhoto" accept="image/*"></div>
-                    <div class="info-text">Ces documents seront verifies par l'administrateur et doivent être mis à jour chaque trimestre</div>
+                    <div class="info-text">Ces documents sont obligatoires pour les livreurs et doivent être mis à jour chaque trimestre</div>
                 </div>
                 <button class="btn-submit" onclick="validateStep1()">Continuer</button>
             `;
@@ -1339,9 +1463,7 @@
     
     function toggleAccountTypeFields() {
         const type = document.getElementById('accountType')?.value;
-        const vendorFields = document.getElementById('vendorFields');
         const deliveryFields = document.getElementById('deliveryFields');
-        if (vendorFields) vendorFields.style.display = type === 'vendeur' ? 'block' : 'none';
         if (deliveryFields) deliveryFields.style.display = type === 'livreur' ? 'block' : 'none';
     }
     
@@ -1353,6 +1475,9 @@
         const phone = document.getElementById('phone').value.trim();
         const password = document.getElementById('password').value;
         const confirm = document.getElementById('confirmPassword').value;
+        const country = document.getElementById('country')?.value;
+        const city = document.getElementById('city')?.value.trim();
+        const address = document.getElementById('address')?.value.trim();
         
         if (!fullName || !email || !phone || !password) { alert("Tous les champs sont obligatoires"); return; }
         if (!validateEmail(email)) { alert("Email invalide"); return; }
@@ -1360,28 +1485,10 @@
         if (password !== confirm) { alert("Les mots de passe ne correspondent pas"); return; }
         if (password.length < 6) { alert("Mot de passe trop court (min 6 caracteres)"); return; }
         
-        const country = document.getElementById('country')?.value;
-        const city = document.getElementById('city')?.value.trim();
-        
-        if (type === 'vendeur') {
-            const shopName = document.getElementById('shopName').value.trim();
-            if (!shopName) { alert("Nom de boutique requis pour les vendeurs"); return; }
-            tempUserData.shopName = shopName;
-            tempUserData.shopDesc = document.getElementById('shopDesc').value;
-            
-            const idCard = document.getElementById('idCard').files[0];
-            if (!idCard) { alert("Pièce d'identité requise pour les vendeurs"); return; }
-            const reader = new FileReader();
-            reader.onload = (e) => { tempUserData.idCard = e.target.result; };
-            reader.readAsDataURL(idCard);
-        }
-        
         if (type === 'livreur') {
             const vehicleType = document.getElementById('vehicleType').value;
             const vehiclePlate = document.getElementById('vehiclePlate').value.trim();
             if (!vehiclePlate) { alert("Matricule du véhicule requis"); return; }
-            tempUserData.vehicleType = vehicleType;
-            tempUserData.vehiclePlate = vehiclePlate;
             
             const idCard = document.getElementById('idCard').files[0];
             const drivingLicense = document.getElementById('drivingLicense').files[0];
@@ -1407,7 +1514,7 @@
             reader3.readAsDataURL(vehiclePhoto);
             
             function proceedAfterDocs() {
-                tempUserData = { ...tempUserData, type, fullName, email, country, city, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, documentsLastUpdate: new Date().toISOString(), status: 'pending' };
+                tempUserData = { ...tempUserData, type, fullName, email, country, city, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, vehicleType, vehiclePlate, documentsLastUpdate: new Date().toISOString(), status: 'pending' };
                 generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
                 sendEmail(email, "Code de verification Ouenze", `Votre code est: ${generatedCode}`);
                 alert(`Code envoye a ${email}`);
@@ -1417,7 +1524,7 @@
             return;
         }
         
-        tempUserData = { ...tempUserData, type, fullName, email, country, city, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, status: 'active' };
+        tempUserData = { ...tempUserData, type, fullName, email, country, city, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, status: 'active' };
         generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         sendEmail(email, "Code de verification Ouenze", `Votre code est: ${generatedCode}`);
         alert(`Code envoye a ${email}`);
@@ -1542,6 +1649,9 @@
     window.uploadDocument = uploadDocument;
     window.openRatingModal = openRatingModal;
     window.openDeliveryRatingModal = openDeliveryRatingModal;
+    window.openChangePaymentModal = openChangePaymentModal;
+    window.getProfileCurrentLocation = getProfileCurrentLocation;
+    window.saveProfileLocation = saveProfileLocation;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
