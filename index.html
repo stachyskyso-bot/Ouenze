@@ -346,6 +346,28 @@
         { code: "+236", flag: "🇨🇫", name: "Centrafrique", example: "72 12 34 56" },
         { code: "+235", flag: "🇹🇩", name: "Tchad", example: "66 12 34 56" }
     ];
+
+
+
+ 
+        const pages = {
+    home: showHomePage,
+    cart: showCart,
+    orders: showMyOrders,
+    profile: showProfile,
+    shop: () => viewShopDetail(currentShopId)
+};
+
+function navigateTo(page, params = {}) {
+    if (pages[page]) {
+        pages[page](params);
+        updateActiveNav(page);
+    }
+}
+
+
+
+    
     
     // Validation téléphone
     function validatePhoneIntuitive(phone, countryCode) {
@@ -712,10 +734,15 @@
     function validateOrder(total) {
         if (!selectedPayment) { alert("Choisissez un mode de paiement"); return; }
         const orderId = 'CMD-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+
+
+
+       
         const subtotal = cart.reduce((s,i)=>s+i.price*i.quantity,0);
         const newOrder = {
             id: orderId, userId: currentUser?.email, userName: currentUser?.name,
-            items: cart.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, shopId: i.shopId, shopName: i.shopName })),
+            items: cart.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, shopId: i.shopId, shopName: i.shopName, vendorEmail: shops.find(s => s.id === i.shopId)?.ownerEmail })),
+            
             subtotal, deliveryFees: subtotal * 0.1, total: subtotal * 1.1,
             deliveryInfo: { ...window.tempDeliveryInfo },
             paymentMethod: selectedPayment, date: new Date().toISOString(), status: 'confirmee'
@@ -758,9 +785,17 @@
             ${pendingOrders.map(order => `<div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;"><strong>${order.id}</strong><br>Client: ${order.userName}<br>Livraison: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.city}<br>Total: ${order.total.toLocaleString()} FCFA<br><button class="btn-submit" style="margin-top:8px;padding:6px;" onclick="acceptDeliveryOrder('${order.id}')">Accepter la livraison</button></div>`).join('')}
             <button onclick="resetToHome()" class="btn-cancel">Retour</button></div>`;
     }
+
+
+
+
+
+    
     
     function acceptDeliveryOrder(orderId) {
         const order = orders.find(o => o.id === orderId);
+        order.deliveryMan = currentUser.email;
+order.deliveryManName = currentUser.name;
         if (!order) return;
         order.status = 'en_livraison';
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
