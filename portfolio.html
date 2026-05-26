@@ -332,63 +332,123 @@ function loadPortfolioData() {
     let currentPortfolioFilter = 'all';
     
     function showPortfolioPage() {
-        syncInvestmentsFromRequests();
+    // Synchroniser les demandes approuvées avec le portefeuille
+    if (window.syncAllPendingApprovals) {
+        window.syncAllPendingApprovals();
+    } else {
+        // Fallback
+        const requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+        const portfolio = JSON.parse(localStorage.getItem('ouenze_portfolio_investments') || '[]');
+        const toSync = requests.filter(r => r.type === 'buy_shares' && r.status === 'approved' && !r.syncedToPortfolio);
         
-        const totalValue = getTotalPortfolioValue();
-        const totalInvested = getTotalInvested();
-        const totalProfit = getTotalProfit();
-        const profitPercent = getProfitPercent();
-        
-        const filteredInvestments = currentPortfolioFilter === 'all' 
-            ? db.portfolioInvestments 
-            : db.portfolioInvestments.filter(inv => inv.shopId === parseInt(currentPortfolioFilter));
-        
-        document.getElementById('appContainer').innerHTML = `
-            <div class="portfolio-stats animated">
-                <div class="stat-card"><h3>Valeur totale</h3><div class="stat-value">${totalValue.toLocaleString()} FCFA</div><div class="stat-change ${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? '+' : ''}${totalProfit.toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Total investi</h3><div class="stat-value">${totalInvested.toLocaleString()} FCFA</div><div class="stat-change">${db.portfolioInvestments.length} position(s)</div></div>
-                <div class="stat-card"><h3>Performance</h3><div class="stat-value ${profitPercent >= 0 ? 'positive' : 'negative'}">${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%</div><div class="stat-change">depuis l'ouverture</div></div>
-                <div class="stat-card"><h3>Disponible</h3><div class="stat-value">${totalValue.toLocaleString()} FCFA</div><div class="stat-change"><button onclick="openWithdrawModal()" style="background:var(--primary);border:none;padding:6px 12px;border-radius:20px;color:white;cursor:pointer;margin-top:8px;">Retirer</button></div></div>
-            </div>
-            
-            <div class="chart-container animated">
-                <h3><i class="fas fa-chart-line"></i> Évolution du portefeuille <span style="background:var(--primary-dark);font-size:10px;padding:2px 8px;border-radius:20px;">LIVE</span></h3>
-                <div class="chart-wrapper"><canvas id="portfolioChart"></canvas></div>
-            </div>
-            
-            <div class="portfolio-filters">
-                <button class="filter-btn ${currentPortfolioFilter === 'all' ? 'active' : ''}" onclick="filterPortfolio('all')">Tous</button>
-                ${db.shops.filter(s => db.portfolioInvestments.some(inv => inv.shopId === s.id)).map(shop => `
-                    <button class="filter-btn ${currentPortfolioFilter == shop.id ? 'active' : ''}" onclick="filterPortfolio(${shop.id})">${escapeHtml(shop.name)}</button>
-                `).join('')}
-            </div>
-            
-            <div class="investments-list animated">
-                ${filteredInvestments.length ? filteredInvestments.map(inv => {
-                    const shop = db.shops.find(s => s.id === inv.shopId);
-                    const currentValue = calculateCurrentValue(inv);
-                    const profit = currentValue - inv.investedAmount;
-                    const profitPercent = (profit / inv.investedAmount * 100);
-                    return `
-                        <div class="investment-item" onclick="showInvestmentDetail(${inv.shopId})">
-                            <div class="investment-info">
-                                <h4><i class="fas fa-store"></i> ${escapeHtml(shop?.name || 'Boutique')}</h4>
-                                <p>${inv.shares} actions · Prix moyen: ${Math.round(inv.averageBuyPrice).toLocaleString()} FCFA</p>
-                                <p style="font-size:11px;">Investi: ${inv.investedAmount.toLocaleString()} FCFA</p>
-                            </div>
-                            <div class="investment-value">
-                                <div class="investment-amount">${currentValue.toLocaleString()} FCFA</div>
-                                <div class="investment-change ${profit >= 0 ? 'positive' : 'negative'}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()} FCFA (${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%)</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('') : '<div style="text-align:center;padding:60px;color:var(--gray-500);"><i class="fas fa-folder-open" style="font-size:48px;margin-bottom:16px;"></i><p>Aucun investissement. <a href="invest.html" style="color:var(--primary);">Investir maintenant</a></p></div>'}
-            </div>
-        `;
-        
-        drawPortfolioChart();
-        startLiveUpdates();
+        for (const req of toSync) {
+            const existing = portfolio.find(p => p.shopId === req.shopId && p.investor === req.investor);
+            if (existing) {
+                existing.shares += req.quantity;
+                existing.investedAmount += req.total;
+                existing.averageBuyPrice = existing.investedAmount / existing.shares;
+            } else {
+                portfolio.push({
+                    id: crypto.randomUUID(),
+                    investor: req.investor,
+                    investorName: req.investorName,
+                    shopId: req.shopId,
+                    shopName: req.shopName,
+                    shares: req.quantity,
+                    investedAmount: req.total,
+                    averageBuyPrice: req.total / req.quantity,
+                    date: req.date,
+                    lastUpdate: new Date().toISOString()
+                });
+            }
+            req.syncedToPortfolio = true;
+        }
+        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
+        localStorage.setItem('ouenze_portfolio_investments', JSON.stringify(portfolio));
     }
+    
+    // Récupérer les données
+    let portfolioInvestments = JSON.parse(localStorage.getItem('ouenze_portfolio_investments') || '[]');
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    
+    // Filtrer par utilisateur connecté
+    const userInvestments = portfolioInvestments.filter(p => p.investor === currentUser.email);
+    
+    // Calculer les stats
+    let totalInvested = 0;
+    let totalCurrentValue = 0;
+    
+    for (const inv of userInvestments) {
+        totalInvested += inv.investedAmount;
+        const shop = shops.find(s => s.id === inv.shopId);
+        if (shop) {
+            const valuation = calculateShopValuation(shop);
+            const sharePrice = valuation / (shop.totalShares || 10000);
+            totalCurrentValue += inv.shares * sharePrice;
+        } else {
+            totalCurrentValue += inv.investedAmount;
+        }
+    }
+    
+    const totalProfit = totalCurrentValue - totalInvested;
+    const profitPercent = totalInvested > 0 ? (totalProfit / totalInvested * 100) : 0;
+    
+    // Filtrer par catégorie
+    const filteredInvestments = currentPortfolioFilter === 'all' 
+        ? userInvestments 
+        : userInvestments.filter(inv => inv.shopId === parseInt(currentPortfolioFilter));
+    
+    // Afficher la page
+    document.getElementById('appContainer').innerHTML = `
+        <div class="portfolio-stats animated">
+            <div class="stat-card"><h3>Valeur totale</h3><div class="stat-value">${totalCurrentValue.toLocaleString()} FCFA</div><div class="stat-change ${totalProfit >= 0 ? 'positive' : 'negative'}">${totalProfit >= 0 ? '+' : ''}${totalProfit.toLocaleString()} FCFA</div></div>
+            <div class="stat-card"><h3>Total investi</h3><div class="stat-value">${totalInvested.toLocaleString()} FCFA</div><div class="stat-change">${userInvestments.length} position(s)</div></div>
+            <div class="stat-card"><h3>Performance</h3><div class="stat-value ${profitPercent >= 0 ? 'positive' : 'negative'}">${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%</div><div class="stat-change">depuis l'ouverture</div></div>
+            <div class="stat-card"><h3>Disponible</h3><div class="stat-value">${totalCurrentValue.toLocaleString()} FCFA</div><div class="stat-change"><button onclick="openWithdrawModal()" style="background:var(--primary);border:none;padding:6px 12px;border-radius:20px;color:white;cursor:pointer;margin-top:8px;">Retirer</button></div></div>
+        </div>
+        
+        <div class="portfolio-filters">
+            <button class="filter-btn ${currentPortfolioFilter === 'all' ? 'active' : ''}" onclick="filterPortfolio('all')">Tous</button>
+            ${shops.filter(s => userInvestments.some(inv => inv.shopId === s.id)).map(shop => `
+                <button class="filter-btn ${currentPortfolioFilter == shop.id ? 'active' : ''}" onclick="filterPortfolio(${shop.id})">${escapeHtml(shop.name)}</button>
+            `).join('')}
+        </div>
+        
+        <div class="investments-list animated">
+            ${filteredInvestments.length ? filteredInvestments.map(inv => {
+                const shop = shops.find(s => s.id === inv.shopId);
+                const valuation = shop ? calculateShopValuation(shop) : 0;
+                const sharePrice = shop ? valuation / (shop.totalShares || 10000) : inv.averageBuyPrice;
+                const currentValue = inv.shares * sharePrice;
+                const profit = currentValue - inv.investedAmount;
+                const profitPct = inv.investedAmount > 0 ? (profit / inv.investedAmount * 100) : 0;
+                return `
+                    <div class="investment-item" onclick="showInvestmentDetail(${inv.shopId})">
+                        <div class="investment-info">
+                            <h4><i class="fas fa-store"></i> ${escapeHtml(shop?.name || inv.shopName)}</h4>
+                            <p>${inv.shares} actions · Prix moyen: ${Math.round(inv.averageBuyPrice).toLocaleString()} FCFA</p>
+                            <p style="font-size:11px;">Investi: ${inv.investedAmount.toLocaleString()} FCFA</p>
+                        </div>
+                        <div class="investment-value">
+                            <div class="investment-amount">${currentValue.toLocaleString()} FCFA</div>
+                            <div class="investment-change ${profit >= 0 ? 'positive' : 'negative'}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()} FCFA (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)</div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<div style="text-align:center;padding:60px;"><i class="fas fa-folder-open" style="font-size:48px;"></i><p>Aucun investissement. <a href="invest.html">Investir maintenant</a></p></div>'}
+        </div>
+    `;
+}
+
+// Fonction de valorisation (si database.js non chargé)
+function calculateShopValuation(shop) {
+    const baseValue = 1000000;
+    const productValue = (shop.products?.length || 0) * 50000;
+    const ratingBonus = (shop.rating || 0) * 150000;
+    const salesBonus = (shop.totalSales || 0) * 1000;
+    const assetsValue = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
+    return baseValue + productValue + ratingBonus + salesBonus + assetsValue;
+}
     
     function drawPortfolioChart() {
         const ctx = document.getElementById('portfolioChart')?.getContext('2d');
