@@ -99,7 +99,7 @@
 <div class="footer">
     <p>© 2024 Ouenze Invest - Plateforme d'investissement certifiée | Données en temps réel</p>
 </div>
-
+<script src="database.js"></script>
 <script>
     // ============ ALGORITHME DE LUHN POUR VALIDATION CARTE ============
     function luhnCheck(cardNumber) {
@@ -182,35 +182,33 @@
         localStorage.setItem('ouenze_portfolio_history', JSON.stringify(db.portfolioHistory));
     }
     
-    // ============ SYNC DES INVESTISSEMENTS (CORRIGÉE - PAS DE DUPLICATION) ============
-    function syncInvestmentsFromRequests() {
-        const approvedRequests = db.investmentRequests.filter(r => r.status === 'approved' && r.type === 'buy_shares' && !r.syncedToPortfolio);
-        
-        if (approvedRequests.length > 0) {
-            approvedRequests.forEach(req => {
-                const existing = db.portfolioInvestments.find(inv => inv.shopId === req.shopId);
-                if (existing) {
-                    const newTotalShares = existing.shares + req.quantity;
-                    const newTotalAmount = existing.investedAmount + req.total;
-                    existing.shares = newTotalShares;
-                    existing.investedAmount = newTotalAmount;
-                    existing.averageBuyPrice = newTotalAmount / newTotalShares;
-                } else {
-                    db.portfolioInvestments.push({
-                        id: crypto.randomUUID(),
-                        shopId: req.shopId,
-                        shopName: req.shopName,
-                        shares: req.quantity,
-                        investedAmount: req.total,
-                        averageBuyPrice: req.total / req.quantity,
-                        date: req.date
-                    });
-                }
-                req.syncedToPortfolio = true;
-            });
-            saveData();
+   // Dans portfolio.html, remplacer syncInvestmentsFromRequests
+
+function loadPortfolioData() {
+    // Utiliser la fonction centralisée pour synchroniser
+    if (window.syncAllPendingApprovals) {
+        const synced = window.syncAllPendingApprovals();
+        if (synced > 0) {
+            console.log(`${synced} investissement(s) synchronisé(s)`);
         }
     }
+    
+    // Utiliser les stats centralisées
+    let stats = { totalInvested: 0, totalCurrentValue: 0, totalProfit: 0, profitPercent: 0, positionsCount: 0 };
+    if (window.getPortfolioStats) {
+        stats = window.getPortfolioStats(currentUser.email);
+    } else {
+        // Fallback
+        const portfolio = JSON.parse(localStorage.getItem('ouenze_portfolio_investments') || '[]');
+        const userInvestments = portfolio.filter(p => p.investor === currentUser.email);
+        stats.totalInvested = userInvestments.reduce((s, inv) => s + inv.investedAmount, 0);
+        stats.positionsCount = userInvestments.length;
+        // ... calcul de la valeur actuelle
+    }
+    
+    // Afficher les stats
+    document.getElementById('appContainer').innerHTML = `...`;
+}
     
     // ============ CALCULS FINANCIERS CORRECTS ============
     function calculateShopValuation(shop) {
