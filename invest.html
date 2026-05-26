@@ -97,7 +97,8 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
         .modal-card { background: var(--card-bg); border-radius: 24px; max-width: 500px; width: 100%; padding: 28px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--gray-200); position: relative; }
-        .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--gray-500); font-size: 20px; cursor: pointer; }
+        .modal-close { position: absolute; top: 16px; right: 16px; font-size: 24px; cursor: pointer; background: none; border: none; color: var(--gray-500); }
+        .modal-close:hover { color: var(--gray-700); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-500); }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 10px; color: white; }
@@ -119,9 +120,9 @@
 </div>
 
 <div class="nav-tabs">
-    <button class="nav-tab active" data-tab="invest" onclick="showInvestPage()">Investir</button>
-    <button class="nav-tab" data-tab="portfolio" onclick="showPortfolioPage()">Mon portefeuille</button>
-    <button class="nav-tab" data-tab="activities" onclick="showActivitiesPage()">Mes activités</button>
+    <button class="nav-tab active" data-tab="invest">Investir</button>
+    <button class="nav-tab" data-tab="activities" onclick="window.location.href='activities.html'">Mes activités</button>
+    <button class="nav-tab" data-tab="portfolio" onclick="window.location.href='portfolio.html'">Mon portefeuille</button>
 </div>
 
 <div class="main" id="appContainer"></div>
@@ -130,6 +131,7 @@
     <p>© 2024 Ouenze Invest - Plateforme d'investissement certifiée | Transactions sécurisées par séquestre</p>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // ============ DONNÉES ============
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
@@ -161,6 +163,7 @@
         }[m]));
     }
     
+    // ============ GESTION DES NIVEAUX (CORRIGÉE) ============
     function getSafeLevelClass(level) {
         if (level === 'gold') return 'level-gold';
         if (level === 'silver') return 'level-silver';
@@ -199,6 +202,7 @@
         return Math.max(100, Math.round(valuation / 1000));
     }
     
+    // Calcul du prix moyen pondéré (FIFO)
     function getAverageBuyPrice(shopId, userEmail) {
         const userInvestments = investments.filter(i => i.shopId === shopId && i.investor === userEmail);
         if (userInvestments.length === 0) return 0;
@@ -211,7 +215,7 @@
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="showProfilePage()"><div class="user-avatar">${escapeHtml(currentUser.name.charAt(0))}</div><div>${escapeHtml(currentUser.name.split(' ')[0])}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${escapeHtml(currentUser.name.charAt(0))}</div><div>${escapeHtml(currentUser.name.split(' ')[0])}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
         } else {
             container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button>`;
         }
@@ -235,6 +239,7 @@
         const email = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPassword').value;
         if (!email) { showToast("Email requis", true); return; }
+        // Simulation de connexion (en production : validation backend)
         const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
         const user = allUsers.find(u => u.email === email && u.password === password);
         if (user) {
@@ -257,7 +262,7 @@
         showToast("Déconnexion réussie");
     }
     
-    function showProfilePage() {
+    function showProfile() {
         if (!currentUser) { openLoginModal(); return; }
         document.getElementById('appContainer').innerHTML = `
             <div class="shop-detail-container" style="text-align:center;">
@@ -269,13 +274,13 @@
                 <button class="btn-primary" style="margin-top:20px;" onclick="logout()">Se déconnecter</button>
                 <button class="btn-outline" style="margin-top:10px;" onclick="showInvestPage()">Retour</button>
             </div>`;
-        document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
     }
     
     // ============ PAGE INVESTISSEMENT ============
     function showInvestPage() {
         document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === 'invest');
+            if (tab.dataset.tab === 'invest') tab.classList.add('active');
+            else tab.classList.remove('active');
         });
         
         const eligibleShops = shops.filter(s => s.rating >= 3);
@@ -383,7 +388,7 @@
                     <strong><i class="fas fa-chart-line"></i> Fourchette d'investissement</strong><br>
                     Minimum: ${level.minInvestment.toLocaleString()} FCFA | Maximum: ${level.maxInvestment.toLocaleString()} FCFA
                     ${totalInvested > 0 ? `<br><span style="color:var(--primary);">💰 Votre investissement: ${totalInvested.toLocaleString()} FCFA (${totalShares} actions)</span>` : ''}
-                    ${avgPrice > 0 ? `<br><span style="color:var(--gray-500);">📊 Prix moyen d'achat: ${avgPrice.toLocaleString()} FCFA/action</span>` : ''}
+                    ${avgPrice > 0 ? `<br><span style="color:var(--gray-500);">📊 Prix moyen d'achat: ${Math.round(avgPrice).toLocaleString()} FCFA/action</span>` : ''}
                 </div>
                 ` : ''}
                 
@@ -399,10 +404,10 @@
                 <div class="table-container">
                     <h3>Indicateurs financiers</h3>
                     <table class="data-table">
-                        <tr><th>Valorisation totale</th><td>${valuation.toLocaleString()} FCFA</td></tr>
-                        <tr><th>Prix par action (0.1%)</th><td>${sharePrice.toLocaleString()} FCFA</td></tr>
-                        <tr><th>Chiffre d'affaires annuel</th><td>${((shop.monthlyRevenue || valuation * 0.1) * 12).toLocaleString()} FCFA</td></tr>
-                        <tr><th>Croissance estimée</th><td class="trend-up">+${shop.growthRate || 12}%</td></tr>
+                        <tr><th>Valorisation totale</th><td>${valuation.toLocaleString()} FCFA</td> </tr>
+                        <tr><th>Prix par action (0.1%)</th><td>${sharePrice.toLocaleString()} FCFA</td> </tr>
+                        <tr><th>Chiffre d'affaires annuel</th><td>${((shop.monthlyRevenue || valuation * 0.1) * 12).toLocaleString()} FCFA</td> </tr>
+                        <tr><th>Croissance estimée</th><td class="trend-up">+${shop.growthRate || 12}%</td> </tr>
                     </table>
                 </div>
                 
@@ -485,94 +490,6 @@
         if (event && event.target) event.target.classList.add('active');
     }
     
-    // ============ PORTEFEUILLE PAGE ============
-    function showPortfolioPage() {
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === 'portfolio');
-        });
-        
-        if (!currentUser) { 
-            document.getElementById('appContainer').innerHTML = `<div class="shop-detail-container" style="text-align:center;">Connectez-vous pour voir votre portefeuille</div>`;
-            return;
-        }
-        
-        const userHoldingsList = userHoldings.filter(h => h.userId === currentUser.email);
-        const totalInvested = userHoldingsList.reduce((s, h) => s + h.amount, 0);
-        
-        if (userHoldingsList.length === 0) {
-            document.getElementById('appContainer').innerHTML = `<div class="shop-detail-container" style="text-align:center;">Vous n'avez aucun investissement pour le moment</div>`;
-            return;
-        }
-        
-        document.getElementById('appContainer').innerHTML = `
-            <div class="shop-detail-container">
-                <h2>Mon portefeuille</h2>
-                <div class="investment-range" style="margin-bottom:20px;">
-                    Total investi: ${totalInvested.toLocaleString()} FCFA
-                </div>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead><tr><th>Boutique</th><th>Actions</th><th>Montant investi</th><th>Prix moyen</th><th>Date premier achat</th></tr></thead>
-                        <tbody>
-                            ${userHoldingsList.map(h => `
-                                <tr>
-                                    <td>${escapeHtml(h.shopName)}</td>
-                                    <td>${h.quantity}</td>
-                                    <td>${h.amount.toLocaleString()} FCFA</td>
-                                    <td>${h.avgPrice ? h.avgPrice.toLocaleString() : '-'} FCFA</td>
-                                    <td>${new Date(h.date).toLocaleDateString()}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                <button class="btn-primary" onclick="showInvestPage()">Continuer mes investissements</button>
-            </div>`;
-    }
-    
-    // ============ ACTIVITÉS PAGE ============
-    function showActivitiesPage() {
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === 'activities');
-        });
-        
-        if (!currentUser) {
-            document.getElementById('appContainer').innerHTML = `<div class="shop-detail-container" style="text-align:center;">Connectez-vous pour voir vos activités</div>`;
-            return;
-        }
-        
-        const userRequests = investmentRequests.filter(r => r.investor === currentUser.email);
-        
-        if (userRequests.length === 0) {
-            document.getElementById('appContainer').innerHTML = `<div class="shop-detail-container" style="text-align:center;">Aucune activité pour le moment</div>`;
-            return;
-        }
-        
-        document.getElementById('appContainer').innerHTML = `
-            <div class="shop-detail-container">
-                <h2>Mes activités</h2>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead><tr><th>Date</th><th>Type</th><th>Boutique</th><th>Quantité</th><th>Prix unitaire</th><th>Montant total</th><th>Statut</th></tr></thead>
-                        <tbody>
-                            ${userRequests.sort((a,b) => new Date(b.date) - new Date(a.date)).map(r => `
-                                <tr>
-                                    <td>${new Date(r.date).toLocaleDateString()}</td>
-                                    <td>${r.type === 'buy_shares' ? 'Achat' : 'Vente'}</td>
-                                    <td>${escapeHtml(r.shopName)}</td>
-                                    <td>${r.quantity}</td>
-                                    <td>${r.pricePerShare?.toLocaleString() || '-'} FCFA</td>
-                                    <td>${r.total.toLocaleString()} FCFA</td>
-                                    <td style="color:var(--success);">${r.status === 'approved' ? 'Confirmé' : r.status}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                <button class="btn-primary" onclick="showInvestPage()">Continuer mes investissements</button>
-            </div>`;
-    }
-    
     // ============ ACHAT/VENTE D'ACTIONS ============
     function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
         if (!currentUser) { showToast("Connectez-vous", true); return; }
@@ -634,13 +551,14 @@
         if (!paymentDetails) { showToast("Veuillez renseigner vos coordonnées de paiement", true); return; }
         
         const total = quantity * sharePrice;
-        if (total < minInvestment && total > 0) {
+        if (total < minInvestment) {
             if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est inférieur au minimum recommandé (${minInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
         }
         if (total > maxInvestment) {
             if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est supérieur au maximum recommandé (${maxInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
         }
         
+        // Mettre à jour les infos de paiement de l'utilisateur
         currentUser.paymentMethod = paymentMethod;
         currentUser.paymentDetails = paymentDetails;
         localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
@@ -661,6 +579,7 @@
         investments.push(investment);
         localStorage.setItem('ouenze_investments', JSON.stringify(investments));
         
+        // Mettre à jour les holdings (agrégation)
         const existingHolding = userHoldings.find(h => h.shopId === shopId && h.userId === currentUser.email);
         if (existingHolding) {
             const newTotalAmount = existingHolding.amount + total;
@@ -668,7 +587,6 @@
             existingHolding.amount = newTotalAmount;
             existingHolding.quantity = newTotalQuantity;
             existingHolding.avgPrice = newTotalAmount / newTotalQuantity;
-            existingHolding.date = new Date().toISOString();
         } else {
             userHoldings.push({
                 shopId: shopId,
@@ -683,6 +601,7 @@
         }
         localStorage.setItem('ouenze_holdings', JSON.stringify(userHoldings));
         
+        // Enregistrer la demande
         const request = {
             id: Date.now(), type: 'buy_shares',
             shopId, shopName: shops.find(s => s.id === shopId)?.name,
@@ -739,9 +658,10 @@
         
         const total = quantity * sharePrice;
         
+        // Gestion FIFO : supprimer les plus anciens investissements en premier
         let remainingToSell = quantity;
         const updatedInvestments = [...investments];
-        const userInvestments = investments.filter(i => i.shopId === shopId && i.investor === currentUser.email).sort((a,b) => a.date - b.date);
+        const userInvestments = investments.filter(i => i.shopId === shopId && i.investor === currentUser.email);
         
         for (let i = 0; i < userInvestments.length && remainingToSell > 0; i++) {
             const invIndex = updatedInvestments.findIndex(ui => ui.id === userInvestments[i].id);
@@ -761,6 +681,7 @@
         investments.push(...updatedInvestments);
         localStorage.setItem('ouenze_investments', JSON.stringify(investments));
         
+        // Mettre à jour les holdings
         const holdingIndex = userHoldings.findIndex(h => h.shopId === shopId && h.userId === currentUser.email);
         if (holdingIndex !== -1) {
             const holding = userHoldings[holdingIndex];
@@ -800,6 +721,7 @@
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
     }
     
+    // Initialisation
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
         showInvestPage();
@@ -807,10 +729,7 @@
     
     // Exports globaux
     window.showInvestPage = showInvestPage;
-    window.showPortfolioPage = showPortfolioPage;
-    window.showActivitiesPage = showActivitiesPage;
     window.showShopDetail = showShopDetail;
-    window.showProfilePage = showProfilePage;
     window.setSort = setSort;
     window.filterShops = filterShops;
     window.switchChart = switchChart;
@@ -818,6 +737,7 @@
     window.openSellSharesModal = openSellSharesModal;
     window.submitBuyRequest = submitBuyRequest;
     window.submitSellRequest = submitSellRequest;
+    window.showProfile = showProfile;
     window.doLogin = doLogin;
     window.logout = logout;
     window.openLoginModal = openLoginModal;
