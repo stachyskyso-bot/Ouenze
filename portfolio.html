@@ -557,64 +557,42 @@ function calculateShopValuation(shop) {
         });
     }
     
-    function confirmSell(shopId, maxShares, sharePrice) {
-        if (isSelling) return;
-        isSelling = true;
-        
-        const btn = document.getElementById('confirmSellBtn');
-        if (btn) btn.disabled = true;
-        
-        const quantity = parseInt(document.getElementById('sellQty').value);
-        if (!quantity || quantity < 1 || quantity > maxShares) { 
-            alert("Quantité invalide"); 
-            isSelling = false;
-            if (btn) btn.disabled = false;
-            return; 
-        }
-        const total = quantity * sharePrice;
-        
-        const investmentIndex = db.portfolioInvestments.findIndex(inv => inv.shopId === shopId);
-        if (investmentIndex === -1) {
-            isSelling = false;
-            return;
-        }
-        
-        const investment = db.portfolioInvestments[investmentIndex];
-        if (quantity === investment.shares) {
-            db.portfolioInvestments.splice(investmentIndex, 1);
-        } else {
-            const ratio = quantity / investment.shares;
-            const soldAmount = investment.investedAmount * ratio;
-            investment.shares -= quantity;
-            investment.investedAmount -= soldAmount;
-            investment.averageBuyPrice = investment.investedAmount / investment.shares;
-        }
-        
-        // Enregistrer la demande de vente
-        const sellRequest = {
-            id: crypto.randomUUID(),
-            type: 'sell_shares',
-            shopId: shopId,
-            shopName: investment.shopName,
-            investor: db.currentUser?.email,
-            investorName: db.currentUser?.name,
-            quantity: quantity,
-            pricePerShare: sharePrice,
-            total: total,
-            date: new Date().toISOString(),
-            status: 'approved',
-            syncedToPortfolio: true
-        };
-        db.investmentRequests.push(sellRequest);
-        
-        saveData();
-        alert(`Vente de ${quantity} actions effectuée !\nMontant: ${total.toLocaleString()} FCFA\nLes fonds seront disponibles sous 48h.`);
-        document.querySelector('.modal.active')?.remove();
-        
-        addHistorySnapshot();
-        showPortfolioPage();
+   function confirmSell(shopId, maxShares, sharePrice) {
+    if (isSelling) return;
+    isSelling = true;
+    
+    const btn = document.getElementById('confirmSellBtn');
+    if (btn) btn.disabled = true;
+    
+    const quantity = parseInt(document.getElementById('sellQty').value);
+    if (!quantity || quantity < 1 || quantity > maxShares) { 
+        alert("Quantité invalide"); 
         isSelling = false;
+        if (btn) btn.disabled = false;
+        return; 
     }
+    
+    const shop = shops.find(s => s.id === shopId);
+    const shopName = shop?.name || 'Boutique';
+    
+    // UTILISER LA FONCTION CENTRALISÉE
+    if (window.sellShares) {
+        const success = window.sellShares(shopId, currentUser.email, quantity, sharePrice, shopName);
+        if (success) {
+            alert(`✅ Vente de ${quantity} actions effectuée !\nMontant: ${(quantity * sharePrice).toLocaleString()} FCFA`);
+            document.querySelector('.modal.active')?.remove();
+            showPortfolioPage();
+        } else {
+            alert("Erreur lors de la vente");
+        }
+    } else {
+        // Fallback...
+        alert("Erreur: base de données non disponible");
+    }
+    
+    isSelling = false;
+}
+
     
     // ============ RETRAIT (AVEC VALIDATIONS) ============
     function openWithdrawModal() {
