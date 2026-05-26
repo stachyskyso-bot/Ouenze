@@ -569,13 +569,7 @@
     // ============ VARIABLES DE TRI ============
     let currentSortBy = 'rating';
     let currentSortOrder = 'desc';
-
-    // Ajouter avec les autres variables globales
-let currentProductType = 'all';
-
-// Ajouter dans les exports window
-window.filterByProductType = filterByProductType;
-window.currentProductType = currentProductType;
+    let currentProductType = 'all';
     
     // ============ LISTE DES PAYS AVEC VILLES ============
     const countries = [
@@ -645,148 +639,6 @@ window.currentProductType = currentProductType;
             citySelect.innerHTML = selectedCountry.cities.map(city => `<option value="${city}">${city}</option>`).join('');
         }
     }
-
-
-
-
-
-
-
-
-      // Remplacer la fonction showHomePage par celle-ci
-function showHomePage() {
-    const rankedShops = sortShops([...shops], currentSortBy, currentSortOrder);
-    document.getElementById('appContainer').innerHTML = `
-        <div class="ranking-bar">
-            <div class="ranking-filters">
-                <button class="sort-btn ${currentSortBy === 'rating' ? 'active' : ''}" data-sort="rating" onclick="setSort('rating')">
-                    <i class="fas ${currentSortBy === 'rating' ? (currentSortOrder === 'desc' ? 'fa-sort-down' : 'fa-sort-up') : 'fa-sort'}"></i> Par note
-                </button>
-                <button class="sort-btn ${currentSortBy === 'price' ? 'active' : ''}" data-sort="price" onclick="setSort('price')">
-                    <i class="fas ${currentSortBy === 'price' ? (currentSortOrder === 'desc' ? 'fa-sort-down' : 'fa-sort-up') : 'fa-sort'}"></i> Par prix
-                </button>
-                <button class="sort-btn ${currentSortBy === 'sales' ? 'active' : ''}" data-sort="sales" onclick="setSort('sales')">
-                    <i class="fas ${currentSortBy === 'sales' ? (currentSortOrder === 'desc' ? 'fa-sort-down' : 'fa-sort-up') : 'fa-sort'}"></i> Par ventes
-                </button>
-                <button class="sort-btn ${currentSortBy === 'name' ? 'active' : ''}" data-sort="name" onclick="setSort('name')">
-                    <i class="fas ${currentSortBy === 'name' ? (currentSortOrder === 'desc' ? 'fa-sort-down' : 'fa-sort-up') : 'fa-sort'}"></i> Par nom
-                </button>
-            </div>
-            <div style="display:flex; gap:6px;">
-                <span class="rating-badge gold"><i class="fas fa-crown"></i> Or</span>
-                <span class="rating-badge silver"><i class="fas fa-star"></i> Argent</span>
-                <span class="rating-badge bronze"><i class="fas fa-star-half-alt"></i> Bronze</span>
-            </div>
-        </div>
-        
-        <!-- NOUVEAU : Filtres par type de produit -->
-        <div class="product-type-filters" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button class="product-type-btn active" data-type="all" onclick="filterByProductType('all')">
-                <i class="fas fa-th-large"></i> Tous les produits
-            </button>
-            <button class="product-type-btn" data-type="food" onclick="filterByProductType('food')">
-                <i class="fas fa-utensils"></i> Alimentation
-            </button>
-            <button class="product-type-btn" data-type="other" onclick="filterByProductType('other')">
-                <i class="fas fa-box"></i> Autres produits
-            </button>
-        </div>
-        
-        <div id="resultCount" style="margin-bottom:16px; font-size:12px; color:var(--gray-500);"></div>
-        <div id="shopsGrid" class="shops-grid"></div>
-        <div id="productsGrid" class="products-grid" style="display:none;"></div>
-    `;
-    
-    displayShops(rankedShops);
-    
-    window.currentSearchType = 'all';
-    window.currentProductType = 'all';
-    
-    document.querySelectorAll('.search-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            window.currentSearchType = tab.dataset.type;
-            performSearch();
-        });
-    });
-}
-
-
-
-
-
-
-
-
-
-    // Variable globale pour le type de produit
-let currentProductType = 'all';
-
-// Fonction pour filtrer par type de produit
-function filterByProductType(type) {
-    currentProductType = type;
-    
-    // Mettre à jour l'aspect des boutons
-    document.querySelectorAll('.product-type-btn').forEach(btn => {
-        if (btn.dataset.type === type) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-    
-    // Re-exécuter la recherche ou l'affichage selon l'état
-    const query = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
-    if (query) {
-        performSearch();
-    } else {
-        // Si pas de recherche, filtrer les boutiques affichées
-        const filteredShops = filterShopsByProductType([...shops], type);
-        const sortedShops = sortShops(filteredShops, currentSortBy, currentSortOrder);
-        displayShops(sortedShops);
-    }
-}
-
-// Fonction pour filtrer les boutiques par type de produit
-function filterShopsByProductType(shopsList, productType) {
-    if (productType === 'all') return shopsList;
-    
-    return shopsList.filter(shop => {
-        if (!shop.products || shop.products.length === 0) return false;
-        
-        if (productType === 'food') {
-            // Boutique contenant au moins un produit alimentaire
-            return shop.products.some(p => p.productType === 'food' || p.category === 'Alimentation');
-        } else if (productType === 'other') {
-            // Boutique contenant au moins un produit non alimentaire
-            return shop.products.some(p => p.productType !== 'food' && p.category !== 'Alimentation');
-        }
-        return true;
-    });
-}
-
-// Filtrer les produits par type pour l'affichage
-function filterProductsByType(productsList, productType) {
-    if (productType === 'all') return productsList;
-    
-    return productsList.filter(product => {
-        if (productType === 'food') {
-            return product.productType === 'food' || product.category === 'Alimentation';
-        } else if (productType === 'other') {
-            return product.productType !== 'food' && product.category !== 'Alimentation';
-        }
-        return true;
-    });
-}
-
-
-
-
-
-
-
-    
     
     // ============ FONCTIONS DE NOTATION ============
     function canUserRateShop(userEmail, shopId) {
@@ -1014,8 +866,61 @@ function filterProductsByType(productsList, productType) {
         if (query) {
             performSearch();
         } else {
-            const rankedShops = sortShops([...shops], currentSortBy, currentSortOrder);
+            const shopsToShow = filterShopsByProductType([...shops], currentProductType);
+            const rankedShops = sortShops(shopsToShow, currentSortBy, currentSortOrder);
             displayShops(rankedShops);
+        }
+    }
+    
+    // ============ FILTRES PAR TYPE DE PRODUIT ============
+    function filterShopsByProductType(shopsList, productType) {
+        if (productType === 'all') return shopsList;
+        
+        return shopsList.filter(shop => {
+            if (!shop.products || shop.products.length === 0) return false;
+            
+            if (productType === 'food') {
+                return shop.products.some(p => p.productType === 'food' || p.category === 'Alimentation');
+            } else if (productType === 'other') {
+                return shop.products.some(p => p.productType !== 'food' && p.category !== 'Alimentation');
+            }
+            return true;
+        });
+    }
+    
+    function filterProductsByType(productsList, productType) {
+        if (productType === 'all') return productsList;
+        
+        return productsList.filter(product => {
+            if (productType === 'food') {
+                return product.productType === 'food' || product.category === 'Alimentation';
+            } else if (productType === 'other') {
+                return product.productType !== 'food' && product.category !== 'Alimentation';
+            }
+            return true;
+        });
+    }
+    
+    function filterByProductType(type) {
+        currentProductType = type;
+        
+        document.querySelectorAll('.product-type-btn').forEach(btn => {
+            if (btn.dataset.type === type) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        const query = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
+        if (query) {
+            performSearch();
+        } else {
+            const filteredShops = filterShopsByProductType([...shops], type);
+            const sortedShops = sortShops(filteredShops, currentSortBy, currentSortOrder);
+            displayShops(sortedShops);
+            document.getElementById('productsGrid').style.display = 'none';
+            document.getElementById('shopsGrid').style.display = 'grid';
         }
     }
     
@@ -1048,7 +953,8 @@ function filterProductsByType(productsList, productType) {
     
     // ============ PAGE ACCUEIL ============
     function showHomePage() {
-        const rankedShops = sortShops([...shops], currentSortBy, currentSortOrder);
+        const shopsToShow = filterShopsByProductType([...shops], currentProductType);
+        const rankedShops = sortShops(shopsToShow, currentSortBy, currentSortOrder);
         document.getElementById('appContainer').innerHTML = `
             <div class="ranking-bar">
                 <div class="ranking-filters">
@@ -1071,6 +977,20 @@ function filterProductsByType(productsList, productType) {
                     <span class="rating-badge bronze"><i class="fas fa-star-half-alt"></i> Bronze</span>
                 </div>
             </div>
+            
+            <!-- Filtres par type de produit -->
+            <div class="product-type-filters">
+                <button class="product-type-btn ${currentProductType === 'all' ? 'active' : ''}" data-type="all" onclick="filterByProductType('all')">
+                    <i class="fas fa-th-large"></i> Tous les produits
+                </button>
+                <button class="product-type-btn ${currentProductType === 'food' ? 'active' : ''}" data-type="food" onclick="filterByProductType('food')">
+                    <i class="fas fa-utensils"></i> Alimentation
+                </button>
+                <button class="product-type-btn ${currentProductType === 'other' ? 'active' : ''}" data-type="other" onclick="filterByProductType('other')">
+                    <i class="fas fa-box"></i> Autres produits
+                </button>
+            </div>
+            
             <div id="resultCount" style="margin-bottom:16px; font-size:12px; color:var(--gray-500);"></div>
             <div id="shopsGrid" class="shops-grid"></div>
             <div id="productsGrid" class="products-grid" style="display:none;"></div>
@@ -1157,96 +1077,94 @@ function filterProductsByType(productsList, productType) {
     
     // ============ RECHERCHE ============
     function performSearch() {
-    const query = document.getElementById('searchInput').value.toLowerCase().trim();
-    
-    if (!query) {
-        let shopsToShow = filterShopsByProductType([...shops], currentProductType);
-        const rankedShops = sortShops(shopsToShow, currentSortBy, currentSortOrder);
-        displayShops(rankedShops);
-        document.getElementById('productsGrid').style.display = 'none';
-        document.getElementById('shopsGrid').style.display = 'grid';
-        const resultCount = document.getElementById('resultCount');
-        if (resultCount) resultCount.innerHTML = '';
-        return;
-    }
-    
-    const searchType = window.currentSearchType || 'all';
-    let filteredShops = [];
-    let filteredProducts = [];
-    
-    if (searchType === 'shop' || searchType === 'all') {
-        filteredShops = shops.filter(shop => 
-            shop.name.toLowerCase().includes(query) ||
-            (shop.city && shop.city.toLowerCase().includes(query)) ||
-            (shop.quartier && shop.quartier.toLowerCase().includes(query)) ||
-            (shop.description && shop.description.toLowerCase().includes(query))
-        );
-        // Appliquer le filtre par type de produit
-        filteredShops = filterShopsByProductType(filteredShops, currentProductType);
-    }
-    
-    if (searchType === 'product' || searchType === 'all') {
-        shops.forEach(shop => {
-            (shop.products || []).forEach(product => {
-                if (product.name.toLowerCase().includes(query) ||
-                    (product.description && product.description.toLowerCase().includes(query))) {
-                    filteredProducts.push({ 
-                        ...product, 
-                        shopId: shop.id, 
-                        shopName: shop.name,
-                        shopCity: shop.city,
-                        shopRating: shop.rating
-                    });
-                }
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        if (!query) {
+            let shopsToShow = filterShopsByProductType([...shops], currentProductType);
+            const rankedShops = sortShops(shopsToShow, currentSortBy, currentSortOrder);
+            displayShops(rankedShops);
+            document.getElementById('productsGrid').style.display = 'none';
+            document.getElementById('shopsGrid').style.display = 'grid';
+            const resultCount = document.getElementById('resultCount');
+            if (resultCount) resultCount.innerHTML = '';
+            return;
+        }
+        
+        const searchType = window.currentSearchType || 'all';
+        let filteredShops = [];
+        let filteredProducts = [];
+        
+        if (searchType === 'shop' || searchType === 'all') {
+            filteredShops = shops.filter(shop => 
+                shop.name.toLowerCase().includes(query) ||
+                (shop.city && shop.city.toLowerCase().includes(query)) ||
+                (shop.quartier && shop.quartier.toLowerCase().includes(query)) ||
+                (shop.description && shop.description.toLowerCase().includes(query))
+            );
+            filteredShops = filterShopsByProductType(filteredShops, currentProductType);
+        }
+        
+        if (searchType === 'product' || searchType === 'all') {
+            shops.forEach(shop => {
+                (shop.products || []).forEach(product => {
+                    if (product.name.toLowerCase().includes(query) ||
+                        (product.description && product.description.toLowerCase().includes(query))) {
+                        filteredProducts.push({ 
+                            ...product, 
+                            shopId: shop.id, 
+                            shopName: shop.name,
+                            shopCity: shop.city,
+                            shopRating: shop.rating
+                        });
+                    }
+                });
             });
-        });
-        // Appliquer le filtre par type de produit
-        filteredProducts = filterProductsByType(filteredProducts, currentProductType);
-    }
-    
-    const shopsGrid = document.getElementById('shopsGrid');
-    const productsGrid = document.getElementById('productsGrid');
-    
-    if (searchType === 'shop') {
-        const sortedShops = sortShops(filteredShops, currentSortBy, currentSortOrder);
-        displayShops(sortedShops);
-        if (productsGrid) productsGrid.style.display = 'none';
-        if (shopsGrid) shopsGrid.style.display = 'grid';
-    } 
-    else if (searchType === 'product') {
-        displayProducts(filteredProducts);
-        if (productsGrid) productsGrid.style.display = 'grid';
-        if (shopsGrid) shopsGrid.style.display = 'none';
-    } 
-    else {
-        if (filteredShops.length > 0) {
+            filteredProducts = filterProductsByType(filteredProducts, currentProductType);
+        }
+        
+        const shopsGrid = document.getElementById('shopsGrid');
+        const productsGrid = document.getElementById('productsGrid');
+        
+        if (searchType === 'shop') {
             const sortedShops = sortShops(filteredShops, currentSortBy, currentSortOrder);
             displayShops(sortedShops);
             if (productsGrid) productsGrid.style.display = 'none';
             if (shopsGrid) shopsGrid.style.display = 'grid';
         } 
-        else if (filteredProducts.length > 0) {
+        else if (searchType === 'product') {
             displayProducts(filteredProducts);
             if (productsGrid) productsGrid.style.display = 'grid';
             if (shopsGrid) shopsGrid.style.display = 'none';
         } 
         else {
-            displayShops([]);
-            if (productsGrid) productsGrid.style.display = 'none';
-            if (shopsGrid) shopsGrid.style.display = 'grid';
+            if (filteredShops.length > 0) {
+                const sortedShops = sortShops(filteredShops, currentSortBy, currentSortOrder);
+                displayShops(sortedShops);
+                if (productsGrid) productsGrid.style.display = 'none';
+                if (shopsGrid) shopsGrid.style.display = 'grid';
+            } 
+            else if (filteredProducts.length > 0) {
+                displayProducts(filteredProducts);
+                if (productsGrid) productsGrid.style.display = 'grid';
+                if (shopsGrid) shopsGrid.style.display = 'none';
+            } 
+            else {
+                displayShops([]);
+                if (productsGrid) productsGrid.style.display = 'none';
+                if (shopsGrid) shopsGrid.style.display = 'grid';
+            }
+        }
+        
+        const resultCount = document.getElementById('resultCount');
+        if (resultCount) {
+            const total = searchType === 'shop' ? filteredShops.length : 
+                         searchType === 'product' ? filteredProducts.length : 
+                         filteredShops.length + filteredProducts.length;
+            resultCount.innerHTML = `${total} résultat(s) trouvé(s)`;
         }
     }
     
-    const resultCount = document.getElementById('resultCount');
-    if (resultCount) {
-        const total = searchType === 'shop' ? filteredShops.length : 
-                     searchType === 'product' ? filteredProducts.length : 
-                     filteredShops.length + filteredProducts.length;
-        resultCount.innerHTML = `${total} résultat(s) trouvé(s)`;
-    }
-}
-    
-    // ============ VUE BOUTIQUE ============
+    // ============ VUE BOUTIQUE (suite du code existant) ============
     function viewShopDetail(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
@@ -2242,6 +2160,7 @@ function filterProductsByType(productsList, productType) {
     function showInvest() { alert("Investir dans Ouenze"); }
     function showTracking() { alert("Suivi de livraison"); }
     
+    // Exports globaux
     window.showHomePage = showHomePage;
     window.viewShopDetail = viewShopDetail;
     window.addToCart = addToCart;
@@ -2290,6 +2209,7 @@ function filterProductsByType(productsList, productType) {
     window.setSort = setSort;
     window.performSearch = performSearch;
     window.displayProducts = displayProducts;
+    window.filterByProductType = filterByProductType;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
