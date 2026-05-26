@@ -6,6 +6,7 @@
     <title>Ouenze | Marketplace Congo Brazzaville</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
@@ -21,9 +22,12 @@
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --orange: #ff6600;
+            --border: #e2e8f0;
+            --gray: #64748b;
+            --black: #1e293b;
         }
         
-        /* Styles existants conservés */
         .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 10px 16px; position: sticky; top: 0; z-index: 100; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
         .logo h1 { font-size: 20px; font-weight: 800; color: var(--primary); cursor: pointer; }
@@ -31,161 +35,110 @@
         .header-actions { display: flex; gap: 8px; align-items: center; }
         .cart-icon { position: relative; cursor: pointer; font-size: 18px; color: var(--primary); }
         .cart-count { position: absolute; top: -6px; right: -10px; background: var(--danger); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; }
-        .auth-btn { padding: 5px 12px; border-radius: 30px; font-size: 11px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
-        .user-menu { display: flex; align-items: center; gap: 8px; background: var(--gray-100); padding: 4px 10px; border-radius: 30px; cursor: pointer; }
+        .auth-btn { padding: 5px 12px; border-radius: 30px; font-size: 11px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; transition: 0.2s; }
+        .auth-btn:hover { background: var(--gray-200); }
+        .user-menu { display: flex; align-items: center; gap: 8px; background: var(--gray-100); padding: 4px 10px; border-radius: 30px; cursor: pointer; transition: 0.2s; }
+        .user-menu:hover { background: var(--gray-200); }
         .user-avatar { width: 28px; height: 28px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; }
         .user-info { font-size: 11px; line-height: 1.2; }
         .user-info small { font-size: 9px; color: var(--gray-500); }
         
         .search-wrapper { width: 100%; }
-        .search-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
-        .search-tab { padding: 3px 10px; font-size: 10px; background: var(--gray-100); border-radius: 20px; cursor: pointer; color: var(--gray-500); }
+        .search-tabs { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+        .search-tab { padding: 3px 10px; font-size: 10px; background: var(--gray-100); border-radius: 20px; cursor: pointer; color: var(--gray-500); transition: 0.2s; }
         .search-tab.active { background: var(--primary); color: white; }
         .search-bar { display: flex; background: var(--gray-100); border-radius: 30px; border: 1px solid var(--gray-200); }
         .search-bar input { flex: 1; padding: 8px 14px; border: none; outline: none; background: transparent; font-size: 13px; }
         .search-bar button { background: none; border: none; padding: 0 12px; color: var(--primary); cursor: pointer; }
         
         .nav-row {
-    border-top: 1px solid var(--border);
-    background: var(--white);
-    width: 100%;
-}
-
-.nav-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-}
-
-.nav-links {
-    display: flex;
-    flex-wrap: wrap; /* IMPORTANT */
-    gap: 18px;
-    padding: 10px 0;
-    flex: 1;
-}
-
-.nav-links a {
-    text-decoration: none;
-    color: var(--gray);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.dropdown {
-    position: relative;
-    flex-shrink: 0;
-}
-
-.dropdown-btn {
-    background: none;
-    border: none;
-    padding: 10px 0;
-    font-size: 13px;
-    cursor: pointer;
-    color: var(--gray);
-    white-space: nowrap;
-}
-
-.dropdown-content {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: var(--white);
-    min-width: 200px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    opacity: 0;
-    visibility: hidden;
-    transition: 0.2s;
-    z-index: 100;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-.dropdown-content.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.dropdown-content a {
-    display: block;
-    padding: 12px 18px;
-    text-decoration: none;
-    color: var(--black);
-    font-size: 13px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-}
-
-.dropdown-content a:last-child {
-    border-bottom: none;
-}
-
-.main {
-    max-width: 1200px;
-    margin: 16px auto;
-    padding: 0 16px;
-}
-
-/* TABLETTE */
-@media (max-width: 900px) {
-
-    .nav-container {
-        padding: 0 16px;
-        align-items: flex-start;
-    }
-
-    .nav-links {
-        gap: 14px;
-    }
-
-    .nav-links a,
-    .dropdown-btn {
-        font-size: 12px;
-    }
-}
-
-/* TELEPHONE */
-@media (max-width: 600px) {
-
-    .nav-container {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0;
-    }
-
-    .nav-links {
-        justify-content: center;
-        padding: 12px 0 6px;
-        gap: 12px 18px;
-    }
-
-    .dropdown {
-        display: flex;
-        justify-content: center;
-        padding-bottom: 10px;
-    }
-
-    .dropdown-content {
-        right: 50%;
-        transform: translateX(50%);
-    }
-}
-         
+            border-top: 1px solid var(--border);
+            background: var(--white);
+            width: 100%;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 10px 0;
+            flex: 1;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-links a.active { color: var(--primary); font-weight: 600; }
+        .dropdown {
+            position: relative;
+            flex-shrink: 0;
+        }
+        .dropdown-btn {
+            background: none;
+            border: none;
+            padding: 10px 0;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--gray);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+        .dropdown-btn:hover { color: var(--primary); }
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--white);
+            min-width: 200px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.2s;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        .dropdown-content.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .dropdown-content a {
+            display: block;
+            padding: 12px 18px;
+            text-decoration: none;
+            color: var(--black);
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background: var(--gray-100); color: var(--primary); }
         
-         .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
+        .main { max-width: 1200px; margin: 16px auto; padding: 0 16px; }
         
         .ranking-bar { background: var(--white); border-radius: 16px; padding: 10px 16px; margin-bottom: 16px; border: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .ranking-filters { display: flex; gap: 8px; flex-wrap: wrap; }
-        .ranking-btn { background: none; border: none; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 20px; color: var(--gray-500); }
+        .ranking-btn { background: none; border: none; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 20px; color: var(--gray-500); transition: 0.2s; }
         .ranking-btn.active { background: var(--primary); color: white; }
-        .rating-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 20px; font-size: 9px; }
+        .rating-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 20px; font-size: 9px; margin: 0 2px; }
         .rating-badge.gold { background: #fef3c7; color: #b45309; }
         .rating-badge.silver { background: #f1f5f9; color: #475569; }
         .rating-badge.bronze { background: #ffedd5; color: #9a3412; }
@@ -207,121 +160,92 @@
         .metric { text-align: center; padding: 6px; background: var(--gray-100); border-radius: 10px; font-size: 10px; }
         .metric-value { font-weight: 700; font-size: 14px; color: var(--primary); }
         
-        .back-btn { background: none; border: none; color: var(--primary); cursor: pointer; margin-bottom: 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
-        .shop-header-custom { background: linear-gradient(135deg, var(--primary-color, #1e40af), var(--primary-color, #1e40af)aa); border-radius: 20px; padding: 20px; margin-bottom: 20px; color: white; }
+        .back-btn { background: none; border: none; color: var(--primary); cursor: pointer; margin-bottom: 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; }
+        .back-btn:hover { color: var(--primary-dark); }
+        .shop-header-custom { background: linear-gradient(135deg, #1e40af, #1e40afaa); border-radius: 20px; padding: 20px; margin-bottom: 20px; color: white; }
         .shop-header-content { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .shop-logo-large { width: 60px; height: 60px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; }
-        .shop-logo-large img { width: 100%; height: 100%; object-fit: contain; }
-        .shop-info h1 { font-size: 20px; margin-bottom: 2px; }
-        .shop-info p { font-size: 11px; opacity: 0.9; }
-        .share-link { background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 10px; border-radius: 30px; font-size: 10px; cursor: pointer; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; }
+        .shop-logo-large { width: 60px; height: 60px; background: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
         
-        .shop-menu { background: var(--menu-bg, #1e40af); color: var(--menu-text, white); border-radius: var(--menu-radius, 0px); margin-bottom: 16px; }
-        .shop-menu-horizontal { display: flex; gap: 12px; flex-wrap: wrap; padding: 6px 12px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-        .shop-menu-vertical { width: 100%; float: none; margin-bottom: 12px; padding: 6px; overflow-x: auto; white-space: nowrap; }
-        .shop-menu-item { position: relative; cursor: pointer; padding: 4px 0; font-size: 11px; display: inline-block; margin-right: 12px; }
-        .shop-submenu { position: absolute; top: 100%; left: 0; background: var(--menu-bg); min-width: 130px; border-radius: 6px; padding: 4px 0; display: none; z-index: 100; }
-        .shop-menu-item:hover .shop-submenu { display: block; }
-        .shop-submenu-item { padding: 4px 10px; white-space: nowrap; font-size: 10px; }
-        
-        .carousel-container { position: relative; margin-bottom: 16px; overflow: hidden; border-radius: var(--carousel-radius, 12px); }
-        .carousel-slide { display: none; width: 100%; height: var(--carousel-height, 200px); object-fit: cover; }
-        .carousel-slide.active { display: block; }
-        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 12px; }
-        .carousel-prev { left: 8px; }
-        .carousel-next { right: 8px; }
-        .carousel-dots { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
-        .carousel-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; }
-        .carousel-dot.active { background: white; }
-        
-        .categories-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; clear: both; overflow-x: auto; padding-bottom: 4px; }
-        .category-btn { padding: 4px 12px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 11px; white-space: nowrap; }
-        .category-btn.active { background: var(--primary-color, #1e40af); color: white; }
+        .categories-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+        .category-btn { padding: 4px 12px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 11px; white-space: nowrap; transition: 0.2s; }
+        .category-btn.active { background: var(--primary); color: white; }
         
         .products-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
-        .product-card { background: var(--white); border-radius: var(--product-radius, 12px); border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; }
-        .product-card:hover { transform: translateY(-2px); }
-        .product-image { width: 100%; height: var(--product-img-height, 130px); object-fit: cover; }
+        .product-card { background: var(--white); border-radius: 12px; border: 1px solid var(--gray-200); overflow: hidden; cursor: pointer; transition: 0.2s; }
+        .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .product-image { width: 100%; height: 130px; object-fit: cover; }
         .product-info { padding: 8px; }
-        .product-title { font-weight: 600; font-size: 12px; margin-bottom: 2px; }
-        .product-price { font-size: 14px; font-weight: 700; color: var(--primary-color, #1e40af); margin: 4px 0; }
-        .product-stock { font-size: 9px; color: var(--gray-500); margin-bottom: 4px; }
-        .product-badge { display: inline-block; background: #eef2ff; color: var(--primary); padding: 2px 6px; border-radius: 20px; font-size: 8px; margin-bottom: 4px; }
-        .btn-add-cart { background: var(--button-color, #1e40af); color: white; border: none; padding: 5px; border-radius: var(--product-radius, 8px); font-weight: 500; cursor: pointer; width: 100%; font-size: 10px; }
+        .product-title { font-weight: 600; font-size: 12px; }
+        .product-price { font-size: 14px; font-weight: 700; color: var(--primary); margin: 4px 0; }
+        .btn-add-cart { background: var(--primary); color: white; border: none; padding: 5px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 10px; transition: 0.2s; }
+        .btn-add-cart:hover { background: var(--primary-dark); }
         
-        .reviews-section { background: var(--white); border-radius: 16px; padding: 16px; border: 1px solid var(--gray-200); margin-top: 16px; clear: both; }
-        .reviews-section h3 { font-size: 13px; margin-bottom: 10px; }
+        .reviews-section { background: var(--white); border-radius: 16px; padding: 16px; border: 1px solid var(--gray-200); margin-top: 16px; }
         .review-item { padding: 8px 0; border-bottom: 1px solid var(--gray-200); }
-        .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; flex-wrap: wrap; gap: 4px; }
-        .review-user { font-weight: 600; font-size: 11px; }
-        .review-stars { color: var(--gold); font-size: 9px; }
-        .review-date { font-size: 8px; color: var(--gray-500); }
-        .review-comment { font-size: 11px; color: var(--gray-700); margin-top: 3px; }
-        
-        .product-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 12px; }
-        .product-modal-content { background: var(--white); border-radius: 20px; max-width: 95%; width: 100%; max-height: 90vh; overflow-y: auto; cursor: default; padding: 16px; }
-        .product-modal-body { display: flex; flex-direction: column; gap: 16px; }
-        @media (min-width: 600px) { .product-modal-body { flex-direction: row; } .product-modal-body > div { flex: 1; } }
-        .product-main-image { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; background: var(--gray-100); }
-        .product-thumbnails { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-        .product-thumbnail { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
-        .product-thumbnail.active { border-color: var(--primary); }
-        .food-details { background: var(--gray-100); padding: 8px; border-radius: 10px; margin: 10px 0; font-size: 10px; }
-        .variant-option { display: inline-block; margin: 3px; padding: 3px 8px; background: var(--gray-100); border-radius: 20px; cursor: pointer; font-size: 10px; }
-        .btn-modal-add { background: var(--button-color, #1e40af); color: white; border: none; padding: 10px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; font-size: 12px; }
         
         .cart-container { background: var(--white); border-radius: 20px; border: 1px solid var(--gray-200); padding: 20px; margin-bottom: 20px; }
         .cart-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
         .cart-item-info { flex: 1; }
         .cart-total { text-align: right; padding: 16px; font-size: 18px; font-weight: 700; border-top: 1px solid var(--gray-200); margin-top: 16px; }
-        .payment-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
-        .payment-option { padding: 12px; background: var(--gray-100); border-radius: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .payment-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 20px 0; }
+        .payment-option { padding: 12px; background: var(--gray-100); border-radius: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; font-size: 12px; }
         .payment-option.selected { border-color: var(--primary); background: #eef2ff; }
+        .payment-option i { margin-right: 6px; font-size: 14px; }
         .card-details { background: var(--gray-100); border-radius: 12px; padding: 16px; margin-top: 12px; }
         
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .location-map-container { margin: 15px 0; background: var(--gray-100); border-radius: 16px; padding: 8px; }
+        .location-map { height: 320px; width: 100%; border-radius: 12px; z-index: 1; transition: all 0.3s ease; }
+        .location-actions { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; justify-content: center; }
+        .location-actions button { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .location-actions button:hover { background: var(--primary-dark); transform: scale(1.02); }
+        .location-info { background: #eef2ff; padding: 10px; border-radius: 12px; margin: 10px 0; font-size: 11px; text-align: center; color: var(--primary); }
+        
+        .phone-input-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .phone-input-group select { width: 110px; padding: 10px 8px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 12px; background: white; cursor: pointer; }
+        .phone-input-group input { flex: 1; min-width: 150px; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+        .modal-card { background: var(--white); border-radius: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 24px; position: relative; }
+        .modal-close { position: absolute; top: 15px; right: 15px; background: var(--gray-200); border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: var(--gray-700); transition: 0.2s; }
+        .modal-close:hover { background: var(--gray-300); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-700); }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .step-indicator { display: flex; gap: 8px; margin-bottom: 20px; }
+        .btn-submit { padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; background: var(--primary); color: white; width: 100%; font-size: 13px; transition: 0.2s; }
+        .btn-submit:hover { background: var(--primary-dark); }
+        .btn-cancel { padding: 12px; border-radius: 40px; font-weight: 600; border: 1px solid var(--gray-200); cursor: pointer; background: var(--gray-100); color: var(--gray-700); width: 100%; font-size: 13px; margin-top: 8px; transition: 0.2s; }
+        .btn-cancel:hover { background: var(--gray-200); }
+        .info-text { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
+        .step-indicator { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .step { flex: 1; text-align: center; padding: 8px; background: var(--gray-100); border-radius: 30px; font-size: 11px; font-weight: 500; color: var(--gray-500); }
         .step.active { background: var(--primary); color: white; }
         .step.completed { background: var(--success); color: white; }
-        .step.error { background: var(--danger); color: white; }
-        .btn-next, .btn-submit { padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; background: var(--primary); color: white; width: 100%; font-size: 13px; transition: 0.2s; }
-        .btn-next:hover, .btn-submit:hover { background: var(--primary-dark); }
-        .btn-prev { background: var(--gray-100); color: var(--gray-700); width: 48%; padding: 12px; border-radius: 40px; font-weight: 500; border: none; cursor: pointer; transition: 0.2s; }
-        .btn-prev:hover { background: var(--gray-200); }
         .button-group { display: flex; gap: 12px; margin-top: 16px; }
-        .error-message { color: var(--danger); font-size: 11px; margin-top: 4px; display: none; }
-        .error-message.show { display: block; }
-        .success-message { color: var(--success); font-size: 11px; margin-top: 4px; }
-        .info-text { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
-        .file-info { font-size: 10px; color: var(--gray-500); margin-top: 4px; }
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500; }
-        .status-pending { background: #fef3c7; color: #b45309; }
-        .status-verified { background: #d1fae5; color: #059669; }
-        .status-suspended { background: #fee2e2; color: #dc2626; }
         
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 16px; text-align: center; font-size: 10px; color: var(--gray-500); }
         
-        /* Styles pour la carte */
-        .location-map { height: 350px; border-radius: 16px; margin: 15px 0; z-index: 1; }
-        .location-actions { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
-        .location-actions button { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 8px; }
-        .location-actions button i { font-size: 14px; }
-        .location-info { background: var(--gray-100); padding: 12px; border-radius: 12px; margin: 10px 0; font-size: 12px; text-align: center; }
-        .gps-link { display: inline-flex; align-items: center; gap: 6px; background: var(--success); color: white; padding: 8px 16px; border-radius: 30px; text-decoration: none; font-size: 12px; margin: 5px; }
-        .shop-location-badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 2px 8px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+        @media (max-width: 900px) {
+            .nav-container { padding: 0 16px; align-items: flex-start; }
+            .nav-links { gap: 14px; }
+            .nav-links a, .dropdown-btn { font-size: 12px; }
+        }
         
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
+            .nav-container { flex-direction: column; align-items: stretch; gap: 0; }
+            .nav-links { justify-content: center; padding: 12px 0 6px; gap: 12px 18px; }
+            .dropdown { display: flex; justify-content: center; padding-bottom: 10px; }
+            .dropdown-content { right: 50%; transform: translateX(50%); }
             .shops-grid { grid-template-columns: 1fr; }
             .products-container { grid-template-columns: repeat(2, 1fr); }
-            .dropdown-content { left: 0; right: auto; }
+            .location-map { height: 260px; }
+        }
+        
+        @media (max-width: 480px) {
+            .location-map { height: 220px; }
+            .payment-options { grid-template-columns: repeat(2, 1fr); }
             .form-row { grid-template-columns: 1fr; gap: 8px; }
         }
     </style>
@@ -348,28 +272,26 @@
         </div>
     </div>
 </div>
-    </div>
 
 <div class="nav-row">
-        <div class="nav-container">
-            <div class="nav-links">
-                 <a onclick="resetToHome()" class="active">Accueil</a>
-            <a onclick="resetToHome()">Boutiques</a>
-            <a onclick="showCart()">Panier (<span id="cartCountHeader">0</span>)</a>
-            <a onclick="showMyOrders()">Commandes</a>
-            <a onclick="showProfile()">Mon Profil</a>
-            <a onclick="goToVendorDashboard()" id="vendorLink" style="display:none;">Ma boutique</a>
-            <a onclick="showDeliveryDashboard()" id="deliveryLink" style="display:none;">Livraisons</a>
-            <a onclick="goToDeliveryDashboard()" id="deliveryLink" style="display:none;">Mes livraisons</a>
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="#" onclick="resetToHome()" class="active">Accueil</a>
+            <a href="#" onclick="resetToHome()">Boutiques</a>
+            <a href="#" onclick="showCart()">Panier (<span id="cartCountHeader">0</span>)</a>
+            <a href="#" onclick="showMyOrders()">Commandes</a>
+            <a href="#" onclick="showProfile()">Mon Profil</a>
+            <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a href="delivery-dashboard.html" id="deliveryDashboardLink" style="display:none;">Mes livraisons</a>
             <a href="delivery-register.html">Devenir livreur</a>
-            </div>
-            <div class="dropdown">
-               <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
             <div class="dropdown-content" id="dropdownContent">
-                <a onclick="showAbout()">À propos</a>
-                <a onclick="showHelp()">Aide</a>
-                <a onclick="showInvest()">Investir</a>
-                <a onclick="showTracking()">Suivi livraison</a>
+                <a href="about.html">À propos</a>
+                <a href="help.html">Aide</a>
+                <a href="invest.html">Investir</a>
+                <a href="tracking.html">Suivi livraison</a>
             </div>
         </div>
     </div>
@@ -381,8 +303,12 @@
     <p>© 2024 Ouenze Marketplace - Brazzaville, Congo</p>
 </div>
 
-<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // ============ CONSTANTES ============
+    const DEFAULT_LAT = -4.2634;
+    const DEFAULT_LNG = 15.2429;
+    
     // ============ DONNEES ============
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
@@ -398,150 +324,52 @@
     let currentStep = 1;
     let tempUserData = {};
     let generatedCode = "";
-
-
-
-
-
-
     
+    // Liste des pays avec drapeaux
+    const countries = [
+        { code: "+212", flag: "🇲🇦", name: "Maroc", example: "06 12 34 56 78" },
+        { code: "+213", flag: "🇩🇿", name: "Algérie", example: "0551 23 45 67" },
+        { code: "+216", flag: "🇹🇳", name: "Tunisie", example: "20 123 456" },
+        { code: "+223", flag: "🇲🇱", name: "Mali", example: "70 12 34 56" },
+        { code: "+224", flag: "🇬🇳", name: "Guinée", example: "622 12 34 56" },
+        { code: "+225", flag: "🇨🇮", name: "Côte d'Ivoire", example: "07 12 34 56 78" },
+        { code: "+226", flag: "🇧🇫", name: "Burkina Faso", example: "70 12 34 56" },
+        { code: "+237", flag: "🇨🇲", name: "Cameroun", example: "6 12 34 56 78" },
+        { code: "+241", flag: "🇬🇦", name: "Gabon", example: "06 12 34 56" },
+        { code: "+242", flag: "🇨🇬", name: "Congo-Brazzaville", example: "06 123 4567" },
+        { code: "+243", flag: "🇨🇩", name: "Congo-RD", example: "081 234 5678" },
+        { code: "+245", flag: "🇬🇼", name: "Guinée-Bissau", example: "95 123 4567" },
+        { code: "+221", flag: "🇸🇳", name: "Sénégal", example: "77 123 45 67" },
+        { code: "+228", flag: "🇹🇬", name: "Togo", example: "90 12 34 56" },
+        { code: "+229", flag: "🇧🇯", name: "Bénin", example: "97 12 34 56" },
+        { code: "+227", flag: "🇳🇪", name: "Niger", example: "98 12 34 56" },
+        { code: "+236", flag: "🇨🇫", name: "Centrafrique", example: "72 12 34 56" },
+        { code: "+235", flag: "🇹🇩", name: "Tchad", example: "66 12 34 56" }
+    ];
     
-    // Liste des pays avec drapeaux, codes et exemples
-const countries = [
-    { code: "+212", flag: "🇲🇦", name: "Maroc", example: "06 12 34 56 78" },
-    { code: "+213", flag: "🇩🇿", name: "Algérie", example: "0551 23 45 67" },
-    { code: "+216", flag: "🇹🇳", name: "Tunisie", example: "20 123 456" },
-    { code: "+223", flag: "🇲🇱", name: "Mali", example: "70 12 34 56" },
-    { code: "+224", flag: "🇬🇳", name: "Guinée", example: "622 12 34 56" },
-    { code: "+225", flag: "🇨🇮", name: "Côte d'Ivoire", example: "07 12 34 56 78" },
-    { code: "+226", flag: "🇧🇫", name: "Burkina Faso", example: "70 12 34 56" },
-    { code: "+237", flag: "🇨🇲", name: "Cameroun", example: "6 12 34 56 78" },
-    { code: "+241", flag: "🇬🇦", name: "Gabon", example: "06 12 34 56" },
-    { code: "+242", flag: "🇨🇬", name: "Congo-Brazzaville", example: "06 123 4567" },
-    { code: "+243", flag: "🇨🇩", name: "Congo-RD", example: "081 234 5678" },
-    { code: "+245", flag: "🇬🇼", name: "Guinée-Bissau", example: "95 123 4567" },
-    { code: "+221", flag: "🇸🇳", name: "Sénégal", example: "77 123 45 67" },
-    { code: "+228", flag: "🇹🇬", name: "Togo", example: "90 12 34 56" },
-    { code: "+229", flag: "🇧🇯", name: "Bénin", example: "97 12 34 56" },
-    { code: "+227", flag: "🇳🇪", name: "Niger", example: "98 12 34 56" },
-    { code: "+236", flag: "🇨🇫", name: "Centrafrique", example: "72 12 34 56" },
-    { code: "+235", flag: "🇹🇩", name: "Tchad", example: "66 12 34 56" }
-];
-
-// Validation téléphone par pays
-function validatePhoneIntuitive(phone, countryCode) {
-    let clean = phone.replace(/\D/g, '');
-
-    // Maroc
-    if (countryCode === "+212") {
-        return /^(0?[5-7])[0-9]{8}$/.test(clean);
+    // Validation téléphone
+    function validatePhoneIntuitive(phone, countryCode) {
+        let clean = phone.replace(/\D/g, '');
+        if (countryCode === "+212") return /^(0?[5-7])[0-9]{8}$/.test(clean);
+        if (countryCode === "+213") return /^(0?[5-7])[0-9]{8}$/.test(clean);
+        if (countryCode === "+216") return /^[2-9][0-9]{7}$/.test(clean);
+        if (countryCode === "+223") return /^[6-9][0-9]{7}$/.test(clean);
+        if (countryCode === "+224") return /^[0-9]{9}$/.test(clean);
+        if (countryCode === "+225") return /^[0-9]{10}$/.test(clean);
+        if (countryCode === "+226") return /^[0-9]{8}$/.test(clean);
+        if (countryCode === "+237") return /^[6-9][0-9]{8}$/.test(clean);
+        if (countryCode === "+241") return /^[0-9]{8}$/.test(clean);
+        if (countryCode === "+242") return /^(0?[45-6])[0-9]{7}$/.test(clean);
+        if (countryCode === "+243") return /^[0-9]{9}$/.test(clean);
+        if (countryCode === "+245") return /^[0-9]{9}$/.test(clean);
+        if (countryCode === "+221") return /^[7-8][0-9]{8}$/.test(clean);
+        if (countryCode === "+228") return /^[0-9]{8}$/.test(clean);
+        if (countryCode === "+229") return /^[0-9]{8}$/.test(clean);
+        if (countryCode === "+227") return /^[0-9]{8}$/.test(clean);
+        if (countryCode === "+236") return /^[0-9]{8}$/.test(clean);
+        if (countryCode === "+235") return /^[0-9]{8}$/.test(clean);
+        return clean.length >= 8 && clean.length <= 12;
     }
-    // Algérie
-    if (countryCode === "+213") {
-        return /^(0?[5-7])[0-9]{8}$/.test(clean);
-    }
-    // Tunisie
-    if (countryCode === "+216") {
-        return /^[2-9][0-9]{7}$/.test(clean);
-    }
-    // Mali
-    if (countryCode === "+223") {
-        return /^[6-9][0-9]{7}$/.test(clean);
-    }
-    // Guinée
-    if (countryCode === "+224") {
-        return /^[0-9]{9}$/.test(clean);
-    }
-    // Côte d'Ivoire
-    if (countryCode === "+225") {
-        return /^[0-9]{10}$/.test(clean);
-    }
-    // Burkina Faso
-    if (countryCode === "+226") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-    // Cameroun
-    if (countryCode === "+237") {
-        return /^[6-9][0-9]{8}$/.test(clean);
-    }
-    // Gabon
-    if (countryCode === "+241") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-    // Congo Brazzaville
-    if (countryCode === "+242") {
-        return /^(0?[45-6])[0-9]{7}$/.test(clean);
-    }
-    // Congo RDC
-    if (countryCode === "+243") {
-        return /^[0-9]{9}$/.test(clean);
-    }
-    // Guinée-Bissau
-    if (countryCode === "+245") {
-        return /^[0-9]{9}$/.test(clean);
-    }
-    // Sénégal
-    if (countryCode === "+221") {
-        return /^[7-8][0-9]{8}$/.test(clean);
-    }
-    // Togo
-    if (countryCode === "+228") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-    // Bénin
-    if (countryCode === "+229") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-    // Niger
-    if (countryCode === "+227") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-    // Centrafrique
-    if (countryCode === "+236") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-    // Tchad
-    if (countryCode === "+235") {
-        return /^[0-9]{8}$/.test(clean);
-    }
-
-    // Fallback général
-    return clean.length >= 8 && clean.length <= 12;
-}
-
-// Mise à jour du placeholder dynamique
-function updatePhonePlaceholder() {
-    const select = document.getElementById('phoneCountry');
-    const input = document.getElementById('phone');
-    if (!select || !input) return;
-    
-    const selectedCountry = countries.find(c => c.code === select.value);
-    if (selectedCountry) {
-        input.placeholder = selectedCountry.example;
-    }
-}
-
-// HTML pour le select avec drapeaux
-function getPhoneSelectHtml(selectedCode = "+242") {
-    return `
-        <select id="phoneCountry" class="phone-country-select">
-            ${countries.map(c => `
-                <option value="${c.code}" ${c.code === selectedCode ? 'selected' : ''}>
-                    ${c.flag} ${c.code} - ${c.name}
-                </option>
-            `).join('')}
-        </select>
-    `;
-}
-
-// Initialisation des événements
-function initPhoneValidation() {
-    const select = document.getElementById('phoneCountry');
-    if (select) {
-        select.addEventListener('change', updatePhonePlaceholder);
-        updatePhonePlaceholder();
-    }
-}
     
     function formatPhoneForDisplay(phone) {
         let clean = phone.replace(/\s/g, '');
@@ -575,11 +403,27 @@ function initPhoneValidation() {
     
     function updateVendorLink() {
         const vendorLink = document.getElementById('vendorLink');
-        const deliveryLink = document.getElementById('deliveryLink');
-        if (currentUser && currentUser.type === 'vendeur') vendorLink.style.display = 'inline-block';
-        else vendorLink.style.display = 'none';
-        if (currentUser && currentUser.type === 'livreur') deliveryLink.style.display = 'inline-block';
-        else deliveryLink.style.display = 'none';
+        const deliveryDashboardLink = document.getElementById('deliveryDashboardLink');
+        
+        if (currentUser && currentUser.type === 'vendeur') {
+            if (vendorLink) vendorLink.style.display = 'inline-block';
+        } else {
+            if (vendorLink) vendorLink.style.display = 'none';
+        }
+        
+        if (currentUser && currentUser.type === 'livreur') {
+            if (deliveryDashboardLink) deliveryDashboardLink.style.display = 'inline-block';
+        } else {
+            if (deliveryDashboardLink) deliveryDashboardLink.style.display = 'none';
+        }
+    }
+    
+    function goToDeliveryDashboard() {
+        if (!currentUser || currentUser.type !== 'livreur') {
+            alert("Accès réservé aux livreurs");
+            return;
+        }
+        window.location.href = 'delivery-dashboard.html';
     }
     
     function generateStars(rating) {
@@ -739,6 +583,7 @@ function initPhoneValidation() {
                 <div class="location-actions">
                     <button onclick="getCurrentUserLocation()"><i class="fas fa-location-dot"></i> Ma position</button>
                     <button onclick="searchAddressLocation()"><i class="fas fa-search"></i> Chercher une adresse</button>
+                    <button onclick="resetMapView()"><i class="fas fa-home"></i> Reinitialiser</button>
                 </div>
                 <div id="locationInfo" class="location-info"></div>
                 <div class="form-row">
@@ -748,7 +593,7 @@ function initPhoneValidation() {
                 <div class="form-group"><label>Adresse detaillee</label><input type="text" id="deliveryAddress" placeholder="Rue, numero, point de repere"></div>
                 <div class="form-group"><label>Telephone</label>
                     <div class="phone-input-group">
-                        <select id="countryCode">${countries.map(c => `<option value="${c.code}" ${c.code === "+242" ? "selected" : ""}>${c.code} ${c.name}</option>`).join('')}</select>
+                        <select id="countryCode">${countries.map(c => `<option value="${c.code}" ${c.code === "+242" ? "selected" : ""}>${c.flag} ${c.code} ${c.name}</option>`).join('')}</select>
                         <input type="tel" id="deliveryPhone" placeholder="06 123 4567">
                     </div>
                 </div>
@@ -774,17 +619,27 @@ function initPhoneValidation() {
         }, 100);
     }
     
+    function resetMapView() {
+        if (currentLocationMap) {
+            currentLocationMap.flyTo([DEFAULT_LAT, DEFAULT_LNG], 14, { duration: 0.8 });
+            if (currentLocationMarker) currentLocationMarker.setLatLng([DEFAULT_LAT, DEFAULT_LNG]);
+            tempDeliveryLocation = { lat: DEFAULT_LAT, lng: DEFAULT_LNG };
+            document.getElementById('locationInfo').innerHTML = `Vue reinitialisee sur Brazzaville`;
+        }
+    }
+    
     function getCurrentUserLocation() {
         if (!navigator.geolocation) { alert("Geolocalisation non supportee"); return; }
+        document.getElementById('locationInfo').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Recherche...`;
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const lat = pos.coords.latitude, lng = pos.coords.longitude;
                 if (currentLocationMarker) currentLocationMarker.setLatLng([lat, lng]);
-                if (currentLocationMap) currentLocationMap.setView([lat, lng], 15);
+                if (currentLocationMap) currentLocationMap.flyTo([lat, lng], 15, { duration: 1 });
                 tempDeliveryLocation = { lat, lng };
                 document.getElementById('locationInfo').innerHTML = `Position actuelle: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
             },
-            () => alert("Impossible d'obtenir votre position")
+            () => { document.getElementById('locationInfo').innerHTML = `Impossible d'obtenir votre position`; }
         );
     }
     
@@ -792,16 +647,21 @@ function initPhoneValidation() {
         const address = prompt("Entrez votre adresse (ex: Moungali, Brazzaville)");
         if (!address) return;
         document.getElementById('locationInfo').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Recherche...`;
-        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`)
-            .then(r => r.json()).then(data => {
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
-                    if (currentLocationMarker) currentLocationMarker.setLatLng([lat, lng]);
-                    if (currentLocationMap) currentLocationMap.setView([lat, lng], 15);
-                    tempDeliveryLocation = { lat, lng };
-                    document.getElementById('locationInfo').innerHTML = `Adresse trouvee: ${data[0].display_name.substring(0, 80)}`;
-                } else { document.getElementById('locationInfo').innerHTML = `Adresse non trouvee`; }
-            }).catch(() => { document.getElementById('locationInfo').innerHTML = `Erreur de recherche`; });
+        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
+            headers: { 'User-Agent': 'OuenzeMarketplace/1.0' }
+        }).then(r => r.json()).then(data => {
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+                if (currentLocationMarker) currentLocationMarker.setLatLng([lat, lng]);
+                if (currentLocationMap) currentLocationMap.flyTo([lat, lng], 16, { duration: 1 });
+                tempDeliveryLocation = { lat, lng };
+                document.getElementById('locationInfo').innerHTML = `Adresse trouvee: ${data[0].display_name.substring(0, 80)}`;
+            } else { 
+                document.getElementById('locationInfo').innerHTML = `Adresse non trouvee`; 
+            }
+        }).catch(() => { 
+            document.getElementById('locationInfo').innerHTML = `Erreur de recherche`; 
+        });
     }
     
     function goToPayment(total) {
@@ -826,7 +686,7 @@ function initPhoneValidation() {
                     <div class="payment-option" data-payment="card"><i class="fas fa-credit-card"></i> Carte bancaire</div>
                     <div class="payment-option" data-payment="mtn"><i class="fas fa-mobile-alt"></i> MTN Mobile Money</div>
                     <div class="payment-option" data-payment="airtel"><i class="fas fa-mobile-alt"></i> Airtel Money</div>
-                    <div class="payment-option" data-payment="orange"><i class="fas fa-mobile-alt"></i> Orange Money</div>
+                    <div class="payment-option" data-payment="orange"><i class="fas fa-mobile-alt" style="color:#ff6600;"></i> Orange Money</div>
                     <div class="payment-option" data-payment="cash"><i class="fas fa-money-bill"></i> Espece</div>
                 </div>
                 <div id="paymentDetailsContainer" style="display:none;"></div>
@@ -883,7 +743,7 @@ function initPhoneValidation() {
     function trackOrder(orderId) {
         const order = orders.find(o => o.id === orderId);
         if (!order || !order.deliveryInfo?.location) { alert("Aucune position GPS disponible"); return; }
-        alert(`Position de livraison:\nhttps://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`);
+        window.open(`https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`, '_blank');
     }
     
     function showDeliveryDashboard() {
@@ -904,9 +764,10 @@ function initPhoneValidation() {
         if (!order) return;
         order.status = 'en_livraison';
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-        let msg = `Livraison ${orderId} acceptee\n\nItineraire:\n`;
-        if (order.deliveryInfo?.location) msg += `Client:\nhttps://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`;
-        alert(msg);
+        if (order.deliveryInfo?.location) {
+            window.open(`https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`, '_blank');
+        }
+        alert(`Livraison ${orderId} acceptee !`);
         showDeliveryDashboard();
     }
     
@@ -950,7 +811,7 @@ function initPhoneValidation() {
                 <div id="standardFields">
                     <div class="form-group"><label>Nom complet</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
                     <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="exemple@email.com"></div>
-                    <div class="form-group"><label>Telephone</label><div class="phone-input-group"><select id="phoneCountry">${countries.map(c => `<option value="${c.code}" ${c.code === "+242" ? "selected" : ""}>${c.code}</option>`).join('')}</select><input type="tel" id="phone" placeholder="06 12 34 56"></div></div>
+                    <div class="form-group"><label>Telephone</label><div class="phone-input-group"><select id="phoneCountry">${countries.map(c => `<option value="${c.code}" ${c.code === "+242" ? "selected" : ""}>${c.flag} ${c.code}</option>`).join('')}</select><input type="tel" id="phone" placeholder="06 12 34 56"></div></div>
                     <div class="form-group"><label>Mot de passe</label><input type="password" id="password" placeholder="......"></div>
                     <div class="form-group"><label>Confirmer</label><input type="password" id="confirmPassword" placeholder="......"></div>
                 </div>
@@ -961,6 +822,8 @@ function initPhoneValidation() {
                 <div id="deliveryFields" style="display:none;">
                     <div class="form-group"><label>Type de vehicule</label><select id="vehicleType"><option value="moto">Moto</option><option value="voiture">Voiture</option><option value="velo">Velo</option></select></div>
                     <div class="form-group"><label>Photo piece d'identite</label><input type="file" id="idPhoto" accept="image/*"></div>
+                    <div class="form-group"><label>Photo moyen de transport</label><input type="file" id="transportPhoto" accept="image/*"></div>
+                    <div class="info-text">Ces documents seront verifies par l'administrateur</div>
                 </div>
                 <button class="btn-submit" onclick="validateStep1()">Continuer</button>
             `;
@@ -1018,11 +881,35 @@ function initPhoneValidation() {
             const vehicle = document.getElementById('vehicleType').value;
             if (!vehicle) { alert("Type de vehicule requis"); return; }
             tempUserData.vehicle = vehicle;
+            
             const idPhoto = document.getElementById('idPhoto').files[0];
+            const transportPhoto = document.getElementById('transportPhoto').files[0];
             if (!idPhoto) { alert("Photo de piece d'identite requise"); return; }
-            const reader = new FileReader();
-            reader.onload = (e) => { tempUserData.idPhoto = e.target.result; };
-            reader.readAsDataURL(idPhoto);
+            if (!transportPhoto) { alert("Photo du moyen de transport requise"); return; }
+            
+            const reader1 = new FileReader();
+            const reader2 = new FileReader();
+            let loaded = 0;
+            function checkComplete() {
+                loaded++;
+                if (loaded === 2) {
+                    proceedAfterPhotos();
+                }
+            }
+            reader1.onload = (e) => { tempUserData.idPhoto = e.target.result; checkComplete(); };
+            reader2.onload = (e) => { tempUserData.transportPhoto = e.target.result; checkComplete(); };
+            reader1.readAsDataURL(idPhoto);
+            reader2.readAsDataURL(transportPhoto);
+            
+            function proceedAfterPhotos() {
+                tempUserData = { ...tempUserData, type, fullName, email, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password };
+                generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+                sendEmail(email, "Code de verification Ouenze", `Votre code est: ${generatedCode}`);
+                alert(`Code envoye a ${email}`);
+                currentStep = 2;
+                renderRegisterStep();
+            }
+            return;
         }
         
         tempUserData = { ...tempUserData, type, fullName, email, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password };
@@ -1107,6 +994,7 @@ function initPhoneValidation() {
     function showInvest() { alert("Investir dans Ouenze"); }
     function showTracking() { alert("Suivi de livraison"); }
     
+    // Exports globaux
     window.showHomePage = showHomePage;
     window.viewShopDetail = viewShopDetail;
     window.addToCart = addToCart;
@@ -1120,6 +1008,7 @@ function initPhoneValidation() {
     window.trackOrder = trackOrder;
     window.getCurrentUserLocation = getCurrentUserLocation;
     window.searchAddressLocation = searchAddressLocation;
+    window.resetMapView = resetMapView;
     window.goToPayment = goToPayment;
     window.validateOrder = validateOrder;
     window.updateQuantity = updateQuantity;
@@ -1127,6 +1016,7 @@ function initPhoneValidation() {
     window.doLogin = doLogin;
     window.logout = logout;
     window.goToVendorDashboard = goToVendorDashboard;
+    window.goToDeliveryDashboard = goToDeliveryDashboard;
     window.showAbout = showAbout;
     window.showHelp = showHelp;
     window.showInvest = showInvest;
