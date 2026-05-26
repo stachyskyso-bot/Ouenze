@@ -201,7 +201,7 @@
         .location-info { background: #eef2ff; padding: 10px; border-radius: 12px; margin: 10px 0; font-size: 11px; text-align: center; color: var(--primary); }
         
         .phone-input-group { display: flex; gap: 8px; flex-wrap: wrap; }
-        .phone-input-group select { width: 110px; padding: 10px 8px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 12px; background: white; cursor: pointer; }
+        .phone-input-group select { width: 120px; padding: 10px 8px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 12px; background: white; cursor: pointer; }
         .phone-input-group input { flex: 1; min-width: 150px; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; font-size: 13px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
@@ -227,6 +227,8 @@
         
         .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 16px; text-align: center; font-size: 10px; color: var(--gray-500); }
         
+        .delivery-warning { background: #fef3c7; color: #b45309; padding: 10px 16px; border-radius: 12px; margin: 10px 0; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+        
         @media (max-width: 900px) {
             .nav-container { padding: 0 16px; align-items: flex-start; }
             .nav-links { gap: 14px; }
@@ -241,6 +243,8 @@
             .shops-grid { grid-template-columns: 1fr; }
             .products-container { grid-template-columns: repeat(2, 1fr); }
             .location-map { height: 260px; }
+            .phone-input-group { flex-direction: column; }
+            .phone-input-group select { width: 100%; }
         }
         
         @media (max-width: 480px) {
@@ -309,6 +313,78 @@
     const DEFAULT_LAT = -4.2634;
     const DEFAULT_LNG = 15.2429;
     
+    // ============ LISTE DES PAYS AVEC VILLES ============
+    const countries = [
+        { code: "CG", flag: "🇨🇬", name: "Congo-Brazzaville", phoneCode: "+242", cities: ["Brazzaville", "Pointe-Noire", "Dolisie", "Nkayi", "Madingou", "Ouesso", "Impfondo", "Sibiti", "Oyo", "Mossendjo"] },
+        { code: "CD", flag: "🇨🇩", name: "Congo-RD", phoneCode: "+243", cities: ["Kinshasa", "Lubumbashi", "Mbuji-Mayi", "Kisangani", "Kananga", "Goma", "Bukavu", "Kolwezi", "Likasi", "Tshikapa"] },
+        { code: "CI", flag: "🇨🇮", name: "Côte d'Ivoire", phoneCode: "+225", cities: ["Abidjan", "Bouaké", "Daloa", "Yamoussoukro", "San-Pédro", "Korhogo", "Man", "Gagnoa", "Anyama", "Abobo"] },
+        { code: "CM", flag: "🇨🇲", name: "Cameroun", phoneCode: "+237", cities: ["Douala", "Yaoundé", "Garoua", "Bamenda", "Maroua", "Nkongsamba", "Bafoussam", "Bertoua", "Edea", "Loum"] },
+        { code: "BF", flag: "🇧🇫", name: "Burkina Faso", phoneCode: "+226", cities: ["Ouagadougou", "Bobo-Dioulasso", "Koudougou", "Banfora", "Ouahigouya", "Dédougou", "Kaya", "Fada N'Gourma", "Tenkodogo"] },
+        { code: "GN", flag: "🇬🇳", name: "Guinée", phoneCode: "+224", cities: ["Conakry", "Nzérékoré", "Kankan", "Kindia", "Labé", "Guéckédou", "Mamou", "Boké", "Faranah", "Kissidougou"] },
+        { code: "ML", flag: "🇲🇱", name: "Mali", phoneCode: "+223", cities: ["Bamako", "Sikasso", "Mopti", "Koutiala", "Ségou", "Kayes", "Markala", "Kolondiéba", "San", "Bougouni"] },
+        { code: "SN", flag: "🇸🇳", name: "Sénégal", phoneCode: "+221", cities: ["Dakar", "Touba", "Thiès", "Mbour", "Kaolack", "Ziguinchor", "Saint-Louis", "Diourbel", "Tambacounda", "Rufisque"] },
+        { code: "TG", flag: "🇹🇬", name: "Togo", phoneCode: "+228", cities: ["Lomé", "Sokodé", "Kara", "Atakpamé", "Palimé", "Bassar", "Tsévié", "Aného", "Mango", "Dapaong"] },
+        { code: "BJ", flag: "🇧🇯", name: "Bénin", phoneCode: "+229", cities: ["Cotonou", "Porto-Novo", "Parakou", "Djougou", "Bohicon", "Abomey", "Natitingou", "Lokossa", "Ouidah", "Kandi"] },
+        { code: "NE", flag: "🇳🇪", name: "Niger", phoneCode: "+227", cities: ["Niamey", "Zinder", "Maradi", "Agadez", "Tahoua", "Dosso", "Birni N'Konni", "Diffa", "Gaya", "Magaria"] },
+        { code: "GA", flag: "🇬🇦", name: "Gabon", phoneCode: "+241", cities: ["Libreville", "Port-Gentil", "Franceville", "Oyem", "Moanda", "Mouila", "Lambaréné", "Tchibanga", "Koulamoutou", "Makokou"] },
+        { code: "CF", flag: "🇨🇫", name: "Centrafrique", phoneCode: "+236", cities: ["Bangui", "Bimbo", "Berbérati", "Carnot", "Bambari", "Bouar", "Bossangoa", "Bria", "Nola", "Kaga-Bandoro"] },
+        { code: "TD", flag: "🇹🇩", name: "Tchad", phoneCode: "+235", cities: ["N'Djaména", "Moundou", "Sarh", "Abéché", "Kelo", "Pala", "Am Timan", "Bongor", "Mongo", "Doba"] },
+        { code: "MA", flag: "🇲🇦", name: "Maroc", phoneCode: "+212", cities: ["Casablanca", "Rabat", "Fès", "Tanger", "Marrakech", "Agadir", "Meknès", "Oujda", "Kenitra", "Tétouan"] },
+        { code: "DZ", flag: "🇩🇿", name: "Algérie", phoneCode: "+213", cities: ["Alger", "Oran", "Constantine", "Annaba", "Blida", "Sétif", "Djelfa", "Sidi Bel Abbès", "Biskra", "Tébessa"] },
+        { code: "TN", flag: "🇹🇳", name: "Tunisie", phoneCode: "+216", cities: ["Tunis", "Sfax", "Sousse", "Ettadhamen", "Kairouan", "Bizerte", "Gabès", "Ariana", "Gafsa", "La Goulette"] },
+        { code: "GW", flag: "🇬🇼", name: "Guinée-Bissau", phoneCode: "+245", cities: ["Bissau", "Bafatá", "Gabú", "Bissorã", "Bolama", "Cacheu", "Canchungo", "Farim", "Quinhámel", "Mansôa"] }
+    ];
+    
+    // ============ FONCTIONS DE VALIDATION GÉOGRAPHIQUE ============
+    
+    // Vérifier si une boutique livre dans un pays/ville
+    function canDeliverToLocation(shop, countryCode, city) {
+        if (!shop.location) return false;
+        
+        // Si la boutique a des zones de livraison définies
+        if (shop.location.deliveryZones && shop.location.deliveryZones.length > 0) {
+            return shop.location.deliveryZones.some(zone => 
+                zone.country === countryCode && 
+                (zone.city === city || zone.city === 'all')
+            );
+        }
+        
+        // Par défaut, livraison uniquement dans le pays de la boutique
+        return shop.location.country === countryCode;
+    }
+    
+    // Vérifier si plusieurs boutiques peuvent être livrées ensemble
+    function canCombineShopsDelivery(shopsList, countryCode, city) {
+        const incompatibleShops = shopsList.filter(shop => 
+            !canDeliverToLocation(shop, countryCode, city)
+        );
+        
+        if (incompatibleShops.length > 0) {
+            return {
+                possible: false,
+                incompatibleShops: incompatibleShops,
+                message: `❌ Les boutiques suivantes ne livrent pas dans votre région : ${incompatibleShops.map(s => s.name).join(', ')}`
+            };
+        }
+        
+        return { possible: true };
+    }
+    
+    // Mettre à jour les villes selon le pays sélectionné
+    function updateCities() {
+        const countrySelect = document.getElementById('deliveryCountry');
+        const citySelect = document.getElementById('deliveryCity');
+        
+        if (!countrySelect || !citySelect) return;
+        
+        const selectedCountry = countries.find(c => c.code === countrySelect.value);
+        if (selectedCountry) {
+            citySelect.innerHTML = selectedCountry.cities.map(city => 
+                `<option value="${city}">${city}</option>`
+            ).join('');
+        }
+    }
+    
     // ============ DONNEES ============
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
@@ -325,139 +401,34 @@
     let tempUserData = {};
     let generatedCode = "";
     
-    // Liste des pays avec drapeaux
-    const countries = [
-        { code: "+212", flag: "🇲🇦", name: "Maroc", example: "06 12 34 56 78" },
-        { code: "+213", flag: "🇩🇿", name: "Algérie", example: "0551 23 45 67" },
-        { code: "+216", flag: "🇹🇳", name: "Tunisie", example: "20 123 456" },
-        { code: "+223", flag: "🇲🇱", name: "Mali", example: "70 12 34 56" },
-        { code: "+224", flag: "🇬🇳", name: "Guinée", example: "622 12 34 56" },
-        { code: "+225", flag: "🇨🇮", name: "Côte d'Ivoire", example: "07 12 34 56 78" },
-        { code: "+226", flag: "🇧🇫", name: "Burkina Faso", example: "70 12 34 56" },
-        { code: "+237", flag: "🇨🇲", name: "Cameroun", example: "6 12 34 56 78" },
-        { code: "+241", flag: "🇬🇦", name: "Gabon", example: "06 12 34 56" },
-        { code: "+242", flag: "🇨🇬", name: "Congo-Brazzaville", example: "06 123 4567" },
-        { code: "+243", flag: "🇨🇩", name: "Congo-RD", example: "081 234 5678" },
-        { code: "+245", flag: "🇬🇼", name: "Guinée-Bissau", example: "95 123 4567" },
-        { code: "+221", flag: "🇸🇳", name: "Sénégal", example: "77 123 45 67" },
-        { code: "+228", flag: "🇹🇬", name: "Togo", example: "90 12 34 56" },
-        { code: "+229", flag: "🇧🇯", name: "Bénin", example: "97 12 34 56" },
-        { code: "+227", flag: "🇳🇪", name: "Niger", example: "98 12 34 56" },
-        { code: "+236", flag: "🇨🇫", name: "Centrafrique", example: "72 12 34 56" },
-        { code: "+235", flag: "🇹🇩", name: "Tchad", example: "66 12 34 56" }
-    ];
-
-
-
-
-
-
-
-
-
-    const countries = [
-    { code: "CG", name: "Congo-Brazzaville", flag: "🇨🇬", cities: ["Brazzaville", "Pointe-Noire", "Dolisie", "Nkayi", "Madingou", "Ouesso", "Impfondo", "Sibiti"] },
-    { code: "CD", name: "Congo-RD", flag: "🇨🇩", cities: ["Kinshasa", "Lubumbashi", "Mbuji-Mayi", "Kisangani", "Kananga", "Goma", "Bukavu"] },
-    { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮", cities: ["Abidjan", "Bouaké", "Daloa", "Yamoussoukro", "San-Pédro", "Korhogo"] },
-    { code: "CM", name: "Cameroun", flag: "🇨🇲", cities: ["Douala", "Yaoundé", "Garoua", "Bamenda", "Maroua", "Nkongsamba"] },
-    { code: "BF", name: "Burkina Faso", flag: "🇧🇫", cities: ["Ouagadougou", "Bobo-Dioulasso", "Koudougou", "Banfora", "Ouahigouya"] },
-    { code: "GN", name: "Guinée", flag: "🇬🇳", cities: ["Conakry", "Nzérékoré", "Kankan", "Kindia", "Labé", "Guéckédou"] },
-    { code: "ML", name: "Mali", flag: "🇲🇱", cities: ["Bamako", "Sikasso", "Mopti", "Koutiala", "Ségou", "Kayes"] },
-    { code: "SN", name: "Sénégal", flag: "🇸🇳", cities: ["Dakar", "Touba", "Thiès", "Mbour", "Kaolack", "Ziguinchor"] },
-    { code: "TG", name: "Togo", flag: "🇹🇬", cities: ["Lomé", "Sokodé", "Kara", "Atakpamé", "Palimé", "Bassar"] },
-    { code: "BJ", name: "Bénin", flag: "🇧🇯", cities: ["Cotonou", "Porto-Novo", "Parakou", "Djougou", "Bohicon", "Abomey"] },
-    { code: "NE", name: "Niger", flag: "🇳🇪", cities: ["Niamey", "Zinder", "Maradi", "Agadez", "Tahoua", "Dosso"] },
-    { code: "GA", name: "Gabon", flag: "🇬🇦", cities: ["Libreville", "Port-Gentil", "Franceville", "Oyem", "Moanda", "Mouila"] },
-    { code: "CF", name: "Centrafrique", flag: "🇨🇫", cities: ["Bangui", "Bimbo", "Berbérati", "Carnot", "Bambari", "Bouar"] },
-    { code: "TD", name: "Tchad", flag: "🇹🇩", cities: ["N'Djaména", "Moundou", "Sarh", "Abéché", "Kelo", "Pala"] },
-    { code: "MA", name: "Maroc", flag: "🇲🇦", cities: ["Casablanca", "Rabat", "Fès", "Tanger", "Marrakech", "Agadir"] },
-    { code: "DZ", name: "Algérie", flag: "🇩🇿", cities: ["Alger", "Oran", "Constantine", "Annaba", "Blida", "Sétif"] },
-    { code: "TN", name: "Tunisie", flag: "🇹🇳", cities: ["Tunis", "Sfax", "Sousse", "Ettadhamen", "Kairouan", "Bizerte"] }
-];
-
-
-
-
-
-
-
-
-    
- 
-        const pages = {
-    home: showHomePage,
-    cart: showCart,
-    orders: showMyOrders,
-    profile: showProfile,
-    shop: () => viewShopDetail(currentShopId)
-};
-
-function navigateTo(page, params = {}) {
-    if (pages[page]) {
-        pages[page](params);
-        updateActiveNav(page);
-    }
-}
-
-
-
-
-    // Vérifier si une commande peut être livrée
-function canDeliverToLocation(shop, customerCountry, customerCity) {
-    // Si la boutique a des zones de livraison définies
-    if (shop.location?.deliveryZones && shop.location.deliveryZones.length > 0) {
-        return shop.location.deliveryZones.some(zone => 
-            zone.country === customerCountry && 
-            (zone.city === customerCity || zone.city === 'all')
-        );
-    }
-    
-    // Par défaut, livraison uniquement dans le pays de la boutique
-    return shop.location?.country === customerCountry;
-}
-
-// Vérifier si plusieurs boutiques peuvent être livrées ensemble
-function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
-    const incompatibleShops = shopsList.filter(shop => 
-        !canDeliverToLocation(shop, customerCountry, customerCity)
-    );
-    
-    if (incompatibleShops.length > 0) {
-        return {
-            possible: false,
-            incompatibleShops: incompatibleShops,
-            message: `Les boutiques suivantes ne livrent pas dans votre région: ${incompatibleShops.map(s => s.name).join(', ')}`
-        };
-    }
-    
-    return { possible: true };
-}
-
-
-
-    
-    
-    // Validation téléphone
+    // Validation téléphone par pays
     function validatePhoneIntuitive(phone, countryCode) {
         let clean = phone.replace(/\D/g, '');
-        if (countryCode === "+212") return /^(0?[5-7])[0-9]{8}$/.test(clean);
-        if (countryCode === "+213") return /^(0?[5-7])[0-9]{8}$/.test(clean);
-        if (countryCode === "+216") return /^[2-9][0-9]{7}$/.test(clean);
-        if (countryCode === "+223") return /^[6-9][0-9]{7}$/.test(clean);
-        if (countryCode === "+224") return /^[0-9]{9}$/.test(clean);
-        if (countryCode === "+225") return /^[0-9]{10}$/.test(clean);
-        if (countryCode === "+226") return /^[0-9]{8}$/.test(clean);
-        if (countryCode === "+237") return /^[6-9][0-9]{8}$/.test(clean);
-        if (countryCode === "+241") return /^[0-9]{8}$/.test(clean);
-        if (countryCode === "+242") return /^(0?[45-6])[0-9]{7}$/.test(clean);
-        if (countryCode === "+243") return /^[0-9]{9}$/.test(clean);
-        if (countryCode === "+245") return /^[0-9]{9}$/.test(clean);
-        if (countryCode === "+221") return /^[7-8][0-9]{8}$/.test(clean);
-        if (countryCode === "+228") return /^[0-9]{8}$/.test(clean);
-        if (countryCode === "+229") return /^[0-9]{8}$/.test(clean);
-        if (countryCode === "+227") return /^[0-9]{8}$/.test(clean);
-        if (countryCode === "+236") return /^[0-9]{8}$/.test(clean);
-        if (countryCode === "+235") return /^[0-9]{8}$/.test(clean);
+        
+        const phoneRules = {
+            "+212": /^(0?[5-7])[0-9]{8}$/,
+            "+213": /^(0?[5-7])[0-9]{8}$/,
+            "+216": /^[2-9][0-9]{7}$/,
+            "+223": /^[6-9][0-9]{7}$/,
+            "+224": /^[0-9]{9}$/,
+            "+225": /^[0-9]{10}$/,
+            "+226": /^[0-9]{8}$/,
+            "+237": /^[6-9][0-9]{8}$/,
+            "+241": /^[0-9]{8}$/,
+            "+242": /^(0?[45-6])[0-9]{7}$/,
+            "+243": /^[0-9]{9}$/,
+            "+245": /^[0-9]{9}$/,
+            "+221": /^[7-8][0-9]{8}$/,
+            "+228": /^[0-9]{8}$/,
+            "+229": /^[0-9]{8}$/,
+            "+227": /^[0-9]{8}$/,
+            "+236": /^[0-9]{8}$/,
+            "+235": /^[0-9]{8}$/
+        };
+        
+        if (phoneRules[countryCode]) {
+            return phoneRules[countryCode].test(clean);
+        }
         return clean.length >= 8 && clean.length <= 12;
     }
     
@@ -467,12 +438,36 @@ function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
         return clean;
     }
     
+    function getPhoneCodeFromCountryCode(countryCode) {
+        const country = countries.find(c => c.code === countryCode);
+        return country ? country.phoneCode : "+242";
+    }
+    
     function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
     function sendEmail(to, subject, body) { console.log(`Email to ${to}: ${subject}`); return true; }
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    }
     
     if (shops.length === 0) {
-        shops = [{ id: 1, name: "Elegance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250, products: [{ id: 1, name: "Boubou Ceremonie", price: "65000", photos: [], stock: 25, description: "Boubou traditionnel" }], categories: ["Boubou"], reviews: [{ user: "Marie K.", rating: 5, comment: "Superbe qualite !", date: "2024-03-15" }], verified: true, location: { lat: -4.2634, lng: 15.2429 } }];
+        shops = [{ 
+            id: 1, 
+            name: "Elegance Africaine", 
+            city: "Brazzaville", 
+            quartier: "Moungali", 
+            rating: 5.0, 
+            totalRatings: 342, 
+            totalSales: 1250, 
+            products: [{ id: 1, name: "Boubou Ceremonie", price: "65000", photos: [], stock: 25, description: "Boubou traditionnel" }], 
+            categories: ["Boubou"], 
+            reviews: [{ user: "Marie K.", rating: 5, comment: "Superbe qualite !", date: "2024-03-15" }], 
+            verified: true, 
+            location: { lat: -4.2634, lng: 15.2429, country: "CG", address: "Moungali" },
+            ownerEmail: "vendeur@example.com",
+            ownerName: "Vendeur Example"
+        }];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
     }
     
@@ -548,10 +543,10 @@ function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
         grid.innerHTML = shopsList.map(shop => `
             <div class="shop-card" onclick="viewShopDetail(${shop.id})">
                 <div class="shop-logo-area">
-                    <div class="shop-logo-img"><i class="fas fa-store" style="font-size:28px;"></i></div>
+                    <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
                     <div class="shop-name">${escapeHtml(shop.name)}</div>
                     <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>(${shop.totalRatings || 0})</span></div>
-                    <div style="font-size:10px;color:var(--gray-500);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}</div>
+                    <div style="font-size:10px;color:var(--gray-500);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.location?.country ? `, ${shop.location.country}` : ''}</div>
                 </div>
                 <div class="shop-details"><div class="shop-metrics"><div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div><div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div></div></div>
             </div>
@@ -563,15 +558,19 @@ function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
         if (!shop) return;
         currentShop = shop;
         currentCategory = 'all';
+        
+        const countryName = countries.find(c => c.code === shop.location?.country)?.name || shop.location?.country || 'Congo-Brazzaville';
+        
         document.getElementById('appContainer').innerHTML = `
             <button class="back-btn" onclick="resetToHome()"><i class="fas fa-arrow-left"></i> Retour</button>
             <div class="shop-header-custom">
                 <div class="shop-header-content">
-                    <div class="shop-logo-large"><i class="fas fa-store" style="font-size:28px;"></i></div>
+                    <div class="shop-logo-large">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
                     <div class="shop-info">
                         <h1>${escapeHtml(shop.name)}</h1>
                         <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>${shop.rating || 0} (${shop.totalRatings || 0})</span></div>
-                        <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city)}</div>
+                        <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}, ${countryName}</div>
+                        ${shop.location?.deliveryZones ? `<div class="delivery-info" style="font-size:11px;margin-top:4px;"><i class="fas fa-truck"></i> Zones de livraison: ${shop.location.deliveryZones.map(z => z.city === 'all' ? z.country : `${z.country} - ${z.city}`).join(', ') || 'Pays uniquement'}</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -666,9 +665,35 @@ function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
     
     function showLocationSelection(total) {
         tempDeliveryLocation = null;
+        
+        // Récupérer les boutiques uniques du panier pour vérification
+        const uniqueShopIds = [...new Set(cart.map(item => item.shopId))];
+        const shopsInCart = uniqueShopIds.map(id => shops.find(s => s.id === id)).filter(s => s);
+        
         document.getElementById('appContainer').innerHTML = `
             <div class="cart-container">
                 <h2>Ou souhaitez-vous etre livre ?</h2>
+                <div class="form-row">
+                    <div class="form-group"><label>Pays *</label>
+                        <select id="deliveryCountry" onchange="updateCities()">
+                            ${countries.map(c => `<option value="${c.code}" ${c.code === "CG" ? "selected" : ""}>${c.flag} ${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Ville *</label>
+                        <select id="deliveryCity"></select>
+                    </div>
+                </div>
+                <div class="form-group"><label>Quartier</label><input type="text" id="deliveryQuartier" placeholder="Moungali"></div>
+                <div class="form-group"><label>Adresse detaillee</label><input type="text" id="deliveryAddress" placeholder="Rue, numero, point de repere"></div>
+                <div class="form-group"><label>Telephone</label>
+                    <div class="phone-input-group">
+                        <select id="countryCodePhone">
+                            ${countries.map(c => `<option value="${c.phoneCode}" ${c.phoneCode === "+242" ? "selected" : ""}>${c.flag} ${c.phoneCode}</option>`).join('')}
+                        </select>
+                        <input type="tel" id="deliveryPhone" placeholder="06 123 4567">
+                    </div>
+                </div>
+                <div id="deliveryWarning" class="delivery-warning" style="display:none;"></div>
                 <div class="location-map-container"><div id="deliveryLocationMap" class="location-map"></div></div>
                 <div class="location-actions">
                     <button onclick="getCurrentUserLocation()"><i class="fas fa-location-dot"></i> Ma position</button>
@@ -676,21 +701,37 @@ function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
                     <button onclick="resetMapView()"><i class="fas fa-home"></i> Reinitialiser</button>
                 </div>
                 <div id="locationInfo" class="location-info"></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Ville</label><input type="text" id="deliveryCity" placeholder="Brazzaville"></div>
-                    <div class="form-group"><label>Quartier</label><input type="text" id="deliveryQuartier" placeholder="Moungali"></div>
-                </div>
-                <div class="form-group"><label>Adresse detaillee</label><input type="text" id="deliveryAddress" placeholder="Rue, numero, point de repere"></div>
-                <div class="form-group"><label>Telephone</label>
-                    <div class="phone-input-group">
-                        <select id="countryCode">${countries.map(c => `<option value="${c.code}" ${c.code === "+242" ? "selected" : ""}>${c.flag} ${c.code} ${c.name}</option>`).join('')}</select>
-                        <input type="tel" id="deliveryPhone" placeholder="06 123 4567">
-                    </div>
-                </div>
                 <button class="btn-submit" onclick="goToPayment(${total})">Continuer vers paiement</button>
                 <button class="btn-cancel" onclick="showCart()">Retour</button>
             </div>
         `;
+        
+        // Initialiser les villes
+        updateCities();
+        
+        // Vérifier la compatibilité de livraison au changement de pays/ville
+        const countrySelect = document.getElementById('deliveryCountry');
+        const citySelect = document.getElementById('deliveryCity');
+        const warningDiv = document.getElementById('deliveryWarning');
+        
+        function checkDeliveryCompatibility() {
+            const country = countrySelect.value;
+            const city = citySelect.value;
+            const deliveryCheck = canCombineShopsDelivery(shopsInCart, country, city);
+            
+            if (warningDiv) {
+                if (!deliveryCheck.possible) {
+                    warningDiv.style.display = 'flex';
+                    warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${deliveryCheck.message}`;
+                } else {
+                    warningDiv.style.display = 'none';
+                }
+            }
+        }
+        
+        if (countrySelect) countrySelect.addEventListener('change', checkDeliveryCompatibility);
+        if (citySelect) citySelect.addEventListener('change', checkDeliveryCompatibility);
+        
         setTimeout(() => {
             if (currentLocationMap) currentLocationMap.remove();
             currentLocationMap = L.map('deliveryLocationMap').setView([DEFAULT_LAT, DEFAULT_LNG], 14);
@@ -707,52 +748,7 @@ function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
                 document.getElementById('locationInfo').innerHTML = `Position selectionnee: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
             });
         }, 100);
-
-
-
-
- 
-        document.getElementById('appContainer').innerHTML = `
-        <div class="cart-container">
-            <h2>Ou souhaitez-vous être livré ?</h2>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Pays *</label>
-                    <select id="deliveryCountry" onchange="updateCities()">
-                        ${countries.map(c => `<option value="${c.code}">${c.flag} ${c.name}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Ville *</label>
-                    <select id="deliveryCity"></select>
-                </div>
-            </div>
-            <div class="form-group"><label>Quartier</label><input type="text" id="deliveryQuartier"></div>
-            <div class="form-group"><label>Adresse détaillée</label><input type="text" id="deliveryAddress"></div>
-            // ... suite
-        </div>
-    `;
-    
-    // Initialiser les villes
-    updateCities();
-}
-
-function updateCities() {
-    const countryCode = document.getElementById('deliveryCountry')?.value;
-    const country = countries.find(c => c.code === countryCode);
-    const citySelect = document.getElementById('deliveryCity');
-    
-    if (citySelect && country) {
-        citySelect.innerHTML = country.cities.map(city => 
-            `<option value="${city}">${city}</option>`
-        ).join('');
     }
-}
-
-
-
-
-        
     
     function resetMapView() {
         if (currentLocationMap) {
@@ -801,14 +797,34 @@ function updateCities() {
     
     function goToPayment(total) {
         if (!tempDeliveryLocation) { alert("Veuillez selectionner votre position sur la carte"); return; }
-        const city = document.getElementById('deliveryCity')?.value.trim() || 'Brazzaville';
+        
+        const country = document.getElementById('deliveryCountry')?.value;
+        const city = document.getElementById('deliveryCity')?.value;
         const quartier = document.getElementById('deliveryQuartier')?.value.trim() || '';
         const address = document.getElementById('deliveryAddress')?.value.trim() || '';
-        const countryCode = document.getElementById('countryCode')?.value;
+        const phoneCode = document.getElementById('countryCodePhone')?.value;
         const phone = document.getElementById('deliveryPhone')?.value.trim();
+        
+        if (!country) { alert("Veuillez selectionner votre pays"); return; }
+        if (!city) { alert("Veuillez selectionner votre ville"); return; }
         if (!phone) { alert("Veuillez entrer votre numero de telephone"); return; }
-        if (!validatePhoneIntuitive(phone, countryCode)) { alert(`Numero invalide pour ${countries.find(c=>c.code===countryCode)?.name}`); return; }
-        window.tempDeliveryInfo = { city, quartier, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, location: tempDeliveryLocation };
+        if (!validatePhoneIntuitive(phone, phoneCode)) { alert(`Numero invalide`); return; }
+        
+        // Vérifier la compatibilité de livraison
+        const uniqueShopIds = [...new Set(cart.map(item => item.shopId))];
+        const shopsInCart = uniqueShopIds.map(id => shops.find(s => s.id === id)).filter(s => s);
+        const deliveryCheck = canCombineShopsDelivery(shopsInCart, country, city);
+        
+        if (!deliveryCheck.possible) {
+            alert(deliveryCheck.message);
+            return;
+        }
+        
+        window.tempDeliveryInfo = { 
+            country, city, quartier, address, 
+            phone: `${phoneCode} ${formatPhoneForDisplay(phone)}`, 
+            location: tempDeliveryLocation 
+        };
         showPaymentSelection(total);
     }
     
@@ -846,41 +862,41 @@ function updateCities() {
     
     function validateOrder(total) {
         if (!selectedPayment) { alert("Choisissez un mode de paiement"); return; }
-        const orderId = 'CMD-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
-
-
-
-         const customerCountry = document.getElementById('deliveryCountry')?.value;
-    const customerCity = document.getElementById('deliveryCity')?.value;
-    
-    // Récupérer les boutiques uniques du panier
-    const uniqueShops = [...new Map(cart.map(item => [item.shopId, item])).values()];
-    const shopsInCart = uniqueShops.map(item => shops.find(s => s.id === item.shopId));
-    
-    // Vérifier la compatibilité de livraison
-    const deliveryCheck = canCombineShopsDelivery(shopsInCart, customerCountry, customerCity);
-    
-    if (!deliveryCheck.possible) {
-        alert(deliveryCheck.message);
-        return;
-    }
-
-
         
-       
+        const orderId = crypto.randomUUID();
         const subtotal = cart.reduce((s,i)=>s+i.price*i.quantity,0);
+        
+        const uniqueShopIds = [...new Set(cart.map(item => item.shopId))];
+        
         const newOrder = {
-            id: orderId, userId: currentUser?.email, userName: currentUser?.name,
-            items: cart.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, shopId: i.shopId, shopName: i.shopName, vendorEmail: shops.find(s => s.id === i.shopId)?.ownerEmail })),
-            
-            subtotal, deliveryFees: subtotal * 0.1, total: subtotal * 1.1,
+            id: orderId, 
+            userId: currentUser?.email, 
+            userName: currentUser?.name,
+            items: cart.map(i => ({ 
+                productId: i.productId, 
+                productName: i.productName, 
+                price: i.price, 
+                quantity: i.quantity, 
+                shopId: i.shopId, 
+                shopName: i.shopName,
+                vendorEmail: shops.find(s => s.id === i.shopId)?.ownerEmail
+            })),
+            subtotal, 
+            deliveryFees: subtotal * 0.1, 
+            total: subtotal * 1.1,
             deliveryInfo: { ...window.tempDeliveryInfo },
-            paymentMethod: selectedPayment, date: new Date().toISOString(), status: 'confirmee'
+            paymentMethod: selectedPayment, 
+            date: new Date().toISOString(), 
+            status: 'confirmee',
+            deliveryMan: null,
+            deliveryManName: null
         };
+        
         orders.push(newOrder);
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         cart = [];
         saveData();
+        
         alert(`Commande ${orderId} confirmee ! Total: ${newOrder.total.toLocaleString()} FCFA`);
         resetToHome();
     }
@@ -912,23 +928,20 @@ function updateCities() {
         }
         document.getElementById('appContainer').innerHTML = `
             <div class="cart-container"><h2>Commandes a livrer</h2>
-            ${pendingOrders.map(order => `<div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;"><strong>${order.id}</strong><br>Client: ${order.userName}<br>Livraison: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.city}<br>Total: ${order.total.toLocaleString()} FCFA<br><button class="btn-submit" style="margin-top:8px;padding:6px;" onclick="acceptDeliveryOrder('${order.id}')">Accepter la livraison</button></div>`).join('')}
+            ${pendingOrders.map(order => `<div style="border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-bottom:12px;"><strong>${order.id}</strong><br>Client: ${order.userName}<br>Pays: ${order.deliveryInfo?.country}<br>Ville: ${order.deliveryInfo?.city}<br>Livraison: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.address}<br>Total: ${order.total.toLocaleString()} FCFA<br><button class="btn-submit" style="margin-top:8px;padding:6px;" onclick="acceptDeliveryOrder('${order.id}')">Accepter la livraison</button></div>`).join('')}
             <button onclick="resetToHome()" class="btn-cancel">Retour</button></div>`;
     }
-
-
-
-
-
-    
     
     function acceptDeliveryOrder(orderId) {
         const order = orders.find(o => o.id === orderId);
-        order.deliveryMan = currentUser.email;
-order.deliveryManName = currentUser.name;
         if (!order) return;
+        
         order.status = 'en_livraison';
+        order.deliveryMan = currentUser.email;
+        order.deliveryManName = currentUser.name;
+        
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
+        
         if (order.deliveryInfo?.location) {
             window.open(`https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`, '_blank');
         }
@@ -976,7 +989,7 @@ order.deliveryManName = currentUser.name;
                 <div id="standardFields">
                     <div class="form-group"><label>Nom complet</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
                     <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="exemple@email.com"></div>
-                    <div class="form-group"><label>Telephone</label><div class="phone-input-group"><select id="phoneCountry">${countries.map(c => `<option value="${c.code}" ${c.code === "+242" ? "selected" : ""}>${c.flag} ${c.code}</option>`).join('')}</select><input type="tel" id="phone" placeholder="06 12 34 56"></div></div>
+                    <div class="form-group"><label>Telephone</label><div class="phone-input-group"><select id="phoneCountry">${countries.map(c => `<option value="${c.phoneCode}" ${c.phoneCode === "+242" ? "selected" : ""}>${c.flag} ${c.phoneCode}</option>`).join('')}</select><input type="tel" id="phone" placeholder="06 12 34 56"></div></div>
                     <div class="form-group"><label>Mot de passe</label><input type="password" id="password" placeholder="......"></div>
                     <div class="form-group"><label>Confirmer</label><input type="password" id="confirmPassword" placeholder="......"></div>
                 </div>
@@ -1019,22 +1032,6 @@ order.deliveryManName = currentUser.name;
         if (vendorFields) vendorFields.style.display = type === 'vendeur' ? 'block' : 'none';
         if (deliveryFields) deliveryFields.style.display = type === 'livreur' ? 'block' : 'none';
     }
-
-
-
-     // Dans viewShopDetail(), ajouter
-function displayDeliveryZones(shop) {
-    if (shop.location?.deliveryZones && shop.location.deliveryZones.length > 0) {
-        const zones = shop.location.deliveryZones.map(z => 
-            `${z.countryName}${z.city !== 'all' ? ` - ${z.city}` : ''}`
-        ).join(', ');
-        return `<div class="delivery-info"><i class="fas fa-truck"></i> Livraison: ${zones}</div>`;
-    }
-    return `<div class="delivery-info"><i class="fas fa-map-marker-alt"></i> Livraison: ${shop.location?.country || 'Congo-Brazzaville'} uniquement</div>`;
-}
-
-
-
     
     function validateStep1() {
         const type = document.getElementById('accountType').value;
@@ -1209,6 +1206,9 @@ function displayDeliveryZones(shop) {
     window.finalizeRegistration = finalizeRegistration;
     window.openRegisterModal = openRegisterModal;
     window.openLoginModal = openLoginModal;
+    window.updateCities = updateCities;
+    window.canDeliverToLocation = canDeliverToLocation;
+    window.canCombineShopsDelivery = canCombineShopsDelivery;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
