@@ -309,9 +309,9 @@
             <a onclick="goToDeliveryDashboard()" id="deliveryLink" style="display:none;">Mes livraisons</a>
             <a href="delivery-register.html">Devenir livreur</a>
             </div>
-            <div class="dropdown">
-               <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
-            <div class="dropdown-content" id="dropdownContent">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+    <i class="fas fa-bars"></i>
+</button>
                 <a onclick="showAbout()">À propos</a>
                 <a onclick="showHelp()">Aide</a>
                 <a onclick="showInvest()">Investir</a>
@@ -344,6 +344,29 @@
     let currentStep = 1;
     let tempUserData = {};
     let generatedCode = "";
+
+
+
+
+
+
+
+
+
+// Menu mobile toggle
+const menuBtn = document.getElementById('mobileMenuBtn');
+const navLinks = document.querySelector('.nav-links');
+
+if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+        navLinks.classList.toggle('show');
+    });
+}
+
+
+
+
+    
     
     // Liste des pays avec drapeaux, codes et exemples
 const countries = [
