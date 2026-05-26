@@ -347,6 +347,7 @@
     // ============ CONSTANTES ============
     const DEFAULT_LAT = -4.2634;
     const DEFAULT_LNG = 15.2429;
+    let currentSearchType = 'all'; // Variable globale pour le type de recherche
     
     // ============ LISTE DES PAYS AVEC VILLES ============
     const countries = [
@@ -369,21 +370,6 @@
         { code: "TN", flag: "🇹🇳", name: "Tunisie", phoneCode: "+216", cities: ["Tunis", "Sfax", "Sousse", "Ettadhamen", "Kairouan", "Bizerte", "Gabès", "Ariana", "Gafsa", "La Goulette"] },
         { code: "GW", flag: "🇬🇼", name: "Guinée-Bissau", phoneCode: "+245", cities: ["Bissau", "Bafatá", "Gabú", "Bissorã", "Bolama", "Cacheu", "Canchungo", "Farim", "Quinhámel", "Mansôa"] }
     ];
-    
-    // ============ FONCTIONS DE NOTIFICATION ============
-    function sendNotification(contact, method, subject, message) {
-        if (method === 'email') {
-            console.log(`📧 EMAIL -> ${contact}: ${subject}\n${message}`);
-            return true;
-        } else if (method === 'sms') {
-            console.log(`📱 SMS -> ${contact}: ${message}`);
-            return true;
-        } else if (method === 'whatsapp') {
-            console.log(`💬 WhatsApp -> ${contact}: ${message}`);
-            return true;
-        }
-        return false;
-    }
     
     // ============ FONCTIONS DE VALIDATION GÉOGRAPHIQUE ============
     function canDeliverToLocation(shop, countryCode, city) {
@@ -531,7 +517,7 @@
             id: 1, name: "Elegance Africaine", city: "Brazzaville", quartier: "Moungali", rating: 5.0, totalRatings: 342, totalSales: 1250,
             products: [{ id: 1, name: "Boubou Ceremonie", price: "65000", photos: [], stock: 25, description: "Boubou traditionnel" }],
             categories: ["Boubou"], reviews: [{ user: "Marie K.", userEmail: "marie@email.com", rating: 5, comment: "Superbe qualite !", date: "2024-03-15" }],
-            verified: true, location: { lat: -4.2634, lng: 15.2429, country: "CG", address: "Moungali", deliveryZones: [{ country: "CG", city: "Brazzaville" }] },
+            verified: true, location: { lat: -4.2634, lng: 15.2429, country: "CG", address: "Moungali" },
             ownerEmail: "vendeur@example.com", ownerName: "Vendeur Example"
         }];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
@@ -574,6 +560,122 @@
         return stars;
     }
     
+    // ============ FONCTIONS DE RECHERCHE CORRIGÉES ============
+    
+    // Fonction pour afficher les boutiques (appelée par la recherche)
+    function displayShops(shopsList) {
+        const grid = document.getElementById('shopsGrid');
+        if (!grid) return;
+        if (!shopsList.length) { 
+            grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--gray-500);">Aucune boutique trouvée</div>'; 
+            return; 
+        }
+        grid.innerHTML = shopsList.map(shop => `
+            <div class="shop-card" onclick="viewShopDetail(${shop.id})">
+                <div class="shop-logo-area">
+                    <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
+                    <div class="shop-name">${escapeHtml(shop.name)}</div>
+                    <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>(${shop.totalRatings || 0})</span></div>
+                    <div style="font-size:10px;color:var(--gray-500);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}</div>
+                </div>
+                <div class="shop-details"><div class="shop-metrics"><div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div><div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div></div></div>
+            </div>
+        `).join('');
+    }
+    
+    // Fonction pour afficher les produits (résultats de recherche)
+    function displayProducts(productsList) {
+        const grid = document.getElementById('productsGrid');
+        if (!grid) return;
+        const shopsGrid = document.getElementById('shopsGrid');
+        if (shopsGrid) shopsGrid.style.display = 'none';
+        grid.style.display = 'grid';
+        
+        if (!productsList.length) { 
+            grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--gray-500);">Aucun produit trouvé</div>'; 
+            return; 
+        }
+        grid.innerHTML = productsList.map(p => `
+            <div class="product-card" onclick="openProductModal(${p.shopId}, ${p.id})">
+                <img src="${p.photos?.[0] || 'https://via.placeholder.com/300x200'}" class="product-image">
+                <div class="product-info">
+                    <div class="product-title">${escapeHtml(p.name)}</div>
+                    <div class="product-price">${p.price} FCFA</div>
+                    <div style="font-size:9px;color:var(--gray-500);">${escapeHtml(p.shopName)}</div>
+                    <button class="btn-custom" style="background:var(--primary);padding:5px;border-radius:30px;width:100%;margin-top:5px;border:none;color:white;cursor:pointer;" onclick="event.stopPropagation();addToCart(${p.shopId}, ${p.id}, '${escapeHtml(p.name)}', '${p.price}')">Ajouter</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Fonction de recherche principale
+    function performSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const shopsGrid = document.getElementById('shopsGrid');
+        const productsGrid = document.getElementById('productsGrid');
+        
+        // Si la requête est vide, afficher toutes les boutiques
+        if (!query) { 
+            if (shopsGrid) shopsGrid.style.display = 'grid';
+            if (productsGrid) productsGrid.style.display = 'none';
+            const rankedShops = [...shops].sort((a,b) => (b.rating||0) - (a.rating||0));
+            displayShops(rankedShops);
+            return; 
+        }
+        
+        // Recherche selon l'onglet actif
+        if (currentSearchType === 'shop') {
+            // Recherche uniquement dans les boutiques
+            const filtered = shops.filter(s => s.name.toLowerCase().includes(query));
+            if (productsGrid) productsGrid.style.display = 'none';
+            if (shopsGrid) shopsGrid.style.display = 'grid';
+            displayShops(filtered);
+        } 
+        else if (currentSearchType === 'product') {
+            // Recherche uniquement dans les produits
+            const allProducts = [];
+            shops.forEach(shop => {
+                (shop.products || []).forEach(p => {
+                    if (p.name.toLowerCase().includes(query)) {
+                        allProducts.push({ ...p, shopId: shop.id, shopName: shop.name });
+                    }
+                });
+            });
+            if (shopsGrid) shopsGrid.style.display = 'none';
+            displayProducts(allProducts);
+        } 
+        else {
+            // Recherche dans tout (boutiques ET produits)
+            const filteredShops = shops.filter(s => s.name.toLowerCase().includes(query));
+            const allProducts = [];
+            shops.forEach(shop => {
+                (shop.products || []).forEach(p => {
+                    if (p.name.toLowerCase().includes(query)) {
+                        allProducts.push({ ...p, shopId: shop.id, shopName: shop.name });
+                    }
+                });
+            });
+            
+            if (filteredShops.length > 0) {
+                // Afficher les boutiques trouvées
+                if (productsGrid) productsGrid.style.display = 'none';
+                if (shopsGrid) shopsGrid.style.display = 'grid';
+                displayShops(filteredShops);
+            } 
+            else if (allProducts.length > 0) {
+                // Afficher les produits trouvés
+                if (shopsGrid) shopsGrid.style.display = 'none';
+                displayProducts(allProducts);
+            } 
+            else {
+                // Aucun résultat
+                if (shopsGrid) shopsGrid.style.display = 'grid';
+                if (productsGrid) productsGrid.style.display = 'none';
+                displayShops([]);
+            }
+        }
+    }
+    
     // ============ PAGE ACCUEIL ============
     function showHomePage() {
         const rankedShops = [...shops].sort((a,b) => (b.rating||0) - (a.rating||0));
@@ -586,30 +688,35 @@
                 <div><span class="rating-badge gold"><i class="fas fa-crown"></i> Or</span><span class="rating-badge silver"><i class="fas fa-star"></i> Argent</span><span class="rating-badge bronze"><i class="fas fa-star-half-alt"></i> Bronze</span></div>
             </div>
             <div id="shopsGrid" class="shops-grid"></div>
+            <div id="productsGrid" class="products-grid" style="display:none;"></div>
         `;
         displayShops(rankedShops);
+        
+        // Initialiser les onglets de recherche
+        document.querySelectorAll('.search-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentSearchType = tab.dataset.type;
+                // Re-exécuter la recherche avec le nouveau type
+                const query = document.getElementById('searchInput').value.trim();
+                if (query) {
+                    performSearch();
+                } else {
+                    // Si pas de recherche, afficher toutes les boutiques
+                    const shopsGrid = document.getElementById('shopsGrid');
+                    const productsGrid = document.getElementById('productsGrid');
+                    if (shopsGrid) shopsGrid.style.display = 'grid';
+                    if (productsGrid) productsGrid.style.display = 'none';
+                    const rankedShops = [...shops].sort((a,b) => (b.rating||0) - (a.rating||0));
+                    displayShops(rankedShops);
+                }
+            });
+        });
     }
     
     function setRanking(type) { currentRanking = type; showHomePage(); }
     
-    function displayShops(shopsList) {
-        const grid = document.getElementById('shopsGrid');
-        if (!grid) return;
-        if (!shopsList.length) { grid.innerHTML = '<div style="text-align:center;padding:30px;">Aucune boutique</div>'; return; }
-        grid.innerHTML = shopsList.map(shop => `
-            <div class="shop-card" onclick="viewShopDetail(${shop.id})">
-                <div class="shop-logo-area">
-                    <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
-                    <div class="shop-name">${escapeHtml(shop.name)}</div>
-                    <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>(${shop.totalRatings || 0} avis)</span></div>
-                    <div style="font-size:10px;color:var(--gray-500);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}</div>
-                </div>
-                <div class="shop-details"><div class="shop-metrics"><div class="metric"><div class="metric-value">${shop.products?.length || 0}</div><div>Produits</div></div><div class="metric"><div class="metric-value">${shop.totalSales || 0}</div><div>Ventes</div></div></div></div>
-            </div>
-        `).join('');
-    }
-    
-    // ============ VUE BOUTIQUE ============
     function viewShopDetail(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
@@ -627,8 +734,7 @@
                     <div class="shop-info">
                         <h1>${escapeHtml(shop.name)}</h1>
                         <div class="shop-rating"><div class="stars">${generateStars(shop.rating || 0)}</div><span>${shop.rating || 0} (${shop.totalRatings || 0} avis)</span></div>
-                        <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.address || shop.city)}, ${countryName}</div>
-                        ${shop.location?.lat ? `<div style="font-size:11px;margin-top:4px;"><i class="fas fa-location-dot"></i> Position GPS disponible</div>` : ''}
+                        <div><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}, ${countryName}</div>
                     </div>
                 </div>
             </div>
@@ -1111,13 +1217,15 @@
         
         localStorage.setItem('ouenze_orders', JSON.stringify(orders));
         
-        // Envoyer les notifications au client
         const clientContact = order.deliveryInfo?.phone;
         if (clientContact) {
-            sendNotification(clientContact, notifMethod, "Livraison en cours", `Votre commande ${orderId} est en cours de livraison par ${currentUser.name}.`);
+            if (notifMethod === 'email') {
+                sendNotification(clientContact, notifMethod, "Livraison en cours", `Votre commande ${orderId} est en cours de livraison par ${currentUser.name}.`);
+            } else {
+                sendNotification(clientContact, notifMethod, "Livraison en cours", `Votre commande ${orderId} est en cours de livraison par ${currentUser.name}.`);
+            }
         }
         
-        // Afficher l'itinéraire pour le livreur
         if (order.deliveryInfo?.location) {
             window.open(`https://www.google.com/maps?q=${order.deliveryInfo.location.lat},${order.deliveryInfo.location.lng}`, '_blank');
         }
@@ -1126,12 +1234,16 @@
         showDeliveryDashboard();
     }
     
-    // ============ PROFIL COMPLET ============
+    function sendNotification(contact, method, subject, message) {
+        console.log(`📢 Notification via ${method} à ${contact}: ${subject} - ${message}`);
+        return true;
+    }
+    
+    // ============ PROFIL ============
     function showProfile() {
         if (!currentUser) { alert("Connectez-vous"); openLoginModal(); return; }
         
         const userData = getUserData();
-        const docsStatus = getUserDocumentsStatus();
         
         document.getElementById('appContainer').innerHTML = `
             <div class="profile-container">
@@ -1146,8 +1258,6 @@
                 </div>
                 <div class="profile-tabs">
                     <div class="profile-tab ${currentProfileTab === 'info' ? 'active' : ''}" data-tab="info">Informations</div>
-                    <div class="profile-tab ${currentProfileTab === 'location' ? 'active' : ''}" data-tab="location">Localisation</div>
-                    ${currentUser.type === 'livreur' ? `<div class="profile-tab ${currentProfileTab === 'documents' ? 'active' : ''}" data-tab="documents">Documents</div>` : ''}
                     <div class="profile-tab ${currentProfileTab === 'orders' ? 'active' : ''}" data-tab="orders">Commandes</div>
                 </div>
                 <div id="profileTabInfo" class="profile-section ${currentProfileTab === 'info' ? 'active' : ''}">
@@ -1155,35 +1265,10 @@
                         <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value" id="displayFullName">${escapeHtml(userData.fullName || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('fullName')">Modifier</button></div></div>
                         <div class="info-row"><div class="info-label">Email</div><div class="info-value">${escapeHtml(currentUser.email)}</div></div>
                         <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value" id="displayPhone">${escapeHtml(userData.phone || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('phone')">Modifier</button></div></div>
+                        <div class="info-row"><div class="info-label">Adresse</div><div class="info-value" id="displayAddress">${escapeHtml(userData.address || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('address')">Modifier</button></div></div>
                         <div class="info-row"><div class="info-label">Statut du compte</div><div class="info-value"><span class="status-badge status-active">Actif</span></div></div>
                     </div>
                 </div>
-                <div id="profileTabLocation" class="profile-section ${currentProfileTab === 'location' ? 'active' : ''}">
-                    <div class="info-card">
-                        <div class="info-row"><div class="info-label">Pays</div><div class="info-value" id="displayCountry">${escapeHtml(userData.country || 'Congo-Brazzaville')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('country')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Ville</div><div class="info-value" id="displayCity">${escapeHtml(userData.city || 'Brazzaville')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('city')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Adresse</div><div class="info-value" id="displayAddress">${escapeHtml(userData.address || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('address')">Modifier</button></div></div>
-                        <div class="location-map-container"><div id="profileLocationMap" class="location-map" style="height:250px;"></div></div>
-                        <div class="location-actions" style="margin-top:10px;">
-                            <button onclick="getProfileCurrentLocation()"><i class="fas fa-location-dot"></i> Ma position actuelle</button>
-                            <button onclick="saveProfileLocation()"><i class="fas fa-save"></i> Enregistrer cette position</button>
-                        </div>
-                        <div id="profileLocationInfo" class="location-info"></div>
-                    </div>
-                </div>
-                ${currentUser.type === 'livreur' ? `
-                <div id="profileTabDocuments" class="profile-section ${currentProfileTab === 'documents' ? 'active' : ''}">
-                    <div class="info-card">
-                        <h4>Documents obligatoires</h4>
-                        <div class="info-row"><div class="info-label">Pièce d'identité</div><div class="info-value">${docsStatus.idCard ? '✓ Document fourni' : '❌ Non fourni'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('idCard')">${docsStatus.idCard ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
-                        <div class="info-row"><div class="info-label">Permis de conduire</div><div class="info-value">${docsStatus.drivingLicense ? '✓ Document fourni' : '❌ Non fourni'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('drivingLicense')">${docsStatus.drivingLicense ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
-                        <div class="info-row"><div class="info-label">Matricule véhicule</div><div class="info-value" id="displayVehiclePlate">${escapeHtml(userData.vehiclePlate || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('vehiclePlate')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Type de véhicule</div><div class="info-value" id="displayVehicleType">${escapeHtml(userData.vehicleType || 'Non renseigné')}</div><div class="info-actions"><button class="edit-btn" onclick="editField('vehicleType')">Modifier</button></div></div>
-                        <div class="info-row"><div class="info-label">Photo du véhicule</div><div class="info-value">${docsStatus.vehiclePhoto ? '✓ Photo fournie' : '❌ Non fournie'}</div><div class="info-actions"><button class="edit-btn" onclick="uploadDocument('vehiclePhoto')">${docsStatus.vehiclePhoto ? 'Mettre à jour' : 'Ajouter'}</button></div></div>
-                        <div class="info-text" style="margin-top:10px;">⚠️ Les documents doivent être mis à jour chaque trimestre.</div>
-                    </div>
-                </div>
-                ` : ''}
                 <div id="profileTabOrders" class="profile-section ${currentProfileTab === 'orders' ? 'active' : ''}">
                     <div id="profileOrdersList" class="commandes-list"></div>
                 </div>
@@ -1193,102 +1278,12 @@
         
         renderProfileOrders();
         attachProfileTabs();
-        initProfileLocationMap(userData);
-    }
-    
-    function initProfileLocationMap(userData) {
-        const lat = userData.locationLat || DEFAULT_LAT;
-        const lng = userData.locationLng || DEFAULT_LNG;
-        const mapContainer = document.getElementById('profileLocationMap');
-        if (!mapContainer) return;
-        
-        setTimeout(() => {
-            if (window.profileMap) window.profileMap.remove();
-            window.profileMap = L.map('profileLocationMap').setView([lat, lng], 14);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(window.profileMap);
-            window.profileMarker = L.marker([lat, lng], { draggable: true }).addTo(window.profileMap);
-            window.profileMarker.on('dragend', function(e) {
-                const pos = e.target.getLatLng();
-                window.tempProfileLocation = { lat: pos.lat, lng: pos.lng };
-                document.getElementById('profileLocationInfo').innerHTML = `Position sélectionnée: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
-            });
-            window.profileMap.on('click', function(e) {
-                window.profileMarker.setLatLng(e.latlng);
-                window.tempProfileLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
-                document.getElementById('profileLocationInfo').innerHTML = `Position sélectionnée: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-            });
-        }, 100);
-    }
-    
-    function getProfileCurrentLocation() {
-        if (!navigator.geolocation) { alert("Géolocalisation non supportée"); return; }
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const lat = pos.coords.latitude, lng = pos.coords.longitude;
-                if (window.profileMarker) window.profileMarker.setLatLng([lat, lng]);
-                if (window.profileMap) window.profileMap.setView([lat, lng], 15);
-                window.tempProfileLocation = { lat, lng };
-                document.getElementById('profileLocationInfo').innerHTML = `Position actuelle: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            },
-            () => { document.getElementById('profileLocationInfo').innerHTML = `Impossible d'obtenir votre position`; }
-        );
-    }
-    
-    function saveProfileLocation() {
-        if (!window.tempProfileLocation && !window.profileMarker) {
-            alert("Veuillez d'abord sélectionner une position sur la carte");
-            return;
-        }
-        const pos = window.tempProfileLocation || window.profileMarker.getLatLng();
-        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-        const index = allUsers.findIndex(u => u.email === currentUser.email);
-        if (index !== -1) {
-            allUsers[index].locationLat = pos.lat;
-            allUsers[index].locationLng = pos.lng;
-            localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
-            alert("Position enregistrée avec succès !");
-        }
     }
     
     function getUserData() {
         const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
         const user = allUsers.find(u => u.email === currentUser?.email);
         return user || {};
-    }
-    
-    function getUserDocumentsStatus() {
-        const userData = getUserData();
-        return {
-            idCard: !!userData.idCard,
-            drivingLicense: !!userData.drivingLicense,
-            vehiclePhoto: !!userData.vehiclePhoto,
-            lastUpdate: userData.documentsLastUpdate || null
-        };
-    }
-    
-    function uploadDocument(docType) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-                    const index = allUsers.findIndex(u => u.email === currentUser.email);
-                    if (index !== -1) {
-                        allUsers[index][docType] = ev.target.result;
-                        allUsers[index].documentsLastUpdate = new Date().toISOString();
-                        localStorage.setItem('ouenze_all_users', JSON.stringify(allUsers));
-                        alert(`Document mis à jour avec succès !`);
-                        showProfile();
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-        input.click();
     }
     
     function editField(field) {
@@ -1300,11 +1295,7 @@
         switch(field) {
             case 'fullName': currentValue = userData.fullName || ''; placeholder = "Nom complet"; break;
             case 'phone': currentValue = userData.phone || ''; placeholder = "+242 06 XX XX XX"; inputType = "tel"; break;
-            case 'country': currentValue = userData.country || 'Congo-Brazzaville'; placeholder = "Pays"; break;
-            case 'city': currentValue = userData.city || 'Brazzaville'; placeholder = "Ville"; break;
             case 'address': currentValue = userData.address || ''; placeholder = "Adresse"; break;
-            case 'vehiclePlate': currentValue = userData.vehiclePlate || ''; placeholder = "AB-123-CD"; break;
-            case 'vehicleType': currentValue = userData.vehicleType || ''; placeholder = "Moto, Voiture..."; break;
             default: return;
         }
         
@@ -1312,7 +1303,7 @@
         modal.innerHTML = `
             <div class="modal-card">
                 <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                <h3>Modifier ${field === 'fullName' ? 'le nom' : field === 'phone' ? 'le téléphone' : field === 'country' ? 'le pays' : field === 'city' ? 'la ville' : field === 'address' ? "l'adresse" : field === 'vehiclePlate' ? 'le matricule' : 'le type de véhicule'}</h3>
+                <h3>Modifier ${field === 'fullName' ? 'le nom' : field === 'phone' ? 'le téléphone' : "l'adresse"}</h3>
                 <div class="form-group"><input type="${inputType}" id="editValue" value="${escapeHtml(currentValue)}" placeholder="${placeholder}"></div>
                 <button class="btn-submit" onclick="saveFieldValue('${field}')">Enregistrer</button>
                 <button class="btn-cancel" onclick="this.closest('.modal').remove()">Annuler</button>
@@ -1418,26 +1409,18 @@
                 <div id="standardFields">
                     <div class="form-group"><label>Nom complet</label><input type="text" id="fullName" placeholder="Jean Dupont"></div>
                     <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="exemple@email.com"></div>
-                    <div class="form-group"><label>Pays</label><select id="country"><option value="">Sélectionner</option>${countries.map(c => `<option value="${c.code}">${c.flag} ${c.name}</option>`).join('')}</select></div>
-                    <div class="form-group"><label>Ville</label><input type="text" id="city" placeholder="Brazzaville"></div>
                     <div class="form-group"><label>Adresse</label><input type="text" id="address" placeholder="Rue, numéro"></div>
                     <div class="form-group"><label>Telephone</label><div class="phone-input-group"><select id="phoneCountry">${countries.map(c => `<option value="${c.phoneCode}" ${c.phoneCode === "+242" ? "selected" : ""}>${c.flag} ${c.phoneCode}</option>`).join('')}</select><input type="tel" id="phone" placeholder="06 12 34 56"></div></div>
                     <div class="form-group"><label>Mot de passe</label><input type="password" id="password" placeholder="......"></div>
                     <div class="form-group"><label>Confirmer</label><input type="password" id="confirmPassword" placeholder="......"></div>
                 </div>
-                ${currentUser?.type === 'vendeur' ? `
-                <div id="vendorFields">
-                    <div class="form-group"><label>Nom de la boutique</label><input type="text" id="shopName" placeholder="Ma boutique"></div>
-                    <div class="form-group"><label>Description</label><textarea id="shopDesc" rows="2"></textarea></div>
-                </div>
-                ` : ''}
                 <div id="deliveryFields" style="display:none;">
                     <div class="form-group"><label>Type de vehicule</label><select id="vehicleType"><option value="moto">Moto</option><option value="voiture">Voiture</option><option value="velo">Velo</option></select></div>
                     <div class="form-group"><label>Matricule du véhicule</label><input type="text" id="vehiclePlate" placeholder="AB-123-CD"></div>
                     <div class="form-group"><label>Pièce d'identité</label><input type="file" id="idCard" accept="image/*"></div>
                     <div class="form-group"><label>Permis de conduire</label><input type="file" id="drivingLicense" accept="image/*"></div>
                     <div class="form-group"><label>Photo du véhicule</label><input type="file" id="vehiclePhoto" accept="image/*"></div>
-                    <div class="info-text">Ces documents sont obligatoires pour les livreurs et doivent être mis à jour chaque trimestre</div>
+                    <div class="info-text">Ces documents sont obligatoires pour les livreurs</div>
                 </div>
                 <button class="btn-submit" onclick="validateStep1()">Continuer</button>
             `;
@@ -1475,8 +1458,6 @@
         const phone = document.getElementById('phone').value.trim();
         const password = document.getElementById('password').value;
         const confirm = document.getElementById('confirmPassword').value;
-        const country = document.getElementById('country')?.value;
-        const city = document.getElementById('city')?.value.trim();
         const address = document.getElementById('address')?.value.trim();
         
         if (!fullName || !email || !phone || !password) { alert("Tous les champs sont obligatoires"); return; }
@@ -1514,7 +1495,7 @@
             reader3.readAsDataURL(vehiclePhoto);
             
             function proceedAfterDocs() {
-                tempUserData = { ...tempUserData, type, fullName, email, country, city, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, vehicleType, vehiclePlate, documentsLastUpdate: new Date().toISOString(), status: 'pending' };
+                tempUserData = { ...tempUserData, type, fullName, email, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, vehicleType, vehiclePlate, status: 'pending' };
                 generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
                 sendEmail(email, "Code de verification Ouenze", `Votre code est: ${generatedCode}`);
                 alert(`Code envoye a ${email}`);
@@ -1524,7 +1505,7 @@
             return;
         }
         
-        tempUserData = { ...tempUserData, type, fullName, email, country, city, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, status: 'active' };
+        tempUserData = { ...tempUserData, type, fullName, email, address, phone: `${countryCode} ${formatPhoneForDisplay(phone)}`, password, status: 'active' };
         generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         sendEmail(email, "Code de verification Ouenze", `Votre code est: ${generatedCode}`);
         alert(`Code envoye a ${email}`);
@@ -1550,12 +1531,7 @@
         updateHeaderUI();
         document.querySelector('#registerModal')?.remove();
         alert(`Inscription reussie ! Bienvenue ${currentUser.name}`);
-        if (tempUserData.type === 'vendeur') {
-            alert("Redirection vers le createur de boutique...");
-            window.location.href = 'shop-designer.html';
-        } else {
-            resetToHome();
-        }
+        resetToHome();
     }
     
     function openLoginModal() {
@@ -1579,7 +1555,7 @@
         const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
         const user = allUsers.find(u => u.email === email && u.password === password);
         if (!user) { alert("Email ou mot de passe incorrect"); return; }
-        if (user.status === 'pending') { alert("Votre compte est en attente de verification par l'administrateur."); return; }
+        if (user.status === 'pending') { alert("Votre compte est en attente de verification."); return; }
         currentUser = { name: user.fullName, email: user.email, type: user.type, profilePhoto: user.profilePhoto };
         saveData();
         updateHeaderUI();
@@ -1646,17 +1622,27 @@
     window.editField = editField;
     window.saveFieldValue = saveFieldValue;
     window.editProfilePhoto = editProfilePhoto;
-    window.uploadDocument = uploadDocument;
     window.openRatingModal = openRatingModal;
     window.openDeliveryRatingModal = openDeliveryRatingModal;
     window.openChangePaymentModal = openChangePaymentModal;
-    window.getProfileCurrentLocation = getProfileCurrentLocation;
-    window.saveProfileLocation = saveProfileLocation;
+    window.performSearch = performSearch;
+    window.displayShops = displayShops;
+    window.displayProducts = displayProducts;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
         showHomePage();
-        document.getElementById('searchBtn')?.addEventListener('click', () => alert("Recherche: " + document.getElementById('searchInput').value));
+        
+        // Initialiser la recherche
+        const searchBtn = document.getElementById('searchBtn');
+        const searchInput = document.getElementById('searchInput');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', performSearch);
+        }
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') performSearch(); });
+        }
+        
         const dropBtn = document.getElementById('dropdownBtn');
         const dropCont = document.getElementById('dropdownContent');
         if(dropBtn) {
