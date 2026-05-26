@@ -6,7 +6,6 @@
     <title>Ouenze | Mes activités</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0a0e17; color: #e2e8f0; }
@@ -34,13 +33,21 @@
         .nav-tabs { display: flex; gap: 4px; background: var(--card-bg); padding: 8px 24px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
         .nav-tab { padding: 8px 20px; background: none; border: none; border-radius: 30px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; color: var(--gray-500); }
         .nav-tab.active { background: var(--primary); color: white; }
+        .nav-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         
         .main { max-width: 1400px; margin: 24px auto; padding: 0 24px; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
-        .stat-card { background: var(--card-bg); border-radius: 20px; padding: 24px; border: 1px solid var(--gray-200); }
+        .stat-card { background: var(--card-bg); border-radius: 20px; padding: 24px; border: 1px solid var(--gray-200); transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
         .stat-card h3 { font-size: 12px; font-weight: 500; color: var(--gray-500); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-value { font-size: 28px; font-weight: 700; color: white; }
+        .stat-change { font-size: 12px; color: var(--gray-500); margin-top: 8px; }
+        
+        .filter-buttons { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 20px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 13px; transition: 0.2s; color: var(--gray-500); }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .filter-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         
         .activities-list { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--gray-200); overflow: hidden; }
         .activity-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; cursor: pointer; }
@@ -53,13 +60,23 @@
         .status-pending { background: #451a03; color: #f59e0b; }
         .status-active { background: #1e3a8a; color: #3b82f6; }
         
-        .filter-buttons { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-        .filter-btn { padding: 8px 20px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 30px; cursor: pointer; font-size: 13px; transition: 0.2s; color: var(--gray-500); }
-        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        
         .footer { border-top: 1px solid var(--gray-200); background: var(--card-bg); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
         
-        @media (max-width: 700px) { .activity-item { flex-direction: column; text-align: center; gap: 12px; } }
+        /* Modal styles */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-card { background: var(--card-bg); border-radius: 24px; max-width: 400px; width: 100%; padding: 28px; border: 1px solid var(--gray-200); position: relative; }
+        .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--gray-500); font-size: 20px; cursor: pointer; }
+        .form-group { margin-bottom: 16px; }
+        .form-group input { width: 100%; padding: 12px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 10px; color: white; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 40px; width: 100%; cursor: pointer; transition: 0.2s; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        
+        @media (max-width: 700px) { 
+            .activity-item { flex-direction: column; text-align: center; gap: 12px; }
+            .activity-item > div:last-child { text-align: center !important; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -82,6 +99,15 @@
 </div>
 
 <script>
+    // Configuration centralisée des types d'activités
+    const activityConfig = {
+        order: { icon: 'fa-shopping-cart', label: 'Commande' },
+        investment: { icon: 'fa-chart-line', label: 'Investissement' },
+        buy_shares: { icon: 'fa-chart-line', label: 'Achat actions' },
+        sell_shares: { icon: 'fa-arrow-down', label: 'Vente actions' },
+        acquisition: { icon: 'fa-store', label: 'Acquisition' }
+    };
+    
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
     let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
@@ -89,14 +115,69 @@
     let investmentRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
     let currentFilter = 'all';
     
+    // Création d'un Map pour les recherches rapides par ID
+    const shopsMap = new Map();
+    shops.forEach(shop => shopsMap.set(shop.id, shop));
+    
     if (!currentUser) {
         window.location.href = 'index.html';
     }
     
+    // ============ FONCTIONS UTILITAIRES ============
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>]/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        }[m]));
+    }
+    
+    function formatNumber(value) {
+        return Number(value || 0).toLocaleString();
+    }
+    
+    function getShopById(id) {
+        return shopsMap.get(id);
+    }
+    
+    // Sécurisation des dates pour le tri
+    function getSafeDate(dateValue) {
+        const d = new Date(dateValue);
+        return isNaN(d.getTime()) ? new Date(0) : d;
+    }
+    
+    function getActivityStatusClass(type, status) {
+        if (type === 'order') return 'status-completed';
+        if (type === 'investment') return status === 'approved' ? 'status-active' : 'status-pending';
+        if (type === 'sell_shares') return status === 'approved' ? 'status-completed' : 'status-pending';
+        if (type === 'acquisition') return status === 'approved' ? 'status-completed' : 'status-pending';
+        if (type === 'buy_shares') return status === 'approved' ? 'status-active' : 'status-pending';
+        return 'status-pending';
+    }
+    
+    function getActivityStatusText(type, status) {
+        if (type === 'order') return 'Terminé';
+        if (type === 'investment') return status === 'approved' ? 'Actif' : 'En attente';
+        if (type === 'sell_shares') return status === 'approved' ? 'Vendu' : 'En attente';
+        if (type === 'acquisition') return status === 'approved' ? 'Acceptée' : 'En attente';
+        if (type === 'buy_shares') return status === 'approved' ? 'Confirmé' : 'En attente';
+        return status === 'approved' ? 'Confirmé' : 'En attente';
+    }
+    
+    // ============ AUTHENTIFICATION ============
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+            container.innerHTML = `
+                <div class="user-menu" onclick="window.location.href='vendor-dashboard.html'">
+                    <div class="user-avatar">${escapeHtml(currentUser.name.charAt(0))}</div>
+                    <div>${escapeHtml(currentUser.name.split(' ')[0])}<br><small>Investisseur</small></div>
+                    <button type="button" onclick="event.stopPropagation(); logout();" style="background:none;border:none;cursor:pointer;color:var(--gray-500);" aria-label="Se déconnecter">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>`;
         } else {
             container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button>`;
         }
@@ -104,19 +185,31 @@
     
     function openLoginModal() {
         const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `<div class="modal-card" style="background:var(--card-bg);border-radius:24px;max-width:400px;width:100%;padding:28px;border:1px solid var(--gray-200);"><h3>Connexion</h3><div class="form-group" style="margin-bottom:16px;"><input type="email" id="loginEmail" placeholder="Email" style="width:100%;padding:12px;background:var(--gray-200);border:1px solid var(--gray-200);border-radius:10px;color:white;"></div><div class="form-group" style="margin-bottom:16px;"><input type="password" id="loginPassword" placeholder="Mot de passe" style="width:100%;padding:12px;background:var(--gray-200);border:1px solid var(--gray-200);border-radius:10px;color:white;"></div><button class="btn-primary" onclick="doLogin()" style="background:var(--primary);color:white;border:none;padding:12px;border-radius:40px;width:100%;cursor:pointer;">Se connecter</button><div style="text-align:center;margin-top:16px;"><a href="#" onclick="window.location.href='index.html'" style="color:var(--primary);">Créer un compte</a></div></div>`;
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3 style="margin-bottom:20px;">Connexion</h3>
+                <div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div>
+                <div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div>
+                <button class="btn-primary" onclick="doLogin()">Se connecter</button>
+                <div style="text-align:center;margin-top:16px;">
+                    <a href="#" onclick="window.location.href='index.html'" style="color:var(--primary);">Créer un compte</a>
+                </div>
+            </div>`;
         document.body.appendChild(modal);
-        window.doLogin = () => {
-            const email = document.getElementById('loginEmail').value.trim();
-            if (email) {
-                currentUser = { name: email.split('@')[0], email, type: 'investor' };
-                localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
-                updateHeaderUI();
-                modal.remove();
-                showActivitiesPage();
-                alert(`Bienvenue ${currentUser.name}`);
-            } else alert("Email requis");
-        };
+    }
+    
+    function doLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        if (email) {
+            currentUser = { name: email.split('@')[0], email, type: 'investor' };
+            localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+            updateHeaderUI();
+            document.querySelector('.modal')?.remove();
+            showActivitiesPage();
+        } else {
+            alert("Email requis");
+        }
     }
     
     function logout() {
@@ -126,52 +219,28 @@
         window.location.href = 'index.html';
     }
     
-    function getShopById(id) {
-        return shops.find(s => s.id === id);
-    }
-    
-    function getActivityStatus(type, status) {
-        if (type === 'order') return 'completed';
-        if (type === 'investment') return status === 'approved' ? 'active' : 'pending';
-        if (type === 'sell') return status === 'approved' ? 'completed' : 'pending';
-        if (type === 'acquisition') return status === 'approved' ? 'completed' : 'pending';
-        return 'pending';
-    }
-    
-    function getActivityStatusText(status) {
-        if (status === 'completed') return 'Terminé';
-        if (status === 'active') return 'Actif';
-        if (status === 'pending') return 'En attente';
-        return status;
-    }
-    
-    function getActivityStatusClass(status) {
-        if (status === 'completed') return 'status-completed';
-        if (status === 'active') return 'status-active';
-        return 'status-pending';
-    }
-    
+    // ============ PAGE ACTIVITÉS ============
     function showActivitiesPage() {
-        // Récupérer toutes les activités de l'utilisateur
+        // Récupération des données avec optional chaining
         const userOrders = orders.filter(o => o.userId === currentUser.email);
         const userInvestments = investments.filter(i => i.investor === currentUser.email);
         const userRequests = investmentRequests.filter(r => r.investor === currentUser.email);
         
-        // Construire la liste des activités
         let activities = [];
         
         // Commandes
         userOrders.forEach(order => {
+            const firstItem = order.items?.[0];
             activities.push({
                 id: order.id,
                 type: 'order',
-                shopId: order.items[0]?.shopId,
-                shopName: order.items[0]?.shopName,
-                amount: order.total,
-                quantity: order.items.reduce((s,i)=>s+i.quantity,0),
+                shopId: firstItem?.shopId,
+                shopName: firstItem?.shopName || 'Boutique',
+                amount: order.total || 0,
+                quantity: order.items?.reduce((s, i) => s + (i.quantity || 0), 0) || 0,
                 date: order.date,
                 status: 'completed',
-                details: `${order.items.length} produit(s)`
+                details: `${order.items?.length || 0} produit(s)`
             });
         });
         
@@ -181,56 +250,72 @@
                 id: inv.id,
                 type: 'investment',
                 shopId: inv.shopId,
-                shopName: inv.shopName,
-                amount: inv.amount,
-                quantity: inv.quantity,
+                shopName: inv.shopName || 'Boutique',
+                amount: inv.amount || 0,
+                quantity: inv.quantity || 0,
                 date: inv.date,
                 status: 'active',
-                details: `${inv.quantity} actions à ${inv.pricePerShare} FCFA/action`
+                details: `${inv.quantity || 0} actions à ${formatNumber(inv.pricePerShare)} FCFA/action`
             });
         });
         
-        // Demandes d'investissement/vente/acquisition
+        // Demandes
         userRequests.forEach(req => {
-            let status = req.status === 'approved' ? 'completed' : 'pending';
-            let typeLabel = '';
-            if (req.type === 'buy_shares') typeLabel = 'Demande d\'achat';
-            else if (req.type === 'sell_shares') typeLabel = 'Demande de vente';
-            else if (req.type === 'acquisition') typeLabel = 'Offre d\'acquisition';
-            
+            let status = req.status === 'approved' ? 'approved' : 'pending';
             activities.push({
                 id: req.id,
                 type: req.type,
                 shopId: req.shopId,
-                shopName: req.shopName,
-                amount: req.total || req.amount,
-                quantity: req.quantity,
+                shopName: req.shopName || 'Boutique',
+                amount: req.total || req.amount || 0,
+                quantity: req.quantity || 0,
                 date: req.date,
                 status: status,
-                details: typeLabel
+                details: activityConfig[req.type]?.label || req.type
             });
         });
         
-        // Trier par date (plus récent en premier)
-        activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Tri sécurisé des dates
+        activities.sort((a, b) => {
+            const dateA = getSafeDate(a.date);
+            const dateB = getSafeDate(b.date);
+            return dateB - dateA;
+        });
         
-        // Filtrer
+        // Filtrage
         let filteredActivities = activities;
         if (currentFilter !== 'all') {
             filteredActivities = activities.filter(a => a.type === currentFilter);
         }
         
         // Statistiques
-        const totalOrders = userOrders.reduce((s,o)=>s+o.total,0);
-        const totalInvested = userInvestments.reduce((s,i)=>s+i.amount,0);
+        const totalOrders = userOrders.reduce((s, o) => s + (o.total || 0), 0);
+        const totalInvested = userInvestments.reduce((s, i) => s + (i.amount || 0), 0);
         const pendingRequests = userRequests.filter(r => r.status === 'pending_review').length;
+        const uniqueShops = new Set(activities.map(a => a.shopId).filter(Boolean));
         
         document.getElementById('appContainer').innerHTML = `
             <div class="stats-grid">
-                <div class="stat-card"><h3>Commandes passées</h3><div class="stat-value">${userOrders.length}</div><div class="stat-change">Total: ${totalOrders.toLocaleString()} FCFA</div></div>
-                <div class="stat-card"><h3>Capital investi</h3><div class="stat-value">${totalInvested.toLocaleString()} FCFA</div><div class="stat-change">${userInvestments.length} investissement(s)</div></div>
-                <div class="stat-card"><h3>Demandes en cours</h3><div class="stat-value">${pendingRequests}</div><div class="stat-change">En attente de validation</div></div>
-                <div class="stat-card"><h3>Boutiques concernées</h3><div class="stat-value">${new Set(activities.map(a=>a.shopId).filter(Boolean)).size}</div><div class="stat-change">activités diverses</div></div>
+                <div class="stat-card">
+                    <h3>Commandes passées</h3>
+                    <div class="stat-value">${userOrders.length}</div>
+                    <div class="stat-change">Total: ${formatNumber(totalOrders)} FCFA</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Capital investi</h3>
+                    <div class="stat-value">${formatNumber(totalInvested)} FCFA</div>
+                    <div class="stat-change">${userInvestments.length} investissement(s)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Demandes en cours</h3>
+                    <div class="stat-value">${pendingRequests}</div>
+                    <div class="stat-change">En attente de validation</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Boutiques concernées</h3>
+                    <div class="stat-value">${uniqueShops.size}</div>
+                    <div class="stat-change">activités diverses</div>
+                </div>
             </div>
             
             <div class="filter-buttons">
@@ -244,32 +329,33 @@
             
             <div class="activities-list">
                 ${filteredActivities.length > 0 ? filteredActivities.map(activity => {
+                    const config = activityConfig[activity.type] || { icon: 'fa-history', label: 'Activité' };
+                    const statusClass = getActivityStatusClass(activity.type, activity.status);
+                    const statusText = getActivityStatusText(activity.type, activity.status);
                     const shop = getShopById(activity.shopId);
-                    const statusClass = getActivityStatusClass(activity.status);
-                    const statusText = getActivityStatusText(activity.status);
-                    const typeIcon = activity.type === 'order' ? 'fa-shopping-cart' : 
-                                    (activity.type === 'investment' || activity.type === 'buy_shares') ? 'fa-chart-line' :
-                                    activity.type === 'sell_shares' ? 'fa-arrow-down' : 'fa-store';
-                    const typeLabel = activity.type === 'order' ? 'Commande' :
-                                    activity.type === 'investment' ? 'Investissement' :
-                                    activity.type === 'buy_shares' ? 'Achat actions' :
-                                    activity.type === 'sell_shares' ? 'Vente actions' : 'Acquisition';
+                    const shopName = shop?.name || activity.shopName || 'Boutique';
                     
                     return `
-                        <div class="activity-item" onclick="viewDetails('${activity.type}', ${activity.shopId}, '${activity.id}')">
+                        <div class="activity-item" onclick="viewDetails('${activity.type}', ${activity.shopId || 0}, '${activity.id}')">
                             <div class="activity-info">
-                                <h4><i class="fas ${typeIcon}"></i> ${escapeHtml(activity.shopName || 'Boutique')}</h4>
-                                <p>${typeLabel} · ${new Date(activity.date).toLocaleDateString()}</p>
-                                <p style="font-size:11px; margin-top:4px;">${activity.details || ''}</p>
+                                <h4><i class="fas ${config.icon}"></i> ${escapeHtml(shopName)}</h4>
+                                <p>${config.label} · ${getSafeDate(activity.date).toLocaleDateString()}</p>
+                                <p style="font-size:11px; margin-top:4px;">${escapeHtml(activity.details || '')}</p>
                             </div>
-                            <div style="text-align:right;">
-                                <div class="activity-amount">${activity.amount?.toLocaleString() || 0} FCFA</div>
+                            <div>
+                                <div class="activity-amount">${formatNumber(activity.amount)} FCFA</div>
                                 ${activity.quantity ? `<div style="font-size:12px; color:var(--gray-500);">${activity.quantity} ${activity.type === 'order' ? 'article(s)' : 'action(s)'}</div>` : ''}
                                 <div style="margin-top:8px;"><span class="activity-status ${statusClass}">${statusText}</span></div>
                             </div>
                         </div>
                     `;
-                }).join('') : '<div style="text-align:center;padding:60px;color:var(--gray-500);"><i class="fas fa-folder-open" style="font-size:48px;margin-bottom:16px;"></i><p>Aucune activité pour le moment</p><p style="margin-top:8px;"><a href="invest.html" style="color:var(--primary);">Commencer à investir</a></p></div>'}
+                }).join('') : `
+                    <div style="text-align:center;padding:60px;color:var(--gray-500);">
+                        <i class="fas fa-folder-open" style="font-size:48px;margin-bottom:16px;"></i>
+                        <p>Aucune activité pour le moment</p>
+                        <p style="margin-top:8px;"><a href="invest.html" style="color:var(--primary);">Commencer à investir</a></p>
+                    </div>
+                `}
             </div>
         `;
     }
@@ -293,19 +379,23 @@
         }
     }
     
-    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-    
-    window.showActivitiesPage = showActivitiesPage;
-    window.filterActivities = filterActivities;
-    window.viewDetails = viewDetails;
-    
+    // Initialisation des données de démo si nécessaire
     if (shops.length === 0) {
         shops = [
             { id: 1, name: "Élégance Africaine", rating: 5.0, city: "Brazzaville", assets: [] },
             { id: 2, name: "Tech Congo", rating: 4.8, city: "Brazzaville", assets: [] }
         ];
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+        shops.forEach(shop => shopsMap.set(shop.id, shop));
     }
+    
+    // Exports globaux
+    window.showActivitiesPage = showActivitiesPage;
+    window.filterActivities = filterActivities;
+    window.viewDetails = viewDetails;
+    window.logout = logout;
+    window.openLoginModal = openLoginModal;
+    window.doLogin = doLogin;
     
     document.addEventListener('DOMContentLoaded', () => {
         updateHeaderUI();
