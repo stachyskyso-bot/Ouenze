@@ -24,7 +24,6 @@
             --gray-200: #2a3140;
             --gray-500: #6b7280;
             --gray-700: #9ca3af;
-            --dark-bg: #0a0e17;
             --card-bg: #111827;
         }
         
@@ -38,6 +37,7 @@
         .nav-tabs { display: flex; gap: 4px; background: var(--card-bg); padding: 8px 24px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
         .nav-tab { padding: 8px 20px; background: none; border: none; border-radius: 30px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; color: var(--gray-500); }
         .nav-tab.active { background: var(--primary); color: white; }
+        .nav-tab.disabled { opacity: 0.5; cursor: not-allowed; }
         
         .main { max-width: 1400px; margin: 24px auto; padding: 0 24px; }
         
@@ -45,6 +45,7 @@
         .level-gold { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #b45309; border: 1px solid #f59e0b; }
         .level-silver { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #334155; border: 1px solid #94a3b8; }
         .level-bronze { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #9a3412; border: 1px solid #b45309; }
+        .level-none { background: var(--gray-200); color: var(--gray-500); border: 1px solid var(--gray-200); }
         
         .filters-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
         .sort-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -65,8 +66,6 @@
         .shop-rating { margin-top: 4px; font-size: 13px; color: var(--warning); }
         .shop-price { font-size: 20px; font-weight: 700; color: var(--primary); margin: 8px 0; }
         .shop-stats { padding: 16px; border-top: 1px solid var(--gray-200); display: flex; justify-content: space-between; font-size: 12px; color: var(--gray-500); }
-        .trend-up { color: var(--success); }
-        .trend-down { color: var(--danger); }
         
         .shop-detail-container { background: var(--card-bg); border-radius: 24px; border: 1px solid var(--gray-200); padding: 24px; margin-bottom: 24px; }
         .shop-detail-header { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
@@ -86,19 +85,15 @@
         .fee-gold { background: #fef3c7; color: #b45309; }
         .fee-silver { background: #f1f5f9; color: #334155; }
         .fee-bronze { background: #ffedd5; color: #9a3412; }
-        .vendor-bonus { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; display: inline-block; margin-left: 8px; }
         .action-buttons { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
         .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: 0.2s; }
         .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #059669; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #dc2626; }
         .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
-        .modal-card { background: var(--card-bg); border-radius: 24px; max-width: 500px; width: 100%; padding: 28px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--gray-200); }
+        .modal-card { background: var(--card-bg); border-radius: 24px; max-width: 500px; width: 100%; padding: 28px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--gray-200); position: relative; }
+        .modal-close { position: absolute; top: 16px; right: 16px; font-size: 24px; cursor: pointer; background: none; border: none; color: var(--gray-500); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--gray-500); }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; background: var(--gray-200); border: 1px solid var(--gray-200); border-radius: 10px; color: white; }
@@ -106,6 +101,10 @@
         .footer { border-top: 1px solid var(--gray-200); background: var(--card-bg); margin-top: 60px; padding: 24px; text-align: center; font-size: 12px; color: var(--gray-500); }
         
         @media (max-width: 700px) { .shops-grid { grid-template-columns: 1fr; } .action-buttons { flex-direction: column; } }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 12px 20px; border-radius: 40px; font-size: 13px; z-index: 2000; animation: slideIn 0.3s ease; }
+        .toast.error { background: var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -117,8 +116,8 @@
 
 <div class="nav-tabs">
     <button class="nav-tab active" data-tab="invest">Investir</button>
-    <button class="nav-tab" data-tab="activities" onclick="window.location.href='activities.html'">Mes activités</button>
-    <button class="nav-tab" data-tab="portfolio" onclick="window.location.href='portfolio.html'">Mon portefeuille</button>
+    <button class="nav-tab disabled" onclick="showToast('Page en cours de développement', true)">Mon portefeuille</button>
+    <button class="nav-tab disabled" onclick="showToast('Page en cours de développement', true)">Mes activités</button>
 </div>
 
 <div class="main" id="appContainer"></div>
@@ -128,54 +127,39 @@
 </div>
 
 <script>
+    // ============ DONNÉES ============
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
     let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
     let investments = JSON.parse(localStorage.getItem('ouenze_investments') || '[]');
-    let userHoldings = JSON.parse(localStorage.getItem('ouenze_holdings') || '[]');
     let marketHistory = JSON.parse(localStorage.getItem('ouenze_market_history') || '[]');
-    let orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
     let currentSort = 'rating';
     let currentShop = null;
     let currentChart = null;
     
-    function updateHeaderUI() {
-        const container = document.getElementById('headerActions');
-        if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div>${currentUser.name.split(' ')[0]}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
-        } else {
-            container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button>`;
-        }
+    // ============ FONCTIONS UTILITAIRES ============
+    function showToast(msg, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${isError ? 'error' : ''}`;
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
     
-    function openLoginModal() {
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <h3>Connexion</h3>
-                <div class="form-group"><input type="email" id="loginEmail" placeholder="Email"></div>
-                <div class="form-group"><input type="password" id="loginPassword" placeholder="Mot de passe"></div>
-                <button class="btn-primary" onclick="doLogin()">Se connecter</button>
-                <div style="text-align:center;margin-top:16px;">Pas de compte ? <a href="#" onclick="window.location.href='index.html'">Inscription</a></div>
-            </div>`;
-        document.body.appendChild(modal);
-        window.doLogin = () => {
-            const email = document.getElementById('loginEmail').value.trim();
-            if (email) {
-                currentUser = { name: email.split('@')[0], email, type: 'investor' };
-                localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
-                updateHeaderUI();
-                modal.remove();
-                showInvestPage();
-                alert(`Bienvenue ${currentUser.name}`);
-            } else alert("Email requis");
-        };
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>]/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        }[m]));
     }
     
-    function logout() {
-        currentUser = null;
-        localStorage.removeItem('ouenze_current_user');
-        updateHeaderUI();
-        showInvestPage();
+    function getSafeLevelClass(level) {
+        if (level === 'gold') return 'level-gold';
+        if (level === 'silver') return 'level-silver';
+        if (level === 'bronze') return 'level-bronze';
+        return 'level-none';
     }
     
     function getShopLevel(shop) {
@@ -206,38 +190,77 @@
     }
     
     function calculateSharePrice(valuation) {
-        return Math.round(valuation / 1000);
+        return Math.max(100, Math.round(valuation / 1000));
     }
     
-    function generatePriceHistory(shopId, valuation) {
-        const history = [];
-        let currentPrice = valuation / 1000;
-        for (let i = 30; i >= 0; i--) {
-            const change = (Math.random() - 0.5) * 0.05;
-            currentPrice = currentPrice * (1 + change);
-            history.push({
-                date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-                price: Math.max(100, Math.round(currentPrice))
-            });
+    // ============ AUTHENTIFICATION ============
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (currentUser) {
+            container.innerHTML = `<div class="user-menu" onclick="showProfile()"><div class="user-avatar">${escapeHtml(currentUser.name.charAt(0))}</div><div>${escapeHtml(currentUser.name.split(' ')[0])}<br><small>Investisseur</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;"><i class="fas fa-sign-out-alt"></i></button></div>`;
+        } else {
+            container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button>`;
         }
-        return history;
     }
     
-    function getShopHistory(shopId) {
-        let history = marketHistory.find(h => h.shopId === shopId);
-        if (!history) {
-            history = { shopId, data: generatePriceHistory(shopId, calculateValuation(shops.find(s => s.id === shopId))) };
-            marketHistory.push(history);
-            localStorage.setItem('ouenze_market_history', JSON.stringify(marketHistory));
-        }
-        return history.data;
+    function openLoginModal() {
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3 style="margin-bottom:20px;">Connexion</h3>
+                <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="exemple@email.com"></div>
+                <div class="form-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+                <button class="btn-primary" style="width:100%;" onclick="doLogin()">Se connecter</button>
+                <div style="text-align:center;margin-top:16px;">Pas de compte ? <a href="#" onclick="window.location.href='index.html'" style="color:var(--primary);">Inscription</a></div>
+            </div>`;
+        document.body.appendChild(modal);
     }
     
-    function showInvestPage() {
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === 'invest');
-        });
+    function doLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!email) { showToast("Email requis", true); return; }
         
+        // Simulation de connexion (en production : validation backend)
+        const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+        const user = allUsers.find(u => u.email === email && u.password === password);
+        if (user) {
+            currentUser = { name: user.fullName, email: user.email, type: 'investor' };
+        } else {
+            currentUser = { name: email.split('@')[0], email, type: 'investor' };
+        }
+        localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+        updateHeaderUI();
+        document.querySelector('.modal')?.remove();
+        showInvestPage();
+        showToast(`Bienvenue ${currentUser.name}`);
+    }
+    
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('ouenze_current_user');
+        updateHeaderUI();
+        showInvestPage();
+        showToast("Déconnexion réussie");
+    }
+    
+    function showProfile() {
+        if (!currentUser) { openLoginModal(); return; }
+        document.getElementById('appContainer').innerHTML = `
+            <div class="shop-detail-container" style="text-align:center;">
+                <div class="user-avatar" style="width:80px;height:80px;margin:0 auto;font-size:32px;display:flex;align-items:center;justify-content:center;">${escapeHtml(currentUser.name.charAt(0))}</div>
+                <h3 style="margin:15px 0;">${escapeHtml(currentUser.name)}</h3>
+                <p>${escapeHtml(currentUser.email)}</p>
+                <p>Type: Investisseur</p>
+                ${currentUser.paymentMethod ? `<p>Mode de paiement: ${currentUser.paymentMethod}</p>` : ''}
+                <button class="btn-primary" style="margin-top:20px;" onclick="logout()">Se déconnecter</button>
+                <button class="btn-outline" style="margin-top:10px;" onclick="showInvestPage()">Retour</button>
+            </div>`;
+    }
+    
+    // ============ PAGE INVESTISSEMENT ============
+    function showInvestPage() {
         const eligibleShops = shops.filter(s => s.rating >= 3);
         const sortedShops = sortShops(eligibleShops, currentSort);
         
@@ -246,7 +269,6 @@
                 <div class="sort-buttons">
                     <button class="sort-btn ${currentSort === 'rating' ? 'active' : ''}" onclick="setSort('rating')">Par note</button>
                     <button class="sort-btn ${currentSort === 'price' ? 'active' : ''}" onclick="setSort('price')">Par prix</button>
-                    <button class="sort-btn ${currentSort === 'growth' ? 'active' : ''}" onclick="setSort('growth')">Par croissance</button>
                     <button class="sort-btn ${currentSort === 'level' ? 'active' : ''}" onclick="setSort('level')">Par niveau</button>
                 </div>
                 <input type="text" id="searchShop" class="search-input" placeholder="Rechercher une boutique..." onkeyup="filterShops()">
@@ -260,7 +282,6 @@
         return [...shopsList].sort((a, b) => {
             if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
             if (sortBy === 'price') return calculateValuation(b) - calculateValuation(a);
-            if (sortBy === 'growth') return (b.growthRate || 0) - (a.growthRate || 0);
             if (sortBy === 'level') {
                 const levelA = getShopLevel(a).level;
                 const levelB = getShopLevel(b).level;
@@ -278,22 +299,20 @@
         grid.innerHTML = shopsList.map(shop => {
             const level = getShopLevel(shop);
             const valuation = calculateValuation(shop);
-            const sharePrice = calculateSharePrice(valuation);
             const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
+            const levelBadgeClass = getSafeLevelClass(level.level);
             return `
                 <div class="shop-card ${levelClass}" onclick="showShopDetail(${shop.id})">
                     <div class="shop-logo">
                         <div class="shop-logo-img">${shop.logo ? `<img src="${shop.logo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:32px;"></i>'}</div>
                         <div class="shop-name">${escapeHtml(shop.name)}</div>
-                        <div class="shop-rating">${'⭐'.repeat(Math.floor(shop.rating || 0))} ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)</div>
+                        <div class="shop-rating">${'⭐'.repeat(Math.floor(shop.rating || 0))} ${shop.rating || 0}/5</div>
                         <div class="shop-price">${valuation.toLocaleString()} FCFA</div>
-                        <div class="shop-level"><span class="level-badge level-${level.level}"><i class="fas fa-crown"></i> ${level.name}</span></div>
-                        <div style="font-size:11px; margin-top:6px;">💰 Commission: ${level.ouenzeFee}%</div>
-                        <div style="font-size:10px;">✨ Bonus vendeur: +${level.vendorBonus}%</div>
+                        <div class="shop-level"><span class="level-badge ${levelBadgeClass}"><i class="fas fa-crown"></i> ${level.name || 'Standard'}</span></div>
                     </div>
                     <div class="shop-stats">
                         <span><i class="fas fa-box"></i> ${shop.products?.length || 0} produits</span>
-                        <span class="trend-up"><i class="fas fa-arrow-up"></i> ${(Math.random() * 10).toFixed(1)}%</span>
+                        <span class="trend-up"><i class="fas fa-arrow-up"></i> ${shop.growthRate || 12}%</span>
                     </div>
                 </div>
             `;
@@ -312,7 +331,8 @@
         showInvestPage();
     }
     
-    async function showShopDetail(shopId) {
+    // ============ DÉTAIL BOUTIQUE ============
+    function showShopDetail(shopId) {
         const shop = shops.find(s => s.id === shopId);
         if (!shop) return;
         currentShop = shop;
@@ -320,10 +340,6 @@
         const valuation = calculateValuation(shop);
         const sharePrice = calculateSharePrice(valuation);
         const history = getShopHistory(shopId);
-        const userHolding = userHoldings.find(h => h.shopId === shopId && h.userId === currentUser?.email);
-        const annualRevenue = (shop.monthlyRevenue || valuation * 0.1) * 12;
-        
-        // Récupérer les investissements existants
         const userInvestments = investments.filter(i => i.investor === currentUser?.email && i.shopId === shopId);
         const totalInvested = userInvestments.reduce((s,i)=>s+i.amount,0);
         const totalShares = userInvestments.reduce((s,i)=>s+i.quantity,0);
@@ -337,11 +353,10 @@
                         <h1>${escapeHtml(shop.name)}</h1>
                         <div class="shop-rating">${'⭐'.repeat(Math.floor(shop.rating || 0))} ${shop.rating || 0}/5 (${shop.totalRatings || 0} avis)</div>
                         <div class="shop-level">
-                            <span class="level-badge level-${level.level}"><i class="fas fa-crown"></i> Niveau ${level.name}</span>
-                            <span class="fee-info fee-${level.level}"><i class="fas fa-percent"></i> Commission: ${level.ouenzeFee}%</span>
+                            <span class="level-badge ${getSafeLevelClass(level.level)}"><i class="fas fa-crown"></i> Niveau ${level.name || 'Standard'}</span>
+                            <span class="fee-info fee-${level.level || 'none'}"><i class="fas fa-percent"></i> Commission: ${level.ouenzeFee}%</span>
                         </div>
                         <div>📍 ${escapeHtml(shop.city || 'Brazzaville')}, ${escapeHtml(shop.quartier || '')}</div>
-                        ${shop.hasPhysicalStore ? '<div><i class="fas fa-store"></i> Boutique physique certifiée</div>' : ''}
                     </div>
                 </div>
                 
@@ -349,15 +364,14 @@
                 <div class="investment-range">
                     <strong><i class="fas fa-chart-line"></i> Fourchette d'investissement</strong><br>
                     Minimum: ${level.minInvestment.toLocaleString()} FCFA | Maximum: ${level.maxInvestment.toLocaleString()} FCFA
-                    ${totalInvested > 0 ? `<br><span style="color:var(--primary);">Votre investissement: ${totalInvested.toLocaleString()} FCFA (${totalShares} actions)</span>` : ''}
+                    ${totalInvested > 0 ? `<br><span style="color:var(--primary);">💰 Votre investissement: ${totalInvested.toLocaleString()} FCFA (${totalShares} actions)</span>` : ''}
                 </div>
                 ` : ''}
                 
                 <div class="chart-tabs">
-                    <button class="chart-tab active" onclick="switchChart('price')">Évolution du prix</button>
-                    <button class="chart-tab" onclick="switchChart('volume')">Volume des transactions</button>
-                    <button class="chart-tab" onclick="switchChart('revenue')">Chiffre d'affaires</button>
-                    <button class="chart-tab" onclick="switchChart('assets')">Actifs vs Passifs</button>
+                    <button class="chart-tab active" onclick="switchChart(event, 'price')">Évolution du prix</button>
+                    <button class="chart-tab" onclick="switchChart(event, 'volume')">Volume des transactions</button>
+                    <button class="chart-tab" onclick="switchChart(event, 'revenue')">Chiffre d'affaires</button>
                 </div>
                 <div class="chart-container">
                     <canvas id="shopChart"></canvas>
@@ -368,39 +382,50 @@
                     <table class="data-table">
                         <tr><th>Valorisation totale</th><td>${valuation.toLocaleString()} FCFA</td></tr>
                         <tr><th>Prix par action (0.1%)</th><td>${sharePrice.toLocaleString()} FCFA</td></tr>
-                        <tr><th>Chiffre d'affaires annuel</th><td>${annualRevenue.toLocaleString()} FCFA</td></tr>
+                        <tr><th>Chiffre d'affaires annuel</th><td>${((shop.monthlyRevenue || valuation * 0.1) * 12).toLocaleString()} FCFA</td></tr>
                         <tr><th>Croissance estimée</th><td class="trend-up">+${shop.growthRate || 12}%</td></tr>
-                        <tr><th>Commission Ouenze</th><td><span class="fee-info fee-${level.level}">${level.ouenzeFee}%</span></td></tr>
-                    </table>
-                </div>
-                
-                <div class="table-container">
-                    <h3>Actifs et Passifs</h3>
-                    <table class="data-table">
-                        <thead><tr><th>Type</th><th>Désignation</th><th>Valeur (FCFA)</th></tr></thead>
-                        <tbody>
-                            ${(shop.assets || []).map(a => `<tr><td>Actif</td><td>${escapeHtml(a.name)}</td><td>${a.value.toLocaleString()} FCFA</td></tr>`).join('')}
-                            ${(shop.liabilities || []).map(l => `<tr><td>Passif</td><td>${escapeHtml(l.name)}</td><td>${l.value.toLocaleString()} FCFA</td></tr>`).join('')}
-                            ${(!shop.assets || shop.assets.length === 0) && (!shop.liabilities || shop.liabilities.length === 0) ? '<tr><td colspan="3">Aucune donnée disponible</td></tr>' : ''}
-                        </tbody>
                     </table>
                 </div>
                 
                 ${currentUser ? `
                 <div class="action-buttons">
                     <button class="btn-primary" onclick="openBuySharesModal(${shop.id}, ${sharePrice}, ${level.minInvestment}, ${level.maxInvestment})">Acheter des actions</button>
-                    ${totalShares > 0 ? `<button class="btn-danger" onclick="openSellSharesModal(${shop.id}, ${sharePrice}, ${totalShares})">Vendre des actions</button>` : ''}
-                    <button class="btn-success" onclick="openAcquisitionModal(${shop.id}, ${valuation})">Acquérir la boutique</button>
                     <button class="btn-outline" onclick="window.location.href='index.html?id=${shop.id}'">Voir la boutique</button>
                 </div>
                 ` : `<div style="background:var(--gray-100);padding:16px;border-radius:12px;text-align:center;">Connectez-vous pour investir dans cette boutique</div>`}
             </div>
         `;
         
-        drawChart(shopId, 'price', history);
+        drawChart('price', history);
     }
     
-    function drawChart(shopId, type, history) {
+    function getShopHistory(shopId) {
+        let history = marketHistory.find(h => h.shopId === shopId);
+        if (!history) {
+            history = { shopId, data: generatePriceHistory(shopId) };
+            marketHistory.push(history);
+            localStorage.setItem('ouenze_market_history', JSON.stringify(marketHistory));
+        }
+        return history.data;
+    }
+    
+    function generatePriceHistory(shopId) {
+        const shop = shops.find(s => s.id === shopId);
+        const valuation = calculateValuation(shop);
+        let currentPrice = valuation / 1000;
+        const history = [];
+        for (let i = 30; i >= 0; i--) {
+            const change = (Math.random() - 0.5) * 0.03;
+            currentPrice = currentPrice * (1 + change);
+            history.push({
+                date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
+                price: Math.max(100, Math.round(currentPrice))
+            });
+        }
+        return history;
+    }
+    
+    function drawChart(type, history) {
         const ctx = document.getElementById('shopChart')?.getContext('2d');
         if (!ctx) return;
         if (currentChart) currentChart.destroy();
@@ -416,119 +441,90 @@
             data = labels.map(() => Math.floor(Math.random() * 100 + 20));
             label = 'Volume transacted';
             color = '#22c55e';
-        } else if (type === 'revenue') {
+        } else {
             labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
             data = labels.map(() => Math.floor(Math.random() * 500000 + 200000));
             label = 'CA mensuel (FCFA)';
             color = '#f59e0b';
-        } else {
-            labels = ['Actifs', 'Passifs'];
-            const assetsValue = (currentShop?.assets || []).reduce((s, a) => s + (a.value || 0), 0);
-            const liabilitiesValue = (currentShop?.liabilities || []).reduce((s, l) => s + (l.value || 0), 0);
-            data = [assetsValue, liabilitiesValue];
-            label = 'Valeur (FCFA)';
-            color = ['#22c55e', '#ef4444'];
         }
         
-        if (type === 'assets') {
-            currentChart = new Chart(ctx, {
-                type: 'bar',
-                data: { labels, datasets: [{ label, data, backgroundColor: color }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#9ca3af' } } } }
-            });
-        } else {
-            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, color + '40');
-            gradient.addColorStop(1, color + '00');
-            currentChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 2 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#9ca3af' } } } }
-            });
-        }
-    }
-    
-    function switchChart(type) {
-        const history = getShopHistory(currentShop.id);
-        drawChart(currentShop.id, type, history);
-        document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
-        event.target.classList.add('active');
-    }
-    
-    async function checkPaymentInfo() {
-        if (!currentUser) return false;
-        if (currentUser.paymentMethod && currentUser.paymentDetails) return true;
-        
-        return new Promise((resolve) => {
-            const modal = document.createElement('div'); modal.className = 'modal active';
-            modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>Informations de paiement requises</h3>
-                    <p style="margin-bottom:16px;">Pour investir, vous devez renseigner vos coordonnées bancaires ou Mobile Money.</p>
-                    <div class="form-group"><label>Mode de paiement</label>
-                        <select id="payMethod"><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="visa">Visa/Mastercard</option><option value="paypal">PayPal</option></select>
-                    </div>
-                    <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="payDetails" placeholder="Numéro de compte ou email PayPal"></div>
-                    <button class="btn-primary" style="width:100%;" onclick="savePaymentInfoAndResolve()">Enregistrer et continuer</button>
-                    <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
-                </div>`;
-            document.body.appendChild(modal);
-            window.savePaymentInfoAndResolve = () => {
-                const method = document.getElementById('payMethod').value;
-                const details = document.getElementById('payDetails').value;
-                if (!details) { alert("Veuillez entrer vos coordonnées"); return; }
-                currentUser.paymentMethod = method;
-                currentUser.paymentDetails = details;
-                localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
-                modal.remove();
-                resolve(true);
-            };
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, color + '40');
+        gradient.addColorStop(1, color + '00');
+        currentChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#9ca3af' } } } }
         });
     }
     
+    function switchChart(event, type) {
+        const history = getShopHistory(currentShop.id);
+        drawChart(type, history);
+        document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+        if (event && event.target) event.target.classList.add('active');
+    }
+    
+    // ============ ACHAT D'ACTIONS ============
     function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
-        if (!currentUser) { alert("Connectez-vous"); return; }
-        checkPaymentInfo().then(hasInfo => {
-            if (!hasInfo) return;
-            const modal = document.createElement('div'); modal.className = 'modal active';
-            modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>Acheter des actions</h3>
-                    <div class="investment-range" style="margin-bottom:16px;">
-                        Fourchette d'investissement:<br>
-                        Minimum: ${minInvestment.toLocaleString()} FCFA | Maximum: ${maxInvestment.toLocaleString()} FCFA
-                    </div>
-                    <div class="form-group"><label>Nombre d'actions</label><input type="number" id="sharesQty" min="1" value="1"></div>
-                    <div class="form-group"><label>Prix unitaire</label><input type="text" id="sharePrice" value="${sharePrice}" readonly disabled></div>
-                    <div class="form-group"><strong>Total: <span id="totalPrice">${sharePrice}</span> FCFA</strong></div>
-                    <div id="investmentWarning" style="font-size:12px;margin-top:8px;"></div>
-                    <button class="btn-primary" onclick="submitBuyRequest(${shopId}, ${sharePrice}, ${minInvestment}, ${maxInvestment})">Soumettre la demande</button>
-                    <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
-                </div>`;
-            document.body.appendChild(modal);
-            const qtyInput = document.getElementById('sharesQty');
-            const totalSpan = document.getElementById('totalPrice');
-            const warningSpan = document.getElementById('investmentWarning');
-            qtyInput.addEventListener('input', (e) => {
-                const total = e.target.value * sharePrice;
-                totalSpan.innerText = total.toLocaleString();
-                if (total < minInvestment) {
-                    warningSpan.innerHTML = '⚠️ Montant inférieur au minimum recommandé';
-                    warningSpan.style.color = '#ef4444';
-                } else if (total > maxInvestment) {
-                    warningSpan.innerHTML = '⚠️ Montant supérieur au maximum recommandé';
-                    warningSpan.style.color = '#ef4444';
-                } else {
-                    warningSpan.innerHTML = '✅ Montant dans la fourchette recommandée';
-                    warningSpan.style.color = '#22c55e';
-                }
-            });
+        if (!currentUser) { showToast("Connectez-vous", true); return; }
+        
+        const modal = document.createElement('div'); modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3 style="margin-bottom:20px;">Acheter des actions</h3>
+                <div class="investment-range" style="margin-bottom:16px;">
+                    Fourchette d'investissement:<br>
+                    Minimum: ${minInvestment.toLocaleString()} FCFA | Maximum: ${maxInvestment.toLocaleString()} FCFA
+                </div>
+                <div class="form-group"><label>Nombre d'actions</label><input type="number" id="sharesQty" min="1" value="1"></div>
+                <div class="form-group"><label>Prix unitaire</label><input type="text" id="sharePrice" value="${sharePrice}" readonly disabled></div>
+                <div class="form-group"><strong>Total: <span id="totalPrice">${sharePrice}</span> FCFA</strong></div>
+                <div id="investmentWarning" style="font-size:12px;margin-top:8px;"></div>
+                <div class="form-group"><label>Mode de paiement</label>
+                    <select id="paymentMethod">
+                        <option value="airtel">Airtel Money</option>
+                        <option value="mtn">MTN Mobile Money</option>
+                        <option value="orange">Orange Money</option>
+                        <option value="visa">Carte bancaire</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Numéro / Identifiant</label><input type="text" id="paymentDetails" placeholder="Numéro de téléphone ou email"></div>
+                <button class="btn-primary" style="width:100%;" onclick="submitBuyRequest(${shopId}, ${sharePrice}, ${minInvestment}, ${maxInvestment})">Confirmer l'achat</button>
+            </div>`;
+        document.body.appendChild(modal);
+        
+        const qtyInput = document.getElementById('sharesQty');
+        const totalSpan = document.getElementById('totalPrice');
+        const warningSpan = document.getElementById('investmentWarning');
+        qtyInput.addEventListener('input', (e) => {
+            const qty = parseInt(e.target.value) || 0;
+            const total = qty * sharePrice;
+            totalSpan.innerText = total.toLocaleString();
+            if (total < minInvestment && total > 0) {
+                warningSpan.innerHTML = '⚠️ Montant inférieur au minimum recommandé';
+                warningSpan.style.color = '#ef4444';
+            } else if (total > maxInvestment) {
+                warningSpan.innerHTML = '⚠️ Montant supérieur au maximum recommandé';
+                warningSpan.style.color = '#ef4444';
+            } else if (total > 0) {
+                warningSpan.innerHTML = '✅ Montant dans la fourchette recommandée';
+                warningSpan.style.color = '#22c55e';
+            } else {
+                warningSpan.innerHTML = '';
+            }
         });
     }
     
     function submitBuyRequest(shopId, sharePrice, minInvestment, maxInvestment) {
         const quantity = parseInt(document.getElementById('sharesQty').value);
-        if (!quantity || quantity < 1) { alert("Quantité invalide"); return; }
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        const paymentDetails = document.getElementById('paymentDetails').value;
+        
+        if (!quantity || quantity < 1) { showToast("Quantité invalide", true); return; }
+        if (!paymentDetails) { showToast("Veuillez renseigner vos coordonnées de paiement", true); return; }
+        
         const total = quantity * sharePrice;
         if (total < minInvestment) {
             if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est inférieur au minimum recommandé (${minInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
@@ -537,7 +533,11 @@
             if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est supérieur au maximum recommandé (${maxInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
         }
         
-        // Sauvegarder l'investissement
+        // Mettre à jour les infos de paiement de l'utilisateur
+        currentUser.paymentMethod = paymentMethod;
+        currentUser.paymentDetails = paymentDetails;
+        localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+        
         const investment = {
             id: Date.now(),
             shopId: shopId,
@@ -554,204 +554,12 @@
         investments.push(investment);
         localStorage.setItem('ouenze_investments', JSON.stringify(investments));
         
-        // Mettre à jour les holdings
-        const existingHolding = userHoldings.find(h => h.shopId === shopId && h.userId === currentUser.email);
-        if (existingHolding) {
-            existingHolding.quantity += quantity;
-            existingHolding.amount += total;
-        } else {
-            userHoldings.push({
-                shopId: shopId,
-                shopName: shops.find(s => s.id === shopId)?.name,
-                userId: currentUser.email,
-                userName: currentUser.name,
-                quantity: quantity,
-                amount: total,
-                buyPrice: sharePrice,
-                date: new Date().toISOString()
-            });
-        }
-        localStorage.setItem('ouenze_holdings', JSON.stringify(userHoldings));
-        
-        // Enregistrer la demande
-        const request = {
-            id: Date.now(),
-            type: 'buy_shares',
-            shopId,
-            shopName: shops.find(s => s.id === shopId)?.name,
-            investor: currentUser.email,
-            investorName: currentUser.name,
-            quantity,
-            pricePerShare: sharePrice,
-            total,
-            paymentMethod: currentUser.paymentMethod,
-            paymentDetails: currentUser.paymentDetails,
-            date: new Date().toISOString(),
-            status: 'approved'
-        };
-        
-        let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
-        requests.push(request);
-        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
-        
-        alert(`✅ Investissement confirmé !\n\nMontant: ${total.toLocaleString()} FCFA\nActions: ${quantity}\nBoutique: ${request.shopName}\n\nVotre portefeuille a été mis à jour.`);
+        showToast(`✅ Achat confirmé ! ${total.toLocaleString()} FCFA - ${quantity} actions`);
         document.querySelector('.modal')?.remove();
         showShopDetail(shopId);
     }
     
-    function openSellSharesModal(shopId, sharePrice, maxQuantity) {
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <h3>Vendre des actions</h3>
-                <div class="form-group"><label>Nombre d'actions (max ${maxQuantity})</label><input type="number" id="sellQty" min="1" max="${maxQuantity}" value="1"></div>
-                <div class="form-group"><label>Prix unitaire</label><input type="text" value="${sharePrice}" readonly disabled></div>
-                <div class="form-group"><strong>Total: <span id="sellTotal">${sharePrice}</span> FCFA</strong></div>
-                <div class="form-group"><label>Mode de réception</label>
-                    <select id="withdrawMethod"><option value="airtel">Airtel Money</option><option value="mtn">MTN Mobile Money</option><option value="paypal">PayPal</option><option value="bank">Virement bancaire</option></select>
-                </div>
-                <div id="paymentFields">
-                    <div class="form-group"><label>Identifiant / Numéro</label><input type="text" id="paymentAccount" placeholder="Numéro de téléphone ou email PayPal"></div>
-                </div>
-                <button class="btn-danger" onclick="submitSellRequest(${shopId}, ${sharePrice}, ${maxQuantity})">Soumettre la vente</button>
-                <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
-            </div>`;
-        document.body.appendChild(modal);
-        document.getElementById('sellQty').addEventListener('input', (e) => {
-            const total = e.target.value * sharePrice;
-            document.getElementById('sellTotal').innerText = total.toLocaleString();
-        });
-    }
-    
-    function submitSellRequest(shopId, sharePrice, maxQuantity) {
-        const quantity = parseInt(document.getElementById('sellQty').value);
-        if (!quantity || quantity < 1 || quantity > maxQuantity) { alert("Quantité invalide"); return; }
-        const total = quantity * sharePrice;
-        const withdrawMethod = document.getElementById('withdrawMethod').value;
-        const paymentAccount = document.getElementById('paymentAccount')?.value;
-        
-        // Mettre à jour les investissements
-        const investmentIndex = investments.findIndex(i => i.shopId === shopId && i.investor === currentUser.email);
-        if (investmentIndex !== -1) {
-            const investment = investments[investmentIndex];
-            if (quantity >= investment.quantity) {
-                investments.splice(investmentIndex, 1);
-            } else {
-                const ratio = quantity / investment.quantity;
-                investment.quantity -= quantity;
-                investment.amount = investment.amount * (1 - ratio);
-            }
-            localStorage.setItem('ouenze_investments', JSON.stringify(investments));
-        }
-        
-        // Mettre à jour les holdings
-        const holdingIndex = userHoldings.findIndex(h => h.shopId === shopId && h.userId === currentUser.email);
-        if (holdingIndex !== -1) {
-            const holding = userHoldings[holdingIndex];
-            if (quantity >= holding.quantity) {
-                userHoldings.splice(holdingIndex, 1);
-            } else {
-                const ratio = quantity / holding.quantity;
-                holding.quantity -= quantity;
-                holding.amount = holding.amount * (1 - ratio);
-            }
-            localStorage.setItem('ouenze_holdings', JSON.stringify(userHoldings));
-        }
-        
-        const request = {
-            id: Date.now(),
-            type: 'sell_shares',
-            shopId,
-            shopName: shops.find(s => s.id === shopId)?.name,
-            investor: currentUser.email,
-            investorName: currentUser.name,
-            quantity,
-            pricePerShare: sharePrice,
-            total,
-            withdrawMethod,
-            paymentAccount: paymentAccount || currentUser.paymentDetails,
-            date: new Date().toISOString(),
-            status: 'approved'
-        };
-        
-        let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
-        requests.push(request);
-        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
-        
-        alert(`✅ Vente confirmée !\n\nMontant: ${total.toLocaleString()} FCFA\nActions: ${quantity}\n\nLes fonds seront disponibles sur votre compte sous 48h.`);
-        document.querySelector('.modal')?.remove();
-        showShopDetail(shopId);
-    }
-    
-    function openAcquisitionModal(shopId, valuation) {
-        if (!currentUser) { alert("Connectez-vous"); return; }
-        checkPaymentInfo().then(hasInfo => {
-            if (!hasInfo) return;
-            const modal = document.createElement('div'); modal.className = 'modal active';
-            modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>Acquisition de la boutique</h3>
-                    <div style="background:var(--gray-100);padding:12px;border-radius:12px;margin-bottom:16px;">
-                        Valorisation: ${valuation.toLocaleString()} FCFA<br>
-                        Minimum d'offre: ${Math.round(valuation * 0.5).toLocaleString()} FCFA
-                    </div>
-                    <div class="form-group"><label>Montant proposé (FCFA)</label><input type="number" id="acqAmount" value="${valuation}"></div>
-                    <div class="form-group"><label>Message au vendeur</label><textarea id="acqMessage" rows="3"></textarea></div>
-                    <button class="btn-success" onclick="submitAcquisitionRequest(${shopId}, ${valuation})">Envoyer l'offre d'acquisition</button>
-                    <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;">Annuler</button>
-                </div>`;
-            document.body.appendChild(modal);
-        });
-    }
-    
-    function submitAcquisitionRequest(shopId, valuation) {
-        const amount = parseInt(document.getElementById('acqAmount').value);
-        const message = document.getElementById('acqMessage').value;
-        if (!amount || amount < valuation * 0.5) { alert("Offre minimum 50% de la valorisation"); return; }
-        
-        const request = {
-            id: Date.now(),
-            type: 'acquisition',
-            shopId,
-            shopName: shops.find(s => s.id === shopId)?.name,
-            investor: currentUser.email,
-            investorName: currentUser.name,
-            amount,
-            message,
-            valuation,
-            date: new Date().toISOString(),
-            status: 'pending_review'
-        };
-        
-        let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
-        requests.push(request);
-        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
-        
-        alert(`✅ Offre d'acquisition envoyée !\n\nLe vendeur et notre équipe examineront votre proposition.\nUn email de confirmation a été envoyé.`);
-        document.querySelector('.modal')?.remove();
-        showShopDetail(shopId);
-    }
-    
-    function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-    
-    window.showInvestPage = showInvestPage;
-    window.showShopDetail = showShopDetail;
-    window.setSort = setSort;
-    window.filterShops = filterShops;
-    window.switchChart = switchChart;
-    window.openBuySharesModal = openBuySharesModal;
-    window.openSellSharesModal = openSellSharesModal;
-    window.openAcquisitionModal = openAcquisitionModal;
-    window.submitBuyRequest = submitBuyRequest;
-    window.submitSellRequest = submitSellRequest;
-    window.submitAcquisitionRequest = submitAcquisitionRequest;
-    
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            if(tab.dataset.tab === 'invest') showInvestPage();
-        });
-    });
-    
+    // ============ INITIALISATION ============
     if (shops.length === 0) {
         shops = [
             { id: 1, name: "Élégance Africaine", rating: 5.0, totalRatings: 342, products: [], city: "Brazzaville", quartier: "Moungali", monthlyRevenue: 950000, growthRate: 18, hasPhysicalStore: true, assets: [{ name: "Boutique physique", value: 2500000 }], liabilities: [], totalSales: 1250 },
@@ -765,6 +573,19 @@
         updateHeaderUI();
         showInvestPage();
     });
+    
+    // Exports globaux
+    window.showInvestPage = showInvestPage;
+    window.showShopDetail = showShopDetail;
+    window.setSort = setSort;
+    window.filterShops = filterShops;
+    window.switchChart = switchChart;
+    window.openBuySharesModal = openBuySharesModal;
+    window.submitBuyRequest = submitBuyRequest;
+    window.showProfile = showProfile;
+    window.doLogin = doLogin;
+    window.logout = logout;
+    window.openLoginModal = openLoginModal;
 </script>
 </body>
 </html>
