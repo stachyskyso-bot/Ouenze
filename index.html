@@ -349,6 +349,40 @@
 
 
 
+
+
+
+
+
+
+    const countries = [
+    { code: "CG", name: "Congo-Brazzaville", flag: "🇨🇬", cities: ["Brazzaville", "Pointe-Noire", "Dolisie", "Nkayi", "Madingou", "Ouesso", "Impfondo", "Sibiti"] },
+    { code: "CD", name: "Congo-RD", flag: "🇨🇩", cities: ["Kinshasa", "Lubumbashi", "Mbuji-Mayi", "Kisangani", "Kananga", "Goma", "Bukavu"] },
+    { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮", cities: ["Abidjan", "Bouaké", "Daloa", "Yamoussoukro", "San-Pédro", "Korhogo"] },
+    { code: "CM", name: "Cameroun", flag: "🇨🇲", cities: ["Douala", "Yaoundé", "Garoua", "Bamenda", "Maroua", "Nkongsamba"] },
+    { code: "BF", name: "Burkina Faso", flag: "🇧🇫", cities: ["Ouagadougou", "Bobo-Dioulasso", "Koudougou", "Banfora", "Ouahigouya"] },
+    { code: "GN", name: "Guinée", flag: "🇬🇳", cities: ["Conakry", "Nzérékoré", "Kankan", "Kindia", "Labé", "Guéckédou"] },
+    { code: "ML", name: "Mali", flag: "🇲🇱", cities: ["Bamako", "Sikasso", "Mopti", "Koutiala", "Ségou", "Kayes"] },
+    { code: "SN", name: "Sénégal", flag: "🇸🇳", cities: ["Dakar", "Touba", "Thiès", "Mbour", "Kaolack", "Ziguinchor"] },
+    { code: "TG", name: "Togo", flag: "🇹🇬", cities: ["Lomé", "Sokodé", "Kara", "Atakpamé", "Palimé", "Bassar"] },
+    { code: "BJ", name: "Bénin", flag: "🇧🇯", cities: ["Cotonou", "Porto-Novo", "Parakou", "Djougou", "Bohicon", "Abomey"] },
+    { code: "NE", name: "Niger", flag: "🇳🇪", cities: ["Niamey", "Zinder", "Maradi", "Agadez", "Tahoua", "Dosso"] },
+    { code: "GA", name: "Gabon", flag: "🇬🇦", cities: ["Libreville", "Port-Gentil", "Franceville", "Oyem", "Moanda", "Mouila"] },
+    { code: "CF", name: "Centrafrique", flag: "🇨🇫", cities: ["Bangui", "Bimbo", "Berbérati", "Carnot", "Bambari", "Bouar"] },
+    { code: "TD", name: "Tchad", flag: "🇹🇩", cities: ["N'Djaména", "Moundou", "Sarh", "Abéché", "Kelo", "Pala"] },
+    { code: "MA", name: "Maroc", flag: "🇲🇦", cities: ["Casablanca", "Rabat", "Fès", "Tanger", "Marrakech", "Agadir"] },
+    { code: "DZ", name: "Algérie", flag: "🇩🇿", cities: ["Alger", "Oran", "Constantine", "Annaba", "Blida", "Sétif"] },
+    { code: "TN", name: "Tunisie", flag: "🇹🇳", cities: ["Tunis", "Sfax", "Sousse", "Ettadhamen", "Kairouan", "Bizerte"] }
+];
+
+
+
+
+
+
+
+
+    
  
         const pages = {
     home: showHomePage,
@@ -363,6 +397,40 @@ function navigateTo(page, params = {}) {
         pages[page](params);
         updateActiveNav(page);
     }
+}
+
+
+
+
+    // Vérifier si une commande peut être livrée
+function canDeliverToLocation(shop, customerCountry, customerCity) {
+    // Si la boutique a des zones de livraison définies
+    if (shop.location?.deliveryZones && shop.location.deliveryZones.length > 0) {
+        return shop.location.deliveryZones.some(zone => 
+            zone.country === customerCountry && 
+            (zone.city === customerCity || zone.city === 'all')
+        );
+    }
+    
+    // Par défaut, livraison uniquement dans le pays de la boutique
+    return shop.location?.country === customerCountry;
+}
+
+// Vérifier si plusieurs boutiques peuvent être livrées ensemble
+function canCombineShopsDelivery(shopsList, customerCountry, customerCity) {
+    const incompatibleShops = shopsList.filter(shop => 
+        !canDeliverToLocation(shop, customerCountry, customerCity)
+    );
+    
+    if (incompatibleShops.length > 0) {
+        return {
+            possible: false,
+            incompatibleShops: incompatibleShops,
+            message: `Les boutiques suivantes ne livrent pas dans votre région: ${incompatibleShops.map(s => s.name).join(', ')}`
+        };
+    }
+    
+    return { possible: true };
 }
 
 
@@ -639,7 +707,52 @@ function navigateTo(page, params = {}) {
                 document.getElementById('locationInfo').innerHTML = `Position selectionnee: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
             });
         }, 100);
+
+
+
+
+ 
+        document.getElementById('appContainer').innerHTML = `
+        <div class="cart-container">
+            <h2>Ou souhaitez-vous être livré ?</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Pays *</label>
+                    <select id="deliveryCountry" onchange="updateCities()">
+                        ${countries.map(c => `<option value="${c.code}">${c.flag} ${c.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ville *</label>
+                    <select id="deliveryCity"></select>
+                </div>
+            </div>
+            <div class="form-group"><label>Quartier</label><input type="text" id="deliveryQuartier"></div>
+            <div class="form-group"><label>Adresse détaillée</label><input type="text" id="deliveryAddress"></div>
+            // ... suite
+        </div>
+    `;
+    
+    // Initialiser les villes
+    updateCities();
+}
+
+function updateCities() {
+    const countryCode = document.getElementById('deliveryCountry')?.value;
+    const country = countries.find(c => c.code === countryCode);
+    const citySelect = document.getElementById('deliveryCity');
+    
+    if (citySelect && country) {
+        citySelect.innerHTML = country.cities.map(city => 
+            `<option value="${city}">${city}</option>`
+        ).join('');
     }
+}
+
+
+
+
+        
     
     function resetMapView() {
         if (currentLocationMap) {
@@ -737,6 +850,23 @@ function navigateTo(page, params = {}) {
 
 
 
+         const customerCountry = document.getElementById('deliveryCountry')?.value;
+    const customerCity = document.getElementById('deliveryCity')?.value;
+    
+    // Récupérer les boutiques uniques du panier
+    const uniqueShops = [...new Map(cart.map(item => [item.shopId, item])).values()];
+    const shopsInCart = uniqueShops.map(item => shops.find(s => s.id === item.shopId));
+    
+    // Vérifier la compatibilité de livraison
+    const deliveryCheck = canCombineShopsDelivery(shopsInCart, customerCountry, customerCity);
+    
+    if (!deliveryCheck.possible) {
+        alert(deliveryCheck.message);
+        return;
+    }
+
+
+        
        
         const subtotal = cart.reduce((s,i)=>s+i.price*i.quantity,0);
         const newOrder = {
@@ -889,6 +1019,22 @@ order.deliveryManName = currentUser.name;
         if (vendorFields) vendorFields.style.display = type === 'vendeur' ? 'block' : 'none';
         if (deliveryFields) deliveryFields.style.display = type === 'livreur' ? 'block' : 'none';
     }
+
+
+
+     // Dans viewShopDetail(), ajouter
+function displayDeliveryZones(shop) {
+    if (shop.location?.deliveryZones && shop.location.deliveryZones.length > 0) {
+        const zones = shop.location.deliveryZones.map(z => 
+            `${z.countryName}${z.city !== 'all' ? ` - ${z.city}` : ''}`
+        ).join(', ');
+        return `<div class="delivery-info"><i class="fas fa-truck"></i> Livraison: ${zones}</div>`;
+    }
+    return `<div class="delivery-info"><i class="fas fa-map-marker-alt"></i> Livraison: ${shop.location?.country || 'Congo-Brazzaville'} uniquement</div>`;
+}
+
+
+
     
     function validateStep1() {
         const type = document.getElementById('accountType').value;
