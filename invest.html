@@ -132,6 +132,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="database.js"></script>
 <script>
     // ============ DONNÉES ============
     let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
@@ -543,81 +544,72 @@
     }
     
     function submitBuyRequest(shopId, sharePrice, minInvestment, maxInvestment) {
-        const quantity = parseInt(document.getElementById('sharesQty').value);
-        const paymentMethod = document.getElementById('paymentMethod').value;
-        const paymentDetails = document.getElementById('paymentDetails').value;
-        
-        if (!quantity || quantity < 1) { showToast("Quantité invalide", true); return; }
-        if (!paymentDetails) { showToast("Veuillez renseigner vos coordonnées de paiement", true); return; }
-        
-        const total = quantity * sharePrice;
-        if (total < minInvestment) {
-            if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est inférieur au minimum recommandé (${minInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
-        }
-        if (total > maxInvestment) {
-            if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est supérieur au maximum recommandé (${maxInvestment.toLocaleString()} FCFA). Voulez-vous continuer ?`)) return;
-        }
-        
-        // Mettre à jour les infos de paiement de l'utilisateur
-        currentUser.paymentMethod = paymentMethod;
-        currentUser.paymentDetails = paymentDetails;
-        localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
-        
-        const investment = {
-            id: Date.now(),
+    const quantity = parseInt(document.getElementById('sharesQty').value);
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const paymentDetails = document.getElementById('paymentDetails').value;
+    
+    if (!quantity || quantity < 1) { showToast("Quantité invalide", true); return; }
+    if (!paymentDetails) { showToast("Veuillez renseigner vos coordonnées de paiement", true); return; }
+    
+    const total = quantity * sharePrice;
+    if (total < minInvestment && total > 0) {
+        if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est inférieur au minimum recommandé. Continuer ?`)) return;
+    }
+    if (total > maxInvestment) {
+        if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est supérieur au maximum recommandé. Continuer ?`)) return;
+    }
+    
+    // Mettre à jour les infos de paiement
+    currentUser.paymentMethod = paymentMethod;
+    currentUser.paymentDetails = paymentDetails;
+    localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
+    
+    // Créer la demande d'investissement avec database.js
+    if (window.createInvestmentRequest) {
+        const newRequest = window.createInvestmentRequest({
+            type: 'buy_shares',
             shopId: shopId,
             shopName: shops.find(s => s.id === shopId)?.name,
             investor: currentUser.email,
             investorName: currentUser.name,
             quantity: quantity,
-            amount: total,
             pricePerShare: sharePrice,
-            date: new Date().toISOString(),
-            status: 'active'
-        };
+            total: total,
+            message: `Achat de ${quantity} actions via ${paymentMethod}`
+        });
         
-        investments.push(investment);
-        localStorage.setItem('ouenze_investments', JSON.stringify(investments));
+        let requests = window.dbGet(window.DB_KEYS.INVESTMENT_REQUESTS);
+        requests.push(newRequest);
+        window.dbSet(window.DB_KEYS.INVESTMENT_REQUESTS, requests);
         
-        // Mettre à jour les holdings (agrégation)
-        const existingHolding = userHoldings.find(h => h.shopId === shopId && h.userId === currentUser.email);
-        if (existingHolding) {
-            const newTotalAmount = existingHolding.amount + total;
-            const newTotalQuantity = existingHolding.quantity + quantity;
-            existingHolding.amount = newTotalAmount;
-            existingHolding.quantity = newTotalQuantity;
-            existingHolding.avgPrice = newTotalAmount / newTotalQuantity;
-        } else {
-            userHoldings.push({
-                shopId: shopId,
-                shopName: shops.find(s => s.id === shopId)?.name,
-                userId: currentUser.email,
-                userName: currentUser.name,
-                quantity: quantity,
-                amount: total,
-                avgPrice: sharePrice,
-                date: new Date().toISOString()
-            });
-        }
-        localStorage.setItem('ouenze_holdings', JSON.stringify(userHoldings));
-        
-        // Enregistrer la demande
+        showToast(`✅ Demande d'achat envoyée ! ${total.toLocaleString()} FCFA - ${quantity} actions`);
+    } else {
+        // Fallback si database.js non chargé
         const request = {
-            id: Date.now(), type: 'buy_shares',
-            shopId, shopName: shops.find(s => s.id === shopId)?.name,
-            investor: currentUser.email, investorName: currentUser.name,
-            quantity, pricePerShare: sharePrice, total,
-            paymentMethod, paymentDetails,
-            date: new Date().toISOString(), status: 'approved'
+            id: Date.now(),
+            type: 'buy_shares',
+            shopId: shopId,
+            shopName: shops.find(s => s.id === shopId)?.name,
+            investor: currentUser.email,
+            investorName: currentUser.name,
+            quantity: quantity,
+            pricePerShare: sharePrice,
+            total: total,
+            paymentMethod: paymentMethod,
+            paymentDetails: paymentDetails,
+            date: new Date().toISOString(),
+            status: 'pending_review',
+            syncedToPortfolio: false
         };
-        investmentRequests.push(request);
-        localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
-        
-        showToast(`✅ Achat confirmé ! ${total.toLocaleString()} FCFA - ${quantity} actions`);
-        document.querySelector('.modal')?.remove();
-        showShopDetail(shopId);
+        let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+        requests.push(request);
+        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
+        showToast(`✅ Demande d'achat envoyée ! ${total.toLocaleString()} FCFA - ${quantity} actions`);
     }
     
+    document.querySelector('.modal')?.remove();
+    showShopDetail(shopId);
+}
     function openSellSharesModal(shopId, sharePrice, maxQuantity) {
         if (!currentUser) { showToast("Connectez-vous", true); return; }
         
