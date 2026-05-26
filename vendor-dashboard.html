@@ -135,7 +135,7 @@
 <div class="footer">
     2024 Ouenze - Espace vendeur | <a href="accounting.html">Comptabilité</a> | Gérez vos actifs, passifs et demandes d'investissement
 </div>
-
+<script src="database.js"></script>
 <script>
     // Stockage des charts pour les détruire
     let activeCharts = {};
@@ -778,54 +778,70 @@
     }
     
     function openInvestmentRequests() {
-        const userShops = shops.filter(s => s.owner === currentUser.email);
-        const relevantRequests = investmentRequests.filter(r => userShops.some(s => s.id === r.shopId) && r.status === 'pending_review');
-        if (!relevantRequests.length) { alert("Aucune demande en attente"); return; }
-        
-        const modal = document.createElement('div'); modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                <h3 style="margin-bottom: 20px;">Demandes d'investissement</h3>
-                ${relevantRequests.map(r => `
-                    <div style="background:var(--gray-200);padding:16px;border-radius:12px;margin-bottom:16px;">
-                        <strong>${r.type === 'buy_shares' ? 'Achat d\'actions' : r.type === 'sell_shares' ? 'Vente d\'actions' : 'Acquisition'}</strong><br>
-                        Investisseur: ${escapeHtml(r.investorName)}<br>
-                        ${r.type === 'buy_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` : 
-                          r.type === 'sell_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` :
-                          `Offre: ${r.amount.toLocaleString()} FCFA`}<br>
-                        Date: ${new Date(r.date).toLocaleDateString()}<br>
-                        <div style="margin-top:12px; display:flex; gap:8px;">
-                            <button class="btn-sm btn-primary" onclick="approveRequest(${r.id})">Approuver</button>
-                            <button class="btn-sm btn-danger" style="background:var(--danger);color:white;" onclick="rejectRequest(${r.id})">Refuser</button>
-                        </div>
-                    </div>
-                `).join('')}
-                <button class="btn-sm btn-outline" onclick="this.closest('.modal').remove()">Fermer</button>
-            </div>`;
-        document.body.appendChild(modal);
-        
-        window.approveRequest = (id) => {
-            const request = investmentRequests.find(r => r.id === id);
-            if (request) {
-                request.status = 'approved';
-                localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
-                alert("Demande approuvée. L'investisseur sera notifié par email.");
-                modal.remove();
-                showDashboard();
-            }
-        };
-        window.rejectRequest = (id) => {
-            const request = investmentRequests.find(r => r.id === id);
-            if (request) {
-                request.status = 'rejected';
-                localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
-                alert("Demande refusée. L'investisseur sera notifié.");
-                modal.remove();
-                showDashboard();
-            }
-        };
+    const userShops = shops.filter(s => s.owner === currentUser.email);
+    const investmentRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+    const relevantRequests = investmentRequests.filter(r => 
+        userShops.some(s => s.id === r.shopId) && 
+        r.status === 'pending_review'
+    );
+    
+    if (!relevantRequests.length) { 
+        alert("Aucune demande en attente"); 
+        return; 
     }
+    
+    const modal = document.createElement('div'); modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-card">
+            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            <h3 style="margin-bottom: 20px;">Demandes d'investissement</h3>
+            ${relevantRequests.map(r => `
+                <div style="background:var(--gray-200);padding:16px;border-radius:12px;margin-bottom:16px;">
+                    <strong>${r.type === 'buy_shares' ? 'Achat d\'actions' : r.type === 'sell_shares' ? 'Vente d\'actions' : 'Acquisition'}</strong><br>
+                    Investisseur: ${escapeHtml(r.investorName)}<br>
+                    ${r.type === 'buy_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` : 
+                      r.type === 'sell_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${r.total.toLocaleString()} FCFA` :
+                      `Offre: ${r.amount.toLocaleString()} FCFA`}<br>
+                    Date: ${new Date(r.date).toLocaleDateString()}<br>
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button class="btn-sm btn-primary" onclick="approveInvestmentRequest('${r.id}')">Approuver</button>
+                        <button class="btn-sm btn-danger" onclick="rejectInvestmentRequest('${r.id}')">Refuser</button>
+                    </div>
+                </div>
+            `).join('')}
+            <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
+// NOUVELLE FONCTION - Utilise database.js
+function approveInvestmentRequest(requestId) {
+    if (window.approveBuyRequest) {
+        const success = window.approveBuyRequest(requestId);
+        if (success) {
+            alert("✅ Demande approuvée ! Le portefeuille de l'investisseur a été mis à jour.");
+            document.querySelector('.modal.active')?.remove();
+            showDashboard();
+        } else {
+            alert("❌ Erreur lors de l'approbation");
+        }
+    } else {
+        console.error("database.js non chargé");
+        alert("Erreur système");
+    }
+}
+
+function rejectInvestmentRequest(requestId) {
+    let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
+    const request = requests.find(r => r.id === requestId);
+    if (request) {
+        request.status = 'rejected';
+        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
+        alert("Demande refusée.");
+        document.querySelector('.modal.active')?.remove();
+        showDashboard();
+    }
+}
     
     function viewStats(shopId) {
         const shop = shops.find(s => s.id === shopId);
