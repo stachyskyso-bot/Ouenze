@@ -338,6 +338,207 @@ const newShop = {
         prodGap: 16,
         layout: 'grid'
     };
+
+
+
+
+
+   // Ajouter en début de script, après les déclarations
+const urlParams = new URLSearchParams(window.location.search);
+const editShopId = urlParams.get('edit');
+
+// Si on est en mode édition, charger la boutique
+if (editShopId) {
+    loadShopForEditing(editShopId);
+}
+
+function loadShopForEditing(shopId) {
+    const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    const shop = shops.find(s => s.id == shopId);
+    
+    if (!shop) {
+        showToast("Boutique non trouvée", true);
+        return;
+    }
+    
+    // Charger les données de la boutique
+    document.getElementById('shopNameInput').value = shop.name || '';
+    document.getElementById('shopDescInput').value = shop.description || '';
+    document.getElementById('shopCity').value = shop.city || '';
+    document.getElementById('shopQuartier').value = shop.quartier || '';
+    document.getElementById('shopAddress').value = shop.address || '';
+    
+    tempLogo = shop.logo || null;
+    if (tempLogo) {
+        document.getElementById('logoPreview').innerHTML = `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">`;
+    }
+    
+    // Charger les catégories
+    categories = shop.categories?.map(c => ({ id: Date.now() + Math.random(), name: c, productCount: 0 })) || [];
+    renderCategories();
+    
+    // Charger les produits
+    products = shop.products || [];
+    renderProductsList();
+    
+    // Charger le carrousel
+    carouselMedia = shop.carousel || [];
+    renderCarouselList();
+    
+    // Charger le menu
+    if (shop.menu) {
+        tempMenuCategories = shop.menu.categories || [];
+        designConfig.menuPosition = shop.menu.position || 'horizontal';
+        designConfig.menuBg = shop.menu.bg || '#1e40af';
+        designConfig.menuText = shop.menu.text || '#ffffff';
+        designConfig.menuRadius = shop.menu.radius || 0;
+        document.getElementById('menuBgColor').value = designConfig.menuBg;
+        document.getElementById('menuTextColor').value = designConfig.menuText;
+        document.getElementById('menuRadius').value = designConfig.menuRadius;
+        document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
+        renderMenuCategories();
+    }
+    
+    // Charger le design
+    if (shop.design) {
+        document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
+        document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
+        document.getElementById('bgColor').value = shop.design.background || '#ffffff';
+        document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
+        document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
+        
+        designConfig.carouselHeight = shop.design.carouselHeight || 300;
+        designConfig.carouselRadius = shop.design.carouselRadius || 12;
+        designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
+        designConfig.prodWidth = shop.design.prodWidth || 200;
+        designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
+        designConfig.prodRadius = shop.design.prodRadius || 12;
+        designConfig.prodGap = shop.design.prodGap || 16;
+        designConfig.layout = shop.design.layout || 'grid';
+        
+        document.getElementById('carouselHeight').value = designConfig.carouselHeight;
+        document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
+        document.getElementById('carouselRadius').value = designConfig.carouselRadius;
+        document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
+        document.getElementById('prodWidth').value = designConfig.prodWidth;
+        document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
+        document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
+        document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
+        document.getElementById('prodRadius').value = designConfig.prodRadius;
+        document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
+        document.getElementById('prodGap').value = designConfig.prodGap;
+        document.getElementById('prodGapVal').innerText = designConfig.prodGap;
+        
+        // Sélectionner la disposition
+        document.querySelectorAll('.layout-card').forEach(card => {
+            if (card.dataset.layout === designConfig.layout) {
+                card.classList.add('selected');
+            }
+        });
+        
+        // Sélectionner la vitesse du carrousel
+        document.querySelectorAll('.speed-card').forEach(card => {
+            if (parseInt(card.dataset.speed) === designConfig.carouselSpeed) {
+                card.classList.add('selected');
+            }
+        });
+        
+        // Sélectionner la position du menu
+        document.querySelectorAll('.menu-pos-card').forEach(card => {
+            if (card.dataset.pos === designConfig.menuPosition) {
+                card.classList.add('selected');
+            }
+        });
+    }
+    
+    // Modifier le titre et le bouton
+    document.querySelector('.header-simple h1').innerText = 'Modifier la boutique';
+    const publishBtn = document.querySelector('.btn-primary');
+    publishBtn.innerText = 'Mettre à jour la boutique';
+    
+    // Stocker l'ID de la boutique en cours d'édition
+    window.editingShopId = shopId;
+    
+    showToast(`Boutique "${shop.name}" chargée pour modification`);
+    debouncedUpdatePreview();
+}
+
+// Modifier la fonction publishShop pour la mise à jour
+function publishShop() {
+    const name = document.getElementById('shopNameInput').value.trim();
+    if (!name) { showToast("Nom de boutique requis", true); return; }
+    if (categories.length === 0) { showToast("Créez au moins une catégorie", true); return; }
+    if (products.length === 0) { showToast("Ajoutez au moins un produit", true); return; }
+    
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    
+    const shopData = {
+        name, logo: tempLogo,
+        description: document.getElementById('shopDescInput').value,
+        city: document.getElementById('shopCity').value,
+        quartier: document.getElementById('shopQuartier').value,
+        address: document.getElementById('shopAddress').value,
+        categories: categories.map(c => c.name),
+        products: products,
+        carousel: carouselMedia,
+        menu: { 
+            categories: tempMenuCategories, 
+            position: designConfig.menuPosition, 
+            bg: designConfig.menuBg, 
+            text: designConfig.menuText, 
+            radius: designConfig.menuRadius 
+        },
+        design: {
+            primary: document.getElementById('primaryColor').value,
+            button: document.getElementById('buttonColor').value,
+            background: document.getElementById('bgColor').value,
+            headerTextColor: document.getElementById('headerTextColor').value,
+            productTextColor: document.getElementById('productTextColor').value,
+            carouselHeight: designConfig.carouselHeight,
+            carouselRadius: designConfig.carouselRadius,
+            carouselSpeed: designConfig.carouselSpeed,
+            prodWidth: designConfig.prodWidth,
+            prodImgHeight: designConfig.prodImgHeight,
+            prodRadius: designConfig.prodRadius,
+            prodGap: designConfig.prodGap,
+            layout: designConfig.layout,
+            logoShape: tempLogoShape
+        },
+        owner: currentUserEmail,
+        verified: false,
+        totalSales: 0,
+        rating: 0,
+        reviews: [],
+        createdAt: new Date().toISOString()
+    };
+    
+    if (window.editingShopId) {
+        // Mode édition : mettre à jour la boutique existante
+        const index = shops.findIndex(s => s.id == window.editingShopId);
+        if (index !== -1) {
+            shopData.id = window.editingShopId;
+            shopData.createdAt = shops[index].createdAt;
+            shops[index] = shopData;
+            showToast(`Boutique "${name}" mise à jour !`);
+        }
+    } else {
+        // Mode création : ajouter une nouvelle boutique
+        let nextId = shops.length > 0 ? Math.max(...shops.map(s => s.id)) + 1 : 1;
+        shopData.id = nextId;
+        shops.push(shopData);
+        showToast(`Boutique "${name}" créée !`);
+    }
+    
+    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+    setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 1500);
+}
+
+
+
+
+
+
+
     
     // Vérification de l'espace localStorage
     function checkStorageSpace() {
