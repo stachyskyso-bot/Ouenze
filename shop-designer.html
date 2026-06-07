@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Ouenze | Création de boutique professionnelle</title>
+    <title>Ouenze | Création/Modification de boutique</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -22,9 +22,11 @@
             --warning: #f59e0b;
         }
         
-        .header-simple { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 16px 20px; text-align: center; }
+        .header-simple { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 16px 20px; text-align: center; position: relative; }
         .header-simple h1 { font-size: 22px; font-weight: 700; color: var(--primary); }
         .header-simple p { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        .back-to-dashboard { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: var(--gray-100); border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 13px; color: var(--gray-700); transition: 0.2s; }
+        .back-to-dashboard:hover { background: var(--gray-200); }
         
         .container { max-width: 1400px; margin: 20px auto; padding: 0 16px; }
         .designer-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -154,7 +156,8 @@
 <body>
 
 <div class="header-simple">
-    <h1>Création de boutique professionnelle</h1>
+    <button class="back-to-dashboard" onclick="window.location.href='vendor-dashboard.html'"><i class="fas fa-arrow-left"></i> Retour au tableau de bord</button>
+    <h1 id="pageTitle">Création de boutique professionnelle</h1>
     <p>Personnalisez votre espace, gérez vos catégories et produits</p>
 </div>
 
@@ -259,7 +262,8 @@
                 <button class="btn-secondary" style="width:100%;" onclick="openAddProductModal()">+ Ajouter un produit</button>
             </div>
             
-            <button class="btn-primary" onclick="publishShop()">Publier ma boutique</button>
+            <button class="btn-primary" id="publishBtn" onclick="publishShop()">Publier ma boutique</button>
+            <button class="btn-primary" id="updateBtn" style="display:none; background:var(--warning);" onclick="updateShop()">Mettre à jour la boutique</button>
         </div>
         
         <!-- Aperçu -->
@@ -292,36 +296,7 @@
     let tempVariants = [];
     let tempProductPhotos = [];
     let updateTimeout = null;
-
-
-    
-
-
-    // Dans la création de boutique
-const newShop = {
-    // ... autres propriétés
-   
-};
-
-    
-    
-    
-
-    
-    const newShop = {
-    // ... autres propriétés
-    ownerEmail: currentUser.email,
-    ownerName: currentUser.name
-
-
-     location: {
-        country: document.getElementById('shopCountry').value,
-        city: document.getElementById('shopCity').value,
-        address: document.getElementById('shopAddress').value,
-        deliveryZones: [] // Zones de livraison autorisées
-    }
-    
-};
+    let editingShopId = null; // ID de la boutique en cours d'édition
     
     // Configuration design
     let designConfig = {
@@ -338,212 +313,15 @@ const newShop = {
         prodGap: 16,
         layout: 'grid'
     };
-
-
-
-
-
-   // Ajouter en début de script, après les déclarations
-const urlParams = new URLSearchParams(window.location.search);
-const editShopId = urlParams.get('edit');
-
-// Si on est en mode édition, charger la boutique
-if (editShopId) {
-    loadShopForEditing(editShopId);
-}
-
-function loadShopForEditing(shopId) {
-    const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    const shop = shops.find(s => s.id == shopId);
     
-    if (!shop) {
-        showToast("Boutique non trouvée", true);
-        return;
-    }
-    
-    // Charger les données de la boutique
-    document.getElementById('shopNameInput').value = shop.name || '';
-    document.getElementById('shopDescInput').value = shop.description || '';
-    document.getElementById('shopCity').value = shop.city || '';
-    document.getElementById('shopQuartier').value = shop.quartier || '';
-    document.getElementById('shopAddress').value = shop.address || '';
-    
-    tempLogo = shop.logo || null;
-    if (tempLogo) {
-        document.getElementById('logoPreview').innerHTML = `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">`;
-    }
-    
-    // Charger les catégories
-    categories = shop.categories?.map(c => ({ id: Date.now() + Math.random(), name: c, productCount: 0 })) || [];
-    renderCategories();
-    
-    // Charger les produits
-    products = shop.products || [];
-    renderProductsList();
-    
-    // Charger le carrousel
-    carouselMedia = shop.carousel || [];
-    renderCarouselList();
-    
-    // Charger le menu
-    if (shop.menu) {
-        tempMenuCategories = shop.menu.categories || [];
-        designConfig.menuPosition = shop.menu.position || 'horizontal';
-        designConfig.menuBg = shop.menu.bg || '#1e40af';
-        designConfig.menuText = shop.menu.text || '#ffffff';
-        designConfig.menuRadius = shop.menu.radius || 0;
-        document.getElementById('menuBgColor').value = designConfig.menuBg;
-        document.getElementById('menuTextColor').value = designConfig.menuText;
-        document.getElementById('menuRadius').value = designConfig.menuRadius;
-        document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
-        renderMenuCategories();
-    }
-    
-    // Charger le design
-    if (shop.design) {
-        document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
-        document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
-        document.getElementById('bgColor').value = shop.design.background || '#ffffff';
-        document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
-        document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
-        
-        designConfig.carouselHeight = shop.design.carouselHeight || 300;
-        designConfig.carouselRadius = shop.design.carouselRadius || 12;
-        designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
-        designConfig.prodWidth = shop.design.prodWidth || 200;
-        designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
-        designConfig.prodRadius = shop.design.prodRadius || 12;
-        designConfig.prodGap = shop.design.prodGap || 16;
-        designConfig.layout = shop.design.layout || 'grid';
-        
-        document.getElementById('carouselHeight').value = designConfig.carouselHeight;
-        document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
-        document.getElementById('carouselRadius').value = designConfig.carouselRadius;
-        document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
-        document.getElementById('prodWidth').value = designConfig.prodWidth;
-        document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
-        document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
-        document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
-        document.getElementById('prodRadius').value = designConfig.prodRadius;
-        document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
-        document.getElementById('prodGap').value = designConfig.prodGap;
-        document.getElementById('prodGapVal').innerText = designConfig.prodGap;
-        
-        // Sélectionner la disposition
-        document.querySelectorAll('.layout-card').forEach(card => {
-            if (card.dataset.layout === designConfig.layout) {
-                card.classList.add('selected');
-            }
-        });
-        
-        // Sélectionner la vitesse du carrousel
-        document.querySelectorAll('.speed-card').forEach(card => {
-            if (parseInt(card.dataset.speed) === designConfig.carouselSpeed) {
-                card.classList.add('selected');
-            }
-        });
-        
-        // Sélectionner la position du menu
-        document.querySelectorAll('.menu-pos-card').forEach(card => {
-            if (card.dataset.pos === designConfig.menuPosition) {
-                card.classList.add('selected');
-            }
-        });
-    }
-    
-    // Modifier le titre et le bouton
-    document.querySelector('.header-simple h1').innerText = 'Modifier la boutique';
-    const publishBtn = document.querySelector('.btn-primary');
-    publishBtn.innerText = 'Mettre à jour la boutique';
-    
-    // Stocker l'ID de la boutique en cours d'édition
-    window.editingShopId = shopId;
-    
-    showToast(`Boutique "${shop.name}" chargée pour modification`);
-    debouncedUpdatePreview();
-}
-
-// Modifier la fonction publishShop pour la mise à jour
-function publishShop() {
-    const name = document.getElementById('shopNameInput').value.trim();
-    if (!name) { showToast("Nom de boutique requis", true); return; }
-    if (categories.length === 0) { showToast("Créez au moins une catégorie", true); return; }
-    if (products.length === 0) { showToast("Ajoutez au moins un produit", true); return; }
-    
-    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    
-    const shopData = {
-        name, logo: tempLogo,
-        description: document.getElementById('shopDescInput').value,
-        city: document.getElementById('shopCity').value,
-        quartier: document.getElementById('shopQuartier').value,
-        address: document.getElementById('shopAddress').value,
-        categories: categories.map(c => c.name),
-        products: products,
-        carousel: carouselMedia,
-        menu: { 
-            categories: tempMenuCategories, 
-            position: designConfig.menuPosition, 
-            bg: designConfig.menuBg, 
-            text: designConfig.menuText, 
-            radius: designConfig.menuRadius 
-        },
-        design: {
-            primary: document.getElementById('primaryColor').value,
-            button: document.getElementById('buttonColor').value,
-            background: document.getElementById('bgColor').value,
-            headerTextColor: document.getElementById('headerTextColor').value,
-            productTextColor: document.getElementById('productTextColor').value,
-            carouselHeight: designConfig.carouselHeight,
-            carouselRadius: designConfig.carouselRadius,
-            carouselSpeed: designConfig.carouselSpeed,
-            prodWidth: designConfig.prodWidth,
-            prodImgHeight: designConfig.prodImgHeight,
-            prodRadius: designConfig.prodRadius,
-            prodGap: designConfig.prodGap,
-            layout: designConfig.layout,
-            logoShape: tempLogoShape
-        },
-        owner: currentUserEmail,
-        verified: false,
-        totalSales: 0,
-        rating: 0,
-        reviews: [],
-        createdAt: new Date().toISOString()
-    };
-    
-    if (window.editingShopId) {
-        // Mode édition : mettre à jour la boutique existante
-        const index = shops.findIndex(s => s.id == window.editingShopId);
-        if (index !== -1) {
-            shopData.id = window.editingShopId;
-            shopData.createdAt = shops[index].createdAt;
-            shops[index] = shopData;
-            showToast(`Boutique "${name}" mise à jour !`);
-        }
-    } else {
-        // Mode création : ajouter une nouvelle boutique
-        let nextId = shops.length > 0 ? Math.max(...shops.map(s => s.id)) + 1 : 1;
-        shopData.id = nextId;
-        shops.push(shopData);
-        showToast(`Boutique "${name}" créée !`);
-    }
-    
-    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-    setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 1500);
-}
-
-
-
-
-
-
-
+    // Récupérer l'ID de la boutique à éditer depuis l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const editShopId = urlParams.get('edit');
     
     // Vérification de l'espace localStorage
     function checkStorageSpace() {
         try {
-            const test = 'x'.repeat(10 * 1024 * 1024); // 10MB
+            const test = 'x'.repeat(10 * 1024 * 1024);
             localStorage.setItem('_test', test);
             localStorage.removeItem('_test');
             document.getElementById('storageWarning').style.display = 'none';
@@ -566,6 +344,130 @@ function publishShop() {
     function debouncedUpdatePreview() {
         if (updateTimeout) clearTimeout(updateTimeout);
         updateTimeout = setTimeout(() => updatePreview(), 200);
+    }
+    
+    // ============ CHARGEMENT D'UNE BOUTIQUE EXISTANTE ============
+    function loadShopForEditing(shopId) {
+        const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+        const shop = shops.find(s => s.id == shopId);
+        
+        if (!shop) {
+            showToast("Boutique non trouvée", true);
+            return false;
+        }
+        
+        // Vérifier que l'utilisateur est bien le propriétaire
+        if (shop.owner !== currentUserEmail && shop.ownerEmail !== currentUserEmail) {
+            showToast("Vous n'êtes pas autorisé à modifier cette boutique", true);
+            return false;
+        }
+        
+        editingShopId = shopId;
+        
+        // Charger les informations de la boutique
+        document.getElementById('shopNameInput').value = shop.name || '';
+        document.getElementById('shopDescInput').value = shop.description || '';
+        document.getElementById('shopCity').value = shop.city || '';
+        document.getElementById('shopQuartier').value = shop.quartier || '';
+        document.getElementById('shopAddress').value = shop.address || '';
+        
+        // Charger le logo
+        if (shop.logo) {
+            tempLogo = shop.logo;
+            document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:contain;">`;
+        }
+        
+        // Charger les catégories
+        categories = shop.categories?.map(cat => ({ id: Date.now() + Math.random(), name: cat, productCount: 0 })) || [];
+        renderCategories();
+        
+        // Charger les produits
+        products = shop.products ? [...shop.products] : [];
+        renderProductsList();
+        
+        // Charger le carrousel
+        carouselMedia = shop.carousel ? [...shop.carousel] : [];
+        renderCarouselList();
+        
+        // Charger le menu
+        if (shop.menu) {
+            designConfig.menuPosition = shop.menu.position || 'horizontal';
+            designConfig.menuBg = shop.menu.bg || '#1e40af';
+            designConfig.menuText = shop.menu.text || '#ffffff';
+            designConfig.menuRadius = shop.menu.radius || 0;
+            document.getElementById('menuBgColor').value = designConfig.menuBg;
+            document.getElementById('menuTextColor').value = designConfig.menuText;
+            document.getElementById('menuRadius').value = designConfig.menuRadius;
+            document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
+            
+            // Mettre à jour l'interface du menu position
+            document.querySelectorAll('.menu-pos-card').forEach(card => {
+                if (card.dataset.pos === designConfig.menuPosition) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+        
+        // Charger le design
+        if (shop.design) {
+            document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
+            document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
+            document.getElementById('bgColor').value = shop.design.background || '#ffffff';
+            document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
+            document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
+            
+            designConfig.carouselHeight = shop.design.carouselHeight || 300;
+            designConfig.carouselRadius = shop.design.carouselRadius || 12;
+            designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
+            designConfig.prodWidth = shop.design.prodWidth || 200;
+            designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
+            designConfig.prodRadius = shop.design.prodRadius || 12;
+            designConfig.prodGap = shop.design.prodGap || 16;
+            designConfig.layout = shop.design.layout || 'grid';
+            
+            document.getElementById('carouselHeight').value = designConfig.carouselHeight;
+            document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
+            document.getElementById('carouselRadius').value = designConfig.carouselRadius;
+            document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
+            document.getElementById('prodWidth').value = designConfig.prodWidth;
+            document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
+            document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
+            document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
+            document.getElementById('prodRadius').value = designConfig.prodRadius;
+            document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
+            document.getElementById('prodGap').value = designConfig.prodGap;
+            document.getElementById('prodGapVal').innerText = designConfig.prodGap;
+            
+            // Mettre à jour l'interface de disposition
+            document.querySelectorAll('.layout-card').forEach(card => {
+                if (card.dataset.layout === designConfig.layout) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+            
+            // Mettre à jour la vitesse du carrousel
+            document.querySelectorAll('.speed-card').forEach(card => {
+                if (parseInt(card.dataset.speed) === designConfig.carouselSpeed) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+        
+        // Changer l'interface pour le mode édition
+        document.getElementById('pageTitle').innerText = `Modification de la boutique : ${shop.name}`;
+        document.getElementById('publishBtn').style.display = 'none';
+        document.getElementById('updateBtn').style.display = 'block';
+        
+        showToast(`Boutique "${shop.name}" chargée pour modification`);
+        debouncedUpdatePreview();
+        
+        return true;
     }
     
     // Gestion des catégories
@@ -654,7 +556,7 @@ function publishShop() {
     function updateProdRadius(v) { designConfig.prodRadius = v; document.getElementById('prodRadiusVal').innerText = v; debouncedUpdatePreview(); }
     function updateProdGap(v) { designConfig.prodGap = v; document.getElementById('prodGapVal').innerText = v; debouncedUpdatePreview(); }
     
-    // Gestion des produits - CORRECTION BUG editProduct
+    // Gestion des produits
     function openAddProductModal(productId = null) {
         if (categories.length === 0) {
             showToast("Créez d'abord une catégorie", true);
@@ -877,7 +779,7 @@ function publishShop() {
         }
     });
     
-    // Aperçu (avec debounce)
+    // Aperçu
     function updatePreview() {
         const preview = document.getElementById('livePreview');
         if (!preview) return;
@@ -960,7 +862,6 @@ function publishShop() {
             </div>
         `;
         
-        // Carrousel auto
         if (carouselInterval) clearInterval(carouselInterval);
         if (carouselMedia.length > 1 && designConfig.carouselSpeed > 0) {
             carouselInterval = setInterval(() => {
@@ -1026,7 +927,7 @@ function publishShop() {
         card.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
     });
     
-    // Publication
+    // Publication (nouvelle boutique)
     function publishShop() {
         const name = document.getElementById('shopNameInput').value.trim();
         if (!name) { showToast("Nom de boutique requis", true); return; }
@@ -1042,7 +943,9 @@ function publishShop() {
             city: document.getElementById('shopCity').value,
             quartier: document.getElementById('shopQuartier').value,
             address: document.getElementById('shopAddress').value,
-            categories, products, carousel: carouselMedia,
+            categories: categories.map(c => c.name),
+            products: products,
+            carousel: carouselMedia,
             menu: { position: designConfig.menuPosition, bg: designConfig.menuBg, text: designConfig.menuText, radius: designConfig.menuRadius },
             design: {
                 primary: document.getElementById('primaryColor').value,
@@ -1059,20 +962,89 @@ function publishShop() {
                 prodGap: designConfig.prodGap,
                 layout: designConfig.layout
             },
-            owner: currentUserEmail, verified: false, totalSales: 0, rating: 0, reviews: [],
+            owner: currentUserEmail,
+            verified: false,
+            totalSales: 0,
+            rating: 0,
+            reviews: [],
             createdAt: new Date().toISOString()
         };
         
         shops.push(newShop);
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
         showToast(`Boutique "${name}" créée ! Redirection...`);
-        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+        setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 1500);
+    }
+    
+    // Mise à jour (boutique existante)
+    function updateShop() {
+        if (!editingShopId) {
+            showToast("Erreur : aucune boutique en cours de modification", true);
+            return;
+        }
+        
+        const name = document.getElementById('shopNameInput').value.trim();
+        if (!name) { showToast("Nom de boutique requis", true); return; }
+        
+        let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+        const shopIndex = shops.findIndex(s => s.id == editingShopId);
+        
+        if (shopIndex === -1) {
+            showToast("Boutique non trouvée", true);
+            return;
+        }
+        
+        const updatedShop = {
+            ...shops[shopIndex],
+            name: name,
+            logo: tempLogo,
+            description: document.getElementById('shopDescInput').value,
+            city: document.getElementById('shopCity').value,
+            quartier: document.getElementById('shopQuartier').value,
+            address: document.getElementById('shopAddress').value,
+            categories: categories.map(c => c.name),
+            products: products,
+            carousel: carouselMedia,
+            menu: { position: designConfig.menuPosition, bg: designConfig.menuBg, text: designConfig.menuText, radius: designConfig.menuRadius },
+            design: {
+                primary: document.getElementById('primaryColor').value,
+                button: document.getElementById('buttonColor').value,
+                background: document.getElementById('bgColor').value,
+                headerTextColor: document.getElementById('headerTextColor').value,
+                productTextColor: document.getElementById('productTextColor').value,
+                carouselHeight: designConfig.carouselHeight,
+                carouselRadius: designConfig.carouselRadius,
+                carouselSpeed: designConfig.carouselSpeed,
+                prodWidth: designConfig.prodWidth,
+                prodImgHeight: designConfig.prodImgHeight,
+                prodRadius: designConfig.prodRadius,
+                prodGap: designConfig.prodGap,
+                layout: designConfig.layout
+            },
+            updatedAt: new Date().toISOString()
+        };
+        
+        shops[shopIndex] = updatedShop;
+        localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+        showToast(`Boutique "${name}" mise à jour ! Redirection...`);
+        setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 1500);
     }
     
     // Initialisation
     checkStorageSpace();
-    renderCategories();
-    renderProductsList();
+    
+    // Si on est en mode édition, charger la boutique
+    if (editShopId) {
+        const loaded = loadShopForEditing(editShopId);
+        if (!loaded) {
+            // Rediriger vers le dashboard si la boutique n'existe pas
+            setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 2000);
+        }
+    } else {
+        // Mode création
+        renderCategories();
+        renderProductsList();
+    }
     debouncedUpdatePreview();
     
     // Nettoyage
@@ -1102,6 +1074,7 @@ function publishShop() {
     window.updateProdRadius = updateProdRadius;
     window.updateProdGap = updateProdGap;
     window.publishShop = publishShop;
+    window.updateShop = updateShop;
     window.changeSlide = changeSlide;
     window.removeProductPhoto = removeProductPhoto;
 </script>
