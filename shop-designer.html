@@ -38,39 +38,26 @@
         
         .form-group { margin-bottom: 14px; }
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--gray-700); }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(30,64,175,0.1); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 13px; font-family: inherit; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         
         .slider-group { margin: 12px 0; }
         .slider-group label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
         input[type="range"] { width: 100%; height: 4px; background: var(--gray-200); border-radius: 2px; -webkit-appearance: none; }
-        input[type="range"]:focus { outline: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; cursor: pointer; transition: transform 0.1s; }
-        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type="range"]::-webkit-slider-thumb { width: 14px; height: 14px; background: var(--primary); border-radius: 50%; cursor: pointer; }
         
-        .color-picker-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
-        .color-option { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
-        .color-option:hover { transform: scale(1.05); }
-        .color-option.selected { border-color: var(--gray-700); transform: scale(1.05); }
-        
-        .layout-option, .speed-option, .menu-position-option { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .layout-card, .speed-card, .menu-pos-card { flex: 1; padding: 8px; background: var(--gray-100); border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 12px; font-weight: 500; transition: all 0.2s; }
-        .layout-card:focus-visible, .speed-card:focus-visible, .menu-pos-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-        .layout-card:hover, .speed-card:hover, .menu-pos-card:hover { background: #e2e8f0; }
-        .layout-card.selected, .speed-card.selected, .menu-pos-card.selected { border-color: var(--primary); background: #eef2ff; }
+        .menu-pos-card, .speed-card, .layout-card { flex: 1; padding: 8px; background: var(--gray-100); border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 12px; font-weight: 500; transition: all 0.2s; }
+        .menu-pos-card.selected, .speed-card.selected, .layout-card.selected { border-color: var(--primary); background: #eef2ff; }
         
         .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; transition: all 0.2s; }
-        .btn-primary:hover, .btn-primary:focus { background: var(--primary-dark); transform: translateY(-1px); outline: none; box-shadow: 0 0 0 2px rgba(30,64,175,0.3); }
+        .btn-primary:hover { background: var(--primary-dark); }
         .btn-secondary { background: var(--gray-200); color: var(--gray-700); border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; }
-        .btn-secondary:hover, .btn-secondary:focus { background: #cbd5e1; transform: translateY(-1px); outline: none; }
-        .btn-danger { background: #fee2e2; color: var(--danger); border: none; padding: 4px 8px; border-radius: 20px; cursor: pointer; font-size: 10px; transition: all 0.2s; }
-        .btn-danger:hover, .btn-danger:focus { background: #fecaca; outline: none; }
-        .btn-sm { padding: 4px 10px; background: var(--gray-200); border: none; border-radius: 16px; cursor: pointer; font-size: 11px; transition: all 0.2s; }
-        .btn-sm:hover, .btn-sm:focus { background: #cbd5e1; outline: none; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: #fee2e2; color: var(--danger); border: none; padding: 4px 8px; border-radius: 20px; cursor: pointer; font-size: 10px; }
+        .btn-sm { padding: 4px 10px; background: var(--gray-200); border: none; border-radius: 16px; cursor: pointer; font-size: 11px; }
         
-        .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); transition: border-color 0.2s; }
-        .image-upload:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .image-upload { border: 2px dashed var(--gray-200); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 10px; background: var(--gray-100); }
         .image-upload:hover { border-color: var(--primary); }
         .image-preview { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: var(--white); display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); }
         
@@ -79,52 +66,51 @@
         .carousel-media-item img, .carousel-media-item video { width: 100%; height: 100%; object-fit: cover; }
         .remove-media { position: absolute; top: 0; right: 0; background: var(--danger); color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; }
         
-        .categories-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-        .category-item { background: var(--gray-100); border-radius: 12px; padding: 12px; border-left: 3px solid var(--primary); }
+        .category-item { background: var(--gray-100); border-radius: 12px; padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--primary); }
         .category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
-        .category-name { font-weight: 600; font-size: 14px; }
+        .category-name-input { font-weight: 600; font-size: 14px; border: none; background: transparent; padding: 4px 0; width: auto; min-width: 120px; }
+        .category-name-input:focus { outline: none; border-bottom: 1px solid var(--primary); }
         
-        .product-item { background: var(--gray-100); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--gray-200); transition: all 0.2s; }
-        .product-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .product-item { background: var(--gray-100); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--gray-200); }
+        .product-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .product-name-input { font-weight: 600; font-size: 14px; border: 1px solid var(--gray-200); border-radius: 6px; padding: 4px 8px; width: 180px; }
+        .product-price-input { width: 100px; padding: 4px 8px; border: 1px solid var(--gray-200); border-radius: 6px; }
+        .product-stock-input { width: 70px; padding: 4px 8px; border: 1px solid var(--gray-200); border-radius: 6px; }
         
-        .variants-group { background: white; border-radius: 8px; padding: 10px; margin: 8px 0; }
-        .variant-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
-        .variant-row input { padding: 6px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 11px; }
-        
+        .variant-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; background: white; padding: 6px; border-radius: 8px; }
+        .variant-row input { padding: 4px 6px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 11px; }
         .photo-gallery { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
         .photo-item { width: 60px; height: 60px; background: var(--white); border-radius: 8px; border: 1px solid var(--gray-200); position: relative; overflow: hidden; }
         .photo-item img { width: 100%; height: 100%; object-fit: cover; }
-        .remove-photo { position: absolute; top: 2px; right: 2px; background: var(--danger); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
-        .remove-photo:hover { transform: scale(1.1); }
+        .remove-photo { position: absolute; top: 2px; right: 2px; background: var(--danger); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
-        .preview-shop { background: var(--preview-bg, #ffffff); overflow: hidden; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .preview-header { background: linear-gradient(135deg, var(--preview-primary, #1e40af), var(--preview-primary-dark)); padding: 20px; color: white; }
+        .preview-shop { background: white; overflow: hidden; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .preview-header { background: linear-gradient(135deg, #1e40af, #1e40afaa); padding: 20px; color: white; }
         .preview-logo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .preview-logo-img { width: 55px; height: 55px; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; }
+        .preview-logo-img { width: 55px; height: 55px; background: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden; }
         .preview-logo-img img { width: 100%; height: 100%; object-fit: contain; }
         .preview-menu { padding: 8px 16px; margin-bottom: 16px; }
         .preview-menu-horizontal { display: flex; gap: 16px; flex-wrap: wrap; }
         .preview-menu-vertical { width: 180px; float: left; margin-right: 16px; }
-        .preview-carousel { position: relative; margin-bottom: 16px; overflow: hidden; }
+        .preview-menu-item { padding: 6px 0; font-size: 13px; }
+        .preview-carousel { position: relative; margin-bottom: 16px; overflow: hidden; height: 300px; }
         .preview-carousel .slide { width: 100%; height: 100%; object-fit: cover; display: none; }
         .preview-carousel .active { display: block; }
-        .preview-products { display: var(--preview-layout, grid); gap: var(--product-gap, 16px); margin-top: 16px; }
-        .preview-products.grid { grid-template-columns: repeat(auto-fill, minmax(var(--product-width, 200px), 1fr)); }
+        .preview-products { display: grid; gap: 16px; margin-top: 16px; }
+        .preview-products.grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
         .preview-products.list { flex-direction: column; }
-        .preview-product { background: white; border-radius: var(--product-radius, 12px); border: 1px solid var(--gray-200); overflow: hidden; transition: all 0.2s; }
+        .preview-product { background: white; border-radius: 12px; border: 1px solid var(--gray-200); overflow: hidden; transition: 0.2s; }
         .preview-product:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .preview-product-image { height: var(--product-img-height, 160px); background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .preview-product-image { height: 160px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .preview-product-image img { width: 100%; height: 100%; object-fit: cover; }
         .preview-product-info { padding: 12px; }
-        .preview-product-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--product-text, #1e293b); }
-        .preview-product-price { font-weight: 700; color: var(--preview-primary, #1e40af); font-size: 14px; margin: 4px 0; }
+        .preview-product-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .preview-product-price { font-weight: 700; color: var(--primary); font-size: 14px; margin: 4px 0; }
         .preview-product-colors { display: flex; gap: 4px; margin: 6px 0; flex-wrap: wrap; }
         .preview-color-dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--gray-200); }
-        .preview-btn { background: var(--preview-button, #1e40af); color: white; border: none; padding: 8px; border-radius: var(--product-radius, 30px); width: 100%; cursor: pointer; font-size: 12px; font-weight: 500; transition: opacity 0.2s; }
-        .preview-btn:hover, .preview-btn:focus { opacity: 0.9; outline: none; }
+        .preview-btn { background: #1e40af; color: white; border: none; padding: 8px; border-radius: 30px; width: 100%; cursor: pointer; font-size: 12px; font-weight: 500; }
         .food-badge { display: inline-block; background: #eef2ff; color: var(--primary); font-size: 9px; padding: 2px 8px; border-radius: 12px; margin-bottom: 6px; }
-        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; transition: background 0.2s; }
-        .carousel-btn:hover, .carousel-btn:focus { background: rgba(0,0,0,0.7); outline: none; }
+        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }
         .carousel-prev { left: 6px; }
         .carousel-next { right: 6px; }
         
@@ -132,33 +118,26 @@
             .designer-layout { grid-template-columns: 1fr; }
             .designer-panel { position: relative; top: 0; max-height: none; }
             .designer-preview { max-height: none; }
+            .form-row { grid-template-columns: 1fr; }
         }
         
         @media (max-width: 480px) {
             .preview-products.grid { grid-template-columns: 1fr; }
-            .form-row { grid-template-columns: 1fr; }
             .variant-row { flex-direction: column; align-items: stretch; }
         }
-        
-        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 12px 20px; border-radius: 40px; font-size: 13px; z-index: 1000; animation: slideIn 0.3s ease; }
-        .toast.error { background: var(--danger); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        .warning-banner { background: #fef3c7; color: #b45309; padding: 10px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 11px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
         .modal.active { display: flex; }
         .modal-card { background: white; border-radius: 24px; max-width: 650px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; position: relative; }
-        .modal-close { position: absolute; top: 16px; right: 16px; font-size: 24px; cursor: pointer; background: none; border: none; color: var(--gray-500); }
-        .modal-close:hover { color: var(--gray-700); }
+        .modal-close { position: absolute; top: 16px; right: 16px; font-size: 24px; cursor: pointer; background: none; border: none; }
     </style>
 </head>
 <body>
 
 <div class="header-simple">
-    <button class="back-to-dashboard" onclick="window.location.href='vendor-dashboard.html'"><i class="fas fa-arrow-left"></i> Retour au tableau de bord</button>
-    <h1 id="pageTitle">Création de boutique professionnelle</h1>
-    <p>Personnalisez votre espace, gérez vos catégories et produits - Aperçu en temps réel</p>
+    <button class="back-to-dashboard" onclick="window.location.href='vendor-dashboard.html'"><i class="fas fa-arrow-left"></i> Retour</button>
+    <h1 id="pageTitle">Création de boutique</h1>
+    <p>Personnalisez votre espace, gérez vos catégories et produits</p>
 </div>
 
 <div class="container">
@@ -166,72 +145,66 @@
         <div class="designer-panel">
             <h2 style="margin-bottom:16px;">Configuration</h2>
             
-            <div class="warning-banner" id="storageWarning" style="display:none;">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Attention : L'espace de stockage est presque plein. Pensez à réduire la taille de vos images.</span>
-            </div>
-            
             <!-- Informations boutique -->
             <div class="design-section">
-                <h3><i class="fas fa-store"></i> Informations générales</h3>
-                <div class="form-group"><label for="shopNameInput">Nom de la boutique *</label><input type="text" id="shopNameInput" placeholder="Ma boutique" oninput="debouncedUpdatePreview()"></div>
-                <div class="form-group"><label for="shopDescInput">Description</label><textarea id="shopDescInput" rows="2" placeholder="Décrivez votre boutique..." oninput="debouncedUpdatePreview()"></textarea></div>
+                <h3><i class="fas fa-store"></i> Informations</h3>
+                <div class="form-group"><label>Nom de la boutique *</label><input type="text" id="shopNameInput" placeholder="Ma boutique" oninput="updatePreview()"></div>
+                <div class="form-group"><label>Description</label><textarea id="shopDescInput" rows="2" oninput="updatePreview()"></textarea></div>
                 <div class="form-row">
-                    <div class="form-group"><label for="shopCity">Ville</label><input type="text" id="shopCity" placeholder="Brazzaville" oninput="debouncedUpdatePreview()"></div>
-                    <div class="form-group"><label for="shopQuartier">Quartier</label><input type="text" id="shopQuartier" oninput="debouncedUpdatePreview()"></div>
+                    <div class="form-group"><label>Ville</label><input type="text" id="shopCity" oninput="updatePreview()"></div>
+                    <div class="form-group"><label>Quartier</label><input type="text" id="shopQuartier" oninput="updatePreview()"></div>
                 </div>
-                <div class="form-group"><label for="shopAddress">Adresse complète</label><input type="text" id="shopAddress" oninput="debouncedUpdatePreview()"></div>
             </div>
             
             <!-- Logo -->
             <div class="design-section">
                 <h3><i class="fas fa-image"></i> Logo</h3>
-                <div class="image-upload" onclick="document.getElementById('logoUpload').click()" tabindex="0" role="button" aria-label="Charger un logo">
+                <div class="image-upload" onclick="document.getElementById('logoUpload').click()">
                     <div id="logoPreview" class="image-preview"><i class="fas fa-cloud-upload-alt"></i></div>
                     <div>Charger un logo</div>
                 </div>
-                <input type="file" id="logoUpload" accept="image/*" style="display:none;" aria-label="Fichier logo">
+                <input type="file" id="logoUpload" accept="image/*" style="display:none;">
             </div>
             
-            <!-- Menu de navigation -->
+            <!-- Menu -->
             <div class="design-section">
-                <h3><i class="fas fa-bars"></i> Menu de navigation</h3>
-                <div class="form-group"><label>Position du menu</label>
-                    <div class="menu-position-option" role="group" aria-label="Position du menu">
-                        <div class="menu-pos-card" data-pos="horizontal" role="button" tabindex="0">Horizontal</div>
-                        <div class="menu-pos-card" data-pos="vertical-left" role="button" tabindex="0">Vertical gauche</div>
-                        <div class="menu-pos-card" data-pos="vertical-right" role="button" tabindex="0">Vertical droite</div>
+                <h3><i class="fas fa-bars"></i> Menu</h3>
+                <div class="form-group"><label>Position</label>
+                    <div class="menu-position-option" style="display:flex; gap:10px;">
+                        <div class="menu-pos-card" data-pos="horizontal">Horizontal</div>
+                        <div class="menu-pos-card" data-pos="vertical-left">Vertical gauche</div>
+                        <div class="menu-pos-card" data-pos="vertical-right">Vertical droite</div>
                     </div>
                 </div>
-                <div class="form-group"><label for="menuBgColor">Couleur fond menu</label><input type="color" id="menuBgColor" value="#1e40af" onchange="updateMenuBg(this.value)"></div>
-                <div class="form-group"><label for="menuTextColor">Couleur texte menu</label><input type="color" id="menuTextColor" value="#ffffff" onchange="updateMenuText(this.value)"></div>
-                <div class="slider-group"><label>Arrondi menu <span id="menuRadiusVal">0</span>px</label><input type="range" id="menuRadius" min="0" max="30" value="0" oninput="updateMenuRadius(this.value)" aria-label="Arrondi du menu"></div>
+                <div class="form-group"><label>Couleur fond</label><input type="color" id="menuBgColor" value="#1e40af" oninput="updatePreview()"></div>
+                <div class="form-group"><label>Couleur texte</label><input type="color" id="menuTextColor" value="#ffffff" oninput="updatePreview()"></div>
+                <div class="slider-group"><label>Arrondi <span id="menuRadiusVal">0</span>px</label><input type="range" id="menuRadius" min="0" max="30" value="0" oninput="updateMenuRadius(this.value)"></div>
             </div>
             
-            <!-- Carrousel bannière -->
+            <!-- Carrousel -->
             <div class="design-section">
-                <h3><i class="fas fa-images"></i> Carrousel bannière</h3>
+                <h3><i class="fas fa-images"></i> Carrousel</h3>
                 <div id="carouselList" class="carousel-media-list"></div>
-                <div class="image-upload" onclick="document.getElementById('carouselMedia').click()" style="padding:8px;" tabindex="0" role="button">+ Ajouter image/vidéo</div>
+                <div class="image-upload" onclick="document.getElementById('carouselMedia').click()" style="padding:8px;">+ Ajouter image/vidéo</div>
                 <input type="file" id="carouselMedia" accept="image/*,video/*" style="display:none;" multiple>
                 <div class="slider-group"><label>Hauteur <span id="carouselHeightVal">300</span>px</label><input type="range" id="carouselHeight" min="150" max="500" value="300" oninput="updateCarouselHeight(this.value)"></div>
                 <div class="slider-group"><label>Arrondi <span id="carouselRadiusVal">12</span>px</label><input type="range" id="carouselRadius" min="0" max="40" value="12" oninput="updateCarouselRadius(this.value)"></div>
-                <div class="speed-option" role="group" aria-label="Vitesse du carrousel">
-                    <div class="speed-card" data-speed="0" role="button" tabindex="0">Manuel</div>
-                    <div class="speed-card" data-speed="3" role="button" tabindex="0">3s</div>
-                    <div class="speed-card" data-speed="5" role="button" tabindex="0">5s</div>
-                    <div class="speed-card" data-speed="10" role="button" tabindex="0">10s</div>
+                <div class="speed-option" style="display:flex; gap:10px;">
+                    <div class="speed-card" data-speed="0">Manuel</div>
+                    <div class="speed-card" data-speed="3">3s</div>
+                    <div class="speed-card" data-speed="5">5s</div>
+                    <div class="speed-card" data-speed="10">10s</div>
                 </div>
             </div>
             
-            <!-- Couleurs globales -->
+            <!-- Couleurs -->
             <div class="design-section">
                 <h3><i class="fas fa-palette"></i> Couleurs</h3>
-                <div class="form-group"><label for="primaryColor">Couleur principale</label><input type="color" id="primaryColor" value="#1e40af" oninput="debouncedUpdatePreview()"></div>
-                <div class="form-group"><label for="buttonColor">Couleur boutons</label><input type="color" id="buttonColor" value="#1e40af" oninput="debouncedUpdatePreview()"></div>
-                <div class="form-group"><label for="bgColor">Couleur fond boutique</label><input type="color" id="bgColor" value="#ffffff" oninput="debouncedUpdatePreview()"></div>
-                <div class="form-group"><label for="headerTextColor">Couleur texte header</label><input type="color" id="headerTextColor" value="#ffffff" oninput="debouncedUpdatePreview()"></div>
-                <div class="form-group"><label for="productTextColor">Couleur texte produits</label><input type="color" id="productTextColor" value="#1e293b" oninput="debouncedUpdatePreview()"></div>
+                <div class="form-group"><label>Couleur principale</label><input type="color" id="primaryColor" value="#1e40af" oninput="updatePreview()"></div>
+                <div class="form-group"><label>Couleur boutons</label><input type="color" id="buttonColor" value="#1e40af" oninput="updatePreview()"></div>
+                <div class="form-group"><label>Fond boutique</label><input type="color" id="bgColor" value="#ffffff" oninput="updatePreview()"></div>
+                <div class="form-group"><label>Texte header</label><input type="color" id="headerTextColor" value="#ffffff" oninput="updatePreview()"></div>
+                <div class="form-group"><label>Texte produits</label><input type="color" id="productTextColor" value="#1e293b" oninput="updatePreview()"></div>
             </div>
             
             <!-- Affichage produits -->
@@ -239,12 +212,12 @@
                 <h3><i class="fas fa-cube"></i> Affichage produits</h3>
                 <div class="slider-group"><label>Largeur <span id="prodWidthVal">200</span>px</label><input type="range" id="prodWidth" min="140" max="300" value="200" oninput="updateProdWidth(this.value)"></div>
                 <div class="slider-group"><label>Hauteur image <span id="prodImgHeightVal">160</span>px</label><input type="range" id="prodImgHeight" min="100" max="250" value="160" oninput="updateProdImgHeight(this.value)"></div>
-                <div class="slider-group"><label>Arrondi produits <span id="prodRadiusVal">12</span>px</label><input type="range" id="prodRadius" min="0" max="32" value="12" oninput="updateProdRadius(this.value)"></div>
+                <div class="slider-group"><label>Arrondi <span id="prodRadiusVal">12</span>px</label><input type="range" id="prodRadius" min="0" max="32" value="12" oninput="updateProdRadius(this.value)"></div>
                 <div class="slider-group"><label>Espacement <span id="prodGapVal">16</span>px</label><input type="range" id="prodGap" min="8" max="40" value="16" oninput="updateProdGap(this.value)"></div>
                 <label>Disposition</label>
-                <div class="layout-option" role="group" aria-label="Disposition des produits">
-                    <div class="layout-card" data-layout="grid" role="button" tabindex="0">Grille</div>
-                    <div class="layout-card" data-layout="list" role="button" tabindex="0">Liste</div>
+                <div class="layout-option" style="display:flex; gap:10px; margin-top:10px;">
+                    <div class="layout-card" data-layout="grid">Grille</div>
+                    <div class="layout-card" data-layout="list">Liste</div>
                 </div>
             </div>
             
@@ -252,21 +225,21 @@
             <div class="design-section">
                 <h3><i class="fas fa-tags"></i> Catégories</h3>
                 <div id="categoriesContainer"></div>
-                <button class="btn-secondary" style="width:100%;" onclick="addCategory()">+ Ajouter une catégorie</button>
+                <button class="btn-secondary" style="width:100%; margin-top:10px;" onclick="addCategory()">+ Ajouter une catégorie</button>
             </div>
             
             <!-- Produits -->
             <div class="design-section">
                 <h3><i class="fas fa-box"></i> Produits</h3>
                 <div id="productsContainer"></div>
-                <button class="btn-secondary" style="width:100%;" onclick="openAddProductModal()">+ Ajouter un produit</button>
+                <button class="btn-secondary" style="width:100%; margin-top:10px;" onclick="openAddProductModal()">+ Ajouter un produit</button>
             </div>
             
             <button class="btn-primary" id="publishBtn" onclick="publishShop()">Publier ma boutique</button>
-            <button class="btn-primary" id="updateBtn" style="display:none; background:var(--warning);" onclick="updateShop()">Mettre à jour la boutique</button>
+            <button class="btn-primary" id="updateBtn" style="display:none; background:var(--warning);" onclick="updateShop()">Mettre à jour</button>
         </div>
         
-        <!-- Aperçu -->
+        <!-- Aperçu en temps réel -->
         <div class="designer-preview">
             <h3 style="margin-bottom:12px;">Aperçu en temps réel</h3>
             <div id="livePreview"></div>
@@ -274,10 +247,10 @@
     </div>
 </div>
 
-<!-- Modal ajout produit -->
+<!-- Modal ajout/modification produit -->
 <div id="productModal" class="modal">
     <div class="modal-card">
-        <button class="modal-close" onclick="closeProductModal()" aria-label="Fermer">&times;</button>
+        <button class="modal-close" onclick="closeProductModal()">&times;</button>
         <h3 style="margin-bottom:20px;" id="modalTitle">Ajouter un produit</h3>
         <div id="productForm"></div>
     </div>
@@ -314,182 +287,38 @@
         layout: 'grid'
     };
     
-    // Récupérer l'ID de la boutique à éditer depuis l'URL
+    // Récupérer l'ID de la boutique à éditer
     const urlParams = new URLSearchParams(window.location.search);
     const editShopId = urlParams.get('edit');
-    
-    // Vérification de l'espace localStorage
-    function checkStorageSpace() {
-        try {
-            const test = 'x'.repeat(10 * 1024 * 1024);
-            localStorage.setItem('_test', test);
-            localStorage.removeItem('_test');
-            document.getElementById('storageWarning').style.display = 'none';
-        } catch(e) {
-            document.getElementById('storageWarning').style.display = 'flex';
-        }
-    }
     
     // Fonctions utilitaires
     function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
     
-    function showToast(msg, isError = false) {
-        const toast = document.createElement('div');
-        toast.className = `toast ${isError ? 'error' : ''}`;
-        toast.innerText = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-    
     function debouncedUpdatePreview() {
         if (updateTimeout) clearTimeout(updateTimeout);
-        updateTimeout = setTimeout(() => updatePreview(), 200);
+        updateTimeout = setTimeout(() => updatePreview(), 100);
     }
     
-    // Mise à jour des couleurs du menu
-    function updateMenuBg(color) { designConfig.menuBg = color; debouncedUpdatePreview(); }
-    function updateMenuText(color) { designConfig.menuText = color; debouncedUpdatePreview(); }
-    
-    // ============ CHARGEMENT D'UNE BOUTIQUE EXISTANTE ============
-    function loadShopForEditing(shopId) {
-        const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-        const shop = shops.find(s => s.id == shopId);
-        
-        if (!shop) {
-            showToast("Boutique non trouvée", true);
-            return false;
-        }
-        
-        // Vérifier que l'utilisateur est bien le propriétaire
-        if (shop.owner !== currentUserEmail && shop.ownerEmail !== currentUserEmail) {
-            showToast("Vous n'êtes pas autorisé à modifier cette boutique", true);
-            return false;
-        }
-        
-        editingShopId = shopId;
-        
-        // Charger les informations de la boutique
-        document.getElementById('shopNameInput').value = shop.name || '';
-        document.getElementById('shopDescInput').value = shop.description || '';
-        document.getElementById('shopCity').value = shop.city || '';
-        document.getElementById('shopQuartier').value = shop.quartier || '';
-        document.getElementById('shopAddress').value = shop.address || '';
-        
-        // Charger le logo
-        if (shop.logo) {
-            tempLogo = shop.logo;
-            document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:contain;">`;
-        }
-        
-        // Charger les catégories
-        categories = shop.categories?.map(cat => ({ id: Date.now() + Math.random(), name: cat, productCount: 0 })) || [];
-        renderCategories();
-        
-        // Charger les produits
-        products = shop.products ? [...shop.products] : [];
-        renderProductsList();
-        
-        // Charger le carrousel
-        carouselMedia = shop.carousel ? [...shop.carousel] : [];
-        renderCarouselList();
-        
-        // Charger le menu
-        if (shop.menu) {
-            designConfig.menuPosition = shop.menu.position || 'horizontal';
-            designConfig.menuBg = shop.menu.bg || '#1e40af';
-            designConfig.menuText = shop.menu.text || '#ffffff';
-            designConfig.menuRadius = shop.menu.radius || 0;
-            document.getElementById('menuBgColor').value = designConfig.menuBg;
-            document.getElementById('menuTextColor').value = designConfig.menuText;
-            document.getElementById('menuRadius').value = designConfig.menuRadius;
-            document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
-            
-            document.querySelectorAll('.menu-pos-card').forEach(card => {
-                if (card.dataset.pos === designConfig.menuPosition) {
-                    card.classList.add('selected');
-                } else {
-                    card.classList.remove('selected');
-                }
-            });
-        }
-        
-        // Charger le design
-        if (shop.design) {
-            document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
-            document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
-            document.getElementById('bgColor').value = shop.design.background || '#ffffff';
-            document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
-            document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
-            
-            designConfig.carouselHeight = shop.design.carouselHeight || 300;
-            designConfig.carouselRadius = shop.design.carouselRadius || 12;
-            designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
-            designConfig.prodWidth = shop.design.prodWidth || 200;
-            designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
-            designConfig.prodRadius = shop.design.prodRadius || 12;
-            designConfig.prodGap = shop.design.prodGap || 16;
-            designConfig.layout = shop.design.layout || 'grid';
-            
-            document.getElementById('carouselHeight').value = designConfig.carouselHeight;
-            document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
-            document.getElementById('carouselRadius').value = designConfig.carouselRadius;
-            document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
-            document.getElementById('prodWidth').value = designConfig.prodWidth;
-            document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
-            document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
-            document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
-            document.getElementById('prodRadius').value = designConfig.prodRadius;
-            document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
-            document.getElementById('prodGap').value = designConfig.prodGap;
-            document.getElementById('prodGapVal').innerText = designConfig.prodGap;
-            
-            document.querySelectorAll('.layout-card').forEach(card => {
-                if (card.dataset.layout === designConfig.layout) {
-                    card.classList.add('selected');
-                } else {
-                    card.classList.remove('selected');
-                }
-            });
-            
-            document.querySelectorAll('.speed-card').forEach(card => {
-                if (parseInt(card.dataset.speed) === designConfig.carouselSpeed) {
-                    card.classList.add('selected');
-                } else {
-                    card.classList.remove('selected');
-                }
-            });
-        }
-        
-        // Changer l'interface pour le mode édition
-        document.getElementById('pageTitle').innerText = `Modification de la boutique : ${shop.name}`;
-        document.getElementById('publishBtn').style.display = 'none';
-        document.getElementById('updateBtn').style.display = 'block';
-        
-        // FORCER LA MISE À JOUR DE L'APERÇU
-        setTimeout(() => {
-            updatePreview();
-        }, 100);
-        
-        showToast(`Boutique "${shop.name}" chargée pour modification`);
-        
-        return true;
-    }
-    
-    // Gestion des catégories
+    // ============ GESTION DES CATÉGORIES ============
     function addCategory() {
         const name = prompt("Nom de la catégorie :");
         if (name && name.trim()) {
-            categories.push({ id: Date.now(), name: name.trim(), productCount: 0 });
+            categories.push({ id: Date.now(), name: name.trim() });
             renderCategories();
             debouncedUpdatePreview();
-            showToast(`Catégorie "${name}" ajoutée`);
         }
+    }
+    
+    function updateCategoryName(catId, newName) {
+        const cat = categories.find(c => c.id === catId);
+        if (cat) cat.name = newName;
+        debouncedUpdatePreview();
     }
     
     function removeCategory(id) {
         if (confirm("Supprimer cette catégorie ?")) {
             if (products.some(p => p.categoryId === id)) {
-                showToast("Supprimez d'abord les produits de cette catégorie", true);
+                alert("Supprimez d'abord les produits de cette catégorie");
                 return;
             }
             categories = categories.filter(c => c.id !== id);
@@ -505,18 +334,18 @@
             container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-500);">Aucune catégorie</div>';
             return;
         }
-        container.innerHTML = `<div class="categories-list">${categories.map(cat => `
+        container.innerHTML = categories.map(cat => `
             <div class="category-item">
                 <div class="category-header">
-                    <span class="category-name">${escapeHtml(cat.name)}</span>
-                    <button class="btn-danger" onclick="removeCategory(${cat.id})" aria-label="Supprimer la catégorie ${escapeHtml(cat.name)}">Supprimer</button>
+                    <input type="text" class="category-name-input" value="${escapeHtml(cat.name)}" onchange="updateCategoryName(${cat.id}, this.value)" style="flex:1;">
+                    <button class="btn-danger" onclick="removeCategory(${cat.id})">Supprimer</button>
                 </div>
                 <div class="category-products">${products.filter(p => p.categoryId === cat.id).length} produit(s)</div>
             </div>
-        `).join('')}</div>`;
+        `).join('');
     }
     
-    // Gestion carrousel
+    // ============ GESTION DU CARROUSEL ============
     document.getElementById('carouselMedia')?.addEventListener('change', (e) => {
         const files = Array.from(e.target.files);
         files.forEach(file => {
@@ -547,8 +376,8 @@
         }
         container.innerHTML = carouselMedia.map((m, i) => `
             <div class="carousel-media-item">
-                ${m.type === 'image' ? `<img src="${m.src}" alt="Media carrousel ${i+1}">` : `<video src="${m.src}" muted playsinline></video>`}
-                <div class="remove-media" onclick="removeCarouselMedia(${i})" aria-label="Supprimer le média">✕</div>
+                ${m.type === 'image' ? `<img src="${m.src}">` : `<video src="${m.src}" muted playsinline></video>`}
+                <div class="remove-media" onclick="removeCarouselMedia(${i})">✕</div>
             </div>
         `).join('');
     }
@@ -561,26 +390,21 @@
     function updateProdRadius(v) { designConfig.prodRadius = v; document.getElementById('prodRadiusVal').innerText = v; debouncedUpdatePreview(); }
     function updateProdGap(v) { designConfig.prodGap = v; document.getElementById('prodGapVal').innerText = v; debouncedUpdatePreview(); }
     
-    // Gestion des produits
+    // ============ GESTION DES PRODUITS ============
     function openAddProductModal(productId = null) {
         if (categories.length === 0) {
-            showToast("Créez d'abord une catégorie", true);
+            alert("Créez d'abord une catégorie");
             return;
         }
-        
         editingProductId = productId;
-        
-        if (!productId) {
-            tempVariants = [];
-            tempProductPhotos = [];
-        } else {
+        if (!productId) { tempVariants = []; tempProductPhotos = []; }
+        else {
             const product = products.find(p => p.id === productId);
             if (product) {
                 tempVariants = [...(product.variants || [])];
                 tempProductPhotos = [...(product.photos || [])];
             }
         }
-        
         renderProductForm();
         document.getElementById('modalTitle').innerText = productId ? 'Modifier le produit' : 'Ajouter un produit';
         document.getElementById('productModal').classList.add('active');
@@ -592,20 +416,20 @@
         if (!form) return;
         
         form.innerHTML = `
-            <div class="form-group"><label for="productType">Type de produit *</label>
+            <div class="form-group"><label>Type de produit</label>
                 <select id="productType" onchange="toggleProductFields()">
                     <option value="standard" ${product?.type === 'standard' || !product ? 'selected' : ''}>Standard</option>
                     <option value="food" ${product?.type === 'food' ? 'selected' : ''}>Alimentaire</option>
                 </select>
             </div>
-            <div class="form-group"><label for="productName">Nom du produit *</label><input type="text" id="productName" value="${escapeHtml(product?.name || '')}"></div>
-            <div class="form-group"><label for="productCategory">Catégorie *</label>
+            <div class="form-group"><label>Nom du produit *</label><input type="text" id="productName" value="${escapeHtml(product?.name || '')}"></div>
+            <div class="form-group"><label>Catégorie *</label>
                 <select id="productCategory">${categories.map(cat => `<option value="${cat.id}" ${product?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}
                 </select>
             </div>
             <div class="form-row">
-                <div class="form-group"><label for="productBasePrice">Prix de base (FCFA)</label><input type="number" id="productBasePrice" value="${product?.basePrice || ''}"></div>
-                <div class="form-group"><label for="productStock">Stock</label><input type="number" id="productStock" value="${product?.stock || 0}"></div>
+                <div class="form-group"><label>Prix (FCFA)</label><input type="number" id="productBasePrice" value="${product?.basePrice || ''}"></div>
+                <div class="form-group"><label>Stock</label><input type="number" id="productStock" value="${product?.stock || 0}"></div>
             </div>
             
             <div class="form-group"><label>Couleurs et variantes</label>
@@ -615,20 +439,20 @@
             
             <div id="foodFields" style="display:${product?.type === 'food' ? 'block' : 'none'};">
                 <div class="form-row">
-                    <div class="form-group"><label for="productExpiry">Date d'expiration</label><input type="date" id="productExpiry" value="${product?.expiryDate || ''}"></div>
-                    <div class="form-group"><label for="productWeight">Poids</label><input type="text" id="productWeight" value="${escapeHtml(product?.weight || '')}"></div>
+                    <div class="form-group"><label>Date d'expiration</label><input type="date" id="productExpiry" value="${product?.expiryDate || ''}"></div>
+                    <div class="form-group"><label>Poids</label><input type="text" id="productWeight" value="${escapeHtml(product?.weight || '')}"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label for="productOrigin">Origine</label><input type="text" id="productOrigin" value="${escapeHtml(product?.origin || '')}"></div>
-                    <div class="form-group"><label for="productIngredients">Ingrédients</label><input type="text" id="productIngredients" value="${escapeHtml(product?.ingredients || '')}"></div>
+                    <div class="form-group"><label>Origine</label><input type="text" id="productOrigin" value="${escapeHtml(product?.origin || '')}"></div>
+                    <div class="form-group"><label>Ingrédients</label><input type="text" id="productIngredients" value="${escapeHtml(product?.ingredients || '')}"></div>
                 </div>
             </div>
             
-            <div class="form-group"><label for="productDesc">Description</label><textarea id="productDesc" rows="3">${escapeHtml(product?.description || '')}</textarea></div>
+            <div class="form-group"><label>Description</label><textarea id="productDesc" rows="3">${escapeHtml(product?.description || '')}</textarea></div>
             
-            <div class="form-group"><label>Photos (max 5)</label>
+            <div class="form-group"><label>Photos</label>
                 <div id="productPhotosContainer" class="photo-gallery"></div>
-                <input type="file" id="productPhotoInput" accept="image/*" multiple aria-label="Ajouter des photos">
+                <input type="file" id="productPhotoInput" accept="image/*" multiple>
             </div>
             
             <button class="btn-primary" onclick="saveProduct()">${product ? 'Mettre à jour' : 'Ajouter'}</button>
@@ -636,7 +460,6 @@
         
         renderVariantsForm(tempVariants);
         renderProductPhotos(tempProductPhotos);
-        
         document.getElementById('productPhotoInput')?.addEventListener('change', handleProductPhotoUpload);
     }
     
@@ -649,11 +472,11 @@
         }
         container.innerHTML = variants.map((v, idx) => `
             <div class="variant-row">
-                <input type="color" value="${v.color || '#1e40af'}" onchange="updateVariant(${idx}, 'color', this.value)" aria-label="Couleur">
-                <input type="text" placeholder="Nom" value="${escapeHtml(v.name || '')}" onchange="updateVariant(${idx}, 'name', this.value)" style="width:100px;" aria-label="Nom de la variante">
-                <input type="number" placeholder="Prix" value="${v.price || ''}" onchange="updateVariant(${idx}, 'price', parseFloat(this.value))" style="width:90px;" aria-label="Prix">
-                <input type="number" placeholder="Stock" value="${v.stock || 0}" onchange="updateVariant(${idx}, 'stock', parseInt(this.value))" style="width:70px;" aria-label="Stock">
-                <button class="btn-danger" onclick="removeVariant(${idx})" aria-label="Supprimer la variante">✕</button>
+                <input type="color" value="${v.color || '#1e40af'}" onchange="updateVariant(${idx}, 'color', this.value)">
+                <input type="text" placeholder="Nom" value="${escapeHtml(v.name || '')}" onchange="updateVariant(${idx}, 'name', this.value)" style="width:100px;">
+                <input type="number" placeholder="Prix" value="${v.price || ''}" onchange="updateVariant(${idx}, 'price', parseFloat(this.value))" style="width:90px;">
+                <input type="number" placeholder="Stock" value="${v.stock || 0}" onchange="updateVariant(${idx}, 'stock', parseInt(this.value))" style="width:70px;">
+                <button class="btn-danger" onclick="removeVariant(${idx})">✕</button>
             </div>
         `).join('');
     }
@@ -667,18 +490,15 @@
         }
         container.innerHTML = photos.map((photo, idx) => `
             <div class="photo-item">
-                <img src="${photo}" alt="Photo produit ${idx+1}">
-                <div class="remove-photo" onclick="removeProductPhoto(${idx})" aria-label="Supprimer la photo">✕</div>
+                <img src="${photo}">
+                <div class="remove-photo" onclick="removeProductPhoto(${idx})">✕</div>
             </div>
         `).join('');
     }
     
     function handleProductPhotoUpload(e) {
         const files = Array.from(e.target.files);
-        if (tempProductPhotos.length + files.length > 5) {
-            showToast("Maximum 5 photos", true);
-            return;
-        }
+        if (tempProductPhotos.length + files.length > 5) { alert("Maximum 5 photos"); return; }
         files.forEach(file => {
             const reader = new FileReader();
             reader.onload = ev => {
@@ -708,9 +528,9 @@
         const stock = parseInt(document.getElementById('productStock').value);
         const description = document.getElementById('productDesc').value;
         
-        if (!name) { showToast("Nom requis", true); return; }
-        if (!categoryId) { showToast("Catégorie requise", true); return; }
-        if (isNaN(basePrice) || basePrice <= 0) { showToast("Prix valide requis", true); return; }
+        if (!name) { alert("Nom requis"); return; }
+        if (!categoryId) { alert("Catégorie requise"); return; }
+        if (isNaN(basePrice) || basePrice <= 0) { alert("Prix valide requis"); return; }
         
         const variants = tempVariants.filter(v => v.name && v.price > 0);
         const photos = tempProductPhotos;
@@ -739,58 +559,69 @@
         renderProductsList();
         renderCategories();
         debouncedUpdatePreview();
-        showToast(editingProductId ? "Produit mis à jour" : "Produit ajouté");
+        alert(editingProductId ? "Produit modifié" : "Produit ajouté");
     }
     
     function renderProductsList() {
         const container = document.getElementById('productsContainer');
         if (!container) return;
-        if (products.length === 0) { container.innerHTML = '<div style="text-align:center;padding:20px;">Aucun produit</div>'; return; }
+        if (products.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:20px;">Aucun produit</div>';
+            return;
+        }
         container.innerHTML = products.map(p => {
             const category = categories.find(c => c.id === p.categoryId);
             return `
                 <div class="product-item">
-                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <div class="product-header">
+                        <input type="text" class="product-name-input" value="${escapeHtml(p.name)}" onchange="updateProductField(${p.id}, 'name', this.value)" placeholder="Nom">
+                        <input type="number" class="product-price-input" value="${p.basePrice}" onchange="updateProductField(${p.id}, 'price', parseFloat(this.value))" placeholder="Prix">
+                        <input type="number" class="product-stock-input" value="${p.stock}" onchange="updateProductField(${p.id}, 'stock', parseInt(this.value))" placeholder="Stock">
                         <div>
-                            <strong>${escapeHtml(p.name)}</strong>
-                            <div style="font-size:11px;color:gray;">${category?.name || 'Sans catégorie'}</div>
-                            ${p.variants?.length ? `<div style="font-size:10px;color:var(--primary);">${p.variants.length} variante(s)</div>` : ''}
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-weight:700;">${p.basePrice.toLocaleString()} FCFA</div>
-                            <div style="font-size:11px;">Stock: ${p.stock}</div>
-                            <div style="margin-top:4px;">
-                                <button class="btn-sm" onclick="editProduct(${p.id})" aria-label="Modifier ${escapeHtml(p.name)}">Modifier</button>
-                                <button class="btn-sm" style="background:#fee2e2;" onclick="deleteProduct(${p.id})" aria-label="Supprimer ${escapeHtml(p.name)}">Supprimer</button>
-                            </div>
+                            <button class="btn-sm" onclick="editProduct(${p.id})">Modifier</button>
+                            <button class="btn-sm" style="background:#fee2e2;" onclick="deleteProduct(${p.id})">Supprimer</button>
                         </div>
                     </div>
-                    ${p.photos?.length ? `<div class="photo-gallery" style="margin-top:8px;">${p.photos.slice(0,3).map(photo => `<div class="photo-item" style="width:40px;height:40px;"><img src="${photo}" alt="Aperçu"></div>`).join('')}</div>` : ''}
+                    <div style="font-size:12px; color:var(--gray-500);">Catégorie: ${category?.name || 'Sans catégorie'} | ${p.variants?.length || 0} variante(s)</div>
+                    ${p.photos?.length ? `<div class="photo-gallery">${p.photos.slice(0,3).map(photo => `<div class="photo-item" style="width:40px;height:40px;"><img src="${photo}"></div>`).join('')}</div>` : ''}
                 </div>
             `;
         }).join('');
     }
     
+    function updateProductField(productId, field, value) {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            if (field === 'name') product.name = value;
+            if (field === 'price') product.basePrice = value;
+            if (field === 'stock') product.stock = value;
+            renderProductsList();
+            debouncedUpdatePreview();
+        }
+    }
+    
     function editProduct(id) { openAddProductModal(id); }
-    function deleteProduct(id) { if (confirm("Supprimer ce produit ?")) { products = products.filter(p => p.id !== id); renderProductsList(); renderCategories(); debouncedUpdatePreview(); showToast("Produit supprimé"); } }
+    function deleteProduct(id) { if (confirm("Supprimer ce produit ?")) { products = products.filter(p => p.id !== id); renderProductsList(); renderCategories(); debouncedUpdatePreview(); } }
     function closeProductModal() { document.getElementById('productModal').classList.remove('active'); tempProductPhotos = []; tempVariants = []; editingProductId = null; }
     
     // Logo upload
     document.getElementById('logoUpload')?.addEventListener('change', (e) => {
         if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
-            reader.onload = ev => { tempLogo = ev.target.result; document.getElementById('logoPreview').innerHTML = `<img src="${ev.target.result}" alt="Logo aperçu" style="width:100%;height:100%;object-fit:contain;">`; debouncedUpdatePreview(); };
+            reader.onload = ev => { tempLogo = ev.target.result; document.getElementById('logoPreview').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;">`; debouncedUpdatePreview(); };
             reader.readAsDataURL(e.target.files[0]);
         }
     });
     
-    // Aperçu (avec debounce)
+    // ============ APERÇU EN TEMPS RÉEL ============
     function updatePreview() {
         const preview = document.getElementById('livePreview');
         if (!preview) return;
         
         const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
         const desc = document.getElementById('shopDescInput')?.value || '';
+        const city = document.getElementById('shopCity')?.value || 'Brazzaville';
+        const quartier = document.getElementById('shopQuartier')?.value || '';
         const primaryColor = document.getElementById('primaryColor')?.value || '#1e40af';
         const buttonColor = document.getElementById('buttonColor')?.value || '#1e40af';
         const bgColor = document.getElementById('bgColor')?.value || '#ffffff';
@@ -804,7 +635,7 @@
         let menuHtml = '';
         if (isVertical) {
             menuHtml = `<div class="preview-menu preview-menu-vertical" style="background:${designConfig.menuBg}; color:${designConfig.menuText}; border-radius:${designConfig.menuRadius}px; float:${floatDir}; width:160px; margin-${floatDir === 'left' ? 'right' : 'left'}:16px;">
-                ${categories.map(cat => `<div class="preview-menu-item" style="padding:6px 0;">${escapeHtml(cat.name)}</div>`).join('')}
+                ${categories.map(cat => `<div class="preview-menu-item">${escapeHtml(cat.name)}</div>`).join('')}
             </div>`;
         } else {
             menuHtml = `<div class="preview-menu preview-menu-horizontal" style="background:${designConfig.menuBg}; color:${designConfig.menuText}; border-radius:${designConfig.menuRadius}px;">
@@ -829,8 +660,8 @@
             <div class="preview-shop">
                 <div class="preview-header">
                     <div class="preview-logo">
-                        <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}" alt="Logo">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
-                        <div><h3 style="font-size:16px;">${escapeHtml(shopName)}</h3><p style="font-size:11px;">${escapeHtml(desc)}</p></div>
+                        <div class="preview-logo-img">${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}</div>
+                        <div><h3 style="font-size:16px;">${escapeHtml(shopName)}</h3><p style="font-size:11px;">${escapeHtml(desc)}</p><div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div></div>
                     </div>
                 </div>
                 ${menuHtml}
@@ -838,11 +669,11 @@
                     <div class="preview-carousel" id="previewCarousel">
                         ${carouselMedia.map((m, i) => `
                             ${m.type === 'image' 
-                                ? `<img src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" alt="Bannière ${i+1}" style="width:100%; height:100%; object-fit:cover;">`
+                                ? `<img src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" style="width:100%; height:100%; object-fit:cover;">`
                                 : `<video src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" muted autoplay loop playsinline style="width:100%; height:100%; object-fit:cover;"></video>`
                             }
                         `).join('')}
-                        ${carouselMedia.length > 1 ? `<button class="carousel-btn carousel-prev" onclick="changeSlide(-1)" aria-label="Slide précédent">❮</button><button class="carousel-btn carousel-next" onclick="changeSlide(1)" aria-label="Slide suivant">❯</button>` : ''}
+                        ${carouselMedia.length > 1 ? `<button class="carousel-btn carousel-prev" onclick="changeSlide(-1)">❮</button><button class="carousel-btn carousel-next" onclick="changeSlide(1)">❯</button>` : ''}
                     </div>
                     <div class="preview-products ${designConfig.layout === 'grid' ? 'grid' : 'list'}">
                         ${products.slice(0,6).map(p => {
@@ -850,7 +681,7 @@
                             const maxPrice = p.variants?.length ? Math.max(...p.variants.map(v => v.price)) : p.basePrice;
                             return `
                                 <div class="preview-product">
-                                    <div class="preview-product-image">${p.photos?.[0] ? `<img src="${p.photos[0]}" alt="${escapeHtml(p.name)}" loading="lazy">` : '<i class="fas fa-image" style="font-size:32px;color:#ccc;"></i>'}</div>
+                                    <div class="preview-product-image">${p.photos?.[0] ? `<img src="${p.photos[0]}" loading="lazy">` : '<i class="fas fa-image" style="font-size:32px;color:#ccc;"></i>'}</div>
                                     <div class="preview-product-info">
                                         ${p.type === 'food' ? '<div class="food-badge"><i class="fas fa-utensils"></i> Alimentaire</div>' : ''}
                                         <div class="preview-product-title">${escapeHtml(p.name)}</div>
@@ -891,7 +722,7 @@
         }
     };
     
-    // Écouteurs
+    // ============ ÉCOUTEURS ============
     document.getElementById('primaryColor')?.addEventListener('input', debouncedUpdatePreview);
     document.getElementById('buttonColor')?.addEventListener('input', debouncedUpdatePreview);
     document.getElementById('bgColor')?.addEventListener('input', debouncedUpdatePreview);
@@ -899,6 +730,8 @@
     document.getElementById('productTextColor')?.addEventListener('input', debouncedUpdatePreview);
     document.getElementById('shopNameInput')?.addEventListener('input', debouncedUpdatePreview);
     document.getElementById('shopDescInput')?.addEventListener('input', debouncedUpdatePreview);
+    document.getElementById('shopCity')?.addEventListener('input', debouncedUpdatePreview);
+    document.getElementById('shopQuartier')?.addEventListener('input', debouncedUpdatePreview);
     document.getElementById('menuBgColor')?.addEventListener('input', (e) => { designConfig.menuBg = e.target.value; debouncedUpdatePreview(); });
     document.getElementById('menuTextColor')?.addEventListener('input', (e) => { designConfig.menuText = e.target.value; debouncedUpdatePreview(); });
     
@@ -909,7 +742,6 @@
             card.classList.add('selected');
             debouncedUpdatePreview();
         });
-        card.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
     });
     
     document.querySelectorAll('.speed-card').forEach(card => {
@@ -919,7 +751,6 @@
             card.classList.add('selected');
             debouncedUpdatePreview();
         });
-        card.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
     });
     
     document.querySelectorAll('.layout-card').forEach(card => {
@@ -929,15 +760,85 @@
             card.classList.add('selected');
             debouncedUpdatePreview();
         });
-        card.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
     });
     
-    // Publication (nouvelle boutique)
+    // ============ CHARGEMENT D'UNE BOUTIQUE EXISTANTE ============
+    function loadShopForEditing(shopId) {
+        const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+        const shop = shops.find(s => s.id == shopId);
+        if (!shop) { alert("Boutique non trouvée"); return false; }
+        if (shop.owner !== currentUserEmail && shop.ownerEmail !== currentUserEmail) { alert("Vous n'êtes pas autorisé"); return false; }
+        
+        editingShopId = shopId;
+        document.getElementById('shopNameInput').value = shop.name || '';
+        document.getElementById('shopDescInput').value = shop.description || '';
+        document.getElementById('shopCity').value = shop.city || '';
+        document.getElementById('shopQuartier').value = shop.quartier || '';
+        document.getElementById('shopAddress').value = shop.address || '';
+        if (shop.logo) { tempLogo = shop.logo; document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:contain;">`; }
+        
+        categories = shop.categories?.map(c => ({ id: Date.now() + Math.random(), name: c })) || [];
+        products = shop.products ? [...shop.products] : [];
+        carouselMedia = shop.carousel ? [...shop.carousel] : [];
+        
+        if (shop.menu) {
+            designConfig.menuPosition = shop.menu.position || 'horizontal';
+            designConfig.menuBg = shop.menu.bg || '#1e40af';
+            designConfig.menuText = shop.menu.text || '#ffffff';
+            designConfig.menuRadius = shop.menu.radius || 0;
+            document.getElementById('menuBgColor').value = designConfig.menuBg;
+            document.getElementById('menuTextColor').value = designConfig.menuText;
+            document.getElementById('menuRadius').value = designConfig.menuRadius;
+            document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
+            document.querySelectorAll('.menu-pos-card').forEach(c => c.classList.toggle('selected', c.dataset.pos === designConfig.menuPosition));
+        }
+        
+        if (shop.design) {
+            document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
+            document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
+            document.getElementById('bgColor').value = shop.design.background || '#ffffff';
+            document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
+            document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
+            designConfig.carouselHeight = shop.design.carouselHeight || 300;
+            designConfig.carouselRadius = shop.design.carouselRadius || 12;
+            designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
+            designConfig.prodWidth = shop.design.prodWidth || 200;
+            designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
+            designConfig.prodRadius = shop.design.prodRadius || 12;
+            designConfig.prodGap = shop.design.prodGap || 16;
+            designConfig.layout = shop.design.layout || 'grid';
+            document.getElementById('carouselHeight').value = designConfig.carouselHeight;
+            document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
+            document.getElementById('carouselRadius').value = designConfig.carouselRadius;
+            document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
+            document.getElementById('prodWidth').value = designConfig.prodWidth;
+            document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
+            document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
+            document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
+            document.getElementById('prodRadius').value = designConfig.prodRadius;
+            document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
+            document.getElementById('prodGap').value = designConfig.prodGap;
+            document.getElementById('prodGapVal').innerText = designConfig.prodGap;
+            document.querySelectorAll('.layout-card').forEach(c => c.classList.toggle('selected', c.dataset.layout === designConfig.layout));
+            document.querySelectorAll('.speed-card').forEach(c => c.classList.toggle('selected', parseInt(c.dataset.speed) === designConfig.carouselSpeed));
+        }
+        
+        renderCarouselList();
+        renderCategories();
+        renderProductsList();
+        document.getElementById('pageTitle').innerText = `Modification : ${shop.name}`;
+        document.getElementById('publishBtn').style.display = 'none';
+        document.getElementById('updateBtn').style.display = 'block';
+        debouncedUpdatePreview();
+        return true;
+    }
+    
+    // ============ PUBLICATION / MISE À JOUR ============
     function publishShop() {
         const name = document.getElementById('shopNameInput').value.trim();
-        if (!name) { showToast("Nom de boutique requis", true); return; }
-        if (categories.length === 0) { showToast("Créez au moins une catégorie", true); return; }
-        if (products.length === 0) { showToast("Ajoutez au moins un produit", true); return; }
+        if (!name) { alert("Nom de boutique requis"); return; }
+        if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
+        if (products.length === 0) { alert("Ajoutez au moins un produit"); return; }
         
         let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
         let nextId = shops.length > 0 ? Math.max(...shops.map(s => s.id)) + 1 : 1;
@@ -968,41 +869,28 @@
                 layout: designConfig.layout
             },
             owner: currentUserEmail,
-            verified: false,
-            totalSales: 0,
-            rating: 0,
-            reviews: [],
+            verified: false, totalSales: 0, rating: 0, reviews: [],
             createdAt: new Date().toISOString()
         };
         
         shops.push(newShop);
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-        showToast(`Boutique "${name}" créée ! Redirection...`);
-        setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 1500);
+        alert(`Boutique "${name}" créée !`);
+        window.location.href = 'vendor-dashboard.html';
     }
     
-    // Mise à jour (boutique existante)
     function updateShop() {
-        if (!editingShopId) {
-            showToast("Erreur : aucune boutique en cours de modification", true);
-            return;
-        }
-        
+        if (!editingShopId) { alert("Erreur"); return; }
         const name = document.getElementById('shopNameInput').value.trim();
-        if (!name) { showToast("Nom de boutique requis", true); return; }
+        if (!name) { alert("Nom requis"); return; }
         
         let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
         const shopIndex = shops.findIndex(s => s.id == editingShopId);
+        if (shopIndex === -1) { alert("Boutique non trouvée"); return; }
         
-        if (shopIndex === -1) {
-            showToast("Boutique non trouvée", true);
-            return;
-        }
-        
-        const updatedShop = {
+        shops[shopIndex] = {
             ...shops[shopIndex],
-            name: name,
-            logo: tempLogo,
+            name, logo: tempLogo,
             description: document.getElementById('shopDescInput').value,
             city: document.getElementById('shopCity').value,
             quartier: document.getElementById('shopQuartier').value,
@@ -1029,42 +917,27 @@
             updatedAt: new Date().toISOString()
         };
         
-        shops[shopIndex] = updatedShop;
         localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-        showToast(`Boutique "${name}" mise à jour ! Redirection...`);
-        setTimeout(() => { window.location.href = 'vendor-dashboard.html'; }, 1500);
+        alert(`Boutique "${name}" mise à jour !`);
+        window.location.href = 'vendor-dashboard.html';
     }
     
-    // Initialisation
-    checkStorageSpace();
+    // ============ INITIALISATION ============
+    if (editShopId) { loadShopForEditing(editShopId); }
+    else { renderCategories(); renderProductsList(); }
+    debouncedUpdatePreview();
     
-    // Si on est en mode édition, charger la boutique
-    if (editShopId) {
-        loadShopForEditing(editShopId);
-    } else {
-        // Mode création
-        renderCategories();
-        renderProductsList();
-        // Forcer l'affichage initial de l'aperçu
-        setTimeout(() => {
-            updatePreview();
-        }, 100);
-    }
+    window.addEventListener('beforeunload', () => { if (carouselInterval) clearInterval(carouselInterval); });
     
-    // Nettoyage
-    window.addEventListener('beforeunload', () => {
-        if (carouselInterval) clearInterval(carouselInterval);
-        if (updateTimeout) clearTimeout(updateTimeout);
-    });
-    
-    // Exports globaux
     window.addCategory = addCategory;
     window.removeCategory = removeCategory;
+    window.updateCategoryName = updateCategoryName;
     window.openAddProductModal = () => openAddProductModal();
     window.editProduct = editProduct;
     window.deleteProduct = deleteProduct;
     window.closeProductModal = closeProductModal;
     window.saveProduct = saveProduct;
+    window.updateProductField = updateProductField;
     window.addVariant = addVariant;
     window.updateVariant = updateVariant;
     window.removeVariant = removeVariant;
@@ -1081,8 +954,6 @@
     window.updateShop = updateShop;
     window.changeSlide = changeSlide;
     window.removeProductPhoto = removeProductPhoto;
-    window.updateMenuBg = updateMenuBg;
-    window.updateMenuText = updateMenuText;
 </script>
 </body>
 </html>
