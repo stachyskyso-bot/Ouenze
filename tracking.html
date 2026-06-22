@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Ouenze | Espace livreur</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze | Suivi de livraison</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon/Icon.png">
     <link rel="apple-touch-icon" href="favicon/Icon.png">
@@ -11,35 +11,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Styles personnalisés -->
-    <link rel="stylesheet" href="css/delivery-dashboard.css">
+    <link rel="stylesheet" href="css/tracking.css">
 </head>
 <body>
 
 <div class="header">
     <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
-    <div class="user-menu" id="userMenu">
-        <div class="user-avatar" id="userAvatar">L</div>
-        <div><span id="userName">Livreur</span><br><small>Espace livreur</small></div>
-        <i class="fas fa-arrow-right" style="color: var(--gray-500);"></i>
+    <div class="user-menu" id="userMenu" onclick="window.location.href='index.html'">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <div><span id="userName">Utilisateur</span><br><small>Mes commandes</small></div>
+        <i class="fas fa-arrow-right"></i>
     </div>
-</div>
-
-<div class="nav-tabs">
-    <button class="nav-tab active" data-tab="available">Livraisons disponibles</button>
-    <button class="nav-tab" data-tab="active">Mes livraisons</button>
-    <button class="nav-tab" data-tab="history">Historique</button>
-    <button class="nav-tab" data-tab="profile">Mon profil</button>
 </div>
 
 <div class="container" id="appContainer"></div>
 
 <div class="footer">
-    <p>© 2024 Ouenze - Programme livreur partenaire</p>
+    <p>© 2024 Ouenze Marketplace - Suivi de livraison en temps réel</p>
 </div>
 
 <!-- Scripts -->
 <script src="database.js"></script>
-<script src="js/delivery-dashboard.js"></script>
+<script src="js/tracking.js"></script>
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Configuration Supabase -->

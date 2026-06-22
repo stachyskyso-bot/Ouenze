@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ouenze | Création/Modification de boutique</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon/Icon.png">
+    <link rel="apple-touch-icon" href="favicon/Icon.png">
+    <!-- Polices et bibliothèques externes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Styles personnalisés -->
+    <link rel="stylesheet" href="css/shop-designer.css">
+</head>
+<body>
+
+<div class="header-simple">
+    <button class="back-to-dashboard" onclick="window.location.href='vendor-dashboard.html'">
+        <i class="fas fa-arrow-left"></i> Retour
+    </button>
+    <h1 id="pageTitle">Création de boutique</h1>
+    <p>Personnalisez votre espace, gérez vos catégories et produits</p>
+</div>
+
+<div class="container">
+    <div class="designer-layout">
+        <!-- Panneau de configuration -->
+        <div class="designer-panel">
+            <h2 style="margin-bottom:16px;">Configuration</h2>
+            
+            <!-- Informations boutique -->
+            <div class="design-section">
+                <h3><i class="fas fa-store"></i> Informations</h3>
+                <div class="form-group">
+                    <label>Nom de la boutique *</label>
+                    <input type="text" id="shopNameInput" placeholder="Ma boutique">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="shopDescInput" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ville</label>
+                        <input type="text" id="shopCity">
+                    </div>
+                    <div class="form-group">
+                        <label>Quartier</label>
+                        <input type="text" id="shopQuartier">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Adresse détaillée</label>
+                    <input type="text" id="shopAddress" placeholder="Rue, numéro, point de repère">
+                </div>
+            </div>
+            
+            <!-- Logo -->
+            <div class="design-section">
+                <h3><i class="fas fa-image"></i> Logo</h3>
+                <div class="image-upload" onclick="document.getElementById('logoUpload').click()">
+                    <div id="logoPreview" class="image-preview"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <div>Charger un logo</div>
+                </div>
+                <input type="file" id="logoUpload" accept="image/*" style="display:none;">
+            </div>
+            
+            <!-- Menu -->
+            <div class="design-section">
+                <h3><i class="fas fa-bars"></i> Menu</h3>
+                <div class="form-group">
+                    <label>Position</label>
+                    <div class="menu-position-option" style="display:flex; gap:10px;">
+                        <div class="menu-pos-card" data-pos="horizontal">Horizontal</div>
+                        <div class="menu-pos-card" data-pos="vertical-left">Vertical gauche</div>
+                        <div class="menu-pos-card" data-pos="vertical-right">Vertical droite</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Couleur fond</label>
+                    <input type="color" id="menuBgColor" value="#1e40af">
+                </div>
+                <div class="form-group">
+                    <label>Couleur texte</label>
+                    <input type="color" id="menuTextColor" value="#ffffff">
+                </div>
+                <div class="slider-group">
+                    <label>Arrondi <span id="menuRadiusVal">0</span>px</label>
+                    <input type="range" id="menuRadius" min="0" max="30" value="0">
+                </div>
+            </div>
+            
+            <!-- Carrousel -->
+            <div class="design-section">
+                <h3><i class="fas fa-images"></i> Carrousel</h3>
+                <div id="carouselList" class="carousel-media-list"></div>
+                <div class="image-upload" onclick="document.getElementById('carouselMedia').click()" style="padding:8px;">
+                    + Ajouter image/vidéo
+                </div>
+                <input type="file" id="carouselMedia" accept="image/*,video/*" style="display:none;" multiple>
+                <div class="slider-group">
+                    <label>Hauteur <span id="carouselHeightVal">300</span>px</label>
+                    <input type="range" id="carouselHeight" min="150" max="500" value="300">
+                </div>
+                <div class="slider-group">
+                    <label>Arrondi <span id="carouselRadiusVal">12</span>px</label>
+                    <input type="range" id="carouselRadius" min="0" max="40" value="12">
+                </div>
+                <div class="speed-option" style="display:flex; gap:10px;">
+                    <div class="speed-card" data-speed="0">Manuel</div>
+                    <div class="speed-card" data-speed="3">3s</div>
+                    <div class="speed-card" data-speed="5">5s</div>
+                    <div class="speed-card" data-speed="10">10s</div>
+                </div>
+            </div>
+            
+            <!-- Couleurs -->
+            <div class="design-section">
+                <h3><i class="fas fa-palette"></i> Couleurs</h3>
+                <div class="form-group">
+                    <label>Couleur principale</label>
+                    <input type="color" id="primaryColor" value="#1e40af">
+                </div>
+                <div class="form-group">
+                    <label>Couleur boutons</label>
+                    <input type="color" id="buttonColor" value="#1e40af">
+                </div>
+                <div class="form-group">
+                    <label>Fond boutique</label>
+                    <input type="color" id="bgColor" value="#ffffff">
+                </div>
+                <div class="form-group">
+                    <label>Texte header</label>
+                    <input type="color" id="headerTextColor" value="#ffffff">
+                </div>
+                <div class="form-group">
+                    <label>Texte produits</label>
+                    <input type="color" id="productTextColor" value="#1e293b">
+                </div>
+            </div>
+            
+            <!-- Affichage produits -->
+            <div class="design-section">
+                <h3><i class="fas fa-cube"></i> Affichage produits</h3>
+                <div class="slider-group">
+                    <label>Largeur <span id="prodWidthVal">200</span>px</label>
+                    <input type="range" id="prodWidth" min="140" max="300" value="200">
+                </div>
+                <div class="slider-group">
+                    <label>Hauteur image <span id="prodImgHeightVal">160</span>px</label>
+                    <input type="range" id="prodImgHeight" min="100" max="250" value="160">
+                </div>
+                <div class="slider-group">
+                    <label>Arrondi <span id="prodRadiusVal">12</span>px</label>
+                    <input type="range" id="prodRadius" min="0" max="32" value="12">
+                </div>
+                <div class="slider-group">
+                    <label>Espacement <span id="prodGapVal">16</span>px</label>
+                    <input type="range" id="prodGap" min="8" max="40" value="16">
+                </div>
+                <label>Disposition</label>
+                <div class="layout-option" style="display:flex; gap:10px; margin-top:10px;">
+                    <div class="layout-card" data-layout="grid">Grille</div>
+                    <div class="layout-card" data-layout="list">Liste</div>
+                </div>
+            </div>
+            
+            <!-- Catégories -->
+            <div class="design-section">
+                <h3><i class="fas fa-tags"></i> Catégories</h3>
+                <div id="categoriesContainer"></div>
+                <button class="btn-secondary" style="width:100%; margin-top:10px;" onclick="window.addCategory()">
+                    + Ajouter une catégorie
+                </button>
+            </div>
+            
+            <!-- Produits -->
+            <div class="design-section">
+                <h3><i class="fas fa-box"></i> Produits</h3>
+                <div id="productsContainer"></div>
+                <button class="btn-secondary" style="width:100%; margin-top:10px;" onclick="window.openAddProductModal()">
+                    + Ajouter un produit
+                </button>
+            </div>
+            
+            <button class="btn-primary" id="publishBtn" onclick="window.publishShop()">Publier ma boutique</button>
+            <button class="btn-primary" id="updateBtn" style="display:none; background:var(--warning);" onclick="window.updateShop()">
+                Mettre à jour
+            </button>
+        </div>
+        
+        <!-- Aperçu en temps réel -->
+        <div class="designer-preview">
+            <h3 style="margin-bottom:12px;">Aperçu en temps réel</h3>
+            <div id="livePreview"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ajout/modification produit -->
+<div id="productModal" class="modal">
+    <div class="modal-card">
+        <button class="modal-close" onclick="window.closeProductModal()">&times;</button>
+        <h3 style="margin-bottom:20px;" id="modalTitle">Ajouter un produit</h3>
+        <div id="productForm"></div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="database.js"></script>
+<script src="js/shop-designer.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Configuration Supabase -->
+<script src="js/supabase-config.js"></script>
+</body>
+</html>

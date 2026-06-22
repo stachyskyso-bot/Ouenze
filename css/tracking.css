@@ -1,0 +1,619 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f7fb;
+    color: #1e293b;
+}
+
+:root {
+    --primary: #1e40af;
+    --primary-dark: #1e3a8a;
+    --primary-light: #3b82f6;
+    --white: #ffffff;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-500: #64748b;
+    --gray-700: #334155;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+}
+
+/* Header Styles */
+.header {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.logo h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary);
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.logo h1:hover {
+    opacity: 0.8;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--gray-100);
+    padding: 6px 16px;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.user-menu:hover {
+    background: var(--gray-200);
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 32px auto;
+    padding: 0 24px;
+}
+
+/* Tracking Card */
+.tracking-card {
+    background: var(--white);
+    border-radius: 24px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.tracking-header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding: 24px;
+    color: white;
+}
+
+.tracking-header h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.tracking-header p {
+    margin-top: 4px;
+    opacity: 0.9;
+}
+
+.tracking-body {
+    padding: 24px;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin: 24px 0;
+}
+
+.progress-bar-bg {
+    background: var(--gray-200);
+    border-radius: 20px;
+    height: 12px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background: var(--success);
+    width: 0%;
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.5s ease;
+}
+
+.progress-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+/* Steps */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    margin: 32px 0;
+    position: relative;
+    flex-wrap: wrap;
+}
+
+.step {
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+    position: relative;
+    z-index: 2;
+}
+
+.step-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--gray-200);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 20px;
+    transition: all 0.3s;
+    color: var(--gray-500);
+}
+
+.step.completed .step-icon {
+    background: var(--success);
+    color: white;
+}
+
+.step.active .step-icon {
+    background: var(--primary);
+    color: white;
+    animation: pulse 1s infinite;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.3);
+}
+
+.step-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.step-date {
+    font-size: 10px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Ligne de connexion entre étapes */
+.steps-container::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gray-200);
+    z-index: 1;
+}
+
+/* Animation livraison */
+.delivery-animation {
+    background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9);
+    border-radius: 20px;
+    padding: 24px;
+    margin: 24px 0;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.delivery-car {
+    font-size: 48px;
+    position: relative;
+    display: inline-block;
+    animation: drive 2s infinite ease-in-out;
+}
+
+.delivery-road {
+    width: 100%;
+    height: 4px;
+    background: var(--gray-500);
+    margin-top: 16px;
+    position: relative;
+    border-radius: 2px;
+}
+
+.delivery-road::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    bottom: -8px;
+    animation: moveRoad 2s infinite linear;
+}
+
+@keyframes drive {
+    0% {
+        transform: translateX(-20px);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(20px);
+        opacity: 0.7;
+    }
+}
+
+@keyframes moveRoad {
+    0% {
+        left: 0;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Timeline */
+.timeline {
+    margin: 24px 0;
+}
+
+.timeline h3 {
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.timeline-item:last-child {
+    border-bottom: none;
+}
+
+.timeline-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gray-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.timeline-icon.completed {
+    background: var(--success);
+    color: white;
+}
+
+.timeline-icon.active {
+    background: var(--primary);
+    color: white;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.timeline-desc {
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.timeline-date {
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* Review Section */
+.review-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--gray-100);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.review-section i {
+    font-size: 24px;
+    color: var(--warning);
+    margin-bottom: 8px;
+}
+
+.review-section h3 {
+    margin-bottom: 8px;
+}
+
+.review-section p {
+    margin-bottom: 12px;
+    color: var(--gray-500);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-card {
+    background: var(--white);
+    border-radius: 28px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    transition: 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--gray-700);
+}
+
+/* Rating Stars */
+.rating-stars {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px 0;
+    font-size: 32px;
+    cursor: pointer;
+}
+
+.rating-stars i {
+    color: #cbd5e1;
+    transition: 0.2s;
+}
+
+.rating-stars i:hover,
+.rating-stars i.active {
+    color: var(--warning);
+}
+
+/* Review Textarea */
+.review-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    margin: 16px 0;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.review-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Buttons */
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border: none;
+    padding: 12px;
+    border-radius: 40px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 12px;
+    transition: 0.2s;
+}
+
+.btn-secondary:hover {
+    background: var(--gray-200);
+}
+
+.btn-inline {
+    width: auto;
+    padding: 12px 30px;
+    margin-top: 20px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state i {
+    font-size: 48px;
+    color: var(--gray-500);
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    color: var(--gray-500);
+    margin-bottom: 20px;
+}
+
+/* Footer */
+.footer {
+    border-top: 1px solid var(--gray-200);
+    background: var(--white);
+    margin-top: 60px;
+    padding: 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .steps-container {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .steps-container::before {
+        display: none;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-align: left;
+    }
+    
+    .step-icon {
+        margin: 0;
+    }
+    
+    .container {
+        padding: 0 16px;
+        margin: 16px auto;
+    }
+    
+    .tracking-header {
+        padding: 16px;
+    }
+    
+    .tracking-body {
+        padding: 16px;
+    }
+    
+    .progress-stats {
+        font-size: 9px;
+    }
+    
+    .step-label {
+        font-size: 12px;
+    }
+    
+    .delivery-car {
+        font-size: 36px;
+    }
+    
+    .modal-card {
+        padding: 20px;
+    }
+    
+    .rating-stars {
+        font-size: 28px;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo h1 {
+        font-size: 20px;
+    }
+    
+    .user-menu {
+        padding: 4px 12px;
+    }
+    
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .tracking-header h2 {
+        font-size: 18px;
+    }
+    
+    .tracking-header p {
+        font-size: 13px;
+    }
+    
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .btn-primary,
+    .btn-secondary {
+        padding: 10px;
+    }
+}

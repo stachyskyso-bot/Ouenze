@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ouenze | Administration livreurs</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon/Icon.png">
+    <link rel="apple-touch-icon" href="favicon/Icon.png">
+    <!-- Polices et bibliothèques externes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Styles personnalisés -->
+    <link rel="stylesheet" href="css/admin-deliverers.css">
+</head>
+<body>
+
+<div class="header">
+    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE ADMIN</h1></div>
+    <div><button class="back-btn" onclick="window.location.href='index.html'"><i class="fas fa-arrow-left"></i> Retour</button></div>
+</div>
+
+<div class="container">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Demandes en attente</h3>
+            <div class="stat-value" id="pendingCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Livreurs actifs</h3>
+            <div class="stat-value" id="activeCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Livreurs suspendus</h3>
+            <div class="stat-value" id="suspendedCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Total livraisons</h3>
+            <div class="stat-value" id="totalDeliveries">0</div>
+        </div>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab active" data-tab="pending">Demandes en attente</button>
+        <button class="tab" data-tab="active">Livreurs actifs</button>
+        <button class="tab" data-tab="suspended">Livreurs suspendus</button>
+        <button class="tab" data-tab="all">Tous les livreurs</button>
+    </div>
+    
+    <div id="appContainer"></div>
+</div>
+
+<div class="footer">
+    <p>© 2024 Ouenze - Administration livreurs</p>
+</div>
+
+<!-- Scripts -->
+<script src="database.js"></script>
+<script src="js/admin-deliverers.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Configuration Supabase -->
+<script src="js/supabase-config.js"></script>
+</body>
+</html>
