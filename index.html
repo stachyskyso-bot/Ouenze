@@ -65,16 +65,21 @@
 <div id="appContainer" class="main"></div>
 
 <div class="footer">
-    <p>© 2024 Ouenze Marketplace - Brazzaville, Congo</p>
-</div>
+    
 
-<!-- Bibliothèques JavaScript -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/script.js"></script>
-<!-- Supabase SDK -->
+<!-- 1. SDK Supabase (toujours en premier) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Configuration Supabase -->
+
+<!-- 2. Configuration Supabase (définit les fonctions) -->
 <script src="js/supabase-config.js"></script>
+
+<!-- 3. Leaflet (bibliothèque tierce) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- 4. Autres scripts -->
+<script src="js/script.js"></script>
+
+<!-- 5. app.js (en dernier, utilise les fonctions définies ci-dessus) -->
 <script src="js/app.js"></script>
 </body>
 </html>
