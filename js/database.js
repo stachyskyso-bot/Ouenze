@@ -10,6 +10,8 @@ let shops = [];
 let orders = [];
 let cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
 
+
+
 // ============================================
 // INITIALISATION
 // ============================================
