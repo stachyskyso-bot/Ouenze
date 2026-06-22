@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Migration des données</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #0a0e17; color: #e2e8f0; }
+        #log { background: #1e2430; padding: 16px; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; }
+        button { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; margin: 10px 0; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .info { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Migration des données</h1>
+    <button onclick="startMigration()">🚀 Démarrer la migration</button>
+    <div id="log">En attente du démarrage...</div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION SUPABASE (en dur pour la migration)
+        // ============================================
+        // ⚠️ Remplace par TES vraies valeurs
+        const SUPABASE_URL = 'https://ton-projet.supabase.co';
+        const SUPABASE_ANON_KEY = 'ta-cle-anon-publique';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let logElement = document.getElementById('log');
+
+        function log(msg, type = 'info') {
+            const colors = { success: '#22c55e', error: '#ef4444', info: '#f59e0b' };
+            logElement.innerHTML += `<div style="color:${colors[type] || '#e2e8f0'}">${msg}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(msg);
+        }
+
+        // ============================================
+        // SCRIPT DE MIGRATION
+        // ============================================
+        async function startMigration() {
+            log('🚀 Début de la migration des données...', 'info');
+            log('📋 Vérification de la connexion à Supabase...', 'info');
+
+            try {
+                const { data, error } = await supabaseClient.from('profiles').select('count', { count: 'exact', head: true });
+                if (error) throw error;
+                log('✅ Connexion Supabase réussie !', 'success');
+            } catch (e) {
+                log('❌ Erreur de connexion: ' + e.message, 'error');
+                return;
+            }
+
+            // Récupérer les données localStorage
+            log('📂 Récupération des données depuis localStorage...', 'info');
+            
+            const oldUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
+            const oldShops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+            const oldOrders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
+
+            log(`📊 Données trouvées :`, 'info');
+            log(`   - ${oldUsers.length} utilisateurs`);
+            log(`   - ${oldShops.length} boutiques`);
+            log(`   - ${oldOrders.length} commandes`);
+
+            if (oldUsers.length === 0 && oldShops.length === 0) {
+                log('⚠️ Aucune donnée trouvée dans localStorage.', 'warning');
+                return;
+            }
+
+            // ============================================
+            // MIGRATION DES UTILISATEURS
+            // ============================================
+            log('\n👤 Migration des utilisateurs...', 'info');
+            const userMap = new Map();
+            const shopMap = new Map();
+            let userCount = 0, userErrors = 0;
+
+            for (const user of oldUsers) {
+                try {
+                    const { data: existingUsers } = await supabaseClient
+                        .from('profiles')
+                        .select('id')
+                        .eq('email', user.email);
+
+                    if (existingUsers && existingUsers.length > 0) {
+                        log(`   ⏭️ Utilisateur ${user.email} existe déjà, ignoré`);
+                        userMap.set(user.email, existingUsers[0].id);
+                        continue;
+                    }
+
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                        email: user.email,
+                        password: user.password || 'Temp123456!',
+                        options: {
+                            data: {
+                                full_name: user.fullName || user.name || 'Utilisateur',
+                                user_type: user.type || 'client',
+                                phone: user.phone || '',
+                                city: user.city || 'Brazzaville'
+                            }
+                        }
+                    });
+
+                    if (authError) {
+                        log(`   ❌ Erreur pour ${user.email}: ${authError.message}`, 'error');
+                        userErrors++;
+                        continue;
+                    }
+
+                    if (authData?.user) {
+                        userMap.set(user.email, authData.user.id);
+                        userCount++;
+                        log(`   ✅ Utilisateur ${user.email} migré`, 'success');
+                    }
+
+                    await new Promise(r => setTimeout(r, 500));
+
+                } catch (error) {
+                    log(`   ❌ Erreur pour ${user.email}: ${error.message}`, 'error');
+                    userErrors++;
+                }
+            }
+
+            log(`\n👤 Utilisateurs migrés: ${userCount}, Erreurs: ${userErrors}`);
+
+            // ============================================
+            // MIGRATION DES BOUTIQUES
+            // ============================================
+            log('\n🏪 Migration des boutiques...', 'info');
+            let shopCount = 0, shopErrors = 0;
+
+            for (const shop of oldShops) {
+                try {
+                    const ownerEmail = shop.owner || shop.ownerEmail || 'admin@ouenze.cg';
+                    let ownerId = userMap.get(ownerEmail);
+
+                    if (!ownerId) {
+                        log(`   ⚠️ Propriétaire ${ownerEmail} non trouvé, recherche d'un remplaçant...`, 'warning');
+                        const { data: fallback } = await supabaseClient
+                            .from('profiles')
+                            .select('id')
+                            .limit(1);
+                        
+                        if (fallback && fallback.length > 0) {
+                            ownerId = fallback[0].id;
+                            log(`   ℹ️ Utilisation du profil ${ownerId} comme propriétaire`, 'info');
+                        } else {
+                            log(`   ❌ Aucun propriétaire disponible pour ${shop.name}`, 'error');
+                            shopErrors++;
+                            continue;
+                        }
+                    }
+
+                    const { data: shopData, error: shopError } = await supabaseClient
+                        .from('shops')
+                        .insert([{
+                            owner_id: ownerId,
+                            name: shop.name,
+                            description: shop.description || '',
+                            logo_url: shop.logo || shop.logo_url || '',
+                            city: shop.city || 'Brazzaville',
+                            district: shop.quartier || shop.district || '',
+                            rating: shop.rating || 0,
+                            total_ratings: shop.totalRatings || 0,
+                            total_sales: shop.totalSales || 0,
+                            is_verified: shop.verified || false,
+                            has_physical_store: shop.hasPhysicalStore || false
+                        }])
+                        .select()
+                        .single();
+
+                    if (shopError) {
+                        log(`   ❌ Erreur pour ${shop.name}: ${shopError.message}`, 'error');
+                        shopErrors++;
+                        continue;
+                    }
+
+                    shopMap.set(shop.id, shopData.id);
+                    shopCount++;
+                    log(`   ✅ Boutique ${shop.name} migrée`, 'success');
+
+                    // Migrer les produits
+                    if (shop.products && shop.products.length > 0) {
+                        log(`   📦 Migration de ${shop.products.length} produits...`, 'info');
+                        for (const product of shop.products) {
+                            try {
+                                await supabaseClient
+                                    .from('products')
+                                    .insert([{
+                                        shop_id: shopData.id,
+                                        name: product.name,
+                                        description: product.description || '',
+                                        price: parseFloat(product.price) || 0,
+                                        stock: parseInt(product.stock) || 0,
+                                        product_type: product.type || 'standard',
+                                        photos: product.photos || []
+                                    }]);
+                            } catch (err) {
+                                log(`      ❌ Erreur produit ${product.name}: ${err.message}`, 'error');
+                            }
+                        }
+                    }
+
+                    await new Promise(r => setTimeout(r, 300));
+
+                } catch (error) {
+                    log(`   ❌ Erreur pour ${shop.name}: ${error.message}`, 'error');
+                    shopErrors++;
+                }
+            }
+
+            log(`\n🏪 Boutiques migrées: ${shopCount}, Erreurs: ${shopErrors}`);
+
+            // ============================================
+            // MIGRATION DES COMMANDES
+            // ============================================
+            if (oldOrders.length > 0) {
+                log('\n📦 Migration des commandes...', 'info');
+                let orderCount = 0, orderErrors = 0;
+
+                for (const order of oldOrders) {
+                    try {
+                        const clientId = userMap.get(order.userId || order.client_id);
+                        if (!clientId) {
+                            log(`   ⚠️ Client non trouvé pour la commande ${order.id}`, 'warning');
+                            orderErrors++;
+                            continue;
+                        }
+
+                        const { data, error } = await supabaseClient
+                            .from('orders')
+                            .insert([{
+                                client_id: clientId,
+                                total: parseFloat(order.total) || 0,
+                                delivery_fees: parseFloat(order.deliveryFees) || 0,
+                                status: order.status || 'confirmed',
+                                payment_method: order.paymentMethod || 'cash',
+                                delivery_info: order.deliveryInfo || {},
+                                created_at: order.date || new Date().toISOString()
+                            }])
+                            .select()
+                            .single();
+
+                        if (error) {
+                            log(`   ❌ Erreur commande ${order.id}: ${error.message}`, 'error');
+                            orderErrors++;
+                            continue;
+                        }
+
+                        orderCount++;
+                        log(`   ✅ Commande ${order.id} migrée`, 'success');
+                        await new Promise(r => setTimeout(r, 200));
+
+                    } catch (error) {
+                        log(`   ❌ Erreur commande ${order.id}: ${error.message}`, 'error');
+                        orderErrors++;
+                    }
+                }
+
+                log(`\n📦 Commandes migrées: ${orderCount}, Erreurs: ${orderErrors}`);
+            }
+
+            // ============================================
+            // RÉSUMÉ
+            // ============================================
+            log('\n' + '='.repeat(50), 'info');
+            log('📊 RÉSUMÉ DE LA MIGRATION', 'info');
+            log('='.repeat(50), 'info');
+            log(`👤 Utilisateurs: ${userCount} migrés (${userErrors} erreurs)`);
+            log(`🏪 Boutiques: ${shopCount} migrées (${shopErrors} erreurs)`);
+            log('='.repeat(50), 'info');
+            log('✅ Migration terminée !', 'success');
+
+            // Vérification
+            log('\n🔍 Vérification...', 'info');
+            const { count: shopCountCheck } = await supabaseClient.from('shops').select('*', { count: 'exact', head: true });
+            const { count: userCountCheck } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true });
+            log(`   🏪 Boutiques en base: ${shopCountCheck}`, 'info');
+            log(`   👤 Profils en base: ${userCountCheck}`, 'info');
+        }
+
+        window.startMigration = startMigration;
+    </script>
+</body>
+</html>
