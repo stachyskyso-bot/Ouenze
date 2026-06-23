@@ -78,10 +78,12 @@
     <div id="appContainer"></div>
 </div>
 
-<div class="footer">
-    <p>© 2024 Ouenze - Administration livreurs</p>
-</div>
-<script src="js/app.js"></script>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Configuration Supabase -->
+<script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
 <script>
     let deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
     let deliveries = JSON.parse(localStorage.getItem('ouenze_deliveries') || '[]');
