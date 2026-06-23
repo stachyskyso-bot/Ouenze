@@ -1,7 +1,19 @@
 // ============================================
 // APP.JS - VERSION MISE À JOUR
 // ============================================
+// ============================================
+// EMPÊCHER LE DOUBLE CHARGEMENT
+// ============================================
+if (window.__APP_LOADED__) {
+    console.warn('⚠️ app.js déjà chargé, abandon');
+    // Ne rien faire
 
+    } else {
+    window.__APP_LOADED__ = true;
+    
+    // ============================================
+    // LE RESTE DE TON CODE app.js ICI
+    // ==
 // Variables globales
 let currentUser = null;
 let currentProfile = null;
@@ -542,3 +554,5 @@ window.openRegisterModal = openRegisterModal;
 window.addToCart = addToCart;
 window.createNewOrder = createNewOrder;
 window.setSort = (sort) => { console.log("Tri par:", sort); };
+
+}
