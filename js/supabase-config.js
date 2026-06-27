@@ -17,25 +17,29 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /**
  * Inscription d'un nouvel utilisateur
  */
+// ============================================================
+// INSCRIPTION AVEC VÉRIFICATION EMAIL
+// ============================================================
+
 async function signUp(email, password, userData) {
     const { data, error } = await supabaseClient.auth.signUp({
         email: email,
         password: password,
         options: {
-            data: {
-                full_name: userData.fullName,
-                user_type: userData.type || 'client',
-                phone: userData.phone || '',
-                city: userData.city || '',
-                district: userData.district || ''
-            }
+            data: userData,
+            emailRedirectTo: 'https://ouenze.netlify.app/'  // ← Redirection après vérification
         }
     });
     
     if (error) throw error;
+    
+    // Si la vérification est activée, un email sera envoyé automatiquement
+    if (data?.user?.identities?.length === 0) {
+        throw new Error('Cet email est déjà utilisé.');
+    }
+    
     return data;
 }
-
 /**
  * Connexion d'un utilisateur
  */
