@@ -3,6 +3,36 @@
 // Toute interaction avec les données passe par ici
 // ============================================
 
+
+
+
+// ============================================================
+// CONFIGURATION SUPABASE - VERSION NETLIFY
+// ============================================================
+
+// ⚠️ Ces variables sont injectées par Netlify
+// Elles ne sont PAS écrites en dur dans le code
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+// Vérification au chargement (pour debug)
+console.log('🔌 Connexion à Supabase...');
+console.log('📡 URL:', SUPABASE_URL ? '✅ Configurée' : '❌ Manquante');
+console.log('🔑 Clé:', SUPABASE_ANON_KEY ? '✅ Configurée' : '❌ Manquante');
+
+// Initialisation
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('❌ Variables d\'environnement manquantes !');
+    console.error('   Vérifie que SUPABASE_URL et SUPABASE_ANON_KEY sont définies dans Netlify.');
+}
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ... (le reste de ton code)
+
+
+
 // Configuration Supabase (à remplacer par tes valeurs)
 const SUPABASE_URL = 'https://mdufmsfnjkeewopzcvei.supabase.co/rest/v1/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWZtc2ZuamtlZXdvcHpjdmVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNTExMzksImV4cCI6MjA5NzYyNzEzOX0.3vD0NrLd6k7ZJNcuCro3NLDHeVQVX3HVG2YdZMy00hw';
