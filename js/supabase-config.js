@@ -4,8 +4,8 @@
 // ============================================
 
 // Configuration Supabase (à remplacer par tes valeurs)
-const SUPABASE_URL = 'https://ton-projet.supabase.co';
-const SUPABASE_ANON_KEY = 'ta-cle-anon-publique';
+const SUPABASE_URL = 'https://mdufmsfnjkeewopzcvei.supabase.co/rest/v1/';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWZtc2ZuamtlZXdvcHpjdmVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNTExMzksImV4cCI6MjA5NzYyNzEzOX0.3vD0NrLd6k7ZJNcuCro3NLDHeVQVX3HVG2YdZMy00hw';
 
 // Initialisation du client
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
