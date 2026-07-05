@@ -1,31 +1,21 @@
 // ============================================================
-// DATABASE.JS - COUCHE D'ABSTRACTION UNIQUE
-// Toute interaction avec les données passe par ici
+// DATABASE.JS - TOUTES LES FONCTIONS
 // ============================================================
 
-// ============================================================
-// CONFIGURATION SUPABASE
-// ============================================================
+// Récupérer le client Supabase depuis window
+// (il a déjà été créé dans supabase-config.js)
+const supabase = window.supabase;
 
-// ⚠️ ATTENTION : Une seule déclaration de SUPABASE_URL !
-// Pour Netlify (production)
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://mdufmsfnjkeewopzcvei.supabase.co/rest/v1/';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWZtc2ZuamtlZXdvcHpjdmVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNTExMzksImV4cCI6MjA5NzYyNzEzOX0.3vD0NrLd6k7ZJNcuCro3NLDHeVQVX3HVG2YdZMy00hw';
-
-// Vérification
-console.log('🔌 Connexion à Supabase...');
-console.log('📡 URL:', SUPABASE_URL ? '✅ Configurée' : '❌ Manquante');
-console.log('🔑 Clé:', SUPABASE_ANON_KEY ? '✅ Configurée' : '❌ Manquante');
-
-// Initialisation
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!supabase) {
+    console.error('❌ Supabase non disponible. Vérifie que supabase-config.js est chargé avant database.js');
+}
 
 // ============================================================
-// 1. AUTHENTIFICATION
+// AUTHENTIFICATION
 // ============================================================
 
 async function signUp(email, password, userData) {
-    const { data, error } = await supabaseClient.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
@@ -41,7 +31,7 @@ async function signUp(email, password, userData) {
 }
 
 async function signIn(email, password) {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password
     });
@@ -50,22 +40,22 @@ async function signIn(email, password) {
 }
 
 async function signOut() {
-    const { error } = await supabaseClient.auth.signOut();
+    const { error } = await supabase.auth.signOut();
     if (error) throw error;
 }
 
 async function getCurrentUser() {
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return null;
     return user;
 }
 
 // ============================================================
-// 2. PROFIL
+// PROFIL
 // ============================================================
 
 async function getProfile(userId) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -75,7 +65,7 @@ async function getProfile(userId) {
 }
 
 async function updateProfile(userId, updates) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', userId)
@@ -86,19 +76,17 @@ async function updateProfile(userId, updates) {
 }
 
 // ============================================================
-// 3. BOUTIQUES
+// BOUTIQUES
 // ============================================================
 
 async function getShops(filters = {}) {
-    let query = supabaseClient
+    let query = supabase
         .from('shops')
         .select('*, products:products(count)');
     
-    if (filters.city) query = query.eq('city', filters.city);
-    if (filters.minRating) query = query.gte('rating', filters.minRating);
+    if (filters.country) query = query.eq('country', filters.country);
     if (filters.search) query = query.ilike('name', `%${filters.search}%`);
     if (filters.ownerId) query = query.eq('owner_id', filters.ownerId);
-    if (filters.country) query = query.eq('country', filters.country);
     
     const { data, error } = await query;
     if (error) throw error;
@@ -114,7 +102,7 @@ async function getShops(filters = {}) {
 }
 
 async function getShopById(shopId) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
         .from('shops')
         .select('*, products(*)')
         .eq('id', shopId)
@@ -124,7 +112,7 @@ async function getShopById(shopId) {
 }
 
 async function createShop(shopData) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
         .from('shops')
         .insert([{
             owner_id: shopData.owner_id,
@@ -146,11 +134,11 @@ async function createShop(shopData) {
 }
 
 // ============================================================
-// 4. PRODUITS
+// PRODUITS
 // ============================================================
 
 async function getProducts(shopId, filters = {}) {
-    let query = supabaseClient
+    let query = supabase
         .from('products')
         .select('*, variants:product_variants(*)')
         .eq('shop_id', shopId);
@@ -165,11 +153,11 @@ async function getProducts(shopId, filters = {}) {
 }
 
 // ============================================================
-// 5. COMMANDES
+// COMMANDES
 // ============================================================
 
 async function createOrder(orderData, items) {
-    const { data: order, error: orderError } = await supabaseClient
+    const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([{
             client_id: orderData.client_id,
@@ -194,12 +182,12 @@ async function createOrder(orderData, items) {
         variant_name: item.variant_name || null
     }));
     
-    const { error: itemsError } = await supabaseClient
+    const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
     if (itemsError) throw itemsError;
     
-    await supabaseClient
+    await supabase
         .from('delivery_history')
         .insert([{
             order_id: order.id,
@@ -211,7 +199,7 @@ async function createOrder(orderData, items) {
 }
 
 async function getUserOrders(userId) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
         .from('orders')
         .select('*, items:order_items(*)')
         .eq('client_id', userId)
@@ -221,42 +209,24 @@ async function getUserOrders(userId) {
 }
 
 // ============================================================
-// 6. EXPORTS (TOUTES LES FONCTIONS DANS WINDOW)
+// EXPORTS (pour les autres fichiers)
 // ============================================================
 
-// Auth
 window.signUp = signUp;
 window.signIn = signIn;
 window.signOut = signOut;
 window.getCurrentUser = getCurrentUser;
-
-// Profile
 window.getProfile = getProfile;
 window.updateProfile = updateProfile;
-
-// Shops
 window.getShops = getShops;
 window.getShopById = getShopById;
 window.createShop = createShop;
-
-// Products
 window.getProducts = getProducts;
-
-// Orders
 window.createOrder = createOrder;
 window.getUserOrders = getUserOrders;
 
-// Client
-window.supabase = supabaseClient;
-
-// ============================================================
-// 7. VÉRIFICATION FINALE
-// ============================================================
-
-console.log('✅ database.js chargé');
-console.log('   - signUp:', typeof signUp);
-console.log('   - signIn:', typeof signIn);
-console.log('   - getCurrentUser:', typeof getCurrentUser);
+console.log('✅ database.js chargé (toutes les fonctions)');
 console.log('   - getShops:', typeof getShops);
+console.log('   - getCurrentUser:', typeof getCurrentUser);
 console.log('   - getProfile:', typeof getProfile);
-console.log('   - supabase:', typeof supabase);
+console.log('   - signUp:', typeof signUp);
