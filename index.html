@@ -66,22 +66,26 @@
 
 <div class="footer">
     
-<!-- 1. SDK Supabase (toujours en premier) -->
+<!-- ============================================================
+     SCRIPTS - ORDRE CORRECT
+     ============================================================ -->
+
+<!-- 1. SDK Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- 2. Configuration Supabase -->
 <script src="js/supabase-config.js"></script>
 
-<!-- 3. database.js (TOUTES LES FONCTIONS) -->
+<!-- 3. database.js ⚠️ AJOUTE CETTE LIGNE -->
 <script src="js/database.js"></script>
 
-<!-- 4. Leaflet (bibliothèque tierce) -->
+<!-- 4. Leaflet -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- 5. Autres scripts -->
 <script src="js/script.js"></script>
 
-<!-- 6. app.js (en dernier) -->
+<!-- 6. app.js -->
 <script src="js/app.js"></script>
 </body>
 </html>
