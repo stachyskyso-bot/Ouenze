@@ -1,12 +1,13 @@
 // ============================================================
-// DATABASE.JS - VERSION COMPLÈTE AVEC EXPORTS
+// DATABASE.JS - TOUTES LES FONCTIONS
 // ============================================================
 
-// Récupérer le client Supabase depuis window
-const supabase = window.supabase;
+// ⚠️ NE PAS déclarer supabase ici !
+// Il est déjà déclaré dans supabase-config.js et disponible dans window
+// On le récupère directement
 
-if (!supabase) {
-    console.error('❌ Supabase non disponible');
+if (typeof window.supabase === 'undefined') {
+    console.error('❌ Supabase non disponible. Vérifie que supabase-config.js est chargé avant database.js');
 }
 
 // ============================================================
@@ -14,7 +15,7 @@ if (!supabase) {
 // ============================================================
 
 async function signUp(email, password, userData) {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await window.supabase.auth.signUp({
         email: email,
         password: password,
         options: {
@@ -27,7 +28,7 @@ async function signUp(email, password, userData) {
 }
 
 async function signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await window.supabase.auth.signInWithPassword({
         email: email,
         password: password
     });
@@ -36,12 +37,12 @@ async function signIn(email, password) {
 }
 
 async function signOut() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await window.supabase.auth.signOut();
     if (error) throw error;
 }
 
 async function getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user }, error } = await window.supabase.auth.getUser();
     if (error || !user) return null;
     return user;
 }
@@ -51,7 +52,7 @@ async function getCurrentUser() {
 // ============================================================
 
 async function getProfile(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -61,7 +62,7 @@ async function getProfile(userId) {
 }
 
 async function updateProfile(userId, updates) {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabase
         .from('profiles')
         .update(updates)
         .eq('id', userId)
@@ -76,7 +77,7 @@ async function updateProfile(userId, updates) {
 // ============================================================
 
 async function getShops(filters = {}) {
-    let query = supabase
+    let query = window.supabase
         .from('shops')
         .select('*, products:products(count)');
     
@@ -97,7 +98,7 @@ async function getShops(filters = {}) {
 }
 
 async function getShopById(shopId) {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabase
         .from('shops')
         .select('*, products(*)')
         .eq('id', shopId)
@@ -107,7 +108,7 @@ async function getShopById(shopId) {
 }
 
 async function createShop(shopData) {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabase
         .from('shops')
         .insert([{
             owner_id: shopData.owner_id,
@@ -133,7 +134,7 @@ async function createShop(shopData) {
 // ============================================================
 
 async function getProducts(shopId, filters = {}) {
-    let query = supabase
+    let query = window.supabase
         .from('products')
         .select('*')
         .eq('shop_id', shopId);
@@ -151,7 +152,7 @@ async function getProducts(shopId, filters = {}) {
 // ============================================================
 
 async function createOrder(orderData, items) {
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await window.supabase
         .from('orders')
         .insert([{
             client_id: orderData.client_id,
@@ -176,7 +177,7 @@ async function createOrder(orderData, items) {
         variant_name: item.variant_name || null
     }));
     
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await window.supabase
         .from('order_items')
         .insert(orderItems);
     if (itemsError) throw itemsError;
@@ -185,7 +186,7 @@ async function createOrder(orderData, items) {
 }
 
 async function getUserOrders(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabase
         .from('orders')
         .select('*, items:order_items(*)')
         .eq('client_id', userId)
