@@ -1,13 +1,12 @@
 // ============================================================
-// DATABASE.JS - TOUTES LES FONCTIONS
+// DATABASE.JS - VERSION COMPLÈTE AVEC EXPORTS
 // ============================================================
 
 // Récupérer le client Supabase depuis window
-// (il a déjà été créé dans supabase-config.js)
 const supabase = window.supabase;
 
 if (!supabase) {
-    console.error('❌ Supabase non disponible. Vérifie que supabase-config.js est chargé avant database.js');
+    console.error('❌ Supabase non disponible');
 }
 
 // ============================================================
@@ -24,9 +23,6 @@ async function signUp(email, password, userData) {
         }
     });
     if (error) throw error;
-    if (data?.user?.identities?.length === 0) {
-        throw new Error('Cet email est déjà utilisé.');
-    }
     return data;
 }
 
@@ -86,7 +82,6 @@ async function getShops(filters = {}) {
     
     if (filters.country) query = query.eq('country', filters.country);
     if (filters.search) query = query.ilike('name', `%${filters.search}%`);
-    if (filters.ownerId) query = query.eq('owner_id', filters.ownerId);
     
     const { data, error } = await query;
     if (error) throw error;
@@ -140,11 +135,10 @@ async function createShop(shopData) {
 async function getProducts(shopId, filters = {}) {
     let query = supabase
         .from('products')
-        .select('*, variants:product_variants(*)')
+        .select('*')
         .eq('shop_id', shopId);
     
     if (filters.categoryId) query = query.eq('category_id', filters.categoryId);
-    if (filters.productType) query = query.eq('product_type', filters.productType);
     if (filters.search) query = query.ilike('name', `%${filters.search}%`);
     
     const { data, error } = await query;
@@ -187,14 +181,6 @@ async function createOrder(orderData, items) {
         .insert(orderItems);
     if (itemsError) throw itemsError;
     
-    await supabase
-        .from('delivery_history')
-        .insert([{
-            order_id: order.id,
-            status: 'confirmed',
-            message: 'Commande confirmée'
-        }]);
-    
     return order;
 }
 
@@ -209,7 +195,7 @@ async function getUserOrders(userId) {
 }
 
 // ============================================================
-// EXPORTS (pour les autres fichiers)
+// EXPORTS (TOUTES LES FONCTIONS DANS WINDOW)
 // ============================================================
 
 window.signUp = signUp;
@@ -225,8 +211,7 @@ window.getProducts = getProducts;
 window.createOrder = createOrder;
 window.getUserOrders = getUserOrders;
 
-console.log('✅ database.js chargé (toutes les fonctions)');
+console.log('✅ database.js chargé avec succès !');
+console.log('   - getProfile:', typeof getProfile);
 console.log('   - getShops:', typeof getShops);
 console.log('   - getCurrentUser:', typeof getCurrentUser);
-console.log('   - getProfile:', typeof getProfile);
-console.log('   - signUp:', typeof signUp);
