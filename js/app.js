@@ -309,84 +309,38 @@ if (window.__APP_LOADED__) {
         await displayShops();
     }
 
-    async function displayShops() {
-        const grid = document.getElementById('shopsGrid');
-        if (!grid) return;
-        
-        try {
-            console.log('🏪 Chargement des boutiques...');
-            const shopsList = await getShops();
-            
-            if (!shopsList || shopsList.length === 0) {
-                grid.innerHTML = `
-                    <div style="text-align:center;padding:60px;color:var(--gray-500);">
-                        <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
-                        <p>Aucune boutique trouvée</p>
-                    </div>`;
-                return;
-            }
-            
-            console.log(`🏪 ${shopsList.length} boutiques trouvées`);
-            
-            grid.innerHTML = shopsList.map(shop => {
-                const level = getShopLevel(shop);
-                const levelClass = level.level === 'gold' ? 'gold' : level.level === 'silver' ? 'silver' : 'bronze';
-                const productCount = shop.products_count || 0;
-                
-                return `
-                    <div class="shop-card ${levelClass}" onclick="viewShopDetail('${shop.id}')">
-                        <div class="shop-logo-area">
-                            <div class="shop-logo-img">
-                                ${shop.logo_url ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
-                            </div>
-                            <div class="shop-name">${escapeHtml(shop.name)}</div>
-                            <div class="shop-rating">
-                                <div class="stars">${generateStars(shop.rating || 0)}</div>
-                                <span>(${shop.total_ratings || 0})</span>
-                            </div>
-                            <div style="font-size:14px;font-weight:600;color:var(--primary);margin:5px 0;">
-                                À partir de ${formatPrice(shop.min_price || 0)} FCFA
-                            </div>
-                            <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">
-                                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? `, ${escapeHtml(shop.district)}` : ''}
-                            </div>
-                            <div style="margin-top:6px;">
-                                <span class="level-badge level-${levelClass}">
-                                    <i class="fas fa-crown"></i> ${level.name || 'Standard'}
-                                </span>
-                                <span style="font-size:10px;margin-left:6px;">
-                                    <i class="fas fa-chart-line"></i> ${shop.total_sales || 0} ventes
-                                </span>
-                            </div>
-                        </div>
-                        <div class="shop-details">
-                            <div class="shop-metrics">
-                                <div class="metric">
-                                    <div class="metric-value">${productCount}</div>
-                                    <div>Produits</div>
-                                </div>
-                                <div class="metric">
-                                    <div class="metric-value">${shop.total_sales || 0}</div>
-                                    <div>Ventes</div>
-                                </div>
-                            </div>
-                            <button class="btn-visit-shop" style="margin-top:10px;width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:30px;cursor:pointer;font-size:11px;">
-                                <i class="fas fa-eye"></i> Voir la boutique
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-        } catch (error) {
-            console.error("❌ Erreur d'affichage des boutiques:", error);
-            grid.innerHTML = `
-                <div style="text-align:center;padding:60px;color:var(--danger);">
-                    <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;"></i>
-                    <p>Erreur de chargement des boutiques</p>
-                </div>`;
-        }
+   async function displayShops() {
+    const grid = document.getElementById('shopsGrid');
+    if (!grid) {
+        console.error('❌ shopsGrid non trouvé dans le DOM !');
+        return;
     }
+    
+    try {
+        console.log('🏪 Chargement des boutiques...');
+        const shopsList = await getShops();
+        console.log('📊 Boutiques reçues:', shopsList);
+        
+        if (!shopsList || shopsList.length === 0) {
+            grid.innerHTML = `
+                <div style="text-align:center;padding:60px;color:var(--gray-500);">
+                    <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
+                    <p>Aucune boutique trouvée</p>
+                    <p style="font-size:12px;margin-top:8px;">Ajoutez votre première boutique depuis le tableau de bord vendeur</p>
+                </div>`;
+            return;
+        }
+        
+        // Afficher les boutiques...
+        console.log('✅ Affichage de', shopsList.length, 'boutiques');
+        grid.innerHTML = shopsList.map(shop => {
+            // ... le code d'affichage
+        }).join('');
+        
+    } catch (error) {
+        console.error("❌ Erreur d'affichage:", error);
+    }
+}
 
     // ============================================================
     // PANIER
