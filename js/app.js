@@ -307,38 +307,102 @@ if (window.__APP_LOADED__) {
         `;
         
         await displayShops();
+
+
+
+        
     }
 
-   async function displayShops() {
+  async function displayShops() {
     const grid = document.getElementById('shopsGrid');
     if (!grid) {
-        console.error('❌ shopsGrid non trouvé dans le DOM !');
+        console.error('❌ shopsGrid non trouvé');
         return;
     }
     
     try {
         console.log('🏪 Chargement des boutiques...');
-        const shopsList = await getShops();
-        console.log('📊 Boutiques reçues:', shopsList);
+        
+        // 🔥 TEST DIRECT : Récupérer les boutiques de Supabase
+        const { data: shopsList, error } = await supabase
+            .from('shops')
+            .select('*');
+        
+        if (error) {
+            console.error('❌ Erreur Supabase:', error);
+            return;
+        }
+        
+        console.log('📊 Boutiques récupérées:', shopsList);
         
         if (!shopsList || shopsList.length === 0) {
             grid.innerHTML = `
                 <div style="text-align:center;padding:60px;color:var(--gray-500);">
                     <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
                     <p>Aucune boutique trouvée</p>
-                    <p style="font-size:12px;margin-top:8px;">Ajoutez votre première boutique depuis le tableau de bord vendeur</p>
+                    <p style="font-size:12px;margin-top:8px;">Connectez-vous pour créer votre première boutique</p>
                 </div>`;
             return;
         }
         
-        // Afficher les boutiques...
-        console.log('✅ Affichage de', shopsList.length, 'boutiques');
+        // Affichage des boutiques
         grid.innerHTML = shopsList.map(shop => {
-            // ... le code d'affichage
+            const rating = shop.rating || 0;
+            const stars = generateStars(rating);
+            const productCount = 0; // À remplacer par le vrai compteur
+            
+            return `
+                <div class="shop-card" onclick="viewShopDetail('${shop.id}')">
+                    <div class="shop-logo-area">
+                        <div class="shop-logo-img">
+                            ${shop.logo_url ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
+                        </div>
+                        <div class="shop-name">${escapeHtml(shop.name)}</div>
+                        <div class="shop-rating">
+                            <div class="stars">${stars}</div>
+                            <span>(${shop.total_ratings || 0})</span>
+                        </div>
+                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">
+                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                        </div>
+                        <div style="margin-top:6px;">
+                            <span class="level-badge level-gold">
+                                <i class="fas fa-crown"></i> Or
+                            </span>
+                            <span style="font-size:10px;margin-left:6px;">
+                                <i class="fas fa-chart-line"></i> ${shop.total_sales || 0} ventes
+                            </span>
+                        </div>
+                    </div>
+                    <div class="shop-details">
+                        <div class="shop-metrics">
+                            <div class="metric">
+                                <div class="metric-value">${productCount}</div>
+                                <div>Produits</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${shop.total_sales || 0}</div>
+                                <div>Ventes</div>
+                            </div>
+                        </div>
+                        <button class="btn-visit-shop" style="margin-top:10px;width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:30px;cursor:pointer;font-size:11px;">
+                            <i class="fas fa-eye"></i> Voir la boutique
+                        </button>
+                    </div>
+                </div>
+            `;
         }).join('');
         
+        console.log('✅ Affichage de', shopsList.length, 'boutiques');
+        
     } catch (error) {
-        console.error("❌ Erreur d'affichage:", error);
+        console.error("❌ Erreur d'affichage des boutiques:", error);
+        grid.innerHTML = `
+            <div style="text-align:center;padding:60px;color:var(--danger);">
+                <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;"></i>
+                <p>Erreur de chargement des boutiques</p>
+                <p style="font-size:12px;">${error.message}</p>
+            </div>`;
     }
 }
 
