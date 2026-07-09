@@ -278,6 +278,88 @@ if (window.__APP_LOADED__) {
     // PAGE D'ACCUEIL
     // ============================================================
 
+
+
+
+
+
+    // ============================================================
+// AFFICHAGE DÉTAIL D'UNE BOUTIQUE
+// ============================================================
+
+async function viewShopDetail(shopId) {
+    console.log('🔍 Affichage du détail de la boutique:', shopId);
+    
+    try {
+        // Récupérer la boutique
+        const { data: shop, error } = await supabase
+            .from('shops')
+            .select('*, products(*)')
+            .eq('id', shopId)
+            .single();
+        
+        if (error) {
+            console.error('❌ Erreur:', error);
+            alert('Boutique non trouvée');
+            return;
+        }
+        
+        console.log('🏪 Boutique trouvée:', shop);
+        
+        // Afficher le détail
+        const container = document.getElementById('appContainer');
+        container.innerHTML = `
+            <button onclick="resetToHome()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px;margin-bottom:20px;">
+                ← Retour
+            </button>
+            
+            <div style="background:white;border-radius:20px;padding:24px;border:1px solid var(--gray-200);">
+                <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+                    <div style="width:80px;height:80px;background:var(--gray-100);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">
+                        ${shop.logo_url ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '🏪'}
+                    </div>
+                    <div>
+                        <h2 style="font-size:24px;">${escapeHtml(shop.name)}</h2>
+                        <p style="color:var(--gray-500);">${escapeHtml(shop.description || '')}</p>
+                        <p style="font-size:13px;color:var(--gray-500);">
+                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                            ${shop.country ? `, ${escapeHtml(shop.country)}` : ''}
+                        </p>
+                        <p style="font-size:13px;color:var(--gray-500);">
+                            ⭐ ${shop.rating || 0}/5 (${shop.total_ratings || 0} avis)
+                        </p>
+                    </div>
+                </div>
+                
+                <h3 style="margin:20px 0 12px;">Produits</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
+                    ${shop.products && shop.products.length > 0 ? shop.products.map(p => `
+                        <div style="background:var(--gray-100);border-radius:12px;padding:12px;text-align:center;">
+                            ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">` : ''}
+                            <h4 style="margin:8px 0 4px;">${escapeHtml(p.name)}</h4>
+                            <p style="font-weight:700;color:var(--primary);">${p.price.toLocaleString()} FCFA</p>
+                            <button onclick="addToCart('${shop.id}', '${p.id}', '${escapeHtml(p.name)}', ${p.price})" 
+                                    style="background:var(--primary);color:white;border:none;padding:6px 16px;border-radius:30px;cursor:pointer;">
+                                Ajouter au panier
+                            </button>
+                        </div>
+                    `).join('') : '<p style="color:var(--gray-500);">Aucun produit disponible</p>'}
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('❌ Erreur:', error);
+        alert('Erreur lors du chargement de la boutique');
+    }
+}
+
+
+
+
+
+
+    
     async function showHomePage() {
         console.log('🏠 Affichage de la page d\'accueil...');
         
@@ -610,6 +692,6 @@ if (window.__APP_LOADED__) {
     window.openRegisterModal = openRegisterModal;
     window.addToCart = addToCart;
     window.setSort = setSort;
-
+    window.viewShopDetail = viewShopDetail;
     console.log('✅ app.js chargé avec succès');
 } // Fin du guard
