@@ -287,26 +287,43 @@ if (window.__APP_LOADED__) {
 // AFFICHAGE DÉTAIL D'UNE BOUTIQUE
 // ============================================================
 
+// ============================================================
+// AFFICHAGE DÉTAIL D'UNE BOUTIQUE
+// ============================================================
+
 async function viewShopDetail(shopId) {
     console.log('🔍 Affichage du détail de la boutique:', shopId);
     
     try {
-        // Récupérer la boutique
-        const { data: shop, error } = await supabase
+        // 1. Récupérer la boutique
+        const { data: shop, error: shopError } = await supabase
             .from('shops')
-            .select('*, products(*)')
+            .select('*')
             .eq('id', shopId)
             .single();
         
-        if (error) {
-            console.error('❌ Erreur:', error);
+        if (shopError) {
+            console.error('❌ Erreur boutique:', shopError);
             alert('Boutique non trouvée');
             return;
         }
         
         console.log('🏪 Boutique trouvée:', shop);
         
-        // Afficher le détail
+        // 2. Récupérer les produits de la boutique
+        const { data: products, error: productsError } = await supabase
+            .from('products')
+            .select('*')
+            .eq('shop_id', shopId);
+        
+        if (productsError) {
+            console.error('❌ Erreur produits:', productsError);
+        }
+        
+        console.log('📦 Produits récupérés:', products);
+        console.log('📊 Nombre de produits:', products?.length || 0);
+        
+        // 3. Afficher la boutique avec ses produits
         const container = document.getElementById('appContainer');
         container.innerHTML = `
             <button onclick="resetToHome()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px;margin-bottom:20px;">
@@ -331,20 +348,27 @@ async function viewShopDetail(shopId) {
                     </div>
                 </div>
                 
-                <h3 style="margin:20px 0 12px;">Produits</h3>
+                <h3 style="margin:20px 0 12px;">Produits (${products?.length || 0})</h3>
+                ${products && products.length > 0 ? `
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
-                    ${shop.products && shop.products.length > 0 ? shop.products.map(p => `
+                    ${products.map(p => `
                         <div style="background:var(--gray-100);border-radius:12px;padding:12px;text-align:center;">
-                            ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">` : ''}
+                            ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">` : '<div style="height:120px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;">📦</div>'}
                             <h4 style="margin:8px 0 4px;">${escapeHtml(p.name)}</h4>
                             <p style="font-weight:700;color:var(--primary);">${p.price.toLocaleString()} FCFA</p>
                             <button onclick="addToCart('${shop.id}', '${p.id}', '${escapeHtml(p.name)}', ${p.price})" 
-                                    style="background:var(--primary);color:white;border:none;padding:6px 16px;border-radius:30px;cursor:pointer;">
+                                    style="background:var(--primary);color:white;border:none;padding:6px 16px;border-radius:30px;cursor:pointer;margin-top:8px;">
                                 Ajouter au panier
                             </button>
                         </div>
-                    `).join('') : '<p style="color:var(--gray-500);">Aucun produit disponible</p>'}
+                    `).join('')}
                 </div>
+                ` : `
+                <div style="text-align:center;padding:40px;color:var(--gray-500);background:var(--gray-100);border-radius:12px;">
+                    <p>Aucun produit disponible dans cette boutique</p>
+                    <p style="font-size:12px;margin-top:8px;">Connectez-vous en tant que vendeur pour ajouter des produits</p>
+                </div>
+                `}
             </div>
         `;
         
