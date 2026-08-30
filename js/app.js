@@ -455,7 +455,7 @@ async function viewShopDetail(shopId) {
         grid.innerHTML = shopsList.map(shop => {
             const rating = shop.rating || 0;
             const stars = generateStars(rating);
-            const productCount = 0; // À remplacer par le vrai compteur
+            const productCount = shop.products?.[0]?.count || 0;
             
             return `
                 <div class="shop-card" onclick="viewShopDetail('${shop.id}')">
