@@ -217,6 +217,43 @@
     </div>
 </div>
 
+
+<!-- ===== AFFICHAGE PRODUITS ===== -->
+<div class="design-section">
+    <h3><i class="fas fa-cube"></i> Affichage produits</h3>
+    
+    <!-- ⬇️ AJOUTER CETTE CASE ⬇️ -->
+    <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <input type="checkbox" id="showSearchBar" style="width:auto;">
+        <label for="showSearchBar" style="margin:0;cursor:pointer;">Afficher la barre de recherche</label>
+    </div>
+    <!-- ⬆️ FIN AJOUT ⬆️ -->
+    
+    <div class="slider-group">
+        <label>Largeur <span id="prodWidthVal">200</span>px</label>
+        <input type="range" id="prodWidth" min="140" max="300" value="200">
+    </div>
+    <div class="slider-group">
+        <label>Hauteur image <span id="prodImgHeightVal">160</span>px</label>
+        <input type="range" id="prodImgHeight" min="100" max="250" value="160">
+    </div>
+    <div class="slider-group">
+        <label>Arrondi <span id="prodRadiusVal">12</span>px</label>
+        <input type="range" id="prodRadius" min="0" max="32" value="12">
+    </div>
+    <div class="slider-group">
+        <label>Espacement <span id="prodGapVal">16</span>px</label>
+        <input type="range" id="prodGap" min="8" max="40" value="16">
+    </div>
+    <label>Disposition</label>
+    <div class="layout-option" style="display:flex; gap:10px; margin-top:10px;">
+        <div class="layout-card" data-layout="grid">Grille</div>
+        <div class="layout-card" data-layout="list">Liste</div>
+    </div>
+</div>
+
+
+    
 <!-- ============================================================
      SCRIPTS
      ============================================================ -->
