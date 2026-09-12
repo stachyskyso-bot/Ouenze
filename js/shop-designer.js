@@ -316,12 +316,170 @@ function closeProductModal() {
 }
 
 // ============ APERÇU EN TEMPS RÉEL ============
+// ============ APERÇU EN TEMPS RÉEL (VERSION COMPLÈTE) ============
 function updatePreview() {
     const preview = document.getElementById('livePreview');
     if (!preview) {
         console.warn('⚠️ livePreview introuvable');
         return;
     }
+    
+    // Récupérer toutes les valeurs
+    const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
+    const desc = document.getElementById('shopDescInput')?.value || '';
+    const city = document.getElementById('shopCity')?.value || 'Brazzaville';
+    const quartier = document.getElementById('shopQuartier')?.value || '';
+    const primaryColor = document.getElementById('primaryColor')?.value || '#1e40af';
+    const buttonColor = document.getElementById('buttonColor')?.value || '#1e40af';
+    const bgColor = document.getElementById('bgColor')?.value || '#ffffff';
+    const headerTextColor = document.getElementById('headerTextColor')?.value || '#ffffff';
+    const productTextColor = document.getElementById('productTextColor')?.value || '#1e293b';
+    const showSearch = document.getElementById('showSearchBar')?.checked || false;
+    
+    // Configuration menu
+    const menuPosition = designConfig.menuPosition;
+    const isVertical = menuPosition === 'vertical-left' || menuPosition === 'vertical-right';
+    const floatDir = menuPosition === 'vertical-left' ? 'left' : 'right';
+    
+    // Générer le menu selon la position
+    let menuHtml = '';
+    if (isVertical) {
+        menuHtml = `
+            <div style="
+                background:${designConfig.menuBg};
+                color:${designConfig.menuText};
+                border-radius:${designConfig.menuRadius}px;
+                float:${floatDir};
+                width:160px;
+                margin-${floatDir === 'left' ? 'right' : 'left'}:16px;
+                padding:10px;
+            ">
+                ${categories.length > 0 
+                    ? categories.map(cat => `<div style="padding:6px 0;font-size:13px;">${escapeHtml(cat.name)}</div>`).join('')
+                    : '<div style="padding:6px 0;font-size:12px;opacity:0.7;">Aucune catégorie</div>'
+                }
+            </div>
+        `;
+    } else {
+        menuHtml = `
+            <div style="
+                background:${designConfig.menuBg};
+                color:${designConfig.menuText};
+                border-radius:${designConfig.menuRadius}px;
+                padding:8px 16px;
+                display:flex;
+                gap:16px;
+                flex-wrap:wrap;
+            ">
+                ${categories.length > 0 
+                    ? categories.map(cat => `<span style="font-size:13px;">${escapeHtml(cat.name)}</span>`).join('')
+                    : '<span style="font-size:12px;opacity:0.7;">Aucune catégorie</span>'
+                }
+            </div>
+        `;
+    }
+    
+    // Marge du contenu si menu vertical
+    const contentMargin = isVertical 
+        ? (floatDir === 'left' ? 'margin-left:176px;' : 'margin-right:176px;')
+        : '';
+    
+    // Layout des produits
+    const productsStyle = designConfig.layout === 'grid'
+        ? `display:grid;grid-template-columns:repeat(auto-fill,minmax(${designConfig.prodWidth}px,1fr));gap:${designConfig.prodGap}px;`
+        : `display:flex;flex-direction:column;gap:${designConfig.prodGap}px;`;
+    
+    preview.innerHTML = `
+        <div style="background:${bgColor};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            
+            <!-- HEADER -->
+            <div style="background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);padding:20px;color:${headerTextColor};">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:55px;height:55px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                        ${tempLogo 
+                            ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` 
+                            : '<i class="fas fa-store" style="font-size:24px;color:#1e40af;"></i>'
+                        }
+                    </div>
+                    <div style="flex:1;">
+                        <h3 style="font-size:16px;margin:0;">${escapeHtml(shopName)}</h3>
+                        <p style="font-size:11px;margin:4px 0;opacity:0.9;">${escapeHtml(desc)}</p>
+                        <div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- BARRE DE RECHERCHE -->
+            ${showSearch ? `
+                <div style="padding:12px 16px;background:${bgColor};border-bottom:1px solid #e2e8f0;">
+                    <div style="display:flex;background:#f1f5f9;border-radius:20px;padding:6px 12px;">
+                        <input type="text" placeholder="Rechercher un produit..." style="flex:1;border:none;background:transparent;outline:none;font-size:13px;" disabled>
+                        <i class="fas fa-search" style="color:${primaryColor};"></i>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- MENU -->
+            ${categories.length > 0 ? menuHtml : ''}
+            
+            <!-- CONTENU -->
+            <div style="padding:16px;${contentMargin}">
+                <h4 style="font-size:14px;margin-bottom:12px;">Produits (${products.length})</h4>
+                ${products.length > 0 ? `
+                    <div style="${productsStyle}">
+                        ${products.slice(0, 6).map(p => `
+                            <div style="
+                                background:white;
+                                border-radius:${designConfig.prodRadius}px;
+                                border:1px solid #e2e8f0;
+                                overflow:hidden;
+                                ${designConfig.layout === 'list' ? 'display:flex;gap:12px;' : ''}
+                            ">
+                                <div style="
+                                    height:${designConfig.layout === 'list' ? '80px' : designConfig.prodImgHeight + 'px'};
+                                    ${designConfig.layout === 'list' ? 'width:80px;' : ''}
+                                    background:#f1f5f9;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    flex-shrink:0;
+                                ">
+                                    ${p.photos?.[0] 
+                                        ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` 
+                                        : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'
+                                    }
+                                </div>
+                                <div style="padding:12px;flex:1;">
+                                    <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
+                                    <div style="font-weight:700;color:${primaryColor};font-size:14px;">${formatNumber(p.basePrice)} FCFA</div>
+                                    <button style="
+                                        background:${buttonColor};
+                                        color:white;
+                                        border:none;
+                                        padding:8px;
+                                        border-radius:30px;
+                                        width:100%;
+                                        cursor:pointer;
+                                        font-size:12px;
+                                        font-weight:500;
+                                        margin-top:8px;
+                                    ">
+                                        Ajouter
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div style="text-align:center;padding:40px;color:#94a3b8;">
+                        <i class="fas fa-box-open" style="font-size:32px;margin-bottom:8px;"></i>
+                        <p>Aucun produit pour l'instant</p>
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+}
     
     const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
     const desc = document.getElementById('shopDescInput')?.value || '';
