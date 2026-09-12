@@ -1,5 +1,5 @@
 // ============================================================
-// SHOP-DESIGNER.JS — VERSION SUPABASE COMPLÈTE
+// SHOP-DESIGNER.JS — VERSION COMPLÈTE AVEC CARROUSEL
 // ============================================================
 
 // ============ ÉTAT GLOBAL ============
@@ -49,6 +49,56 @@ function generateSlug(text) {
 function debouncedUpdatePreview() {
     if (updateTimeout) clearTimeout(updateTimeout);
     updateTimeout = setTimeout(() => updatePreview(), 100);
+}
+
+// ============ CARROUSEL ============
+function setupCarouselUpload() {
+    const carouselInput = document.getElementById('carouselMedia');
+    if (carouselInput) {
+        carouselInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const type = file.type.startsWith('image/') ? 'image' : 'video';
+                    carouselMedia.push({ type, src: ev.target.result });
+                    renderCarouselList();
+                    debouncedUpdatePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+        });
+    }
+}
+
+function removeCarouselMedia(idx) {
+    carouselMedia.splice(idx, 1);
+    renderCarouselList();
+    debouncedUpdatePreview();
+}
+
+function renderCarouselList() {
+    const container = document.getElementById('carouselList');
+    if (!container) return;
+    
+    if (carouselMedia.length === 0) {
+        container.innerHTML = '<div style="color:var(--gray-500);font-size:12px;">Aucun média</div>';
+        return;
+    }
+    
+    container.innerHTML = carouselMedia.map((m, i) => `
+        <div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1px solid var(--gray-200);">
+            ${m.type === 'image' 
+                ? `<img src="${m.src}" style="width:100%;height:100%;object-fit:cover;">` 
+                : `<video src="${m.src}" muted playsinline style="width:100%;height:100%;object-fit:cover;"></video>`
+            }
+            <div onclick="window.removeCarouselMedia(${i})" 
+                 style="position:absolute;top:2px;right:2px;background:var(--danger);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;">
+                ✕
+            </div>
+        </div>
+    `).join('');
 }
 
 // ============ CATÉGORIES ============
@@ -175,9 +225,9 @@ function renderProductForm() {
             <textarea id="productDesc" rows="3">${escapeHtml(product?.description || '')}</textarea>
         </div>
         <div class="form-group">
-            <label>Photos</label>
-            <div id="productPhotosContainer" class="photo-gallery"></div>
-            <input type="file" id="productPhotoInput" accept="image/*" multiple>
+            <label>Photos (max 5)</label>
+            <div id="productPhotosContainer" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
+            <input type="file" id="productPhotoInput" accept="image/*" multiple style="margin-top:8px;">
         </div>
         <button class="btn-primary" onclick="window.saveProduct()">${product ? 'Mettre à jour' : 'Ajouter'}</button>
     `;
@@ -196,9 +246,12 @@ function renderProductPhotos(photos) {
         return;
     }
     container.innerHTML = photos.map((photo, idx) => `
-        <div class="photo-item">
-            <img src="${photo}">
-            <div class="remove-photo" onclick="window.removeProductPhoto(${idx})">✕</div>
+        <div style="position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;border:1px solid var(--gray-200);">
+            <img src="${photo}" style="width:100%;height:100%;object-fit:cover;">
+            <div onclick="window.removeProductPhoto(${idx})" 
+                 style="position:absolute;top:2px;right:2px;background:var(--danger);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;">
+                ✕
+            </div>
         </div>
     `).join('');
 }
@@ -278,8 +331,17 @@ function renderProductsList() {
                     </div>
                 </div>
                 <div style="font-size:12px; color:var(--gray-500);">
-                    Catégorie: ${category?.name || 'Sans catégorie'}
+                    Catégorie: ${category?.name || 'Sans catégorie'} | ${p.photos?.length || 0} photo(s)
                 </div>
+                ${p.photos && p.photos.length > 0 ? `
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        ${p.photos.slice(0, 5).map(photo => `
+                            <div style="width:50px;height:50px;border-radius:8px;overflow:hidden;border:1px solid var(--gray-200);">
+                                <img src="${photo}" style="width:100%;height:100%;object-fit:cover;">
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
             </div>
         `;
     }).join('');
@@ -362,6 +424,23 @@ function updatePreview() {
         ? `display:grid;grid-template-columns:repeat(auto-fill,minmax(${designConfig.prodWidth}px,1fr));gap:${designConfig.prodGap}px;`
         : `display:flex;flex-direction:column;gap:${designConfig.prodGap}px;`;
     
+    // CARROUSEL
+    let carouselHtml = '';
+    if (carouselMedia.length > 0) {
+        carouselHtml = `
+            <div style="height:${designConfig.carouselHeight}px;border-radius:${designConfig.carouselRadius}px;overflow:hidden;margin:12px 16px;position:relative;">
+                <div id="previewCarousel" style="height:100%;position:relative;">
+                    ${carouselMedia.map((m, i) => `
+                        ${m.type === 'image' 
+                            ? `<img src="${m.src}" class="carousel-slide" style="width:100%;height:100%;object-fit:cover;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;">`
+                            : `<video src="${m.src}" class="carousel-slide" muted autoplay loop playsinline style="width:100%;height:100%;object-fit:cover;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;"></video>`
+                        }
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
     preview.innerHTML = `
         <div style="background:${bgColor};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
             <div style="background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);padding:20px;color:${headerTextColor};">
@@ -385,6 +464,8 @@ function updatePreview() {
                     </div>
                 </div>
             ` : ''}
+            
+            ${carouselHtml}
             
             ${menuHtml}
             
@@ -421,22 +502,15 @@ function updatePreview() {
     `;
 }
 
-// ============ PUBLICATION VIA SUPABASE ============
+// ============ PUBLICATION ============
 async function publishShop() {
-    console.log('🚀 Publication...');
-    
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom de boutique requis"); return; }
     if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
     if (products.length === 0) { alert("Ajoutez au moins un produit"); return; }
     
     const { data: { user }, error: userError } = await window.supabase.auth.getUser();
-    
-    if (userError || !user) {
-        alert("Vous devez être connecté");
-        window.location.href = 'index.html';
-        return;
-    }
+    if (userError || !user) { alert("Connectez-vous"); return; }
     
     const shopData = {
         owner_id: user.id,
@@ -449,77 +523,42 @@ async function publishShop() {
         address: document.getElementById('shopAddress')?.value || '',
         country: 'Congo-Brazzaville',
         rating: 0,
-        total_ratings: 0,
-        total_sales: 0,
         is_verified: false,
         has_physical_store: false,
-        is_active: true,
-        show_search_bar: document.getElementById('showSearchBar')?.checked || false,
-        design: {
-            menu_position: designConfig.menuPosition,
-            menu_bg: designConfig.menuBg,
-            menu_text: designConfig.menuText,
-            menu_radius: designConfig.menuRadius,
-            carousel_height: designConfig.carouselHeight,
-            carousel_radius: designConfig.carouselRadius,
-            carousel_speed: designConfig.carouselSpeed,
-            prod_width: designConfig.prodWidth,
-            prod_img_height: designConfig.prodImgHeight,
-            prod_radius: designConfig.prodRadius,
-            prod_gap: designConfig.prodGap,
-            layout: designConfig.layout,
-            primary_color: document.getElementById('primaryColor').value,
-            button_color: document.getElementById('buttonColor').value,
-            background_color: document.getElementById('bgColor').value,
-            header_text_color: document.getElementById('headerTextColor').value,
-            product_text_color: document.getElementById('productTextColor').value
-        }
+        is_active: true
     };
     
     try {
         const { data: insertedShop, error: shopError } = await window.supabase
             .from('shops').insert([shopData]).select().single();
         
-        if (shopError) {
-            console.error('❌ Erreur boutique:', shopError);
-            alert('Erreur: ' + shopError.message);
-            return;
-        }
+        if (shopError) { alert('Erreur: ' + shopError.message); return; }
         
-        console.log('✅ Boutique créée:', insertedShop);
-        
-        // Catégories
         if (categories.length > 0) {
-            const categoriesData = categories.map(cat => ({
-                shop_id: insertedShop.id,
-                name: cat.name
-            }));
-            await window.supabase.from('categories').insert(categoriesData);
+            const cats = categories.map(cat => ({ shop_id: insertedShop.id, name: cat.name }));
+            await window.supabase.from('categories').insert(cats);
         }
         
-        // Produits
         if (products.length > 0) {
-            const productsData = products.map(p => ({
+            const prods = products.map(p => ({
                 shop_id: insertedShop.id,
                 name: p.name,
-                slug: generateSlug(p.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7),
+                slug: generateSlug(p.name) + '-' + Date.now(),
                 description: p.description || '',
-                price: p.basePrice || p.price || 0,
-                stock: p.stock || 0,
+                price: p.basePrice,
+                stock: p.stock,
                 product_type: 'standard',
                 photos: p.photos || []
             }));
-            
-            const { error: prodError } = await window.supabase.from('products').insert(productsData);
-            if (prodError) console.error('❌ Erreur produits:', prodError);
+            await window.supabase.from('products').insert(prods);
         }
         
-        alert(`✅ Boutique "${name}" créée avec succès !`);
+        alert(`✅ Boutique "${name}" créée !`);
         window.location.href = 'vendor-dashboard.html';
         
     } catch (error) {
-        console.error('❌ Erreur:', error);
-        alert('Erreur lors de la création');
+        console.error('❌', error);
+        alert('Erreur');
     }
 }
 
@@ -532,113 +571,52 @@ async function updateShop() {
     const { data: { user } } = await window.supabase.auth.getUser();
     if (!user) { alert("Connectez-vous"); return; }
     
-    try {
-        const updates = {
-            name: name,
-            description: document.getElementById('shopDescInput').value || '',
-            logo_url: tempLogo || '',
-            city: document.getElementById('shopCity').value || 'Brazzaville',
-            district: document.getElementById('shopQuartier').value || '',
-            address: document.getElementById('shopAddress')?.value || '',
-            show_search_bar: document.getElementById('showSearchBar')?.checked || false,
-            design: {
-                menu_position: designConfig.menuPosition,
-                menu_bg: designConfig.menuBg,
-                menu_text: designConfig.menuText,
-                menu_radius: designConfig.menuRadius,
-                carousel_height: designConfig.carouselHeight,
-                carousel_radius: designConfig.carouselRadius,
-                carousel_speed: designConfig.carouselSpeed,
-                prod_width: designConfig.prodWidth,
-                prod_img_height: designConfig.prodImgHeight,
-                prod_radius: designConfig.prodRadius,
-                prod_gap: designConfig.prodGap,
-                layout: designConfig.layout,
-                primary_color: document.getElementById('primaryColor').value,
-                button_color: document.getElementById('buttonColor').value,
-                background_color: document.getElementById('bgColor').value,
-                header_text_color: document.getElementById('headerTextColor').value,
-                product_text_color: document.getElementById('productTextColor').value
-            }
-        };
-        
-        const { error } = await window.supabase
-            .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id);
-        
-        if (error) { alert('Erreur: ' + error.message); return; }
-        
-        alert(`✅ Boutique "${name}" mise à jour !`);
-        window.location.href = 'vendor-dashboard.html';
-        
-    } catch (error) {
-        console.error('❌ Erreur:', error);
-        alert('Erreur');
-    }
+    const updates = {
+        name: name,
+        description: document.getElementById('shopDescInput').value || '',
+        logo_url: tempLogo || '',
+        city: document.getElementById('shopCity').value || 'Brazzaville',
+        district: document.getElementById('shopQuartier').value || '',
+        address: document.getElementById('shopAddress')?.value || ''
+    };
+    
+    const { error } = await window.supabase
+        .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id);
+    
+    if (error) { alert('Erreur: ' + error.message); return; }
+    
+    alert(`✅ Boutique mise à jour !`);
+    window.location.href = 'vendor-dashboard.html';
 }
 
-// ============ CHARGEMENT POUR ÉDITION ============
+// ============ CHARGEMENT ============
 async function loadShopForEditing(shopId) {
     const { data: { user } } = await window.supabase.auth.getUser();
-    if (!user) { alert("Connectez-vous"); return false; }
+    if (!user) { return false; }
     
-    const { data: shop, error } = await window.supabase
+    const { data: shop } = await window.supabase
         .from('shops').select('*').eq('id', shopId).eq('owner_id', user.id).single();
     
-    if (error || !shop) { alert("Boutique non trouvée"); return false; }
+    if (!shop) { alert("Boutique non trouvée"); return false; }
     
     editingShopId = shop.id;
     document.getElementById('shopNameInput').value = shop.name || '';
     document.getElementById('shopDescInput').value = shop.description || '';
     document.getElementById('shopCity').value = shop.city || '';
     document.getElementById('shopQuartier').value = shop.district || '';
-    if (document.getElementById('shopAddress')) document.getElementById('shopAddress').value = shop.address || '';
     
     if (shop.logo_url) {
         tempLogo = shop.logo_url;
         document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo_url}" style="width:100%;height:100%;object-fit:contain;">`;
     }
     
-    // Charger le design
-    if (shop.design) {
-        const d = shop.design;
-        designConfig.menuPosition = d.menu_position || 'horizontal';
-        designConfig.menuBg = d.menu_bg || '#1e40af';
-        designConfig.menuText = d.menu_text || '#ffffff';
-        designConfig.menuRadius = d.menu_radius || 0;
-        designConfig.carouselHeight = d.carousel_height || 300;
-        designConfig.carouselRadius = d.carousel_radius || 12;
-        designConfig.carouselSpeed = d.carousel_speed || 0;
-        designConfig.prodWidth = d.prod_width || 200;
-        designConfig.prodImgHeight = d.prod_img_height || 160;
-        designConfig.prodRadius = d.prod_radius || 12;
-        designConfig.prodGap = d.prod_gap || 16;
-        designConfig.layout = d.layout || 'grid';
-        
-        // Mettre à jour l'UI
-        if (document.getElementById('primaryColor')) document.getElementById('primaryColor').value = d.primary_color || '#1e40af';
-        if (document.getElementById('buttonColor')) document.getElementById('buttonColor').value = d.button_color || '#1e40af';
-        if (document.getElementById('bgColor')) document.getElementById('bgColor').value = d.background_color || '#ffffff';
-        if (document.getElementById('headerTextColor')) document.getElementById('headerTextColor').value = d.header_text_color || '#ffffff';
-        if (document.getElementById('productTextColor')) document.getElementById('productTextColor').value = d.product_text_color || '#1e293b';
-    }
-    
-    if (shop.show_search_bar && document.getElementById('showSearchBar')) {
-        document.getElementById('showSearchBar').checked = true;
-    }
-    
-    // Catégories
     const { data: cats } = await window.supabase.from('categories').select('*').eq('shop_id', shopId);
     categories = (cats || []).map(c => ({ id: c.id, name: c.name }));
     
-    // Produits
     const { data: prods } = await window.supabase.from('products').select('*').eq('shop_id', shopId);
     products = (prods || []).map(p => ({
-        id: p.id,
-        name: p.name,
-        categoryId: p.category_id,
-        basePrice: p.price,
-        stock: p.stock,
-        description: p.description,
+        id: p.id, name: p.name, categoryId: p.category_id,
+        basePrice: p.price, stock: p.stock, description: p.description,
         photos: p.photos || []
     }));
     
@@ -654,7 +632,6 @@ async function loadShopForEditing(shopId) {
 
 // ============ ÉCOUTEURS ============
 function setupEventListeners() {
-    // Inputs texte
     const inputs = ['primaryColor', 'buttonColor', 'bgColor', 'headerTextColor', 'productTextColor',
                     'shopNameInput', 'shopDescInput', 'shopCity', 'shopQuartier', 'shopAddress'];
     inputs.forEach(id => {
@@ -662,27 +639,16 @@ function setupEventListeners() {
         if (el) el.addEventListener('input', debouncedUpdatePreview);
     });
     
-    // Barre de recherche
     const showSearchCheckbox = document.getElementById('showSearchBar');
     if (showSearchCheckbox) {
-        showSearchCheckbox.addEventListener('change', () => {
-            console.log('✅ Barre de recherche:', showSearchCheckbox.checked);
-            updatePreview();
-        });
+        showSearchCheckbox.addEventListener('change', debouncedUpdatePreview);
     }
     
-    // MENU
     const menuBg = document.getElementById('menuBgColor');
-    if (menuBg) menuBg.addEventListener('input', (e) => { 
-        designConfig.menuBg = e.target.value; 
-        debouncedUpdatePreview(); 
-    });
+    if (menuBg) menuBg.addEventListener('input', (e) => { designConfig.menuBg = e.target.value; debouncedUpdatePreview(); });
     
     const menuText = document.getElementById('menuTextColor');
-    if (menuText) menuText.addEventListener('input', (e) => { 
-        designConfig.menuText = e.target.value; 
-        debouncedUpdatePreview(); 
-    });
+    if (menuText) menuText.addEventListener('input', (e) => { designConfig.menuText = e.target.value; debouncedUpdatePreview(); });
     
     document.querySelectorAll('.menu-pos-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -693,7 +659,6 @@ function setupEventListeners() {
         });
     });
     
-    // CARROUSEL
     const carouselHeightSlider = document.getElementById('carouselHeight');
     if (carouselHeightSlider) {
         carouselHeightSlider.addEventListener('input', (e) => {
@@ -721,7 +686,6 @@ function setupEventListeners() {
         });
     });
     
-    // MENU RADIUS
     const menuRadiusSlider = document.getElementById('menuRadius');
     if (menuRadiusSlider) {
         menuRadiusSlider.addEventListener('input', (e) => {
@@ -731,7 +695,6 @@ function setupEventListeners() {
         });
     }
     
-    // AFFICHAGE PRODUITS
     const prodWidthSlider = document.getElementById('prodWidth');
     if (prodWidthSlider) {
         prodWidthSlider.addEventListener('input', (e) => {
@@ -785,7 +748,6 @@ async function init() {
     const { data: { user }, error } = await window.supabase.auth.getUser();
     
     if (error || !user) {
-        console.warn('⛔ Non connecté');
         window.location.href = 'index.html';
         return;
     }
@@ -795,6 +757,7 @@ async function init() {
     console.log('✅ Utilisateur:', user.email);
     
     setupLogoUpload();
+    setupCarouselUpload();
     setupEventListeners();
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -815,6 +778,7 @@ async function init() {
 window.addCategory = addCategory;
 window.removeCategory = removeCategory;
 window.updateCategoryName = updateCategoryName;
+window.removeCarouselMedia = removeCarouselMedia;
 window.openAddProductModal = openAddProductModal;
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
@@ -825,9 +789,5 @@ window.removeProductPhoto = removeProductPhoto;
 window.updatePreview = updatePreview;
 window.publishShop = publishShop;
 window.updateShop = updateShop;
-
-window.addEventListener('beforeunload', () => {
-    if (carouselInterval) clearInterval(carouselInterval);
-});
 
 init();
