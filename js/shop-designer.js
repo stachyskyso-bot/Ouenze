@@ -1,6 +1,5 @@
 // ============================================================
 // SHOP-DESIGNER.JS — VERSION SUPABASE COMPLÈTE
-// Aperçu + Publication + Modification
 // ============================================================
 
 // ============ ÉTAT GLOBAL ============
@@ -316,16 +315,10 @@ function closeProductModal() {
 }
 
 // ============ APERÇU EN TEMPS RÉEL ============
-// ============ APERÇU EN TEMPS RÉEL (VERSION COMPLÈTE) ============
-// ============ APERÇU EN TEMPS RÉEL ============
 function updatePreview() {
     const preview = document.getElementById('livePreview');
-    if (!preview) {
-        console.warn('⚠️ livePreview introuvable');
-        return;
-    }
+    if (!preview) return;
     
-    // Récupérer TOUTES les valeurs
     const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
     const desc = document.getElementById('shopDescInput')?.value || '';
     const city = document.getElementById('shopCity')?.value || 'Brazzaville';
@@ -337,322 +330,46 @@ function updatePreview() {
     const productTextColor = document.getElementById('productTextColor')?.value || '#1e293b';
     const showSearch = document.getElementById('showSearchBar')?.checked || false;
     
-    // Configuration menu
     const menuPosition = designConfig.menuPosition;
     const isVertical = menuPosition === 'vertical-left' || menuPosition === 'vertical-right';
     const floatDir = menuPosition === 'vertical-left' ? 'left' : 'right';
     
-    // Générer le menu
+    // MENU
     let menuHtml = '';
     if (categories.length > 0) {
         if (isVertical) {
             menuHtml = `
-                <div style="
-                    background:${designConfig.menuBg};
-                    color:${designConfig.menuText};
-                    border-radius:${designConfig.menuRadius}px;
-                    float:${floatDir};
-                    width:160px;
-                    margin-${floatDir === 'left' ? 'right' : 'left'}:16px;
-                    padding:12px;
-                ">
+                <div style="background:${designConfig.menuBg};color:${designConfig.menuText};
+                            border-radius:${designConfig.menuRadius}px;float:${floatDir};
+                            width:160px;margin-${floatDir === 'left' ? 'right' : 'left'}:16px;padding:12px;">
                     ${categories.map(cat => `<div style="padding:6px 0;font-size:13px;">${escapeHtml(cat.name)}</div>`).join('')}
-                </div>
-            `;
+                </div>`;
         } else {
             menuHtml = `
-                <div style="
-                    background:${designConfig.menuBg};
-                    color:${designConfig.menuText};
-                    border-radius:${designConfig.menuRadius}px;
-                    padding:10px 16px;
-                    display:flex;
-                    gap:16px;
-                    flex-wrap:wrap;
-                ">
+                <div style="background:${designConfig.menuBg};color:${designConfig.menuText};
+                            border-radius:${designConfig.menuRadius}px;padding:10px 16px;
+                            display:flex;gap:16px;flex-wrap:wrap;">
                     ${categories.map(cat => `<span style="font-size:13px;">${escapeHtml(cat.name)}</span>`).join('')}
-                </div>
-            `;
+                </div>`;
         }
     }
     
-    // Marge du contenu
     const contentMargin = isVertical 
         ? (floatDir === 'left' ? 'margin-left:176px;' : 'margin-right:176px;')
         : '';
     
-    // Layout produits
     const productsStyle = designConfig.layout === 'grid'
         ? `display:grid;grid-template-columns:repeat(auto-fill,minmax(${designConfig.prodWidth}px,1fr));gap:${designConfig.prodGap}px;`
         : `display:flex;flex-direction:column;gap:${designConfig.prodGap}px;`;
     
     preview.innerHTML = `
         <div style="background:${bgColor};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-            
-            <!-- HEADER -->
             <div style="background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);padding:20px;color:${headerTextColor};">
                 <div style="display:flex;align-items:center;gap:12px;">
                     <div style="width:55px;height:55px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                        ${tempLogo 
-                            ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` 
-                            : '<i class="fas fa-store" style="font-size:24px;color:#1e40af;"></i>'
-                        }
-                    </div>
-                    <div style="flex:1;">
-                        <h3 style="font-size:16px;margin:0;">${escapeHtml(shopName)}</h3>
-                        <p style="font-size:11px;margin:4px 0;opacity:0.9;">${escapeHtml(desc)}</p>
-                        <div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- BARRE DE RECHERCHE -->
-            ${showSearch ? `
-                <div class="preview-search-bar" style="background:${bgColor};">
-                    <div class="preview-search-input">
-                        <input type="text" placeholder="Rechercher un produit..." disabled>
-                        <i class="fas fa-search" style="color:${primaryColor};"></i>
-                    </div>
-                </div>
-            ` : ''}
-            
-            <!-- MENU -->
-            ${menuHtml}
-            
-            <!-- CONTENU PRODUITS -->
-            <div style="padding:16px;${contentMargin}">
-                <h4 style="font-size:14px;margin-bottom:12px;">Produits (${products.length})</h4>
-                ${products.length > 0 ? `
-                    <div style="${productsStyle}">
-                        ${products.slice(0, 6).map(p => `
-                            <div style="
-                                background:white;
-                                border-radius:${designConfig.prodRadius}px;
-                                border:1px solid #e2e8f0;
-                                overflow:hidden;
-                                ${designConfig.layout === 'list' ? 'display:flex;gap:12px;' : ''}
-                            ">
-                                <div style="
-                                    height:${designConfig.layout === 'list' ? '80px' : designConfig.prodImgHeight + 'px'};
-                                    ${designConfig.layout === 'list' ? 'width:80px;' : ''}
-                                    background:#f1f5f9;
-                                    display:flex;
-                                    align-items:center;
-                                    justify-content:center;
-                                    flex-shrink:0;
-                                ">
-                                    ${p.photos?.[0] 
-                                        ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` 
-                                        : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'
-                                    }
-                                </div>
-                                <div style="padding:12px;flex:1;">
-                                    <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
-                                    <div style="font-weight:700;color:${primaryColor};font-size:14px;">${formatNumber(p.basePrice)} FCFA</div>
-                                    <button style="
-                                        background:${buttonColor};
-                                        color:white;
-                                        border:none;
-                                        padding:8px;
-                                        border-radius:30px;
-                                        width:100%;
-                                        cursor:pointer;
-                                        font-size:12px;
-                                        font-weight:500;
-                                        margin-top:8px;
-                                    ">
-                                        Ajouter
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : `
-                    <div style="text-align:center;padding:40px;color:#94a3b8;">
-                        <i class="fas fa-box-open" style="font-size:32px;margin-bottom:8px;"></i>
-                        <p>Aucun produit pour l'instant</p>
-                    </div>
-                `}
-            </div>
-        </div>
-    `;
-}
-    
-    // Récupérer toutes les valeurs
-    const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
-    const desc = document.getElementById('shopDescInput')?.value || '';
-    const city = document.getElementById('shopCity')?.value || 'Brazzaville';
-    const quartier = document.getElementById('shopQuartier')?.value || '';
-    const primaryColor = document.getElementById('primaryColor')?.value || '#1e40af';
-    const buttonColor = document.getElementById('buttonColor')?.value || '#1e40af';
-    const bgColor = document.getElementById('bgColor')?.value || '#ffffff';
-    const headerTextColor = document.getElementById('headerTextColor')?.value || '#ffffff';
-    const productTextColor = document.getElementById('productTextColor')?.value || '#1e293b';
-    const showSearch = document.getElementById('showSearchBar')?.checked || false;
-    
-    // Configuration menu
-    const menuPosition = designConfig.menuPosition;
-    const isVertical = menuPosition === 'vertical-left' || menuPosition === 'vertical-right';
-    const floatDir = menuPosition === 'vertical-left' ? 'left' : 'right';
-    
-    // Générer le menu selon la position
-    let menuHtml = '';
-    if (isVertical) {
-        menuHtml = `
-            <div style="
-                background:${designConfig.menuBg};
-                color:${designConfig.menuText};
-                border-radius:${designConfig.menuRadius}px;
-                float:${floatDir};
-                width:160px;
-                margin-${floatDir === 'left' ? 'right' : 'left'}:16px;
-                padding:10px;
-            ">
-                ${categories.length > 0 
-                    ? categories.map(cat => `<div style="padding:6px 0;font-size:13px;">${escapeHtml(cat.name)}</div>`).join('')
-                    : '<div style="padding:6px 0;font-size:12px;opacity:0.7;">Aucune catégorie</div>'
-                }
-            </div>
-        `;
-    } else {
-        menuHtml = `
-            <div style="
-                background:${designConfig.menuBg};
-                color:${designConfig.menuText};
-                border-radius:${designConfig.menuRadius}px;
-                padding:8px 16px;
-                display:flex;
-                gap:16px;
-                flex-wrap:wrap;
-            ">
-                ${categories.length > 0 
-                    ? categories.map(cat => `<span style="font-size:13px;">${escapeHtml(cat.name)}</span>`).join('')
-                    : '<span style="font-size:12px;opacity:0.7;">Aucune catégorie</span>'
-                }
-            </div>
-        `;
-    }
-    
-    // Marge du contenu si menu vertical
-    const contentMargin = isVertical 
-        ? (floatDir === 'left' ? 'margin-left:176px;' : 'margin-right:176px;')
-        : '';
-    
-    // Layout des produits
-    const productsStyle = designConfig.layout === 'grid'
-        ? `display:grid;grid-template-columns:repeat(auto-fill,minmax(${designConfig.prodWidth}px,1fr));gap:${designConfig.prodGap}px;`
-        : `display:flex;flex-direction:column;gap:${designConfig.prodGap}px;`;
-    
-    preview.innerHTML = `
-        <div style="background:${bgColor};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-            
-            <!-- HEADER -->
-            <div style="background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);padding:20px;color:${headerTextColor};">
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:55px;height:55px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                        ${tempLogo 
-                            ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` 
-                            : '<i class="fas fa-store" style="font-size:24px;color:#1e40af;"></i>'
-                        }
-                    </div>
-                    <div style="flex:1;">
-                        <h3 style="font-size:16px;margin:0;">${escapeHtml(shopName)}</h3>
-                        <p style="font-size:11px;margin:4px 0;opacity:0.9;">${escapeHtml(desc)}</p>
-                        <div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- BARRE DE RECHERCHE -->
-            ${showSearch ? `
-                <div style="padding:12px 16px;background:${bgColor};border-bottom:1px solid #e2e8f0;">
-                    <div style="display:flex;background:#f1f5f9;border-radius:20px;padding:6px 12px;">
-                        <input type="text" placeholder="Rechercher un produit..." style="flex:1;border:none;background:transparent;outline:none;font-size:13px;" disabled>
-                        <i class="fas fa-search" style="color:${primaryColor};"></i>
-                    </div>
-                </div>
-            ` : ''}
-            
-            <!-- MENU -->
-            ${categories.length > 0 ? menuHtml : ''}
-            
-            <!-- CONTENU -->
-            <div style="padding:16px;${contentMargin}">
-                <h4 style="font-size:14px;margin-bottom:12px;">Produits (${products.length})</h4>
-                ${products.length > 0 ? `
-                    <div style="${productsStyle}">
-                        ${products.slice(0, 6).map(p => `
-                            <div style="
-                                background:white;
-                                border-radius:${designConfig.prodRadius}px;
-                                border:1px solid #e2e8f0;
-                                overflow:hidden;
-                                ${designConfig.layout === 'list' ? 'display:flex;gap:12px;' : ''}
-                            ">
-                                <div style="
-                                    height:${designConfig.layout === 'list' ? '80px' : designConfig.prodImgHeight + 'px'};
-                                    ${designConfig.layout === 'list' ? 'width:80px;' : ''}
-                                    background:#f1f5f9;
-                                    display:flex;
-                                    align-items:center;
-                                    justify-content:center;
-                                    flex-shrink:0;
-                                ">
-                                    ${p.photos?.[0] 
-                                        ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` 
-                                        : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'
-                                    }
-                                </div>
-                                <div style="padding:12px;flex:1;">
-                                    <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
-                                    <div style="font-weight:700;color:${primaryColor};font-size:14px;">${formatNumber(p.basePrice)} FCFA</div>
-                                    <button style="
-                                        background:${buttonColor};
-                                        color:white;
-                                        border:none;
-                                        padding:8px;
-                                        border-radius:30px;
-                                        width:100%;
-                                        cursor:pointer;
-                                        font-size:12px;
-                                        font-weight:500;
-                                        margin-top:8px;
-                                    ">
-                                        Ajouter
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : `
-                    <div style="text-align:center;padding:40px;color:#94a3b8;">
-                        <i class="fas fa-box-open" style="font-size:32px;margin-bottom:8px;"></i>
-                        <p>Aucun produit pour l'instant</p>
-                    </div>
-                `}
-            </div>
-        </div>
-    `;
-}
-    
-    const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
-    const desc = document.getElementById('shopDescInput')?.value || '';
-    const city = document.getElementById('shopCity')?.value || 'Brazzaville';
-    const quartier = document.getElementById('shopQuartier')?.value || '';
-    const primaryColor = document.getElementById('primaryColor')?.value || '#1e40af';
-    const buttonColor = document.getElementById('buttonColor')?.value || '#1e40af';
-    const bgColor = document.getElementById('bgColor')?.value || '#ffffff';
-    const headerTextColor = document.getElementById('headerTextColor')?.value || '#ffffff';
-    const productTextColor = document.getElementById('productTextColor')?.value || '#1e293b';
-    
-    preview.innerHTML = `
-        <div style="background:${bgColor};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-            <div style="background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);padding:20px;color:${headerTextColor};">
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:55px;height:55px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
                         ${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:24px;color:#1e40af;"></i>'}
                     </div>
-                    <div>
+                    <div style="flex:1;">
                         <h3 style="font-size:16px;margin:0;">${escapeHtml(shopName)}</h3>
                         <p style="font-size:11px;margin:4px 0;opacity:0.9;">${escapeHtml(desc)}</p>
                         <div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div>
@@ -660,22 +377,30 @@ function updatePreview() {
                 </div>
             </div>
             
-            ${categories.length > 0 ? `
-                <div style="background:${designConfig.menuBg};color:${designConfig.menuText};padding:8px 16px;display:flex;gap:16px;flex-wrap:wrap;">
-                    ${categories.map(cat => `<span style="font-size:13px;">${escapeHtml(cat.name)}</span>`).join('')}
+            ${showSearch ? `
+                <div style="padding:12px 16px;background:${bgColor};border-bottom:1px solid #e2e8f0;">
+                    <div style="display:flex;background:#f1f5f9;border-radius:20px;padding:8px 14px;align-items:center;gap:8px;">
+                        <input type="text" placeholder="Rechercher un produit..." style="flex:1;border:none;background:transparent;outline:none;font-size:13px;" disabled>
+                        <i class="fas fa-search" style="color:${primaryColor};font-size:14px;"></i>
+                    </div>
                 </div>
             ` : ''}
             
-            <div style="padding:16px;">
+            ${menuHtml}
+            
+            <div style="padding:16px;${contentMargin}">
                 <h4 style="font-size:14px;margin-bottom:12px;">Produits (${products.length})</h4>
                 ${products.length > 0 ? `
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:${designConfig.prodGap}px;">
+                    <div style="${productsStyle}">
                         ${products.slice(0, 6).map(p => `
-                            <div style="background:white;border-radius:${designConfig.prodRadius}px;border:1px solid #e2e8f0;overflow:hidden;">
-                                <div style="height:${designConfig.prodImgHeight}px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
+                            <div style="background:white;border-radius:${designConfig.prodRadius}px;border:1px solid #e2e8f0;overflow:hidden;
+                                        ${designConfig.layout === 'list' ? 'display:flex;gap:12px;' : ''}">
+                                <div style="height:${designConfig.layout === 'list' ? '80px' : designConfig.prodImgHeight + 'px'};
+                                            ${designConfig.layout === 'list' ? 'width:80px;' : ''}
+                                            background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                     ${p.photos?.[0] ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'}
                                 </div>
-                                <div style="padding:12px;">
+                                <div style="padding:12px;flex:1;">
                                     <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
                                     <div style="font-weight:700;color:${primaryColor};font-size:14px;">${formatNumber(p.basePrice)} FCFA</div>
                                     <button style="background:${buttonColor};color:white;border:none;padding:8px;border-radius:30px;width:100%;cursor:pointer;font-size:12px;font-weight:500;margin-top:8px;">
@@ -698,82 +423,8 @@ function updatePreview() {
 
 // ============ PUBLICATION VIA SUPABASE ============
 async function publishShop() {
-    const shopData = {
-    owner_id: user.id,
-    name: name,
-    slug: generateSlug(name) + '-' + Date.now(),
-    description: document.getElementById('shopDescInput').value || '',
-    logo_url: tempLogo || '',
-    city: document.getElementById('shopCity').value || 'Brazzaville',
-    district: document.getElementById('shopQuartier').value || '',
-    address: document.getElementById('shopAddress')?.value || '',
-    country: 'Congo-Brazzaville',
-    rating: 0,
-    total_ratings: 0,
-    total_sales: 0,
-    is_verified: false,
-    has_physical_store: false,
-    is_active: true,
-    // AJOUTER CES LIGNES :
-    show_search_bar: document.getElementById('showSearchBar')?.checked || false,
-    design: {
-        menu_position: designConfig.menuPosition,
-        menu_bg: designConfig.menuBg,
-        menu_text: designConfig.menuText,
-        menu_radius: designConfig.menuRadius,
-        carousel_height: designConfig.carouselHeight,
-        carousel_radius: designConfig.carouselRadius,
-        carousel_speed: designConfig.carouselSpeed,
-        prod_width: designConfig.prodWidth,
-        prod_img_height: designConfig.prodImgHeight,
-        prod_radius: designConfig.prodRadius,
-        prod_gap: designConfig.prodGap,
-        layout: designConfig.layout,
-        primary_color: document.getElementById('primaryColor').value,
-        button_color: document.getElementById('buttonColor').value,
-        background_color: document.getElementById('bgColor').value,
-        header_text_color: document.getElementById('headerTextColor').value,
-        product_text_color: document.getElementById('productTextColor').value
-    }
-};
     console.log('🚀 Publication...');
-    const shopData = {
-    owner_id: user.id,
-    name: name,
-    slug: generateSlug(name) + '-' + Date.now(),
-    description: document.getElementById('shopDescInput').value || '',
-    logo_url: tempLogo || '',
-    city: document.getElementById('shopCity').value || 'Brazzaville',
-    district: document.getElementById('shopQuartier').value || '',
-    address: document.getElementById('shopAddress')?.value || '',
-    country: 'Congo-Brazzaville',
-    rating: 0,
-    total_ratings: 0,
-    total_sales: 0,
-    is_verified: false,
-    has_physical_store: false,
-    is_active: true,
-    show_search_bar: document.getElementById('showSearchBar')?.checked || false,  // ← AJOUTER
-    design: {  // ← AJOUTER TOUT LE DESIGN
-        menu_position: designConfig.menuPosition,
-        menu_bg: designConfig.menuBg,
-        menu_text: designConfig.menuText,
-        menu_radius: designConfig.menuRadius,
-        carousel_height: designConfig.carouselHeight,
-        carousel_radius: designConfig.carouselRadius,
-        carousel_speed: designConfig.carouselSpeed,
-        prod_width: designConfig.prodWidth,
-        prod_img_height: designConfig.prodImgHeight,
-        prod_radius: designConfig.prodRadius,
-        prod_gap: designConfig.prodGap,
-        layout: designConfig.layout,
-        primary_color: document.getElementById('primaryColor').value,
-        button_color: document.getElementById('buttonColor').value,
-        background_color: document.getElementById('bgColor').value,
-        header_text_color: document.getElementById('headerTextColor').value,
-        product_text_color: document.getElementById('productTextColor').value
-    }
-};
+    
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom de boutique requis"); return; }
     if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
@@ -802,7 +453,27 @@ async function publishShop() {
         total_sales: 0,
         is_verified: false,
         has_physical_store: false,
-        is_active: true
+        is_active: true,
+        show_search_bar: document.getElementById('showSearchBar')?.checked || false,
+        design: {
+            menu_position: designConfig.menuPosition,
+            menu_bg: designConfig.menuBg,
+            menu_text: designConfig.menuText,
+            menu_radius: designConfig.menuRadius,
+            carousel_height: designConfig.carouselHeight,
+            carousel_radius: designConfig.carouselRadius,
+            carousel_speed: designConfig.carouselSpeed,
+            prod_width: designConfig.prodWidth,
+            prod_img_height: designConfig.prodImgHeight,
+            prod_radius: designConfig.prodRadius,
+            prod_gap: designConfig.prodGap,
+            layout: designConfig.layout,
+            primary_color: document.getElementById('primaryColor').value,
+            button_color: document.getElementById('buttonColor').value,
+            background_color: document.getElementById('bgColor').value,
+            header_text_color: document.getElementById('headerTextColor').value,
+            product_text_color: document.getElementById('productTextColor').value
+        }
     };
     
     try {
@@ -868,7 +539,27 @@ async function updateShop() {
             logo_url: tempLogo || '',
             city: document.getElementById('shopCity').value || 'Brazzaville',
             district: document.getElementById('shopQuartier').value || '',
-            address: document.getElementById('shopAddress')?.value || ''
+            address: document.getElementById('shopAddress')?.value || '',
+            show_search_bar: document.getElementById('showSearchBar')?.checked || false,
+            design: {
+                menu_position: designConfig.menuPosition,
+                menu_bg: designConfig.menuBg,
+                menu_text: designConfig.menuText,
+                menu_radius: designConfig.menuRadius,
+                carousel_height: designConfig.carouselHeight,
+                carousel_radius: designConfig.carouselRadius,
+                carousel_speed: designConfig.carouselSpeed,
+                prod_width: designConfig.prodWidth,
+                prod_img_height: designConfig.prodImgHeight,
+                prod_radius: designConfig.prodRadius,
+                prod_gap: designConfig.prodGap,
+                layout: designConfig.layout,
+                primary_color: document.getElementById('primaryColor').value,
+                button_color: document.getElementById('buttonColor').value,
+                background_color: document.getElementById('bgColor').value,
+                header_text_color: document.getElementById('headerTextColor').value,
+                product_text_color: document.getElementById('productTextColor').value
+            }
         };
         
         const { error } = await window.supabase
@@ -907,11 +598,39 @@ async function loadShopForEditing(shopId) {
         document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo_url}" style="width:100%;height:100%;object-fit:contain;">`;
     }
     
-    // Charger catégories
+    // Charger le design
+    if (shop.design) {
+        const d = shop.design;
+        designConfig.menuPosition = d.menu_position || 'horizontal';
+        designConfig.menuBg = d.menu_bg || '#1e40af';
+        designConfig.menuText = d.menu_text || '#ffffff';
+        designConfig.menuRadius = d.menu_radius || 0;
+        designConfig.carouselHeight = d.carousel_height || 300;
+        designConfig.carouselRadius = d.carousel_radius || 12;
+        designConfig.carouselSpeed = d.carousel_speed || 0;
+        designConfig.prodWidth = d.prod_width || 200;
+        designConfig.prodImgHeight = d.prod_img_height || 160;
+        designConfig.prodRadius = d.prod_radius || 12;
+        designConfig.prodGap = d.prod_gap || 16;
+        designConfig.layout = d.layout || 'grid';
+        
+        // Mettre à jour l'UI
+        if (document.getElementById('primaryColor')) document.getElementById('primaryColor').value = d.primary_color || '#1e40af';
+        if (document.getElementById('buttonColor')) document.getElementById('buttonColor').value = d.button_color || '#1e40af';
+        if (document.getElementById('bgColor')) document.getElementById('bgColor').value = d.background_color || '#ffffff';
+        if (document.getElementById('headerTextColor')) document.getElementById('headerTextColor').value = d.header_text_color || '#ffffff';
+        if (document.getElementById('productTextColor')) document.getElementById('productTextColor').value = d.product_text_color || '#1e293b';
+    }
+    
+    if (shop.show_search_bar && document.getElementById('showSearchBar')) {
+        document.getElementById('showSearchBar').checked = true;
+    }
+    
+    // Catégories
     const { data: cats } = await window.supabase.from('categories').select('*').eq('shop_id', shopId);
     categories = (cats || []).map(c => ({ id: c.id, name: c.name }));
     
-    // Charger produits
+    // Produits
     const { data: prods } = await window.supabase.from('products').select('*').eq('shop_id', shopId);
     products = (prods || []).map(p => ({
         id: p.id,
@@ -935,20 +654,7 @@ async function loadShopForEditing(shopId) {
 
 // ============ ÉCOUTEURS ============
 function setupEventListeners() {
-    // Barre de recherche
-const showSearchCheckbox = document.getElementById('showSearchBar');
-if (showSearchCheckbox) {
-    showSearchCheckbox.addEventListener('change', () => {
-        console.log('✅ Barre de recherche:', showSearchCheckbox.checked);
-        updatePreview();
-    });
-}
     // Inputs texte
-    // Barre de recherche
-const showSearchCheckbox = document.getElementById('showSearchBar');
-if (showSearchCheckbox) {
-    showSearchCheckbox.addEventListener('change', debouncedUpdatePreview);
-}
     const inputs = ['primaryColor', 'buttonColor', 'bgColor', 'headerTextColor', 'productTextColor',
                     'shopNameInput', 'shopDescInput', 'shopCity', 'shopQuartier', 'shopAddress'];
     inputs.forEach(id => {
@@ -956,7 +662,16 @@ if (showSearchCheckbox) {
         if (el) el.addEventListener('input', debouncedUpdatePreview);
     });
     
-    // ===== MENU =====
+    // Barre de recherche
+    const showSearchCheckbox = document.getElementById('showSearchBar');
+    if (showSearchCheckbox) {
+        showSearchCheckbox.addEventListener('change', () => {
+            console.log('✅ Barre de recherche:', showSearchCheckbox.checked);
+            updatePreview();
+        });
+    }
+    
+    // MENU
     const menuBg = document.getElementById('menuBgColor');
     if (menuBg) menuBg.addEventListener('input', (e) => { 
         designConfig.menuBg = e.target.value; 
@@ -969,18 +684,16 @@ if (showSearchCheckbox) {
         debouncedUpdatePreview(); 
     });
     
-    // Position menu
     document.querySelectorAll('.menu-pos-card').forEach(card => {
         card.addEventListener('click', () => {
             designConfig.menuPosition = card.dataset.pos;
             document.querySelectorAll('.menu-pos-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            console.log('✅ Position menu:', designConfig.menuPosition);
             debouncedUpdatePreview();
         });
     });
     
-    // ===== CARROUSEL =====
+    // CARROUSEL
     const carouselHeightSlider = document.getElementById('carouselHeight');
     if (carouselHeightSlider) {
         carouselHeightSlider.addEventListener('input', (e) => {
@@ -999,18 +712,16 @@ if (showSearchCheckbox) {
         });
     }
     
-    // Vitesse carrousel
     document.querySelectorAll('.speed-card').forEach(card => {
         card.addEventListener('click', () => {
             designConfig.carouselSpeed = parseInt(card.dataset.speed);
             document.querySelectorAll('.speed-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            console.log('✅ Vitesse carrousel:', designConfig.carouselSpeed);
             debouncedUpdatePreview();
         });
     });
     
-    // ===== MENU RADIUS =====
+    // MENU RADIUS
     const menuRadiusSlider = document.getElementById('menuRadius');
     if (menuRadiusSlider) {
         menuRadiusSlider.addEventListener('input', (e) => {
@@ -1020,7 +731,7 @@ if (showSearchCheckbox) {
         });
     }
     
-    // ===== AFFICHAGE PRODUITS =====
+    // AFFICHAGE PRODUITS
     const prodWidthSlider = document.getElementById('prodWidth');
     if (prodWidthSlider) {
         prodWidthSlider.addEventListener('input', (e) => {
@@ -1057,13 +768,11 @@ if (showSearchCheckbox) {
         });
     }
     
-    // Layout produits
     document.querySelectorAll('.layout-card').forEach(card => {
         card.addEventListener('click', () => {
             designConfig.layout = card.dataset.layout;
             document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            console.log('✅ Layout:', designConfig.layout);
             debouncedUpdatePreview();
         });
     });
@@ -1098,7 +807,6 @@ async function init() {
         renderProductsList();
     }
     
-    // Forcer l'affichage de l'aperçu
     updatePreview();
     console.log('✅ Aperçu affiché');
 }
