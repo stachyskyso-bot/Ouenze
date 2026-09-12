@@ -1,6 +1,6 @@
 // ============================================================
 // SHOP-DESIGNER.JS — VERSION SUPABASE COMPLÈTE
-// GRIOT × DEEPER — Migration localStorage → Supabase
+// Aperçu + Publication + Modification
 // ============================================================
 
 // ============ ÉTAT GLOBAL ============
@@ -17,7 +17,6 @@ let tempProductPhotos = [];
 let updateTimeout = null;
 let editingShopId = null;
 
-// Configuration design
 let designConfig = {
     menuPosition: 'horizontal',
     menuBg: '#1e40af',
@@ -33,23 +32,19 @@ let designConfig = {
     layout: 'grid'
 };
 
-// ============ FONCTIONS UTILITAIRES ============
+// ============ UTILITAIRES ============
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    return String(str).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 }
 
-function formatNumber(value) {
-    return Number(value || 0).toLocaleString();
+function formatNumber(v) {
+    return Number(v || 0).toLocaleString();
 }
 
 function generateSlug(text) {
-    return text
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
+    return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 function debouncedUpdatePreview() {
@@ -57,7 +52,7 @@ function debouncedUpdatePreview() {
     updateTimeout = setTimeout(() => updatePreview(), 100);
 }
 
-// ============ GESTION DES CATÉGORIES ============
+// ============ CATÉGORIES ============
 function addCategory() {
     const name = prompt("Nom de la catégorie :");
     if (name && name.trim()) {
@@ -88,12 +83,10 @@ function removeCategory(id) {
 function renderCategories() {
     const container = document.getElementById('categoriesContainer');
     if (!container) return;
-    
     if (categories.length === 0) {
         container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-500);">Aucune catégorie</div>';
         return;
     }
-    
     container.innerHTML = categories.map(cat => `
         <div class="category-item">
             <div class="category-header">
@@ -106,51 +99,28 @@ function renderCategories() {
     `).join('');
 }
 
-// ============ GESTION DU CARROUSEL ============
-function setupCarouselUpload() {
-    const carouselInput = document.getElementById('carouselMedia');
-    if (carouselInput) {
-        carouselInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            files.forEach(file => {
+// ============ LOGO ============
+function setupLogoUpload() {
+    const logoInput = document.getElementById('logoUpload');
+    if (logoInput) {
+        logoInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
                 const reader = new FileReader();
                 reader.onload = ev => {
-                    const type = file.type.startsWith('image/') ? 'image' : 'video';
-                    carouselMedia.push({ type, src: ev.target.result });
-                    renderCarouselList();
+                    tempLogo = ev.target.result;
+                    const preview = document.getElementById('logoPreview');
+                    if (preview) {
+                        preview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;">`;
+                    }
                     debouncedUpdatePreview();
                 };
-                reader.readAsDataURL(file);
-            });
-            e.target.value = '';
+                reader.readAsDataURL(e.target.files[0]);
+            }
         });
     }
 }
 
-function removeCarouselMedia(idx) {
-    carouselMedia.splice(idx, 1);
-    renderCarouselList();
-    debouncedUpdatePreview();
-}
-
-function renderCarouselList() {
-    const container = document.getElementById('carouselList');
-    if (!container) return;
-    
-    if (carouselMedia.length === 0) {
-        container.innerHTML = '<div style="color:var(--gray-500);">Aucun média</div>';
-        return;
-    }
-    
-    container.innerHTML = carouselMedia.map((m, i) => `
-        <div class="carousel-media-item">
-            ${m.type === 'image' ? `<img src="${m.src}">` : `<video src="${m.src}" muted playsinline></video>`}
-            <div class="remove-media" onclick="window.removeCarouselMedia(${i})">✕</div>
-        </div>
-    `).join('');
-}
-
-// ============ GESTION DES PRODUITS ============
+// ============ PRODUITS ============
 function openAddProductModal(productId = null) {
     if (categories.length === 0) {
         alert("Créez d'abord une catégorie");
@@ -182,13 +152,6 @@ function renderProductForm() {
     
     form.innerHTML = `
         <div class="form-group">
-            <label>Type de produit</label>
-            <select id="productType" onchange="window.toggleProductFields()">
-                <option value="standard" ${product?.type === 'standard' || !product ? 'selected' : ''}>Standard</option>
-                <option value="food" ${product?.type === 'food' ? 'selected' : ''}>Alimentaire</option>
-            </select>
-        </div>
-        <div class="form-group">
             <label>Nom du produit *</label>
             <input type="text" id="productName" value="${escapeHtml(product?.name || '')}">
         </div>
@@ -208,88 +171,31 @@ function renderProductForm() {
                 <input type="number" id="productStock" value="${product?.stock || 0}">
             </div>
         </div>
-        
-        <div class="form-group">
-            <label>Couleurs et variantes</label>
-            <div id="variantsContainer"></div>
-            <button type="button" class="btn-sm" onclick="window.addVariant()">+ Ajouter une variante</button>
-        </div>
-        
-        <div id="foodFields" style="display:${product?.type === 'food' ? 'block' : 'none'};">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Date d'expiration</label>
-                    <input type="date" id="productExpiry" value="${product?.expiryDate || ''}">
-                </div>
-                <div class="form-group">
-                    <label>Poids</label>
-                    <input type="text" id="productWeight" value="${escapeHtml(product?.weight || '')}">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Origine</label>
-                    <input type="text" id="productOrigin" value="${escapeHtml(product?.origin || '')}">
-                </div>
-                <div class="form-group">
-                    <label>Ingrédients</label>
-                    <input type="text" id="productIngredients" value="${escapeHtml(product?.ingredients || '')}">
-                </div>
-            </div>
-        </div>
-        
         <div class="form-group">
             <label>Description</label>
             <textarea id="productDesc" rows="3">${escapeHtml(product?.description || '')}</textarea>
         </div>
-        
         <div class="form-group">
             <label>Photos</label>
             <div id="productPhotosContainer" class="photo-gallery"></div>
             <input type="file" id="productPhotoInput" accept="image/*" multiple>
         </div>
-        
         <button class="btn-primary" onclick="window.saveProduct()">${product ? 'Mettre à jour' : 'Ajouter'}</button>
     `;
     
-    renderVariantsForm(tempVariants);
     renderProductPhotos(tempProductPhotos);
     
     const photoInput = document.getElementById('productPhotoInput');
-    if (photoInput) {
-        photoInput.addEventListener('change', handleProductPhotoUpload);
-    }
-}
-
-function renderVariantsForm(variants) {
-    const container = document.getElementById('variantsContainer');
-    if (!container) return;
-    
-    if (variants.length === 0) {
-        container.innerHTML = '<div style="padding:10px;color:var(--gray-500);">Aucune variante</div>';
-        return;
-    }
-    
-    container.innerHTML = variants.map((v, idx) => `
-        <div class="variant-row">
-            <input type="color" value="${v.color || '#1e40af'}" onchange="window.updateVariant(${idx}, 'color', this.value)">
-            <input type="text" placeholder="Nom" value="${escapeHtml(v.name || '')}" onchange="window.updateVariant(${idx}, 'name', this.value)" style="width:100px;">
-            <input type="number" placeholder="Prix" value="${v.price || ''}" onchange="window.updateVariant(${idx}, 'price', parseFloat(this.value))" style="width:90px;">
-            <input type="number" placeholder="Stock" value="${v.stock || 0}" onchange="window.updateVariant(${idx}, 'stock', parseInt(this.value))" style="width:70px;">
-            <button class="btn-danger" onclick="window.removeVariant(${idx})">✕</button>
-        </div>
-    `).join('');
+    if (photoInput) photoInput.addEventListener('change', handleProductPhotoUpload);
 }
 
 function renderProductPhotos(photos) {
     const container = document.getElementById('productPhotosContainer');
     if (!container) return;
-    
     if (photos.length === 0) {
         container.innerHTML = '<div style="padding:10px;color:var(--gray-500);">Aucune photo</div>';
         return;
     }
-    
     container.innerHTML = photos.map((photo, idx) => `
         <div class="photo-item">
             <img src="${photo}">
@@ -300,11 +206,7 @@ function renderProductPhotos(photos) {
 
 function handleProductPhotoUpload(e) {
     const files = Array.from(e.target.files);
-    if (tempProductPhotos.length + files.length > 5) {
-        alert("Maximum 5 photos");
-        return;
-    }
-    
+    if (tempProductPhotos.length + files.length > 5) { alert("Maximum 5 photos"); return; }
     files.forEach(file => {
         const reader = new FileReader();
         reader.onload = ev => {
@@ -321,30 +223,7 @@ function removeProductPhoto(idx) {
     renderProductPhotos(tempProductPhotos);
 }
 
-function addVariant() {
-    tempVariants.push({ name: 'Nouvelle couleur', color: '#1e40af', price: 0, stock: 0 });
-    renderVariantsForm(tempVariants);
-}
-
-function updateVariant(idx, field, value) {
-    if (tempVariants[idx]) tempVariants[idx][field] = value;
-}
-
-function removeVariant(idx) {
-    tempVariants.splice(idx, 1);
-    renderVariantsForm(tempVariants);
-}
-
-function toggleProductFields() {
-    const foodFields = document.getElementById('foodFields');
-    const productType = document.getElementById('productType');
-    if (foodFields && productType) {
-        foodFields.style.display = productType.value === 'food' ? 'block' : 'none';
-    }
-}
-
 function saveProduct() {
-    const type = document.getElementById('productType').value;
     const name = document.getElementById('productName').value.trim();
     const categoryId = parseInt(document.getElementById('productCategory').value);
     const basePrice = parseFloat(document.getElementById('productBasePrice').value);
@@ -355,21 +234,12 @@ function saveProduct() {
     if (!categoryId) { alert("Catégorie requise"); return; }
     if (isNaN(basePrice) || basePrice <= 0) { alert("Prix valide requis"); return; }
     
-    const variants = tempVariants.filter(v => v.name && v.price > 0);
-    const photos = tempProductPhotos;
-    
     const productData = {
         id: editingProductId || Date.now(),
-        type, name, categoryId, basePrice, stock, description, variants, photos,
-        createdAt: new Date().toISOString()
+        name, categoryId, basePrice, stock, description,
+        photos: tempProductPhotos,
+        variants: []
     };
-    
-    if (type === 'food') {
-        productData.expiryDate = document.getElementById('productExpiry')?.value || '';
-        productData.weight = document.getElementById('productWeight')?.value || '';
-        productData.origin = document.getElementById('productOrigin')?.value || '';
-        productData.ingredients = document.getElementById('productIngredients')?.value || '';
-    }
     
     if (editingProductId) {
         const index = products.findIndex(p => p.id === editingProductId);
@@ -388,12 +258,10 @@ function saveProduct() {
 function renderProductsList() {
     const container = document.getElementById('productsContainer');
     if (!container) return;
-    
     if (products.length === 0) {
         container.innerHTML = '<div style="text-align:center;padding:20px;">Aucun produit</div>';
         return;
     }
-    
     container.innerHTML = products.map(p => {
         const category = categories.find(c => c.id === p.categoryId);
         return `
@@ -411,17 +279,8 @@ function renderProductsList() {
                     </div>
                 </div>
                 <div style="font-size:12px; color:var(--gray-500);">
-                    Catégorie: ${category?.name || 'Sans catégorie'} | ${p.variants?.length || 0} variante(s)
+                    Catégorie: ${category?.name || 'Sans catégorie'}
                 </div>
-                ${p.photos?.length ? `
-                    <div class="photo-gallery">
-                        ${p.photos.slice(0, 3).map(photo => `
-                            <div class="photo-item" style="width:40px;height:40px;">
-                                <img src="${photo}">
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : ''}
             </div>
         `;
     }).join('');
@@ -438,9 +297,7 @@ function updateProductField(productId, field, value) {
     }
 }
 
-function editProduct(id) {
-    openAddProductModal(id);
-}
+function editProduct(id) { openAddProductModal(id); }
 
 function deleteProduct(id) {
     if (confirm("Supprimer ce produit ?")) {
@@ -458,31 +315,13 @@ function closeProductModal() {
     editingProductId = null;
 }
 
-// ============ LOGO UPLOAD ============
-function setupLogoUpload() {
-    const logoInput = document.getElementById('logoUpload');
-    if (logoInput) {
-        logoInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    tempLogo = ev.target.result;
-                    const preview = document.getElementById('logoPreview');
-                    if (preview) {
-                        preview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;">`;
-                    }
-                    debouncedUpdatePreview();
-                };
-                reader.readAsDataURL(e.target.files[0]);
-            }
-        });
-    }
-}
-
 // ============ APERÇU EN TEMPS RÉEL ============
 function updatePreview() {
     const preview = document.getElementById('livePreview');
-    if (!preview) return;
+    if (!preview) {
+        console.warn('⚠️ livePreview introuvable');
+        return;
+    }
     
     const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
     const desc = document.getElementById('shopDescInput')?.value || '';
@@ -494,184 +333,74 @@ function updatePreview() {
     const headerTextColor = document.getElementById('headerTextColor')?.value || '#ffffff';
     const productTextColor = document.getElementById('productTextColor')?.value || '#1e293b';
     
-    const menuPosition = designConfig.menuPosition;
-    const isVertical = menuPosition === 'vertical-left' || menuPosition === 'vertical-right';
-    const floatDir = menuPosition === 'vertical-left' ? 'left' : 'right';
-    
-    let menuHtml = '';
-    if (isVertical) {
-        menuHtml = `<div class="preview-menu preview-menu-vertical" style="background:${designConfig.menuBg}; color:${designConfig.menuText}; border-radius:${designConfig.menuRadius}px; float:${floatDir}; width:160px; margin-${floatDir === 'left' ? 'right' : 'left'}:16px;">
-            ${categories.map(cat => `<div class="preview-menu-item">${escapeHtml(cat.name)}</div>`).join('')}
-        </div>`;
-    } else {
-        menuHtml = `<div class="preview-menu preview-menu-horizontal" style="background:${designConfig.menuBg}; color:${designConfig.menuText}; border-radius:${designConfig.menuRadius}px;">
-            ${categories.map(cat => `<span style="padding:6px 12px;">${escapeHtml(cat.name)}</span>`).join('')}
-        </div>`;
-    }
-    
-    const contentMargin = menuPosition === 'vertical-left' ? 'margin-left: 176px;' : (menuPosition === 'vertical-right' ? 'margin-right: 176px;' : '');
-    
     preview.innerHTML = `
-        <style>
-            .preview-shop{background:${bgColor}; border-radius:12px;}
-            .preview-header{background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);color:${headerTextColor};}
-            .preview-product-title{color:${productTextColor};}
-            .preview-product-price{color:${primaryColor};}
-            .preview-btn{background:${buttonColor}; border-radius:${designConfig.prodRadius}px;}
-            .preview-products{display:${designConfig.layout === 'grid' ? 'grid' : 'flex'}; ${designConfig.layout === 'grid' ? `grid-template-columns:repeat(auto-fill,minmax(${designConfig.prodWidth}px,1fr));` : 'flex-direction:column;'} gap:${designConfig.prodGap}px;}
-            .preview-product{border-radius:${designConfig.prodRadius}px;}
-            .preview-product-image{height:${designConfig.prodImgHeight}px;}
-            .preview-carousel{height:${designConfig.carouselHeight}px; border-radius:${designConfig.carouselRadius}px;}
-        </style>
-        <div class="preview-shop">
-            <div class="preview-header">
-                <div class="preview-logo">
-                    <div class="preview-logo-img">
-                        ${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
+        <div style="background:${bgColor};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            <div style="background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);padding:20px;color:${headerTextColor};">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:55px;height:55px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        ${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:24px;color:#1e40af;"></i>'}
                     </div>
                     <div>
-                        <h3 style="font-size:16px;">${escapeHtml(shopName)}</h3>
-                        <p style="font-size:11px;">${escapeHtml(desc)}</p>
+                        <h3 style="font-size:16px;margin:0;">${escapeHtml(shopName)}</h3>
+                        <p style="font-size:11px;margin:4px 0;opacity:0.9;">${escapeHtml(desc)}</p>
                         <div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div>
                     </div>
                 </div>
             </div>
-            ${menuHtml}
-            <div class="preview-content" style="padding:16px; ${contentMargin}">
-                <div class="preview-carousel" id="previewCarousel">
-                    ${carouselMedia.map((m, i) => `
-                        ${m.type === 'image' 
-                            ? `<img src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" style="width:100%; height:100%; object-fit:cover;">`
-                            : `<video src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" muted autoplay loop playsinline style="width:100%; height:100%; object-fit:cover;"></video>`
-                        }
-                    `).join('')}
-                    ${carouselMedia.length > 1 ? `
-                        <button class="carousel-btn carousel-prev" onclick="window.changeSlide(-1)">❮</button>
-                        <button class="carousel-btn carousel-next" onclick="window.changeSlide(1)">❯</button>
-                    ` : ''}
+            
+            ${categories.length > 0 ? `
+                <div style="background:${designConfig.menuBg};color:${designConfig.menuText};padding:8px 16px;display:flex;gap:16px;flex-wrap:wrap;">
+                    ${categories.map(cat => `<span style="font-size:13px;">${escapeHtml(cat.name)}</span>`).join('')}
                 </div>
-                <div class="preview-products ${designConfig.layout === 'grid' ? 'grid' : 'list'}">
-                    ${products.slice(0, 6).map(p => {
-                        const minPrice = p.variants?.length ? Math.min(...p.variants.map(v => v.price), p.basePrice) : p.basePrice;
-                        const maxPrice = p.variants?.length ? Math.max(...p.variants.map(v => v.price)) : p.basePrice;
-                        return `
-                            <div class="preview-product">
-                                <div class="preview-product-image">
-                                    ${p.photos?.[0] ? `<img src="${p.photos[0]}" loading="lazy">` : '<i class="fas fa-image" style="font-size:32px;color:#ccc;"></i>'}
+            ` : ''}
+            
+            <div style="padding:16px;">
+                <h4 style="font-size:14px;margin-bottom:12px;">Produits (${products.length})</h4>
+                ${products.length > 0 ? `
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:${designConfig.prodGap}px;">
+                        ${products.slice(0, 6).map(p => `
+                            <div style="background:white;border-radius:${designConfig.prodRadius}px;border:1px solid #e2e8f0;overflow:hidden;">
+                                <div style="height:${designConfig.prodImgHeight}px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
+                                    ${p.photos?.[0] ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'}
                                 </div>
-                                <div class="preview-product-info">
-                                    ${p.type === 'food' ? '<div class="food-badge"><i class="fas fa-utensils"></i> Alimentaire</div>' : ''}
-                                    <div class="preview-product-title">${escapeHtml(p.name)}</div>
-                                    ${p.variants?.length ? 
-                                        `<div class="preview-product-price">${formatNumber(minPrice)} - ${formatNumber(maxPrice)} FCFA</div>` : 
-                                        `<div class="preview-product-price">${formatNumber(p.basePrice)} FCFA</div>`
-                                    }
-                                    ${p.variants?.length ? `
-                                        <div class="preview-product-colors">
-                                            ${p.variants.slice(0, 3).map(v => `<div class="preview-color-dot" style="background:${v.color};" title="${escapeHtml(v.name)}"></div>`).join('')}
-                                        </div>
-                                    ` : ''}
-                                    <button class="preview-btn">Ajouter</button>
+                                <div style="padding:12px;">
+                                    <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
+                                    <div style="font-weight:700;color:${primaryColor};font-size:14px;">${formatNumber(p.basePrice)} FCFA</div>
+                                    <button style="background:${buttonColor};color:white;border:none;padding:8px;border-radius:30px;width:100%;cursor:pointer;font-size:12px;font-weight:500;margin-top:8px;">
+                                        Ajouter
+                                    </button>
                                 </div>
                             </div>
-                        `;
-                    }).join('')}
-                </div>
-                ${!products.length ? '<div style="text-align:center;padding:40px;">Aucun produit</div>' : ''}
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div style="text-align:center;padding:40px;color:#94a3b8;">
+                        <i class="fas fa-box-open" style="font-size:32px;margin-bottom:8px;"></i>
+                        <p>Aucun produit pour l'instant</p>
+                    </div>
+                `}
             </div>
         </div>
     `;
-    
-    if (carouselInterval) clearInterval(carouselInterval);
-    if (carouselMedia.length > 1 && designConfig.carouselSpeed > 0) {
-        carouselInterval = setInterval(() => {
-            const slides = document.querySelectorAll('#previewCarousel .slide');
-            if (!slides.length) return;
-            let active = Array.from(slides).findIndex(s => s.classList.contains('active'));
-            if (active !== -1) {
-                slides[active].classList.remove('active');
-                slides[(active + 1) % slides.length].classList.add('active');
-            }
-        }, designConfig.carouselSpeed * 1000);
-    }
 }
 
-function changeSlide(d) {
-    const slides = document.querySelectorAll('#previewCarousel .slide');
-    if (!slides.length) return;
-    let active = Array.from(slides).findIndex(s => s.classList.contains('active'));
-    if (active !== -1) {
-        slides[active].classList.remove('active');
-        slides[(active + d + slides.length) % slides.length].classList.add('active');
-    }
-}
-
-// ============ MISE À JOUR DES CONFIGURATIONS ============
-function updateCarouselHeight(v) {
-    designConfig.carouselHeight = v;
-    document.getElementById('carouselHeightVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-function updateCarouselRadius(v) {
-    designConfig.carouselRadius = v;
-    document.getElementById('carouselRadiusVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-function updateMenuRadius(v) {
-    designConfig.menuRadius = v;
-    document.getElementById('menuRadiusVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-function updateProdWidth(v) {
-    designConfig.prodWidth = v;
-    document.getElementById('prodWidthVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-function updateProdImgHeight(v) {
-    designConfig.prodImgHeight = v;
-    document.getElementById('prodImgHeightVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-function updateProdRadius(v) {
-    designConfig.prodRadius = v;
-    document.getElementById('prodRadiusVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-function updateProdGap(v) {
-    designConfig.prodGap = v;
-    document.getElementById('prodGapVal').innerText = v;
-    debouncedUpdatePreview();
-}
-
-// ============================================================
-// PUBLICATION VIA SUPABASE
-// ============================================================
+// ============ PUBLICATION VIA SUPABASE ============
 async function publishShop() {
-    console.log('🚀 Publication de la boutique...');
+    console.log('🚀 Publication...');
     
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom de boutique requis"); return; }
     if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
     if (products.length === 0) { alert("Ajoutez au moins un produit"); return; }
     
-    // 1. Récupérer l'utilisateur connecté
     const { data: { user }, error: userError } = await window.supabase.auth.getUser();
     
     if (userError || !user) {
-        alert("Vous devez être connecté pour créer une boutique");
+        alert("Vous devez être connecté");
         window.location.href = 'index.html';
         return;
     }
     
-    console.log('👤 Utilisateur:', user.email, '| ID:', user.id);
-    
-    // 2. Préparer les données de la boutique
     const shopData = {
         owner_id: user.id,
         name: name,
@@ -690,43 +419,28 @@ async function publishShop() {
         is_active: true
     };
     
-    console.log('📦 Données boutique:', shopData);
-    
     try {
-        // 3. Insérer la boutique dans Supabase
         const { data: insertedShop, error: shopError } = await window.supabase
-            .from('shops')
-            .insert([shopData])
-            .select()
-            .single();
+            .from('shops').insert([shopData]).select().single();
         
         if (shopError) {
-            console.error('❌ Erreur insertion boutique:', shopError);
-            alert('Erreur lors de la création de la boutique: ' + shopError.message);
+            console.error('❌ Erreur boutique:', shopError);
+            alert('Erreur: ' + shopError.message);
             return;
         }
         
         console.log('✅ Boutique créée:', insertedShop);
         
-        // 4. Insérer les catégories
+        // Catégories
         if (categories.length > 0) {
             const categoriesData = categories.map(cat => ({
                 shop_id: insertedShop.id,
                 name: cat.name
             }));
-            
-            const { error: catError } = await window.supabase
-                .from('categories')
-                .insert(categoriesData);
-            
-            if (catError) {
-                console.error('❌ Erreur insertion catégories:', catError);
-            } else {
-                console.log('✅ Catégories créées');
-            }
+            await window.supabase.from('categories').insert(categoriesData);
         }
         
-        // 5. Insérer les produits
+        // Produits
         if (products.length > 0) {
             const productsData = products.map(p => ({
                 shop_id: insertedShop.id,
@@ -735,44 +449,31 @@ async function publishShop() {
                 description: p.description || '',
                 price: p.basePrice || p.price || 0,
                 stock: p.stock || 0,
-                product_type: p.type || 'standard',
+                product_type: 'standard',
                 photos: p.photos || []
             }));
             
-            const { error: prodError } = await window.supabase
-                .from('products')
-                .insert(productsData);
-            
-            if (prodError) {
-                console.error('❌ Erreur insertion produits:', prodError);
-                alert('Boutique créée mais erreur sur les produits: ' + prodError.message);
-            } else {
-                console.log('✅ Produits créés');
-            }
+            const { error: prodError } = await window.supabase.from('products').insert(productsData);
+            if (prodError) console.error('❌ Erreur produits:', prodError);
         }
         
-        // 6. Succès
         alert(`✅ Boutique "${name}" créée avec succès !`);
-        
-        // 7. Rediriger vers le dashboard
         window.location.href = 'vendor-dashboard.html';
         
     } catch (error) {
-        console.error('❌ Erreur inattendue:', error);
-        alert('Erreur lors de la création de la boutique');
+        console.error('❌ Erreur:', error);
+        alert('Erreur lors de la création');
     }
 }
 
-// ============================================================
-// MISE À JOUR VIA SUPABASE
-// ============================================================
+// ============ MISE À JOUR ============
 async function updateShop() {
-    if (!editingShopId) { alert("Erreur : aucune boutique sélectionnée"); return; }
+    if (!editingShopId) { alert("Erreur"); return; }
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom requis"); return; }
     
     const { data: { user } } = await window.supabase.auth.getUser();
-    if (!user) { alert("Vous devez être connecté"); return; }
+    if (!user) { alert("Connectez-vous"); return; }
     
     try {
         const updates = {
@@ -785,62 +486,63 @@ async function updateShop() {
         };
         
         const { error } = await window.supabase
-            .from('shops')
-            .update(updates)
-            .eq('id', editingShopId)
-            .eq('owner_id', user.id);
+            .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id);
         
-        if (error) {
-            console.error('❌ Erreur mise à jour:', error);
-            alert('Erreur: ' + error.message);
-            return;
-        }
+        if (error) { alert('Erreur: ' + error.message); return; }
         
         alert(`✅ Boutique "${name}" mise à jour !`);
         window.location.href = 'vendor-dashboard.html';
         
     } catch (error) {
         console.error('❌ Erreur:', error);
-        alert('Erreur lors de la mise à jour');
+        alert('Erreur');
     }
 }
 
-// ============================================================
-// CHARGEMENT D'UNE BOUTIQUE EXISTANTE (VIA SUPABASE)
-// ============================================================
+// ============ CHARGEMENT POUR ÉDITION ============
 async function loadShopForEditing(shopId) {
     const { data: { user } } = await window.supabase.auth.getUser();
-    if (!user) { alert("Vous devez être connecté"); return false; }
+    if (!user) { alert("Connectez-vous"); return false; }
     
     const { data: shop, error } = await window.supabase
-        .from('shops')
-        .select('*')
-        .eq('id', shopId)
-        .eq('owner_id', user.id)
-        .single();
+        .from('shops').select('*').eq('id', shopId).eq('owner_id', user.id).single();
     
-    if (error || !shop) {
-        alert("Boutique non trouvée ou vous n'êtes pas autorisé");
-        return false;
-    }
+    if (error || !shop) { alert("Boutique non trouvée"); return false; }
     
     editingShopId = shop.id;
     document.getElementById('shopNameInput').value = shop.name || '';
     document.getElementById('shopDescInput').value = shop.description || '';
     document.getElementById('shopCity').value = shop.city || '';
     document.getElementById('shopQuartier').value = shop.district || '';
-    if (document.getElementById('shopAddress')) {
-        document.getElementById('shopAddress').value = shop.address || '';
-    }
+    if (document.getElementById('shopAddress')) document.getElementById('shopAddress').value = shop.address || '';
     
     if (shop.logo_url) {
         tempLogo = shop.logo_url;
         document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo_url}" style="width:100%;height:100%;object-fit:contain;">`;
     }
     
+    // Charger catégories
+    const { data: cats } = await window.supabase.from('categories').select('*').eq('shop_id', shopId);
+    categories = (cats || []).map(c => ({ id: c.id, name: c.name }));
+    
+    // Charger produits
+    const { data: prods } = await window.supabase.from('products').select('*').eq('shop_id', shopId);
+    products = (prods || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        categoryId: p.category_id,
+        basePrice: p.price,
+        stock: p.stock,
+        description: p.description,
+        photos: p.photos || []
+    }));
+    
     document.getElementById('pageTitle').innerText = `Modification : ${shop.name}`;
     document.getElementById('publishBtn').style.display = 'none';
     document.getElementById('updateBtn').style.display = 'block';
+    
+    renderCategories();
+    renderProductsList();
     debouncedUpdatePreview();
     return true;
 }
@@ -853,89 +555,29 @@ function setupEventListeners() {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', debouncedUpdatePreview);
     });
-    
-    const menuBg = document.getElementById('menuBgColor');
-    if (menuBg) menuBg.addEventListener('input', (e) => { designConfig.menuBg = e.target.value; debouncedUpdatePreview(); });
-    
-    const menuText = document.getElementById('menuTextColor');
-    if (menuText) menuText.addEventListener('input', (e) => { designConfig.menuText = e.target.value; debouncedUpdatePreview(); });
-    
-    document.querySelectorAll('.menu-pos-card').forEach(card => {
-        card.addEventListener('click', () => {
-            designConfig.menuPosition = card.dataset.pos;
-            document.querySelectorAll('.menu-pos-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            debouncedUpdatePreview();
-        });
-    });
-    
-    document.querySelectorAll('.speed-card').forEach(card => {
-        card.addEventListener('click', () => {
-            designConfig.carouselSpeed = parseInt(card.dataset.speed);
-            document.querySelectorAll('.speed-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            debouncedUpdatePreview();
-        });
-    });
-    
-    document.querySelectorAll('.layout-card').forEach(card => {
-        card.addEventListener('click', () => {
-            designConfig.layout = card.dataset.layout;
-            document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            debouncedUpdatePreview();
-        });
-    });
-    
-    const menuRadiusSlider = document.getElementById('menuRadius');
-    if (menuRadiusSlider) menuRadiusSlider.addEventListener('input', (e) => updateMenuRadius(parseInt(e.target.value)));
-    
-    const carouselHeightSlider = document.getElementById('carouselHeight');
-    if (carouselHeightSlider) carouselHeightSlider.addEventListener('input', (e) => updateCarouselHeight(parseInt(e.target.value)));
-    
-    const carouselRadiusSlider = document.getElementById('carouselRadius');
-    if (carouselRadiusSlider) carouselRadiusSlider.addEventListener('input', (e) => updateCarouselRadius(parseInt(e.target.value)));
-    
-    const prodWidthSlider = document.getElementById('prodWidth');
-    if (prodWidthSlider) prodWidthSlider.addEventListener('input', (e) => updateProdWidth(parseInt(e.target.value)));
-    
-    const prodImgHeightSlider = document.getElementById('prodImgHeight');
-    if (prodImgHeightSlider) prodImgHeightSlider.addEventListener('input', (e) => updateProdImgHeight(parseInt(e.target.value)));
-    
-    const prodRadiusSlider = document.getElementById('prodRadius');
-    if (prodRadiusSlider) prodRadiusSlider.addEventListener('input', (e) => updateProdRadius(parseInt(e.target.value)));
-    
-    const prodGapSlider = document.getElementById('prodGap');
-    if (prodGapSlider) prodGapSlider.addEventListener('input', (e) => updateProdGap(parseInt(e.target.value)));
 }
 
-// ============================================================
-// INITIALISATION AVEC SUPABASE
-// ============================================================
+// ============ INITIALISATION ============
 async function init() {
-    console.log('🚀 Initialisation du shop designer...');
+    console.log('🚀 Init shop designer...');
     
-    // 1. Récupérer l'utilisateur via Supabase
     const { data: { user }, error } = await window.supabase.auth.getUser();
     
     if (error || !user) {
-        console.warn('⛔ Aucun utilisateur connecté, redirection...');
+        console.warn('⛔ Non connecté');
         window.location.href = 'index.html';
         return;
     }
     
     currentUser = user;
     currentUserEmail = user.email;
-    
-    console.log('✅ Utilisateur connecté:', user.email);
-    
-    // 2. Récupérer l'ID de la boutique à éditer
-    const urlParams = new URLSearchParams(window.location.search);
-    const editShopIdParam = urlParams.get('edit');
+    console.log('✅ Utilisateur:', user.email);
     
     setupLogoUpload();
-    setupCarouselUpload();
     setupEventListeners();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const editShopIdParam = urlParams.get('edit');
     
     if (editShopIdParam) {
         await loadShopForEditing(editShopIdParam);
@@ -944,15 +586,12 @@ async function init() {
         renderProductsList();
     }
     
-    debouncedUpdatePreview();
+    // Forcer l'affichage de l'aperçu
+    updatePreview();
+    console.log('✅ Aperçu affiché');
 }
 
-// Nettoyage au déchargement
-window.addEventListener('beforeunload', () => {
-    if (carouselInterval) clearInterval(carouselInterval);
-});
-
-// ============ EXPORTS GLOBAUX ============
+// ============ EXPORTS ============
 window.addCategory = addCategory;
 window.removeCategory = removeCategory;
 window.updateCategoryName = updateCategoryName;
@@ -962,15 +601,13 @@ window.deleteProduct = deleteProduct;
 window.closeProductModal = closeProductModal;
 window.saveProduct = saveProduct;
 window.updateProductField = updateProductField;
-window.addVariant = addVariant;
-window.updateVariant = updateVariant;
-window.removeVariant = removeVariant;
-window.toggleProductFields = toggleProductFields;
-window.removeCarouselMedia = removeCarouselMedia;
+window.removeProductPhoto = removeProductPhoto;
+window.updatePreview = updatePreview;
 window.publishShop = publishShop;
 window.updateShop = updateShop;
-window.changeSlide = changeSlide;
-window.removeProductPhoto = removeProductPhoto;
 
-// ============ DÉMARRAGE ============
+window.addEventListener('beforeunload', () => {
+    if (carouselInterval) clearInterval(carouselInterval);
+});
+
 init();
