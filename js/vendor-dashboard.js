@@ -1,1071 +1,952 @@
-// ============================================================
-// VENDOR-DASHBOARD.JS — VERSION SUPABASE
-// GRIOT 🤝 DEEPER — Migration complète
-// ============================================================
-
-// ============ VARIABLES GLOBALES ============
-let activeCharts = {};
+// ============ ÉTAT GLOBAL ============
+let categories = [];
+let products = [];
+let tempLogo = null;
+let carouselMedia = [];
+let carouselInterval = null;
 let currentUser = null;
-let currentProfile = null;
-let shops = [];
-let orders = [];
-let investmentRequests = [];
+let currentUserEmail = null;
+let editingProductId = null;
+let tempVariants = [];
+let tempProductPhotos = [];
+let updateTimeout = null;
+let editingShopId = null;
+
+// Configuration design
+let designConfig = {
+    menuPosition: 'horizontal',
+    menuBg: '#1e40af',
+    menuText: '#ffffff',
+    menuRadius: 0,
+    carouselHeight: 300,
+    carouselRadius: 12,
+    carouselSpeed: 0,
+    prodWidth: 200,
+    prodImgHeight: 160,
+    prodRadius: 12,
+    prodGap: 16,
+    layout: 'grid'
+};
 
 // ============ FONCTIONS UTILITAIRES ============
-
-function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"]/g, m => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;'
-    }[m]));
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 }
 
 function formatNumber(value) {
     return Number(value || 0).toLocaleString();
 }
 
-function generateStars(rating) {
-    let stars = '';
-    for (let i = 0; i < Math.floor(rating); i++) stars += '<i class="fas fa-star"></i>';
-    if (rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
-    for (let i = 0; i < 5 - Math.ceil(rating); i++) stars += '<i class="far fa-star"></i>';
-    return stars;
+function debouncedUpdatePreview() {
+    if (updateTimeout) clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(() => updatePreview(), 100);
 }
 
-function destroyChart(chartId) {
-    if (activeCharts[chartId]) {
-        activeCharts[chartId].destroy();
-        delete activeCharts[chartId];
+// ============ GESTION DES CATÉGORIES ============
+function addCategory() {
+    const name = prompt("Nom de la catégorie :");
+    if (name && name.trim()) {
+        categories.push({ id: Date.now(), name: name.trim() });
+        renderCategories();
+        debouncedUpdatePreview();
     }
 }
 
-// ============ ACCÈS VENDEUR — VÉRIFICATION SUPABASE ============
+function updateCategoryName(catId, newName) {
+    const cat = categories.find(c => c.id === catId);
+    if (cat) cat.name = newName;
+    debouncedUpdatePreview();
+}
 
-async function checkVendorAccess() {
-    try {
-        const { data: { user }, error: userError } = await window.supabase.auth.getUser();
-
-        if (userError || !user) {
-            console.warn('❌ Aucun utilisateur connecté');
-            window.location.href = 'index.html';
-            return null;
+function removeCategory(id) {
+    if (confirm("Supprimer cette catégorie ?")) {
+        if (products.some(p => p.categoryId === id)) {
+            alert("Supprimez d'abord les produits de cette catégorie");
+            return;
         }
-
-        const { data: profile, error: profileError } = await window.supabase
-            .from('profiles')
-            .select('id, full_name, email, user_type')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        if (profileError) {
-            console.error('❌ Erreur profil:', profileError);
-            window.location.href = 'index.html';
-            return null;
-        }
-
-        if (!profile || profile.user_type !== 'vendeur') {
-            console.warn('⛔ Accès réservé aux vendeurs');
-            window.location.href = 'index.html';
-            return null;
-        }
-
-        console.log('✅ Vendeur autorisé:', profile.full_name);
-
-        currentUser = { id: user.id, email: user.email, name: profile.full_name };
-        currentProfile = profile;
-
-        return { user, profile };
-
-    } catch (error) {
-        console.error('❌ Erreur contrôle vendeur:', error);
-        window.location.href = 'index.html';
-        return null;
+        categories = categories.filter(c => c.id !== id);
+        renderCategories();
+        debouncedUpdatePreview();
     }
 }
 
-// ============ CHARGEMENT DES DONNÉES VENDEUR ============
-
-async function loadVendorData() {
-    if (!currentUser) return;
-
-    try {
-        // 1. Charger les boutiques du vendeur
-        const { data: vendorShops, error: shopsError } = await window.supabase
-            .from('shops')
-            .select('*')
-            .eq('owner_id', currentUser.id);
-
-        if (shopsError) throw shopsError;
-
-        shops = vendorShops || [];
-        console.log(`🏪 ${shops.length} boutique(s) chargée(s)`);
-
-        // 2. Charger les commandes liées aux boutiques
-        if (shops.length > 0) {
-            const shopIds = shops.map(s => s.id);
-            const { data: vendorOrders, error: ordersError } = await window.supabase
-                .from('orders')
-                .select('*, items:order_items(*)')
-                .in('items.shop_id', shopIds);
-
-            if (ordersError) throw ordersError;
-
-            orders = vendorOrders || [];
-            console.log(`📦 ${orders.length} commande(s) chargée(s)`);
-        } else {
-            orders = [];
-        }
-
-        // 3. Charger les demandes d'investissement
-        const { data: requests, error: requestsError } = await window.supabase
-            .from('investment_requests')
-            .select('*')
-            .in('shop_id', shops.map(s => s.id));
-
-        if (requestsError) throw requestsError;
-
-        investmentRequests = requests || [];
-        console.log(`📈 ${investmentRequests.length} demande(s) d'investissement`);
-
-    } catch (error) {
-        console.error('❌ Erreur chargement données vendeur:', error);
-    }
-}
-
-// ============ CALCULS ============
-
-function getVendorRevenue() {
-    return orders
-        .filter(o => o.status === 'delivered' || o.status === 'livrée')
-        .reduce((s, o) => s + (o.total || 0), 0);
-}
-
-function getMonthlyRevenue(shopId) {
-    const shopOrders = orders.filter(o => 
-        o.items?.some(i => i.shop_id === shopId || i.shopId === shopId)
-    );
-    const monthly = [];
-    
-    for (let i = 5; i >= 0; i--) {
-        const target = new Date();
-        target.setMonth(target.getMonth() - i);
-        const month = target.getMonth();
-        const year = target.getFullYear();
-        
-        const total = shopOrders
-            .filter(o => {
-                const d = new Date(o.created_at || o.date);
-                return d.getMonth() === month && d.getFullYear() === year;
-            })
-            .reduce((s, o) => s + (o.total || 0), 0);
-        
-        monthly.push(total);
-    }
-    return monthly;
-}
-
-function calculateValuation(shop) {
-    const shopOrders = orders.filter(o => o.items?.some(i => 
-        (i.shop_id === shop.id || i.shopId === shop.id)
-    ));
-    const revenue = shopOrders.reduce((s, o) => s + (o.total || 0), 0);
-    const estimatedExpenses = revenue * 0.35;
-    const result = revenue - estimatedExpenses;
-    
-    let multiple = 3;
-    if (shop.rating >= 4.5) multiple = 6;
-    else if (shop.rating >= 3.5) multiple = 4.5;
-    else if (shop.rating >= 2.5) multiple = 3;
-    else multiple = 2;
-    
-    if ((shop.products?.length || 0) > 50) multiple += 1;
-    if ((shop.products?.length || 0) > 100) multiple += 0.5;
-    
-    const estimatedCash = revenue * 0.2;
-    const debts = (shop.liabilities || []).reduce((sum, l) => sum + (l.value || 0), 0);
-    const assets = (shop.assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-    
-    let valuation = (result * multiple) + estimatedCash + assets - debts;
-    if (valuation < 500000) valuation = 500000;
-    return Math.round(valuation);
-}
-
-function getShopLevel(shop) {
-    const shopOrders = orders.filter(o => o.items?.some(i => 
-        (i.shop_id === shop.id || i.shopId === shop.id)
-    ));
-    const revenue = shopOrders.reduce((s, o) => s + (o.total || 0), 0);
-    const annualRevenue = revenue * 12;
-    const valuation = calculateValuation(shop);
-    const rating = shop.rating || 0;
-    const hasPhysicalStore = shop.has_physical_store || shop.hasPhysicalStore || false;
-    
-    if (rating >= 4.5 && annualRevenue > 10000000 && valuation > 1000000 && hasPhysicalStore) {
-        return { level: 'gold', name: 'Or', ouenzeFee: 21, vendorBonus: 1, color: '#f59e0b', bg: '#fef3c7', class: 'level-gold' };
-    } else if (rating >= 4 && rating < 5 && annualRevenue >= 5000000 && annualRevenue <= 10000000 && valuation > 500000) {
-        return { level: 'silver', name: 'Argent', ouenzeFee: 21.5, vendorBonus: 0.5, color: '#94a3b8', bg: '#f1f5f9', class: 'level-silver' };
-    } else if (rating >= 3) {
-        return { level: 'bronze', name: 'Bronze', ouenzeFee: 22, vendorBonus: 0, color: '#b45309', bg: '#ffedd5', class: 'level-bronze' };
-    }
-    return { level: null, name: 'Non éligible', ouenzeFee: 22, vendorBonus: 0, color: '#64748b', bg: '#f1f5f9', class: '' };
-}
-
-// ============ AFFICHAGE ============
-
-function showDashboard() {
-    const container = document.getElementById('appContainer');
+function renderCategories() {
+    const container = document.getElementById('categoriesContainer');
     if (!container) return;
-
-    const totalProducts = shops.reduce((s, shop) => s + (shop.products?.length || 0), 0);
-    const totalOrders = orders.length;
-    const totalRevenue = getVendorRevenue();
-    const pendingRequests = investmentRequests.filter(r => r.status === 'pending_review');
-
-    const noShops = shops.length === 0;
-
-    container.innerHTML = `
-        <div class="stats-grid">
-            <div class="stat-card"><h3>Mes boutiques</h3><div class="stat-value">${shops.length}</div></div>
-            <div class="stat-card"><h3>Produits</h3><div class="stat-value">${totalProducts}</div></div>
-            <div class="stat-card"><h3>Commandes</h3><div class="stat-value">${totalOrders}</div></div>
-            <div class="stat-card"><h3>Chiffre d'affaires</h3><div class="stat-value">${formatNumber(totalRevenue)} FCFA</div></div>
-            <div class="stat-card"><h3>Demandes en attente</h3><div class="stat-value">${pendingRequests.length}</div></div>
-        </div>
-        <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-            <button class="btn-sm btn-primary" onclick="window.createNewShop()"><i class="fas fa-plus"></i> Créer une boutique</button>
-            <button class="btn-sm btn-outline" onclick="window.openAddProduct()"><i class="fas fa-box"></i> Ajouter produit</button>
-            <button class="btn-sm btn-outline" onclick="window.openRestock()"><i class="fas fa-truck"></i> Ravitailler</button>
-            <button class="btn-sm btn-warning" onclick="window.openInvestmentRequests()"><i class="fas fa-chart-line"></i> Demandes (${pendingRequests.length})</button>
-            <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
-        </div>
-        <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques</h2>
-        ${noShops ? `
-            <div class="stat-card" style="text-align:center; padding:40px;">
-                <i class="fas fa-store" style="font-size:48px; color:var(--gray-500); margin-bottom:16px;"></i>
-                <p style="font-size:16px; font-weight:600;">Aucune boutique</p>
-                <p style="color:var(--gray-500); margin-bottom:16px;">Vous n'avez pas encore créé de boutique.</p>
-                <button class="btn-sm btn-primary" onclick="window.createNewShop()" style="padding:10px 24px; font-size:14px;">
-                    <i class="fas fa-plus"></i> Créer ma première boutique
-                </button>
+    
+    if (categories.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-500);">Aucune catégorie</div>';
+        return;
+    }
+    
+    container.innerHTML = categories.map(cat => `
+        <div class="category-item">
+            <div class="category-header">
+                <input type="text" class="category-name-input" value="${escapeHtml(cat.name)}" 
+                       onchange="window.updateCategoryName(${cat.id}, this.value)" style="flex:1;">
+                <button class="btn-danger" onclick="window.removeCategory(${cat.id})">Supprimer</button>
             </div>
-        ` : shops.map(shop => renderShop(shop)).join('')}
-    `;
+            <div class="category-products">${products.filter(p => p.categoryId === cat.id).length} produit(s)</div>
+        </div>
+    `).join('');
+}
 
-    // Charts
-    shops.forEach(shop => {
-        const monthlyData = getMonthlyRevenue(shop.id);
-        const canvasId = `chart-${shop.id}`;
-        const ctx = document.getElementById(canvasId)?.getContext('2d');
-        if (ctx) {
-            destroyChart(canvasId);
-            activeCharts[canvasId] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'],
-                    datasets: [{
-                        label: 'CA (FCFA)',
-                        data: monthlyData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { color: '#9ca3af', font: { size: 10 } }
-                        }
-                    },
-                    scales: {
-                        y: { grid: { color: '#2a3140' }, ticks: { color: '#9ca3af' } },
-                        x: { grid: { color: '#2a3140' }, ticks: { color: '#9ca3af' } }
-                    }
-                }
+// ============ GESTION DU CARROUSEL ============
+function setupCarouselUpload() {
+    const carouselInput = document.getElementById('carouselMedia');
+    if (carouselInput) {
+        carouselInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const type = file.type.startsWith('image/') ? 'image' : 'video';
+                    carouselMedia.push({ type, src: ev.target.result });
+                    renderCarouselList();
+                    debouncedUpdatePreview();
+                };
+                reader.readAsDataURL(file);
             });
-        }
-    });
+            e.target.value = '';
+        });
+    }
 }
 
-function renderShop(shop) {
-    const shopOrders = orders.filter(o => o.items?.some(i => 
-        (i.shop_id === shop.id || i.shopId === shop.id)
-    ));
-    const revenue = shopOrders.reduce((s, o) => s + (o.total || 0), 0);
-    const rating = shop.rating || 0;
-    const valuation = calculateValuation(shop);
-    const level = getShopLevel(shop);
-    const shopUrl = `${window.location.origin}/index.html?id=${shop.id}`;
-    const stars = generateStars(rating);
-    const annualRevenue = revenue * 12;
+function removeCarouselMedia(idx) {
+    carouselMedia.splice(idx, 1);
+    renderCarouselList();
+    debouncedUpdatePreview();
+}
 
-    const productCount = shop.products?.length || 0;
-
-    return `
-        <div class="shop-card">
-            <div class="shop-header">
-                <div class="shop-info">
-                    <div class="shop-logo">${shop.logo_url ? `<img src="${shop.logo_url}">` : '<i class="fas fa-store" style="font-size:24px;color:var(--primary);"></i>'}</div>
-                    <div>
-                        <h3>${escapeHtml(shop.name)} ${level.level ? `<span class="level-badge ${level.class}"><i class="fas fa-crown"></i> ${level.name}</span>` : ''}</h3>
-                        <div class="shop-rating">${stars} (${shop.total_ratings || shop.totalRatings || 0} avis)</div>
-                        <div style="font-size:12px; color:var(--gray-500);">Valorisation: ${formatNumber(valuation)} FCFA</div>
-                        <div style="font-size:11px; margin-top:4px;">
-                            <span style="background:${level.bg}; color:${level.color}; padding:2px 8px; border-radius:20px;">
-                                <i class="fas fa-percent"></i> Commission Ouenze: ${level.ouenzeFee}% 
-                                ${level.vendorBonus > 0 ? `<span style="margin-left:6px;"><i class="fas fa-gift"></i> Bonus: +${level.vendorBonus}%</span>` : ''}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div><button class="btn-sm btn-outline" onclick="viewStats('${shop.id}')"><i class="fas fa-chart-simple"></i> Statistiques</button></div>
-            </div>
-            <div class="shop-body">
-                <div class="metrics-grid">
-                    <div class="metric-card"><div class="metric-value">${productCount}</div><div class="metric-label">Produits</div></div>
-                    <div class="metric-card"><div class="metric-value">${shopOrders.length}</div><div class="metric-label">Commandes</div></div>
-                    <div class="metric-card"><div class="metric-value">${formatNumber(revenue)} FCFA</div><div class="metric-label">Chiffre d'affaires</div></div>
-                </div>
-                
-                <div class="info-box">
-                    <strong><i class="fas fa-chart-line"></i> Indicateurs de niveau</strong><br>
-                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px;">
-                        <span>📊 CA annuel: ${formatNumber(annualRevenue)} FCFA</span>
-                        <span>⭐ Note: ${rating}/5</span>
-                        <span>🏢 ${shop.has_physical_store || shop.hasPhysicalStore ? 'Boutique physique ✓' : 'Pas de boutique physique'}</span>
-                    </div>
-                    ${level.level === 'gold' ? '<div style="margin-top:8px; color:var(--gold);"><i class="fas fa-crown"></i> Niveau Or - Commission réduite à 21% (+1% de bonus)</div>' : ''}
-                    ${level.level === 'silver' ? '<div style="margin-top:8px; color:var(--silver);"><i class="fas fa-medal"></i> Niveau Argent - Commission réduite à 21.5% (+0.5% de bonus)</div>' : ''}
-                    ${level.level === 'bronze' ? '<div style="margin-top:8px; color:var(--bronze);"><i class="fas fa-leaf"></i> Niveau Bronze - Commission standard à 22%</div>' : ''}
-                </div>
-                
-                <div class="chart-container">
-                    <canvas id="chart-${shop.id}"></canvas>
-                </div>
-                
-                <div class="share-section">
-                    <strong><i class="fas fa-share-alt"></i> Partager ma boutique</strong>
-                    <div class="share-buttons">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shopUrl)}" target="_blank" class="share-btn share-facebook"><i class="fab fa-facebook-f"></i> Facebook</a>
-                        <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(shopUrl)}&text=Découvrez ma boutique ${encodeURIComponent(shop.name)} sur Ouenze!" target="_blank" class="share-btn share-twitter"><i class="fab fa-twitter"></i> Twitter</a>
-                        <a href="https://wa.me/?text=${encodeURIComponent(`Découvrez ma boutique ${shop.name} sur Ouenze! ${shopUrl}`)}" target="_blank" class="share-btn share-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
-                        <a href="https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shopUrl)}&title=${encodeURIComponent(shop.name)}" target="_blank" class="share-btn share-linkedin"><i class="fab fa-linkedin-in"></i> LinkedIn</a>
-                        <button onclick="copyShopLink('${shopUrl}')" class="share-btn share-copy"><i class="fas fa-copy"></i> Copier lien</button>
-                    </div>
-                </div>
-                
-                <div class="assets-section">
-                    <h4><i class="fas fa-building" style="color:var(--primary);"></i> Actifs</h4>
-                    ${(shop.assets || []).map(a => `<div class="asset-item"><span>${escapeHtml(a.name)}</span><span>${formatNumber(a.value)} FCFA</span></div>`).join('') || '<div style="font-size:12px; color:var(--gray-500);">Aucun actif enregistré</div>'}
-                    <div style="margin-top: 8px;"><button class="btn-sm btn-outline" onclick="manageAssets('${shop.id}')" style="width:100%;"><i class="fas fa-plus"></i> Gérer les actifs</button></div>
-                </div>
-                
-                <div class="assets-section">
-                    <h4><i class="fas fa-chart-line" style="color:var(--warning);"></i> Passifs</h4>
-                    ${(shop.liabilities || []).map(l => `<div class="asset-item"><span>${escapeHtml(l.name)}</span><span>${formatNumber(l.value)} FCFA</span></div>`).join('') || '<div style="font-size:12px; color:var(--gray-500);">Aucun passif enregistré</div>'}
-                    <div style="margin-top: 8px;"><button class="btn-sm btn-outline" onclick="manageLiabilities('${shop.id}')" style="width:100%;"><i class="fas fa-plus"></i> Gérer les passifs</button></div>
-                </div>
-                
-                <h4 style="font-size: 13px; margin: 16px 0 8px;"><i class="fas fa-box"></i> Produits récents</h4>
-                ${(shop.products || []).slice(0, 3).map(p => `
-                    <div class="product-row">
-                        <span class="product-name">${escapeHtml(p.name)}</span>
-                        <span class="product-price">${formatNumber(p.price)} FCFA</span>
-                        <span class="product-stock">Stock: ${p.stock || 0}</span>
-                    </div>
-                `).join('')}
-                ${(!shop.products || !shop.products.length) ? '<div style="font-size:12px; color:var(--gray-500);">Aucun produit</div>' : ''}
-                
-                <div class="shop-actions">
-                    <button class="btn-sm btn-outline" onclick="openAddProductToShop('${shop.id}')"><i class="fas fa-plus"></i> Ajouter produit</button>
-                    <button class="btn-sm btn-outline" onclick="openRestockToShop('${shop.id}')"><i class="fas fa-truck"></i> Ravitailler</button>
-                    ${shop.rating >= 3 ? `<button class="btn-sm btn-primary" onclick="openInvestmentOffer('${shop.id}')"><i class="fas fa-chart-line"></i> Proposer à l'investissement</button>` : '<span class="btn-sm" style="background:#e2e8f0; color:#64748b;"><i class="fas fa-star"></i> 3 étoiles requises</span>'}
-                    <button class="btn-sm btn-warning" onclick="openSellShopModal('${shop.id}')"><i class="fas fa-store"></i> Vendre la boutique</button>
-                    <button class="btn-sm btn-outline" onclick="openShopDesigner('${shop.id}')"><i class="fas fa-edit"></i> Modifier le design</button>
-                </div>
-            </div>
+function renderCarouselList() {
+    const container = document.getElementById('carouselList');
+    if (!container) return;
+    
+    if (carouselMedia.length === 0) {
+        container.innerHTML = '<div style="color:var(--gray-500);">Aucun média</div>';
+        return;
+    }
+    
+    container.innerHTML = carouselMedia.map((m, i) => `
+        <div class="carousel-media-item">
+            ${m.type === 'image' ? `<img src="${m.src}">` : `<video src="${m.src}" muted playsinline></video>`}
+            <div class="remove-media" onclick="window.removeCarouselMedia(${i})">✕</div>
         </div>
-    `;
-}
-
-// ============ GESTION DES ACTIFS ET PASSIFS ============
-
-function manageAssets(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Gestion des actifs - ${escapeHtml(shop.name)}</h3>
-            <div id="assetsList">${(shop.assets || []).map((a, i) => `
-                <div class="asset-item" style="background:var(--gray-200);padding:10px;border-radius:8px;margin-bottom:8px;">
-                    <span><strong>${escapeHtml(a.name)}</strong> - ${formatNumber(a.value)} FCFA</span>
-                    <button class="btn-sm" style="background:var(--danger);color:white;" onclick="removeAsset('${shop.id}', ${i})">Supprimer</button>
-                </div>
-            `).join('')}</div>
-            <div class="form-group"><label>Nom de l'actif</label><input type="text" id="assetName" placeholder="Ex: Camionnette, Matériel, Stock"></div>
-            <div class="form-group"><label>Valeur (FCFA)</label><input type="number" id="assetValue" placeholder="0"></div>
-            <div class="form-group"><label>Description</label><textarea id="assetDesc" rows="2"></textarea></div>
-            <button class="btn-submit" onclick="addAsset('${shop.id}')">Ajouter un actif</button>
-            <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Fermer</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-function addAsset(shopId) {
-    const name = document.getElementById('assetName').value.trim();
-    const value = parseInt(document.getElementById('assetValue').value);
-    if (!name || !value) {
-        alert("Nom et valeur requis");
-        return;
-    }
-    const shop = shops.find(s => s.id === shopId);
-    if (shop) {
-        shop.assets = shop.assets || [];
-        shop.assets.push({
-            name,
-            value,
-            description: document.getElementById('assetDesc').value,
-            addedAt: new Date().toISOString()
-        });
-        updateShopInSupabase(shop);
-        alert("Actif ajouté");
-        document.querySelector('.modal.active')?.remove();
-        showDashboard();
-    }
-}
-
-function removeAsset(shopId, index) {
-    const shop = shops.find(s => s.id === shopId);
-    if (shop && shop.assets) {
-        shop.assets.splice(index, 1);
-        updateShopInSupabase(shop);
-        document.querySelector('.modal.active')?.remove();
-        manageAssets(shopId);
-    }
-}
-
-function manageLiabilities(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Gestion des passifs - ${escapeHtml(shop.name)}</h3>
-            <div id="liabilitiesList">${(shop.liabilities || []).map((l, i) => `
-                <div class="asset-item" style="background:var(--gray-200);padding:10px;border-radius:8px;margin-bottom:8px;">
-                    <span><strong>${escapeHtml(l.name)}</strong> - ${formatNumber(l.value)} FCFA</span>
-                    <button class="btn-sm" style="background:var(--danger);color:white;" onclick="removeLiability('${shop.id}', ${i})">Supprimer</button>
-                </div>
-            `).join('')}</div>
-            <div class="form-group"><label>Nom du passif</label><input type="text" id="liabilityName" placeholder="Ex: Dette fournisseur, Emprunt"></div>
-            <div class="form-group"><label>Montant (FCFA)</label><input type="number" id="liabilityValue" placeholder="0"></div>
-            <div class="form-group"><label>Description</label><textarea id="liabilityDesc" rows="2"></textarea></div>
-            <button class="btn-submit" onclick="addLiability('${shop.id}')">Ajouter un passif</button>
-            <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Fermer</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-function addLiability(shopId) {
-    const name = document.getElementById('liabilityName').value.trim();
-    const value = parseInt(document.getElementById('liabilityValue').value);
-    if (!name || !value) {
-        alert("Nom et montant requis");
-        return;
-    }
-    const shop = shops.find(s => s.id === shopId);
-    if (shop) {
-        shop.liabilities = shop.liabilities || [];
-        shop.liabilities.push({
-            name,
-            value,
-            description: document.getElementById('liabilityDesc').value,
-            addedAt: new Date().toISOString()
-        });
-        updateShopInSupabase(shop);
-        alert("Passif ajouté");
-        document.querySelector('.modal.active')?.remove();
-        showDashboard();
-    }
-}
-
-function removeLiability(shopId, index) {
-    const shop = shops.find(s => s.id === shopId);
-    if (shop && shop.liabilities) {
-        shop.liabilities.splice(index, 1);
-        updateShopInSupabase(shop);
-        document.querySelector('.modal.active')?.remove();
-        manageLiabilities(shopId);
-    }
-}
-
-// ============ MISE À JOUR SUPABASE ============
-
-async function updateShopInSupabase(shop) {
-    try {
-        const { error } = await window.supabase
-            .from('shops')
-            .update({
-                assets: shop.assets || [],
-                liabilities: shop.liabilities || []
-            })
-            .eq('id', shop.id);
-        
-        if (error) throw error;
-        console.log('✅ Boutique mise à jour dans Supabase');
-    } catch (error) {
-        console.error('❌ Erreur mise à jour:', error);
-        alert('Erreur lors de la mise à jour');
-    }
+    `).join('');
 }
 
 // ============ GESTION DES PRODUITS ============
-
-function openAddProductToShop(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Ajouter un produit - ${escapeHtml(shop.name)}</h3>
-            <div class="form-group"><label>Nom du produit *</label><input type="text" id="productName" placeholder="Nom du produit"></div>
-            <div class="form-group"><label>Prix (FCFA) *</label><input type="number" id="productPrice" placeholder="0"></div>
-            <div class="form-group"><label>Catégorie</label><input type="text" id="productCategory" placeholder="Catégorie"></div>
-            <div class="form-group"><label>Quantité en stock *</label><input type="number" id="productStock" placeholder="0" value="1"></div>
-            <div class="form-group"><label>Description</label><textarea id="productDesc" rows="2"></textarea></div>
-            <div class="form-group"><label>Photo (optionnel)</label><input type="file" id="productPhoto" accept="image/*"></div>
-            <button class="btn-submit" onclick="addProductToShop('${shop.id}')">Ajouter le produit</button>
-            <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-async function addProductToShop(shopId) {
-    const name = document.getElementById('productName').value.trim();
-    const price = parseFloat(document.getElementById('productPrice').value);
-    const stock = parseInt(document.getElementById('productStock').value);
-    const category = document.getElementById('productCategory').value.trim();
-    const description = document.getElementById('productDesc').value;
-    const fileInput = document.getElementById('productPhoto');
-    
-    if (!name || !price || stock < 0) {
-        alert("Nom, prix et stock sont obligatoires");
+function openAddProductModal(productId = null) {
+    if (categories.length === 0) {
+        alert("Créez d'abord une catégorie");
         return;
     }
     
-    try {
-        const productData = {
-            shop_id: shopId,
-            name: name,
-            price: price,
-            stock: stock,
-            category: category || "Général",
-            description: description,
-            product_type: "standard",
-            photos: []
-        };
-        
-        // Si une photo est téléchargée, on pourrait l'uploader dans Supabase Storage
-        // Pour l'instant, on garde l'image en base64
-        if (fileInput.files && fileInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                productData.photos = [e.target.result];
-                await insertProduct(shopId, productData);
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-            return;
-        }
-        
-        await insertProduct(shopId, productData);
-        
-    } catch (error) {
-        console.error('❌ Erreur:', error);
-        alert('Erreur lors de l\'ajout du produit');
-    }
-}
-
-async function insertProduct(shopId, productData) {
-    const { data, error } = await window.supabase
-        .from('products')
-        .insert([{
-            shop_id: shopId,
-            name: productData.name,
-            description: productData.description || '',
-            price: productData.price,
-            stock: productData.stock,
-            product_type: productData.product_type || 'standard',
-            photos: productData.photos || []
-        }])
-        .select();
-
-    if (error) {
-        console.error('❌ Erreur insertion:', error);
-        alert('Erreur lors de l\'ajout du produit');
-        return;
-    }
-
-    // Mettre à jour la liste des produits localement
-    const shop = shops.find(s => s.id === shopId);
-    if (shop) {
-        shop.products = shop.products || [];
-        shop.products.push(data[0]);
-    }
-
-    alert(`✅ Produit "${productData.name}" ajouté avec succès (Stock: ${productData.stock})`);
-    document.querySelector('.modal.active')?.remove();
-    showDashboard();
-}
-
-function openRestockToShop(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop || !shop.products || shop.products.length === 0) {
-        alert("Aucun produit à ravitailler");
-        return;
-    }
+    editingProductId = productId;
     
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Ravitaillement - ${escapeHtml(shop.name)}</h3>
-            <div class="form-group"><label>Produit</label>
-                <select id="restockProduct">
-                    ${shop.products.map(p => `<option value="${p.id}" data-stock="${p.stock || 0}">${escapeHtml(p.name)} - Stock actuel: ${p.stock || 0}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group"><label>Quantité à ajouter *</label><input type="number" id="restockQuantity" placeholder="0" value="1" min="1"></div>
-            <button class="btn-submit" onclick="processRestock('${shop.id}')">Ajouter au stock</button>
-            <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-async function processRestock(shopId) {
-    const productId = document.getElementById('restockProduct').value;
-    const quantity = parseInt(document.getElementById('restockQuantity').value);
-    
-    if (!quantity || quantity <= 0) {
-        alert("Quantité invalide");
-        return;
-    }
-    
-    const shop = shops.find(s => s.id === shopId);
-    const product = shop?.products?.find(p => p.id === productId);
-    
-    if (product) {
-        const newStock = (product.stock || 0) + quantity;
-        
-        try {
-            const { error } = await window.supabase
-                .from('products')
-                .update({ stock: newStock })
-                .eq('id', productId);
-            
-            if (error) throw error;
-            
-            product.stock = newStock;
-            alert(`Stock mis à jour: ${product.name} → ${product.stock} unités (+${quantity})`);
-            document.querySelector('.modal.active')?.remove();
-            showDashboard();
-        } catch (error) {
-            console.error('❌ Erreur:', error);
-            alert('Erreur lors de la mise à jour du stock');
+    if (!productId) {
+        tempVariants = [];
+        tempProductPhotos = [];
+    } else {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            tempVariants = [...(product.variants || [])];
+            tempProductPhotos = [...(product.photos || [])];
         }
     }
-}
-
-function openAddProduct() {
-    if (shops.length === 0) {
-        alert("Créez d'abord une boutique");
-        return;
-    }
-    openAddProductToShop(shops[0].id);
-}
-
-function openRestock() {
-    if (shops.length === 0) {
-        alert("Créez d'abord une boutique");
-        return;
-    }
-    openRestockToShop(shops[0].id);
-}
-
-// ============ VENTE DE BOUTIQUE ============
-
-function openSellShopModal(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
     
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Vendre la boutique</h3>
-            <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-bottom:16px;">
-                <strong>${escapeHtml(shop.name)}</strong><br>
-                Valorisation estimée: ${formatNumber(calculateValuation(shop))} FCFA
+    renderProductForm();
+    document.getElementById('modalTitle').innerText = productId ? 'Modifier le produit' : 'Ajouter un produit';
+    document.getElementById('productModal').classList.add('active');
+}
+
+function renderProductForm() {
+    const product = editingProductId ? products.find(p => p.id === editingProductId) : null;
+    const form = document.getElementById('productForm');
+    if (!form) return;
+    
+    form.innerHTML = `
+        <div class="form-group">
+            <label>Type de produit</label>
+            <select id="productType" onchange="window.toggleProductFields()">
+                <option value="standard" ${product?.type === 'standard' || !product ? 'selected' : ''}>Standard</option>
+                <option value="food" ${product?.type === 'food' ? 'selected' : ''}>Alimentaire</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Nom du produit *</label>
+            <input type="text" id="productName" value="${escapeHtml(product?.name || '')}">
+        </div>
+        <div class="form-group">
+            <label>Catégorie *</label>
+            <select id="productCategory">
+                ${categories.map(cat => `<option value="${cat.id}" ${product?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Prix (FCFA)</label>
+                <input type="number" id="productBasePrice" value="${product?.basePrice || ''}">
             </div>
             <div class="form-group">
-                <label>Action à effectuer</label>
-                <select id="sellAction" style="width:100%;padding:10px; background:var(--gray-200); border:1px solid var(--gray-200); border-radius:10px; color:white;">
-                    <option value="transfer">Affecter la boutique à un nouvel acheteur</option>
-                    <option value="delete">Supprimer définitivement la boutique</option>
-                </select>
+                <label>Stock</label>
+                <input type="number" id="productStock" value="${product?.stock || 0}">
             </div>
-            <div id="buyerFields">
-                <div class="form-group"><label>Email de l'acheteur</label><input type="email" id="buyerEmail" placeholder="acheteur@email.com"></div>
-                <div class="form-group"><label>Nom complet de l'acheteur</label><input type="text" id="buyerName" placeholder="Nom et prénom"></div>
-                <div class="form-group"><label>Prix de vente (FCFA)</label><input type="number" id="salePrice" placeholder="0" value="${calculateValuation(shop)}"></div>
+        </div>
+        
+        <div class="form-group">
+            <label>Couleurs et variantes</label>
+            <div id="variantsContainer"></div>
+            <button type="button" class="btn-sm" onclick="window.addVariant()">+ Ajouter une variante</button>
+        </div>
+        
+        <div id="foodFields" style="display:${product?.type === 'food' ? 'block' : 'none'};">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date d'expiration</label>
+                    <input type="date" id="productExpiry" value="${product?.expiryDate || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Poids</label>
+                    <input type="text" id="productWeight" value="${escapeHtml(product?.weight || '')}">
+                </div>
             </div>
-            <div id="deleteWarning" style="display:none; background:#fee2e2; padding:12px; border-radius:12px; margin-bottom:16px;">
-                <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible.
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Origine</label>
+                    <input type="text" id="productOrigin" value="${escapeHtml(product?.origin || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Ingrédients</label>
+                    <input type="text" id="productIngredients" value="${escapeHtml(product?.ingredients || '')}">
+                </div>
             </div>
-            <button class="btn-submit" onclick="submitShopSale('${shop.id}')">Confirmer</button>
-            <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
-        </div>`;
-    document.body.appendChild(modal);
+        </div>
+        
+        <div class="form-group">
+            <label>Description</label>
+            <textarea id="productDesc" rows="3">${escapeHtml(product?.description || '')}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Photos</label>
+            <div id="productPhotosContainer" class="photo-gallery"></div>
+            <input type="file" id="productPhotoInput" accept="image/*" multiple>
+        </div>
+        
+        <button class="btn-primary" onclick="window.saveProduct()">${product ? 'Mettre à jour' : 'Ajouter'}</button>
+    `;
     
-    document.getElementById('sellAction').addEventListener('change', (e) => {
-        const buyerFields = document.getElementById('buyerFields');
-        const deleteWarning = document.getElementById('deleteWarning');
-        if (e.target.value === 'delete') {
-            buyerFields.style.display = 'none';
-            deleteWarning.style.display = 'block';
-        } else {
-            buyerFields.style.display = 'block';
-            deleteWarning.style.display = 'none';
-        }
+    renderVariantsForm(tempVariants);
+    renderProductPhotos(tempProductPhotos);
+    
+    const photoInput = document.getElementById('productPhotoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', handleProductPhotoUpload);
+    }
+}
+
+function renderVariantsForm(variants) {
+    const container = document.getElementById('variantsContainer');
+    if (!container) return;
+    
+    if (variants.length === 0) {
+        container.innerHTML = '<div style="padding:10px;color:var(--gray-500);">Aucune variante</div>';
+        return;
+    }
+    
+    container.innerHTML = variants.map((v, idx) => `
+        <div class="variant-row">
+            <input type="color" value="${v.color || '#1e40af'}" onchange="window.updateVariant(${idx}, 'color', this.value)">
+            <input type="text" placeholder="Nom" value="${escapeHtml(v.name || '')}" onchange="window.updateVariant(${idx}, 'name', this.value)" style="width:100px;">
+            <input type="number" placeholder="Prix" value="${v.price || ''}" onchange="window.updateVariant(${idx}, 'price', parseFloat(this.value))" style="width:90px;">
+            <input type="number" placeholder="Stock" value="${v.stock || 0}" onchange="window.updateVariant(${idx}, 'stock', parseInt(this.value))" style="width:70px;">
+            <button class="btn-danger" onclick="window.removeVariant(${idx})">✕</button>
+        </div>
+    `).join('');
+}
+
+function renderProductPhotos(photos) {
+    const container = document.getElementById('productPhotosContainer');
+    if (!container) return;
+    
+    if (photos.length === 0) {
+        container.innerHTML = '<div style="padding:10px;color:var(--gray-500);">Aucune photo</div>';
+        return;
+    }
+    
+    container.innerHTML = photos.map((photo, idx) => `
+        <div class="photo-item">
+            <img src="${photo}">
+            <div class="remove-photo" onclick="window.removeProductPhoto(${idx})">✕</div>
+        </div>
+    `).join('');
+}
+
+function handleProductPhotoUpload(e) {
+    const files = Array.from(e.target.files);
+    if (tempProductPhotos.length + files.length > 5) {
+        alert("Maximum 5 photos");
+        return;
+    }
+    
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            tempProductPhotos.push(ev.target.result);
+            renderProductPhotos(tempProductPhotos);
+        };
+        reader.readAsDataURL(file);
     });
+    e.target.value = '';
 }
 
-function submitShopSale(shopId) {
-    const action = document.getElementById('sellAction').value;
-    const shop = shops.find(s => s.id === shopId);
-    
-    if (action === 'transfer') {
-        const buyerEmail = document.getElementById('buyerEmail').value.trim();
-        const buyerName = document.getElementById('buyerName').value.trim();
-        const salePrice = parseInt(document.getElementById('salePrice').value);
-        
-        if (!buyerEmail || !buyerName || !salePrice) {
-            alert("Veuillez remplir tous les champs");
-            return;
-        }
-        
-        alert(`✅ Demande envoyée à ${buyerEmail}\n\nUn email a été envoyé pour finaliser l'acquisition.`);
-        
-        // Sauvegarder la demande de vente
-        let saleRequests = JSON.parse(localStorage.getItem('ouenze_shop_sales') || '[]');
-        saleRequests.push({
-            id: Date.now(),
-            shopId,
-            shopName: shop.name,
-            seller: currentUser.email,
-            buyerEmail,
-            buyerName,
-            price: salePrice,
-            date: new Date().toISOString(),
-            status: 'pending'
-        });
-        localStorage.setItem('ouenze_shop_sales', JSON.stringify(saleRequests));
-    } else if (action === 'delete') {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement la boutique "${shop.name}" ?`)) {
-            const index = shops.findIndex(s => s.id === shopId);
-            if (index !== -1) {
-                shops.splice(index, 1);
-                // Supprimer la boutique de Supabase
-                window.supabase.from('shops').delete().eq('id', shopId).then(() => {
-                    alert(`Boutique "${shop.name}" supprimée avec succès.`);
-                    document.querySelector('.modal.active')?.remove();
-                    showDashboard();
-                });
-            }
-        }
-    }
-    document.querySelector('.modal.active')?.remove();
+function removeProductPhoto(idx) {
+    tempProductPhotos.splice(idx, 1);
+    renderProductPhotos(tempProductPhotos);
 }
 
-// ============ INVESTISSEMENTS ============
-
-function openInvestmentOffer(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop || shop.rating < 3) {
-        alert("Cette boutique n'est pas éligible (minimum 3 étoiles)");
-        return;
-    }
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Proposer à l'investissement</h3>
-            <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-bottom:16px;">
-                Boutique: ${escapeHtml(shop.name)}<br>
-                Note actuelle: ${shop.rating}/5<br>
-                Valorisation estimée: ${formatNumber(calculateValuation(shop))} FCFA
-            </div>
-            <div class="form-group"><label>Pourcentage du capital à céder</label><input type="number" id="offerPercent" min="1" max="100" value="10"></div>
-            <div class="form-group"><label>Prix demandé (FCFA)</label><input type="number" id="offerPrice" placeholder="0"></div>
-            <div class="form-group"><label>Message aux investisseurs</label><textarea id="offerMessage" rows="3"></textarea></div>
-            <button class="btn-submit" onclick="submitInvestmentOffer('${shop.id}')">Envoyer la demande</button>
-            <button class="btn-sm btn-outline" style="margin-top:12px;" onclick="this.closest('.modal').remove()">Annuler</button>
-        </div>`;
-    document.body.appendChild(modal);
+function addVariant() {
+    tempVariants.push({ name: 'Nouvelle couleur', color: '#1e40af', price: 0, stock: 0 });
+    renderVariantsForm(tempVariants);
 }
 
-function submitInvestmentOffer(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    const percent = parseInt(document.getElementById('offerPercent').value);
-    const price = parseInt(document.getElementById('offerPrice').value);
-    const message = document.getElementById('offerMessage').value;
-    
-    if (!percent || percent < 1 || percent > 100) {
-        alert("Pourcentage invalide (1-100%)");
-        return;
+function updateVariant(idx, field, value) {
+    if (tempVariants[idx]) tempVariants[idx][field] = value;
+}
+
+function removeVariant(idx) {
+    tempVariants.splice(idx, 1);
+    renderVariantsForm(tempVariants);
+}
+
+function toggleProductFields() {
+    const foodFields = document.getElementById('foodFields');
+    const productType = document.getElementById('productType');
+    if (foodFields && productType) {
+        foodFields.style.display = productType.value === 'food' ? 'block' : 'none';
     }
-    if (!price || price < 10000) {
-        alert("Prix minimum 10 000 FCFA");
-        return;
-    }
+}
+
+function saveProduct() {
+    const type = document.getElementById('productType').value;
+    const name = document.getElementById('productName').value.trim();
+    const categoryId = parseInt(document.getElementById('productCategory').value);
+    const basePrice = parseFloat(document.getElementById('productBasePrice').value);
+    const stock = parseInt(document.getElementById('productStock').value);
+    const description = document.getElementById('productDesc').value;
     
-    const offer = {
-        id: Date.now(),
-        shopId,
-        shopName: shop.name,
-        seller: currentUser.email,
-        sellerName: currentUser.name || currentUser.full_name,
-        percentage: percent,
-        price,
-        valuation: calculateValuation(shop),
-        message,
-        date: new Date().toISOString(),
-        status: 'pending_review'
+    if (!name) { alert("Nom requis"); return; }
+    if (!categoryId) { alert("Catégorie requise"); return; }
+    if (isNaN(basePrice) || basePrice <= 0) { alert("Prix valide requis"); return; }
+    
+    const variants = tempVariants.filter(v => v.name && v.price > 0);
+    const photos = tempProductPhotos;
+    
+    const productData = {
+        id: editingProductId || Date.now(),
+        type, name, categoryId, basePrice, stock, description, variants, photos,
+        createdAt: new Date().toISOString()
     };
     
-    let offers = JSON.parse(localStorage.getItem('ouenze_investment_offers') || '[]');
-    offers.push(offer);
-    localStorage.setItem('ouenze_investment_offers', JSON.stringify(offers));
+    if (type === 'food') {
+        productData.expiryDate = document.getElementById('productExpiry')?.value || '';
+        productData.weight = document.getElementById('productWeight')?.value || '';
+        productData.origin = document.getElementById('productOrigin')?.value || '';
+        productData.ingredients = document.getElementById('productIngredients')?.value || '';
+    }
     
-    alert(`Demande envoyée !\n\nNotre équipe examinera votre proposition sous 48h.`);
-    document.querySelector('.modal')?.remove();
-    showDashboard();
+    if (editingProductId) {
+        const index = products.findIndex(p => p.id === editingProductId);
+        if (index !== -1) products[index] = productData;
+    } else {
+        products.push(productData);
+    }
+    
+    closeProductModal();
+    renderProductsList();
+    renderCategories();
+    debouncedUpdatePreview();
+    alert(editingProductId ? "Produit modifié" : "Produit ajouté");
 }
 
-function openInvestmentRequests() {
-    const relevantRequests = investmentRequests.filter(r => 
-        shops.some(s => s.id === r.shopId) && 
-        r.status === 'pending_review'
-    );
+function renderProductsList() {
+    const container = document.getElementById('productsContainer');
+    if (!container) return;
     
-    if (!relevantRequests.length) {
-        alert("Aucune demande en attente");
+    if (products.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;">Aucun produit</div>';
         return;
     }
     
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Demandes d'investissement</h3>
-            ${relevantRequests.map(r => `
-                <div style="background:var(--gray-200);padding:16px;border-radius:12px;margin-bottom:16px;">
-                    <strong>${r.type === 'buy_shares' ? 'Achat d\'actions' : r.type === 'sell_shares' ? 'Vente d\'actions' : 'Acquisition'}</strong><br>
-                    Investisseur: ${escapeHtml(r.investor_name || r.investorName)}<br>
-                    ${r.type === 'buy_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${formatNumber(r.total)} FCFA` : 
-                      r.type === 'sell_shares' ? `Quantité: ${r.quantity} actions<br>Prix total: ${formatNumber(r.total)} FCFA` :
-                      `Offre: ${formatNumber(r.amount || r.total)} FCFA`}<br>
-                    Date: ${new Date(r.date || r.created_at).toLocaleDateString()}<br>
-                    <div style="margin-top:12px; display:flex; gap:8px;">
-                        <button class="btn-sm btn-primary" onclick="approveInvestmentRequest('${r.id}')">Approuver</button>
-                        <button class="btn-sm btn-danger" onclick="rejectInvestmentRequest('${r.id}')">Refuser</button>
+    container.innerHTML = products.map(p => {
+        const category = categories.find(c => c.id === p.categoryId);
+        return `
+            <div class="product-item">
+                <div class="product-header">
+                    <input type="text" class="product-name-input" value="${escapeHtml(p.name)}" 
+                           onchange="window.updateProductField(${p.id}, 'name', this.value)" placeholder="Nom">
+                    <input type="number" class="product-price-input" value="${p.basePrice}" 
+                           onchange="window.updateProductField(${p.id}, 'price', parseFloat(this.value))" placeholder="Prix">
+                    <input type="number" class="product-stock-input" value="${p.stock}" 
+                           onchange="window.updateProductField(${p.id}, 'stock', parseInt(this.value))" placeholder="Stock">
+                    <div>
+                        <button class="btn-sm" onclick="window.editProduct(${p.id})">Modifier</button>
+                        <button class="btn-sm" style="background:#fee2e2;" onclick="window.deleteProduct(${p.id})">Supprimer</button>
                     </div>
                 </div>
-            `).join('')}
-            <button onclick="this.closest('.modal').remove()" class="btn-sm btn-outline">Fermer</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-function approveInvestmentRequest(requestId) {
-    let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
-    const request = requests.find(r => r.id === requestId);
-    if (request) {
-        request.status = 'approved';
-        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
-        alert("✅ Demande approuvée !");
-        document.querySelector('.modal.active')?.remove();
-        showDashboard();
-    }
-}
-
-function rejectInvestmentRequest(requestId) {
-    let requests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
-    const request = requests.find(r => r.id === requestId);
-    if (request) {
-        request.status = 'rejected';
-        localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
-        alert("Demande refusée.");
-        document.querySelector('.modal.active')?.remove();
-        showDashboard();
-    }
-}
-
-// ============ STATISTIQUES ============
-
-function viewStats(shopId) {
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
-    
-    const shopOrders = orders.filter(o => o.items?.some(i => 
-        (i.shop_id === shopId || i.shopId === shopId)
-    ));
-    const monthlyData = [];
-    
-    for (let i = 5; i >= 0; i--) {
-        const target = new Date();
-        target.setMonth(target.getMonth() - i);
-        const month = target.getMonth();
-        const year = target.getFullYear();
-        monthlyData.push(shopOrders.filter(o => {
-            const d = new Date(o.created_at || o.date);
-            return d.getMonth() === month && d.getFullYear() === year;
-        }).reduce((s, o) => s + (o.total || 0), 0));
-    }
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card" style="max-width:700px;">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom: 20px;">Statistiques - ${escapeHtml(shop.name)}</h3>
-            <div style="height: 250px;"><canvas id="statsChart"></canvas></div>
-            <div style="background:var(--gray-200);padding:12px;border-radius:12px;margin-top:16px;">
-                <strong>Chiffre d'affaires total:</strong> ${formatNumber(shopOrders.reduce((s, o) => s + (o.total || 0), 0))} FCFA<br>
-                <strong>Commandes:</strong> ${shopOrders.length}<br>
-                <strong>Note moyenne:</strong> ${shop.rating || 0}/5 (${shop.total_ratings || shop.totalRatings || 0} avis)
+                <div style="font-size:12px; color:var(--gray-500);">
+                    Catégorie: ${category?.name || 'Sans catégorie'} | ${p.variants?.length || 0} variante(s)
+                </div>
+                ${p.photos?.length ? `
+                    <div class="photo-gallery">
+                        ${p.photos.slice(0, 3).map(photo => `
+                            <div class="photo-item" style="width:40px;height:40px;">
+                                <img src="${photo}">
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
             </div>
-            <button class="btn-sm btn-outline" style="margin-top:16px;" onclick="this.closest('.modal').remove()">Fermer</button>
-        </div>`;
-    document.body.appendChild(modal);
-    
-    setTimeout(() => {
-        const ctx = document.getElementById('statsChart')?.getContext('2d');
-        if (ctx) {
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Mois -5', 'Mois -4', 'Mois -3', 'Mois -2', 'Mois -1', 'Ce mois'],
-                    datasets: [{
-                        label: 'CA (FCFA)',
-                        data: monthlyData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { color: '#9ca3af' } }
+        `;
+    }).join('');
+}
+
+function updateProductField(productId, field, value) {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+        if (field === 'name') product.name = value;
+        if (field === 'price') product.basePrice = value;
+        if (field === 'stock') product.stock = value;
+        renderProductsList();
+        debouncedUpdatePreview();
+    }
+}
+
+function editProduct(id) {
+    openAddProductModal(id);
+}
+
+function deleteProduct(id) {
+    if (confirm("Supprimer ce produit ?")) {
+        products = products.filter(p => p.id !== id);
+        renderProductsList();
+        renderCategories();
+        debouncedUpdatePreview();
+    }
+}
+
+function closeProductModal() {
+    document.getElementById('productModal').classList.remove('active');
+    tempProductPhotos = [];
+    tempVariants = [];
+    editingProductId = null;
+}
+
+// ============ LOGO UPLOAD ============
+function setupLogoUpload() {
+    const logoInput = document.getElementById('logoUpload');
+    if (logoInput) {
+        logoInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    tempLogo = ev.target.result;
+                    const preview = document.getElementById('logoPreview');
+                    if (preview) {
+                        preview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;">`;
                     }
-                }
-            });
-        }
-    }, 100);
+                    debouncedUpdatePreview();
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+    }
 }
 
-// ============ AUTRES FONCTIONS ============
-
-function copyShopLink(url) {
-    navigator.clipboard.writeText(url);
-    alert("Lien de la boutique copié !");
+// ============ APERÇU EN TEMPS RÉEL ============
+function updatePreview() {
+    const preview = document.getElementById('livePreview');
+    if (!preview) return;
+    
+    const shopName = document.getElementById('shopNameInput')?.value || 'Ma boutique';
+    const desc = document.getElementById('shopDescInput')?.value || '';
+    const city = document.getElementById('shopCity')?.value || 'Brazzaville';
+    const quartier = document.getElementById('shopQuartier')?.value || '';
+    const primaryColor = document.getElementById('primaryColor')?.value || '#1e40af';
+    const buttonColor = document.getElementById('buttonColor')?.value || '#1e40af';
+    const bgColor = document.getElementById('bgColor')?.value || '#ffffff';
+    const headerTextColor = document.getElementById('headerTextColor')?.value || '#ffffff';
+    const productTextColor = document.getElementById('productTextColor')?.value || '#1e293b';
+    
+    const menuPosition = designConfig.menuPosition;
+    const isVertical = menuPosition === 'vertical-left' || menuPosition === 'vertical-right';
+    const floatDir = menuPosition === 'vertical-left' ? 'left' : 'right';
+    
+    let menuHtml = '';
+    if (isVertical) {
+        menuHtml = `<div class="preview-menu preview-menu-vertical" style="background:${designConfig.menuBg}; color:${designConfig.menuText}; border-radius:${designConfig.menuRadius}px; float:${floatDir}; width:160px; margin-${floatDir === 'left' ? 'right' : 'left'}:16px;">
+            ${categories.map(cat => `<div class="preview-menu-item">${escapeHtml(cat.name)}</div>`).join('')}
+        </div>`;
+    } else {
+        menuHtml = `<div class="preview-menu preview-menu-horizontal" style="background:${designConfig.menuBg}; color:${designConfig.menuText}; border-radius:${designConfig.menuRadius}px;">
+            ${categories.map(cat => `<span style="padding:6px 12px;">${escapeHtml(cat.name)}</span>`).join('')}
+        </div>`;
+    }
+    
+    const contentMargin = menuPosition === 'vertical-left' ? 'margin-left: 176px;' : (menuPosition === 'vertical-right' ? 'margin-right: 176px;' : '');
+    
+    preview.innerHTML = `
+        <style>
+            .preview-shop{background:${bgColor}; border-radius:12px;}
+            .preview-header{background:linear-gradient(135deg,${primaryColor},${primaryColor}aa);color:${headerTextColor};}
+            .preview-product-title{color:${productTextColor};}
+            .preview-product-price{color:${primaryColor};}
+            .preview-btn{background:${buttonColor}; border-radius:${designConfig.prodRadius}px;}
+            .preview-products{display:${designConfig.layout === 'grid' ? 'grid' : 'flex'}; ${designConfig.layout === 'grid' ? `grid-template-columns:repeat(auto-fill,minmax(${designConfig.prodWidth}px,1fr));` : 'flex-direction:column;'} gap:${designConfig.prodGap}px;}
+            .preview-product{border-radius:${designConfig.prodRadius}px;}
+            .preview-product-image{height:${designConfig.prodImgHeight}px;}
+            .preview-carousel{height:${designConfig.carouselHeight}px; border-radius:${designConfig.carouselRadius}px;}
+        </style>
+        <div class="preview-shop">
+            <div class="preview-header">
+                <div class="preview-logo">
+                    <div class="preview-logo-img">
+                        ${tempLogo ? `<img src="${tempLogo}" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
+                    </div>
+                    <div>
+                        <h3 style="font-size:16px;">${escapeHtml(shopName)}</h3>
+                        <p style="font-size:11px;">${escapeHtml(desc)}</p>
+                        <div style="font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(city)} ${escapeHtml(quartier)}</div>
+                    </div>
+                </div>
+            </div>
+            ${menuHtml}
+            <div class="preview-content" style="padding:16px; ${contentMargin}">
+                <div class="preview-carousel" id="previewCarousel">
+                    ${carouselMedia.map((m, i) => `
+                        ${m.type === 'image' 
+                            ? `<img src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" style="width:100%; height:100%; object-fit:cover;">`
+                            : `<video src="${m.src}" class="slide ${i === 0 ? 'active' : ''}" muted autoplay loop playsinline style="width:100%; height:100%; object-fit:cover;"></video>`
+                        }
+                    `).join('')}
+                    ${carouselMedia.length > 1 ? `
+                        <button class="carousel-btn carousel-prev" onclick="window.changeSlide(-1)">❮</button>
+                        <button class="carousel-btn carousel-next" onclick="window.changeSlide(1)">❯</button>
+                    ` : ''}
+                </div>
+                <div class="preview-products ${designConfig.layout === 'grid' ? 'grid' : 'list'}">
+                    ${products.slice(0, 6).map(p => {
+                        const minPrice = p.variants?.length ? Math.min(...p.variants.map(v => v.price), p.basePrice) : p.basePrice;
+                        const maxPrice = p.variants?.length ? Math.max(...p.variants.map(v => v.price)) : p.basePrice;
+                        return `
+                            <div class="preview-product">
+                                <div class="preview-product-image">
+                                    ${p.photos?.[0] ? `<img src="${p.photos[0]}" loading="lazy">` : '<i class="fas fa-image" style="font-size:32px;color:#ccc;"></i>'}
+                                </div>
+                                <div class="preview-product-info">
+                                    ${p.type === 'food' ? '<div class="food-badge"><i class="fas fa-utensils"></i> Alimentaire</div>' : ''}
+                                    <div class="preview-product-title">${escapeHtml(p.name)}</div>
+                                    ${p.variants?.length ? 
+                                        `<div class="preview-product-price">${formatNumber(minPrice)} - ${formatNumber(maxPrice)} FCFA</div>` : 
+                                        `<div class="preview-product-price">${formatNumber(p.basePrice)} FCFA</div>`
+                                    }
+                                    ${p.variants?.length ? `
+                                        <div class="preview-product-colors">
+                                            ${p.variants.slice(0, 3).map(v => `<div class="preview-color-dot" style="background:${v.color};" title="${escapeHtml(v.name)}"></div>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                    <button class="preview-btn">Ajouter</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                ${!products.length ? '<div style="text-align:center;padding:40px;">Aucun produit</div>' : ''}
+            </div>
+        </div>
+    `;
+    
+    if (carouselInterval) clearInterval(carouselInterval);
+    if (carouselMedia.length > 1 && designConfig.carouselSpeed > 0) {
+        carouselInterval = setInterval(() => {
+            const slides = document.querySelectorAll('#previewCarousel .slide');
+            if (!slides.length) return;
+            let active = Array.from(slides).findIndex(s => s.classList.contains('active'));
+            if (active !== -1) {
+                slides[active].classList.remove('active');
+                slides[(active + 1) % slides.length].classList.add('active');
+            }
+        }, designConfig.carouselSpeed * 1000);
+    }
 }
 
-function openShopDesigner(shopId) {
-    window.open(`shop-designer.html?edit=${shopId}`, '_blank');
+function changeSlide(d) {
+    const slides = document.querySelectorAll('#previewCarousel .slide');
+    if (!slides.length) return;
+    let active = Array.from(slides).findIndex(s => s.classList.contains('active'));
+    if (active !== -1) {
+        slides[active].classList.remove('active');
+        slides[(active + d + slides.length) % slides.length].classList.add('active');
+    }
 }
 
-function createNewShop() {
-    window.location.href = 'shop-designer.html';
+// ============ MISE À JOUR DES CONFIGURATIONS ============
+function updateCarouselHeight(v) {
+    designConfig.carouselHeight = v;
+    document.getElementById('carouselHeightVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+function updateCarouselRadius(v) {
+    designConfig.carouselRadius = v;
+    document.getElementById('carouselRadiusVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+function updateMenuRadius(v) {
+    designConfig.menuRadius = v;
+    document.getElementById('menuRadiusVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+function updateProdWidth(v) {
+    designConfig.prodWidth = v;
+    document.getElementById('prodWidthVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+function updateProdImgHeight(v) {
+    designConfig.prodImgHeight = v;
+    document.getElementById('prodImgHeightVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+function updateProdRadius(v) {
+    designConfig.prodRadius = v;
+    document.getElementById('prodRadiusVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+function updateProdGap(v) {
+    designConfig.prodGap = v;
+    document.getElementById('prodGapVal').innerText = v;
+    debouncedUpdatePreview();
+}
+
+// ============ PUBLICATION / MISE À JOUR ============
+function publishShop() {
+    const name = document.getElementById('shopNameInput').value.trim();
+    if (!name) { alert("Nom de boutique requis"); return; }
+    if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
+    if (products.length === 0) { alert("Ajoutez au moins un produit"); return; }
+    
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    let nextId = shops.length > 0 ? Math.max(...shops.map(s => s.id)) + 1 : 1;
+    
+    const newShop = {
+        id: nextId,
+        name,
+        logo: tempLogo,
+        description: document.getElementById('shopDescInput').value,
+        city: document.getElementById('shopCity').value,
+        quartier: document.getElementById('shopQuartier').value,
+        address: document.getElementById('shopAddress')?.value || '',
+        categories: categories.map(c => c.name),
+        products: products,
+        carousel: carouselMedia,
+        menu: {
+            position: designConfig.menuPosition,
+            bg: designConfig.menuBg,
+            text: designConfig.menuText,
+            radius: designConfig.menuRadius
+        },
+        design: {
+            primary: document.getElementById('primaryColor').value,
+            button: document.getElementById('buttonColor').value,
+            background: document.getElementById('bgColor').value,
+            headerTextColor: document.getElementById('headerTextColor').value,
+            productTextColor: document.getElementById('productTextColor').value,
+            carouselHeight: designConfig.carouselHeight,
+            carouselRadius: designConfig.carouselRadius,
+            carouselSpeed: designConfig.carouselSpeed,
+            prodWidth: designConfig.prodWidth,
+            prodImgHeight: designConfig.prodImgHeight,
+            prodRadius: designConfig.prodRadius,
+            prodGap: designConfig.prodGap,
+            layout: designConfig.layout
+        },
+        owner: currentUserEmail,
+        verified: false,
+        totalSales: 0,
+        rating: 0,
+        reviews: [],
+        createdAt: new Date().toISOString()
+    };
+    
+    shops.push(newShop);
+    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+    alert(`Boutique "${name}" créée !`);
+    window.location.href = 'vendor-dashboard.html';
+}
+
+function updateShop() {
+    if (!editingShopId) { alert("Erreur"); return; }
+    const name = document.getElementById('shopNameInput').value.trim();
+    if (!name) { alert("Nom requis"); return; }
+    
+    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    const shopIndex = shops.findIndex(s => s.id == editingShopId);
+    if (shopIndex === -1) { alert("Boutique non trouvée"); return; }
+    
+    shops[shopIndex] = {
+        ...shops[shopIndex],
+        name,
+        logo: tempLogo,
+        description: document.getElementById('shopDescInput').value,
+        city: document.getElementById('shopCity').value,
+        quartier: document.getElementById('shopQuartier').value,
+        address: document.getElementById('shopAddress')?.value || '',
+        categories: categories.map(c => c.name),
+        products: products,
+        carousel: carouselMedia,
+        menu: {
+            position: designConfig.menuPosition,
+            bg: designConfig.menuBg,
+            text: designConfig.menuText,
+            radius: designConfig.menuRadius
+        },
+        design: {
+            primary: document.getElementById('primaryColor').value,
+            button: document.getElementById('buttonColor').value,
+            background: document.getElementById('bgColor').value,
+            headerTextColor: document.getElementById('headerTextColor').value,
+            productTextColor: document.getElementById('productTextColor').value,
+            carouselHeight: designConfig.carouselHeight,
+            carouselRadius: designConfig.carouselRadius,
+            carouselSpeed: designConfig.carouselSpeed,
+            prodWidth: designConfig.prodWidth,
+            prodImgHeight: designConfig.prodImgHeight,
+            prodRadius: designConfig.prodRadius,
+            prodGap: designConfig.prodGap,
+            layout: designConfig.layout
+        },
+        updatedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
+    alert(`Boutique "${name}" mise à jour !`);
+    window.location.href = 'vendor-dashboard.html';
+}
+
+// ============ CHARGEMENT D'UNE BOUTIQUE EXISTANTE ============
+function loadShopForEditing(shopId) {
+    const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
+    const shop = shops.find(s => s.id == shopId);
+    if (!shop) { alert("Boutique non trouvée"); return false; }
+    if (shop.owner !== currentUserEmail && shop.ownerEmail !== currentUserEmail) {
+        alert("Vous n'êtes pas autorisé");
+        return false;
+    }
+    
+    editingShopId = shopId;
+    document.getElementById('shopNameInput').value = shop.name || '';
+    document.getElementById('shopDescInput').value = shop.description || '';
+    document.getElementById('shopCity').value = shop.city || '';
+    document.getElementById('shopQuartier').value = shop.quartier || '';
+    if (document.getElementById('shopAddress')) {
+        document.getElementById('shopAddress').value = shop.address || '';
+    }
+    
+    if (shop.logo) {
+        tempLogo = shop.logo;
+        document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:contain;">`;
+    }
+    
+    categories = shop.categories?.map(c => ({ id: Date.now() + Math.random(), name: c })) || [];
+    products = shop.products ? [...shop.products] : [];
+    carouselMedia = shop.carousel ? [...shop.carousel] : [];
+    
+    if (shop.menu) {
+        designConfig.menuPosition = shop.menu.position || 'horizontal';
+        designConfig.menuBg = shop.menu.bg || '#1e40af';
+        designConfig.menuText = shop.menu.text || '#ffffff';
+        designConfig.menuRadius = shop.menu.radius || 0;
+        document.getElementById('menuBgColor').value = designConfig.menuBg;
+        document.getElementById('menuTextColor').value = designConfig.menuText;
+        document.getElementById('menuRadius').value = designConfig.menuRadius;
+        document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
+        
+        document.querySelectorAll('.menu-pos-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.pos === designConfig.menuPosition);
+        });
+    }
+    
+    if (shop.design) {
+        document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
+        document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
+        document.getElementById('bgColor').value = shop.design.background || '#ffffff';
+        document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
+        document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
+        designConfig.carouselHeight = shop.design.carouselHeight || 300;
+        designConfig.carouselRadius = shop.design.carouselRadius || 12;
+        designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
+        designConfig.prodWidth = shop.design.prodWidth || 200;
+        designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
+        designConfig.prodRadius = shop.design.prodRadius || 12;
+        designConfig.prodGap = shop.design.prodGap || 16;
+        designConfig.layout = shop.design.layout || 'grid';
+        
+        document.getElementById('carouselHeight').value = designConfig.carouselHeight;
+        document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
+        document.getElementById('carouselRadius').value = designConfig.carouselRadius;
+        document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
+        document.getElementById('prodWidth').value = designConfig.prodWidth;
+        document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
+        document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
+        document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
+        document.getElementById('prodRadius').value = designConfig.prodRadius;
+        document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
+        document.getElementById('prodGap').value = designConfig.prodGap;
+        document.getElementById('prodGapVal').innerText = designConfig.prodGap;
+        
+        document.querySelectorAll('.layout-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.layout === designConfig.layout);
+        });
+        document.querySelectorAll('.speed-card').forEach(c => {
+            c.classList.toggle('selected', parseInt(c.dataset.speed) === designConfig.carouselSpeed);
+        });
+    }
+    
+    renderCarouselList();
+    renderCategories();
+    renderProductsList();
+    document.getElementById('pageTitle').innerText = `Modification : ${shop.name}`;
+    document.getElementById('publishBtn').style.display = 'none';
+    document.getElementById('updateBtn').style.display = 'block';
+    debouncedUpdatePreview();
+    return true;
+}
+
+// ============ ÉCOUTEURS ============
+function setupEventListeners() {
+    // Inputs texte
+    const inputs = ['primaryColor', 'buttonColor', 'bgColor', 'headerTextColor', 'productTextColor',
+                    'shopNameInput', 'shopDescInput', 'shopCity', 'shopQuartier', 'shopAddress'];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', debouncedUpdatePreview);
+    });
+    
+    // Menu
+    const menuBg = document.getElementById('menuBgColor');
+    if (menuBg) menuBg.addEventListener('input', (e) => { designConfig.menuBg = e.target.value; debouncedUpdatePreview(); });
+    
+    const menuText = document.getElementById('menuTextColor');
+    if (menuText) menuText.addEventListener('input', (e) => { designConfig.menuText = e.target.value; debouncedUpdatePreview(); });
+    
+    // Position menu
+    document.querySelectorAll('.menu-pos-card').forEach(card => {
+        card.addEventListener('click', () => {
+            designConfig.menuPosition = card.dataset.pos;
+            document.querySelectorAll('.menu-pos-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            debouncedUpdatePreview();
+        });
+    });
+    
+    // Vitesse carrousel
+    document.querySelectorAll('.speed-card').forEach(card => {
+        card.addEventListener('click', () => {
+            designConfig.carouselSpeed = parseInt(card.dataset.speed);
+            document.querySelectorAll('.speed-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            debouncedUpdatePreview();
+        });
+    });
+    
+    // Layout produits
+    document.querySelectorAll('.layout-card').forEach(card => {
+        card.addEventListener('click', () => {
+            designConfig.layout = card.dataset.layout;
+            document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            debouncedUpdatePreview();
+        });
+    });
+    
+    // Sliders
+    const menuRadiusSlider = document.getElementById('menuRadius');
+    if (menuRadiusSlider) menuRadiusSlider.addEventListener('input', (e) => updateMenuRadius(parseInt(e.target.value)));
+    
+    const carouselHeightSlider = document.getElementById('carouselHeight');
+    if (carouselHeightSlider) carouselHeightSlider.addEventListener('input', (e) => updateCarouselHeight(parseInt(e.target.value)));
+    
+    const carouselRadiusSlider = document.getElementById('carouselRadius');
+    if (carouselRadiusSlider) carouselRadiusSlider.addEventListener('input', (e) => updateCarouselRadius(parseInt(e.target.value)));
+    
+    const prodWidthSlider = document.getElementById('prodWidth');
+    if (prodWidthSlider) prodWidthSlider.addEventListener('input', (e) => updateProdWidth(parseInt(e.target.value)));
+    
+    const prodImgHeightSlider = document.getElementById('prodImgHeight');
+    if (prodImgHeightSlider) prodImgHeightSlider.addEventListener('input', (e) => updateProdImgHeight(parseInt(e.target.value)));
+    
+    const prodRadiusSlider = document.getElementById('prodRadius');
+    if (prodRadiusSlider) prodRadiusSlider.addEventListener('input', (e) => updateProdRadius(parseInt(e.target.value)));
+    
+    const prodGapSlider = document.getElementById('prodGap');
+    if (prodGapSlider) prodGapSlider.addEventListener('input', (e) => updateProdGap(parseInt(e.target.value)));
 }
 
 // ============ INITIALISATION ============
-
-async function init() {
-    console.log('🚀 Initialisation du dashboard vendeur...');
-
-    // 1. Vérifier l'accès vendeur
-    const access = await checkVendorAccess();
-    if (!access) return;
-
-    // 2. Mettre à jour l'interface utilisateur
-    const avatar = document.getElementById('userAvatar');
-    const name = document.getElementById('userName');
-    if (avatar) avatar.innerText = currentUser.name.charAt(0).toUpperCase();
-    if (name) name.innerText = currentUser.name;
-
-    // 3. Charger les données
-    await loadVendorData();
-
-    // 4. Afficher le dashboard
-    showDashboard();
-
-    console.log('✅ Dashboard vendeur prêt');
+function init() {
+    // Récupérer l'utilisateur courant
+    currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
+    currentUserEmail = currentUser?.email || 'vendeur@ouenze.cg';
+    
+    // Récupérer l'ID de la boutique à éditer
+    const urlParams = new URLSearchParams(window.location.search);
+    const editShopIdParam = urlParams.get('edit');
+    
+    setupLogoUpload();
+    setupCarouselUpload();
+    setupEventListeners();
+    
+    if (editShopIdParam) {
+        loadShopForEditing(editShopIdParam);
+    } else {
+        renderCategories();
+        renderProductsList();
+    }
+    
+    debouncedUpdatePreview();
 }
 
-// Nettoyage avant déchargement
+// Nettoyage au déchargement
 window.addEventListener('beforeunload', () => {
-    Object.keys(activeCharts).forEach(key => {
-        if (activeCharts[key]) activeCharts[key].destroy();
-    });
+    if (carouselInterval) clearInterval(carouselInterval);
 });
 
-// ============ EXPORTS ============
+// Exports globaux
+window.addCategory = addCategory;
+window.removeCategory = removeCategory;
+window.updateCategoryName = updateCategoryName;
+window.openAddProductModal = openAddProductModal;
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;
+window.closeProductModal = closeProductModal;
+window.saveProduct = saveProduct;
+window.updateProductField = updateProductField;
+window.addVariant = addVariant;
+window.updateVariant = updateVariant;
+window.removeVariant = removeVariant;
+window.toggleProductFields = toggleProductFields;
+window.removeCarouselMedia = removeCarouselMedia;
+window.publishShop = publishShop;
+window.updateShop = updateShop;
+window.changeSlide = changeSlide;
+window.removeProductPhoto = removeProductPhoto;
 
-window.createNewShop = createNewShop;
-window.openAddProduct = openAddProduct;
-window.openRestock = openRestock;
-window.openInvestmentRequests = openInvestmentRequests;
-window.openAddProductToShop = openAddProductToShop;
-window.openRestockToShop = openRestockToShop;
-window.openInvestmentOffer = openInvestmentOffer;
-window.openSellShopModal = openSellShopModal;
-window.openShopDesigner = openShopDesigner;
-window.manageAssets = manageAssets;
-window.manageLiabilities = manageLiabilities;
-window.addAsset = addAsset;
-window.addLiability = addLiability;
-window.removeAsset = removeAsset;
-window.removeLiability = removeLiability;
-window.viewStats = viewStats;
-window.copyShopLink = copyShopLink;
-window.approveInvestmentRequest = approveInvestmentRequest;
-window.rejectInvestmentRequest = rejectInvestmentRequest;
-
-// Démarrer
+// Démarrer l'application
 init();
