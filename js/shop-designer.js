@@ -549,11 +549,124 @@ async function loadShopForEditing(shopId) {
 
 // ============ ÉCOUTEURS ============
 function setupEventListeners() {
+    // Inputs texte
     const inputs = ['primaryColor', 'buttonColor', 'bgColor', 'headerTextColor', 'productTextColor',
                     'shopNameInput', 'shopDescInput', 'shopCity', 'shopQuartier', 'shopAddress'];
     inputs.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', debouncedUpdatePreview);
+    });
+    
+    // ===== MENU =====
+    const menuBg = document.getElementById('menuBgColor');
+    if (menuBg) menuBg.addEventListener('input', (e) => { 
+        designConfig.menuBg = e.target.value; 
+        debouncedUpdatePreview(); 
+    });
+    
+    const menuText = document.getElementById('menuTextColor');
+    if (menuText) menuText.addEventListener('input', (e) => { 
+        designConfig.menuText = e.target.value; 
+        debouncedUpdatePreview(); 
+    });
+    
+    // Position menu
+    document.querySelectorAll('.menu-pos-card').forEach(card => {
+        card.addEventListener('click', () => {
+            designConfig.menuPosition = card.dataset.pos;
+            document.querySelectorAll('.menu-pos-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            console.log('✅ Position menu:', designConfig.menuPosition);
+            debouncedUpdatePreview();
+        });
+    });
+    
+    // ===== CARROUSEL =====
+    const carouselHeightSlider = document.getElementById('carouselHeight');
+    if (carouselHeightSlider) {
+        carouselHeightSlider.addEventListener('input', (e) => {
+            designConfig.carouselHeight = parseInt(e.target.value);
+            document.getElementById('carouselHeightVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    const carouselRadiusSlider = document.getElementById('carouselRadius');
+    if (carouselRadiusSlider) {
+        carouselRadiusSlider.addEventListener('input', (e) => {
+            designConfig.carouselRadius = parseInt(e.target.value);
+            document.getElementById('carouselRadiusVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    // Vitesse carrousel
+    document.querySelectorAll('.speed-card').forEach(card => {
+        card.addEventListener('click', () => {
+            designConfig.carouselSpeed = parseInt(card.dataset.speed);
+            document.querySelectorAll('.speed-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            console.log('✅ Vitesse carrousel:', designConfig.carouselSpeed);
+            debouncedUpdatePreview();
+        });
+    });
+    
+    // ===== MENU RADIUS =====
+    const menuRadiusSlider = document.getElementById('menuRadius');
+    if (menuRadiusSlider) {
+        menuRadiusSlider.addEventListener('input', (e) => {
+            designConfig.menuRadius = parseInt(e.target.value);
+            document.getElementById('menuRadiusVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    // ===== AFFICHAGE PRODUITS =====
+    const prodWidthSlider = document.getElementById('prodWidth');
+    if (prodWidthSlider) {
+        prodWidthSlider.addEventListener('input', (e) => {
+            designConfig.prodWidth = parseInt(e.target.value);
+            document.getElementById('prodWidthVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    const prodImgHeightSlider = document.getElementById('prodImgHeight');
+    if (prodImgHeightSlider) {
+        prodImgHeightSlider.addEventListener('input', (e) => {
+            designConfig.prodImgHeight = parseInt(e.target.value);
+            document.getElementById('prodImgHeightVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    const prodRadiusSlider = document.getElementById('prodRadius');
+    if (prodRadiusSlider) {
+        prodRadiusSlider.addEventListener('input', (e) => {
+            designConfig.prodRadius = parseInt(e.target.value);
+            document.getElementById('prodRadiusVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    const prodGapSlider = document.getElementById('prodGap');
+    if (prodGapSlider) {
+        prodGapSlider.addEventListener('input', (e) => {
+            designConfig.prodGap = parseInt(e.target.value);
+            document.getElementById('prodGapVal').innerText = e.target.value;
+            debouncedUpdatePreview();
+        });
+    }
+    
+    // Layout produits
+    document.querySelectorAll('.layout-card').forEach(card => {
+        card.addEventListener('click', () => {
+            designConfig.layout = card.dataset.layout;
+            document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            console.log('✅ Layout:', designConfig.layout);
+            debouncedUpdatePreview();
+        });
     });
 }
 
