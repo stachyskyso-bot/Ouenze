@@ -1,3 +1,8 @@
+// ============================================================
+// SHOP-DESIGNER.JS — VERSION SUPABASE COMPLÈTE
+// GRIOT × DEEPER — Migration localStorage → Supabase
+// ============================================================
+
 // ============ ÉTAT GLOBAL ============
 let categories = [];
 let products = [];
@@ -36,6 +41,15 @@ function escapeHtml(str) {
 
 function formatNumber(value) {
     return Number(value || 0).toLocaleString();
+}
+
+function generateSlug(text) {
+    return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
 }
 
 function debouncedUpdatePreview() {
@@ -635,193 +649,195 @@ function updateProdGap(v) {
     debouncedUpdatePreview();
 }
 
-// ============ PUBLICATION / MISE À JOUR ============
-function publishShop() {
+// ============================================================
+// PUBLICATION VIA SUPABASE
+// ============================================================
+async function publishShop() {
+    console.log('🚀 Publication de la boutique...');
+    
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom de boutique requis"); return; }
     if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
     if (products.length === 0) { alert("Ajoutez au moins un produit"); return; }
     
-    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    let nextId = shops.length > 0 ? Math.max(...shops.map(s => s.id)) + 1 : 1;
+    // 1. Récupérer l'utilisateur connecté
+    const { data: { user }, error: userError } = await window.supabase.auth.getUser();
     
-    const newShop = {
-        id: nextId,
-        name,
-        logo: tempLogo,
-        description: document.getElementById('shopDescInput').value,
-        city: document.getElementById('shopCity').value,
-        quartier: document.getElementById('shopQuartier').value,
+    if (userError || !user) {
+        alert("Vous devez être connecté pour créer une boutique");
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    console.log('👤 Utilisateur:', user.email, '| ID:', user.id);
+    
+    // 2. Préparer les données de la boutique
+    const shopData = {
+        owner_id: user.id,
+        name: name,
+        slug: generateSlug(name) + '-' + Date.now(),
+        description: document.getElementById('shopDescInput').value || '',
+        logo_url: tempLogo || '',
+        city: document.getElementById('shopCity').value || 'Brazzaville',
+        district: document.getElementById('shopQuartier').value || '',
         address: document.getElementById('shopAddress')?.value || '',
-        categories: categories.map(c => c.name),
-        products: products,
-        carousel: carouselMedia,
-        menu: {
-            position: designConfig.menuPosition,
-            bg: designConfig.menuBg,
-            text: designConfig.menuText,
-            radius: designConfig.menuRadius
-        },
-        design: {
-            primary: document.getElementById('primaryColor').value,
-            button: document.getElementById('buttonColor').value,
-            background: document.getElementById('bgColor').value,
-            headerTextColor: document.getElementById('headerTextColor').value,
-            productTextColor: document.getElementById('productTextColor').value,
-            carouselHeight: designConfig.carouselHeight,
-            carouselRadius: designConfig.carouselRadius,
-            carouselSpeed: designConfig.carouselSpeed,
-            prodWidth: designConfig.prodWidth,
-            prodImgHeight: designConfig.prodImgHeight,
-            prodRadius: designConfig.prodRadius,
-            prodGap: designConfig.prodGap,
-            layout: designConfig.layout
-        },
-        owner: currentUserEmail,
-        verified: false,
-        totalSales: 0,
+        country: 'Congo-Brazzaville',
         rating: 0,
-        reviews: [],
-        createdAt: new Date().toISOString()
+        total_ratings: 0,
+        total_sales: 0,
+        is_verified: false,
+        has_physical_store: false,
+        is_active: true
     };
     
-    shops.push(newShop);
-    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-    alert(`Boutique "${name}" créée !`);
-    window.location.href = 'vendor-dashboard.html';
+    console.log('📦 Données boutique:', shopData);
+    
+    try {
+        // 3. Insérer la boutique dans Supabase
+        const { data: insertedShop, error: shopError } = await window.supabase
+            .from('shops')
+            .insert([shopData])
+            .select()
+            .single();
+        
+        if (shopError) {
+            console.error('❌ Erreur insertion boutique:', shopError);
+            alert('Erreur lors de la création de la boutique: ' + shopError.message);
+            return;
+        }
+        
+        console.log('✅ Boutique créée:', insertedShop);
+        
+        // 4. Insérer les catégories
+        if (categories.length > 0) {
+            const categoriesData = categories.map(cat => ({
+                shop_id: insertedShop.id,
+                name: cat.name
+            }));
+            
+            const { error: catError } = await window.supabase
+                .from('categories')
+                .insert(categoriesData);
+            
+            if (catError) {
+                console.error('❌ Erreur insertion catégories:', catError);
+            } else {
+                console.log('✅ Catégories créées');
+            }
+        }
+        
+        // 5. Insérer les produits
+        if (products.length > 0) {
+            const productsData = products.map(p => ({
+                shop_id: insertedShop.id,
+                name: p.name,
+                slug: generateSlug(p.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7),
+                description: p.description || '',
+                price: p.basePrice || p.price || 0,
+                stock: p.stock || 0,
+                product_type: p.type || 'standard',
+                photos: p.photos || []
+            }));
+            
+            const { error: prodError } = await window.supabase
+                .from('products')
+                .insert(productsData);
+            
+            if (prodError) {
+                console.error('❌ Erreur insertion produits:', prodError);
+                alert('Boutique créée mais erreur sur les produits: ' + prodError.message);
+            } else {
+                console.log('✅ Produits créés');
+            }
+        }
+        
+        // 6. Succès
+        alert(`✅ Boutique "${name}" créée avec succès !`);
+        
+        // 7. Rediriger vers le dashboard
+        window.location.href = 'vendor-dashboard.html';
+        
+    } catch (error) {
+        console.error('❌ Erreur inattendue:', error);
+        alert('Erreur lors de la création de la boutique');
+    }
 }
 
-function updateShop() {
-    if (!editingShopId) { alert("Erreur"); return; }
+// ============================================================
+// MISE À JOUR VIA SUPABASE
+// ============================================================
+async function updateShop() {
+    if (!editingShopId) { alert("Erreur : aucune boutique sélectionnée"); return; }
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom requis"); return; }
     
-    let shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    const shopIndex = shops.findIndex(s => s.id == editingShopId);
-    if (shopIndex === -1) { alert("Boutique non trouvée"); return; }
+    const { data: { user } } = await window.supabase.auth.getUser();
+    if (!user) { alert("Vous devez être connecté"); return; }
     
-    shops[shopIndex] = {
-        ...shops[shopIndex],
-        name,
-        logo: tempLogo,
-        description: document.getElementById('shopDescInput').value,
-        city: document.getElementById('shopCity').value,
-        quartier: document.getElementById('shopQuartier').value,
-        address: document.getElementById('shopAddress')?.value || '',
-        categories: categories.map(c => c.name),
-        products: products,
-        carousel: carouselMedia,
-        menu: {
-            position: designConfig.menuPosition,
-            bg: designConfig.menuBg,
-            text: designConfig.menuText,
-            radius: designConfig.menuRadius
-        },
-        design: {
-            primary: document.getElementById('primaryColor').value,
-            button: document.getElementById('buttonColor').value,
-            background: document.getElementById('bgColor').value,
-            headerTextColor: document.getElementById('headerTextColor').value,
-            productTextColor: document.getElementById('productTextColor').value,
-            carouselHeight: designConfig.carouselHeight,
-            carouselRadius: designConfig.carouselRadius,
-            carouselSpeed: designConfig.carouselSpeed,
-            prodWidth: designConfig.prodWidth,
-            prodImgHeight: designConfig.prodImgHeight,
-            prodRadius: designConfig.prodRadius,
-            prodGap: designConfig.prodGap,
-            layout: designConfig.layout
-        },
-        updatedAt: new Date().toISOString()
-    };
-    
-    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-    alert(`Boutique "${name}" mise à jour !`);
-    window.location.href = 'vendor-dashboard.html';
+    try {
+        const updates = {
+            name: name,
+            description: document.getElementById('shopDescInput').value || '',
+            logo_url: tempLogo || '',
+            city: document.getElementById('shopCity').value || 'Brazzaville',
+            district: document.getElementById('shopQuartier').value || '',
+            address: document.getElementById('shopAddress')?.value || ''
+        };
+        
+        const { error } = await window.supabase
+            .from('shops')
+            .update(updates)
+            .eq('id', editingShopId)
+            .eq('owner_id', user.id);
+        
+        if (error) {
+            console.error('❌ Erreur mise à jour:', error);
+            alert('Erreur: ' + error.message);
+            return;
+        }
+        
+        alert(`✅ Boutique "${name}" mise à jour !`);
+        window.location.href = 'vendor-dashboard.html';
+        
+    } catch (error) {
+        console.error('❌ Erreur:', error);
+        alert('Erreur lors de la mise à jour');
+    }
 }
 
-// ============ CHARGEMENT D'UNE BOUTIQUE EXISTANTE ============
-function loadShopForEditing(shopId) {
-    const shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    const shop = shops.find(s => s.id == shopId);
-    if (!shop) { alert("Boutique non trouvée"); return false; }
-    if (shop.owner !== currentUserEmail && shop.ownerEmail !== currentUserEmail) {
-        alert("Vous n'êtes pas autorisé");
+// ============================================================
+// CHARGEMENT D'UNE BOUTIQUE EXISTANTE (VIA SUPABASE)
+// ============================================================
+async function loadShopForEditing(shopId) {
+    const { data: { user } } = await window.supabase.auth.getUser();
+    if (!user) { alert("Vous devez être connecté"); return false; }
+    
+    const { data: shop, error } = await window.supabase
+        .from('shops')
+        .select('*')
+        .eq('id', shopId)
+        .eq('owner_id', user.id)
+        .single();
+    
+    if (error || !shop) {
+        alert("Boutique non trouvée ou vous n'êtes pas autorisé");
         return false;
     }
     
-    editingShopId = shopId;
+    editingShopId = shop.id;
     document.getElementById('shopNameInput').value = shop.name || '';
     document.getElementById('shopDescInput').value = shop.description || '';
     document.getElementById('shopCity').value = shop.city || '';
-    document.getElementById('shopQuartier').value = shop.quartier || '';
+    document.getElementById('shopQuartier').value = shop.district || '';
     if (document.getElementById('shopAddress')) {
         document.getElementById('shopAddress').value = shop.address || '';
     }
     
-    if (shop.logo) {
-        tempLogo = shop.logo;
-        document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo}" style="width:100%;height:100%;object-fit:contain;">`;
+    if (shop.logo_url) {
+        tempLogo = shop.logo_url;
+        document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo_url}" style="width:100%;height:100%;object-fit:contain;">`;
     }
     
-    categories = shop.categories?.map(c => ({ id: Date.now() + Math.random(), name: c })) || [];
-    products = shop.products ? [...shop.products] : [];
-    carouselMedia = shop.carousel ? [...shop.carousel] : [];
-    
-    if (shop.menu) {
-        designConfig.menuPosition = shop.menu.position || 'horizontal';
-        designConfig.menuBg = shop.menu.bg || '#1e40af';
-        designConfig.menuText = shop.menu.text || '#ffffff';
-        designConfig.menuRadius = shop.menu.radius || 0;
-        document.getElementById('menuBgColor').value = designConfig.menuBg;
-        document.getElementById('menuTextColor').value = designConfig.menuText;
-        document.getElementById('menuRadius').value = designConfig.menuRadius;
-        document.getElementById('menuRadiusVal').innerText = designConfig.menuRadius;
-        
-        document.querySelectorAll('.menu-pos-card').forEach(c => {
-            c.classList.toggle('selected', c.dataset.pos === designConfig.menuPosition);
-        });
-    }
-    
-    if (shop.design) {
-        document.getElementById('primaryColor').value = shop.design.primary || '#1e40af';
-        document.getElementById('buttonColor').value = shop.design.button || '#1e40af';
-        document.getElementById('bgColor').value = shop.design.background || '#ffffff';
-        document.getElementById('headerTextColor').value = shop.design.headerTextColor || '#ffffff';
-        document.getElementById('productTextColor').value = shop.design.productTextColor || '#1e293b';
-        designConfig.carouselHeight = shop.design.carouselHeight || 300;
-        designConfig.carouselRadius = shop.design.carouselRadius || 12;
-        designConfig.carouselSpeed = shop.design.carouselSpeed || 0;
-        designConfig.prodWidth = shop.design.prodWidth || 200;
-        designConfig.prodImgHeight = shop.design.prodImgHeight || 160;
-        designConfig.prodRadius = shop.design.prodRadius || 12;
-        designConfig.prodGap = shop.design.prodGap || 16;
-        designConfig.layout = shop.design.layout || 'grid';
-        
-        document.getElementById('carouselHeight').value = designConfig.carouselHeight;
-        document.getElementById('carouselHeightVal').innerText = designConfig.carouselHeight;
-        document.getElementById('carouselRadius').value = designConfig.carouselRadius;
-        document.getElementById('carouselRadiusVal').innerText = designConfig.carouselRadius;
-        document.getElementById('prodWidth').value = designConfig.prodWidth;
-        document.getElementById('prodWidthVal').innerText = designConfig.prodWidth;
-        document.getElementById('prodImgHeight').value = designConfig.prodImgHeight;
-        document.getElementById('prodImgHeightVal').innerText = designConfig.prodImgHeight;
-        document.getElementById('prodRadius').value = designConfig.prodRadius;
-        document.getElementById('prodRadiusVal').innerText = designConfig.prodRadius;
-        document.getElementById('prodGap').value = designConfig.prodGap;
-        document.getElementById('prodGapVal').innerText = designConfig.prodGap;
-        
-        document.querySelectorAll('.layout-card').forEach(c => {
-            c.classList.toggle('selected', c.dataset.layout === designConfig.layout);
-        });
-        document.querySelectorAll('.speed-card').forEach(c => {
-            c.classList.toggle('selected', parseInt(c.dataset.speed) === designConfig.carouselSpeed);
-        });
-    }
-    
-    renderCarouselList();
-    renderCategories();
-    renderProductsList();
     document.getElementById('pageTitle').innerText = `Modification : ${shop.name}`;
     document.getElementById('publishBtn').style.display = 'none';
     document.getElementById('updateBtn').style.display = 'block';
@@ -831,7 +847,6 @@ function loadShopForEditing(shopId) {
 
 // ============ ÉCOUTEURS ============
 function setupEventListeners() {
-    // Inputs texte
     const inputs = ['primaryColor', 'buttonColor', 'bgColor', 'headerTextColor', 'productTextColor',
                     'shopNameInput', 'shopDescInput', 'shopCity', 'shopQuartier', 'shopAddress'];
     inputs.forEach(id => {
@@ -839,14 +854,12 @@ function setupEventListeners() {
         if (el) el.addEventListener('input', debouncedUpdatePreview);
     });
     
-    // Menu
     const menuBg = document.getElementById('menuBgColor');
     if (menuBg) menuBg.addEventListener('input', (e) => { designConfig.menuBg = e.target.value; debouncedUpdatePreview(); });
     
     const menuText = document.getElementById('menuTextColor');
     if (menuText) menuText.addEventListener('input', (e) => { designConfig.menuText = e.target.value; debouncedUpdatePreview(); });
     
-    // Position menu
     document.querySelectorAll('.menu-pos-card').forEach(card => {
         card.addEventListener('click', () => {
             designConfig.menuPosition = card.dataset.pos;
@@ -856,7 +869,6 @@ function setupEventListeners() {
         });
     });
     
-    // Vitesse carrousel
     document.querySelectorAll('.speed-card').forEach(card => {
         card.addEventListener('click', () => {
             designConfig.carouselSpeed = parseInt(card.dataset.speed);
@@ -866,7 +878,6 @@ function setupEventListeners() {
         });
     });
     
-    // Layout produits
     document.querySelectorAll('.layout-card').forEach(card => {
         card.addEventListener('click', () => {
             designConfig.layout = card.dataset.layout;
@@ -876,7 +887,6 @@ function setupEventListeners() {
         });
     });
     
-    // Sliders
     const menuRadiusSlider = document.getElementById('menuRadius');
     if (menuRadiusSlider) menuRadiusSlider.addEventListener('input', (e) => updateMenuRadius(parseInt(e.target.value)));
     
@@ -899,13 +909,27 @@ function setupEventListeners() {
     if (prodGapSlider) prodGapSlider.addEventListener('input', (e) => updateProdGap(parseInt(e.target.value)));
 }
 
-// ============ INITIALISATION ============
-function init() {
-    // Récupérer l'utilisateur courant
-    currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-    currentUserEmail = currentUser?.email || 'vendeur@ouenze.cg';
+// ============================================================
+// INITIALISATION AVEC SUPABASE
+// ============================================================
+async function init() {
+    console.log('🚀 Initialisation du shop designer...');
     
-    // Récupérer l'ID de la boutique à éditer
+    // 1. Récupérer l'utilisateur via Supabase
+    const { data: { user }, error } = await window.supabase.auth.getUser();
+    
+    if (error || !user) {
+        console.warn('⛔ Aucun utilisateur connecté, redirection...');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    currentUser = user;
+    currentUserEmail = user.email;
+    
+    console.log('✅ Utilisateur connecté:', user.email);
+    
+    // 2. Récupérer l'ID de la boutique à éditer
     const urlParams = new URLSearchParams(window.location.search);
     const editShopIdParam = urlParams.get('edit');
     
@@ -914,7 +938,7 @@ function init() {
     setupEventListeners();
     
     if (editShopIdParam) {
-        loadShopForEditing(editShopIdParam);
+        await loadShopForEditing(editShopIdParam);
     } else {
         renderCategories();
         renderProductsList();
@@ -928,7 +952,7 @@ window.addEventListener('beforeunload', () => {
     if (carouselInterval) clearInterval(carouselInterval);
 });
 
-// Exports globaux
+// ============ EXPORTS GLOBAUX ============
 window.addCategory = addCategory;
 window.removeCategory = removeCategory;
 window.updateCategoryName = updateCategoryName;
@@ -948,5 +972,5 @@ window.updateShop = updateShop;
 window.changeSlide = changeSlide;
 window.removeProductPhoto = removeProductPhoto;
 
-// Démarrer l'application
+// ============ DÉMARRAGE ============
 init();
