@@ -545,7 +545,43 @@ function updatePreview() {
 // ============ PUBLICATION VIA SUPABASE ============
 async function publishShop() {
     console.log('🚀 Publication...');
-    
+    const shopData = {
+    owner_id: user.id,
+    name: name,
+    slug: generateSlug(name) + '-' + Date.now(),
+    description: document.getElementById('shopDescInput').value || '',
+    logo_url: tempLogo || '',
+    city: document.getElementById('shopCity').value || 'Brazzaville',
+    district: document.getElementById('shopQuartier').value || '',
+    address: document.getElementById('shopAddress')?.value || '',
+    country: 'Congo-Brazzaville',
+    rating: 0,
+    total_ratings: 0,
+    total_sales: 0,
+    is_verified: false,
+    has_physical_store: false,
+    is_active: true,
+    show_search_bar: document.getElementById('showSearchBar')?.checked || false,  // ← AJOUTER
+    design: {  // ← AJOUTER TOUT LE DESIGN
+        menu_position: designConfig.menuPosition,
+        menu_bg: designConfig.menuBg,
+        menu_text: designConfig.menuText,
+        menu_radius: designConfig.menuRadius,
+        carousel_height: designConfig.carouselHeight,
+        carousel_radius: designConfig.carouselRadius,
+        carousel_speed: designConfig.carouselSpeed,
+        prod_width: designConfig.prodWidth,
+        prod_img_height: designConfig.prodImgHeight,
+        prod_radius: designConfig.prodRadius,
+        prod_gap: designConfig.prodGap,
+        layout: designConfig.layout,
+        primary_color: document.getElementById('primaryColor').value,
+        button_color: document.getElementById('buttonColor').value,
+        background_color: document.getElementById('bgColor').value,
+        header_text_color: document.getElementById('headerTextColor').value,
+        product_text_color: document.getElementById('productTextColor').value
+    }
+};
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom de boutique requis"); return; }
     if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
@@ -708,6 +744,11 @@ async function loadShopForEditing(shopId) {
 // ============ ÉCOUTEURS ============
 function setupEventListeners() {
     // Inputs texte
+    // Barre de recherche
+const showSearchCheckbox = document.getElementById('showSearchBar');
+if (showSearchCheckbox) {
+    showSearchCheckbox.addEventListener('change', debouncedUpdatePreview);
+}
     const inputs = ['primaryColor', 'buttonColor', 'bgColor', 'headerTextColor', 'productTextColor',
                     'shopNameInput', 'shopDescInput', 'shopCity', 'shopQuartier', 'shopAddress'];
     inputs.forEach(id => {
