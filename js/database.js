@@ -196,6 +196,66 @@ async function getUserOrders(userId) {
     return data;
 }
 
+
+
+
+// ============================================================
+// CALCUL DES VENTES (SOURCE UNIQUE DE VÉRITÉ)
+// ============================================================
+
+/**
+ * Compte les commandes livrées pour une boutique
+ * 1 vente = 1 commande livrée contenant au moins 1 produit de la boutique
+ */
+async function getShopSalesCount(shopId) {
+    const { count, error } = await window.supabase
+        .from('order_items')
+        .select('order_id, orders!inner(status)', { count: 'exact', head: true })
+        .eq('shop_id', shopId)
+        .eq('orders.status', 'delivered');
+    
+    if (error) {
+        console.error('Erreur getShopSalesCount:', error);
+        return 0;
+    }
+    
+    return count || 0;
+}
+
+/**
+ * Compte les ventes pour plusieurs boutiques en une seule requête
+ */
+async function getShopsSalesCount(shopIds) {
+    const { data, error } = await window.supabase
+        .from('order_items')
+        .select('shop_id, order_id, orders!inner(status)')
+        .in('shop_id', shopIds)
+        .eq('orders.status', 'delivered');
+    
+    if (error) {
+        console.error('Erreur getShopsSalesCount:', error);
+        return {};
+    }
+    
+    // Compter les commandes uniques par boutique
+    const counts = {};
+    const seen = {};
+    
+    (data || []).forEach(item => {
+        const key = `${item.shop_id}-${item.order_id}`;
+        if (!seen[key]) {
+            seen[key] = true;
+            counts[item.shop_id] = (counts[item.shop_id] || 0) + 1;
+        }
+    });
+    
+    return counts;
+}
+
+
+
+
+
 // ============================================================
 // EXPORTS (TOUTES LES FONCTIONS DANS WINDOW)
 // ============================================================
@@ -212,6 +272,8 @@ window.createShop = createShop;
 window.getProducts = getProducts;
 window.createOrder = createOrder;
 window.getUserOrders = getUserOrders;
+window.getShopSalesCount = getShopSalesCount;
+window.getShopsSalesCount = getShopsSalesCount;
 
 console.log('✅ database.js chargé avec succès !');
 console.log('   - getProfile:', typeof getProfile);
