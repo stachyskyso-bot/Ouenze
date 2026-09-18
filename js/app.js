@@ -144,6 +144,37 @@ if (window.__APP_LOADED__) {
             console.error('❌ Erreur inattendue:', error);
             alert("Une erreur est survenue. Veuillez réessayer.");
         }
+
+
+
+
+        const user = data.user;
+    currentUser = user;
+    currentProfile = await getProfile(user.id);
+    currentUserType = currentProfile?.user_type || 'client';
+    
+    updateHeaderUI();
+    
+    // Redirection selon le rôle
+    setTimeout(() => {
+        switch (currentUserType) {
+            case 'vendeur':
+                window.location.href = 'vendor-dashboard.html';
+                break;
+            case 'livreur':
+                window.location.href = 'delivery-dashboard.html';
+                break;
+            case 'admin':
+                window.location.href = 'admin-dashboard.html';
+                break;
+            default:
+                window.location.href = 'index.html';
+        }
+    }, 500);
+
+
+        
+        
     }
 
     async function doSignUp() {
@@ -234,6 +265,27 @@ if (window.__APP_LOADED__) {
 
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
+        const container = document.getElementById('headerActions');
+    const navLinks = document.querySelector('.nav-links');
+    if (!container) return;
+    
+    // Définir les liens selon le rôle
+    const linksByRole = {
+        'client': ['Accueil', 'Panier', 'Commandes', 'Profil'],
+        'vendeur': ['Accueil', 'Ma boutique', 'Commandes', 'Comptabilité', 'Profil'],
+        'livreur': ['Accueil', 'Mes livraisons', 'Activités', 'Profil'],
+        'admin': ['Accueil', 'Admin', 'Utilisateurs', 'Boutiques', 'Statistiques']
+    };
+    
+    // Mettre à jour les liens
+    if (navLinks && currentUserType) {
+        const allowed = linksByRole[currentUserType] || linksByRole.client;
+        // Filtrer les liens visibles
+        navLinks.querySelectorAll('a').forEach(link => {
+            const text = link.textContent.trim();
+            link.style.display = allowed.some(a => text.includes(a)) ? '' : 'none';
+        });
+    }
         if (!container) return;
         
         if (currentUser && currentProfile) {
