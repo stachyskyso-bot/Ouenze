@@ -504,6 +504,8 @@ function updatePreview() {
 
 // ============ PUBLICATION ============
 async function publishShop() {
+    console.log('🚀 Publication...');
+    
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom de boutique requis"); return; }
     if (categories.length === 0) { alert("Créez au moins une catégorie"); return; }
@@ -511,6 +513,23 @@ async function publishShop() {
     
     const { data: { user }, error: userError } = await window.supabase.auth.getUser();
     if (userError || !user) { alert("Connectez-vous"); return; }
+    
+    // ============ VÉRIFIER SI UNE BOUTIQUE EXISTE DÉJÀ ============
+    const { data: existingShops } = await window.supabase
+        .from('shops')
+        .select('id, name')
+        .eq('owner_id', user.id);
+    
+    if (existingShops && existingShops.length > 0) {
+        const confirmMsg = `⚠️ Vous avez déjà ${existingShops.length} boutique(s) :\n\n` +
+            existingShops.map(s => `• ${s.name}`).join('\n') +
+            `\n\nVoulez-vous créer une NOUVELLE boutique "${name}" ?`;
+        
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+    }
+    // =============================================================
     
     const shopData = {
         owner_id: user.id,
@@ -523,42 +542,84 @@ async function publishShop() {
         address: document.getElementById('shopAddress')?.value || '',
         country: 'Congo-Brazzaville',
         rating: 0,
+        total_ratings: 0,
+        total_sales: 0,
         is_verified: false,
         has_physical_store: false,
-        is_active: true
+        is_active: true,
+        show_search_bar: document.getElementById('showSearchBar')?.checked || false,
+        design: {
+            menu_position: designConfig.menuPosition,
+            menu_bg: designConfig.menuBg,
+            menu_text: designConfig.menuText,
+            menu_radius: designConfig.menuRadius,
+            carousel_height: designConfig.carouselHeight,
+            carousel_radius: designConfig.carouselRadius,
+            carousel_speed: designConfig.carouselSpeed,
+            prod_width: designConfig.prodWidth,
+            prod_img_height: designConfig.prodImgHeight,
+            prod_radius: designConfig.prodRadius,
+            prod_gap: designConfig.prodGap,
+            layout: designConfig.layout,
+            primary_color: document.getElementById('primaryColor').value,
+            button_color: document.getElementById('buttonColor').value,
+            background_color: document.getElementById('bgColor').value,
+            header_text_color: document.getElementById('headerTextColor').value,
+            product_text_color: document.getElementById('productTextColor').value
+        }
     };
     
     try {
         const { data: insertedShop, error: shopError } = await window.supabase
             .from('shops').insert([shopData]).select().single();
         
-        if (shopError) { alert('Erreur: ' + shopError.message); return; }
-        
-        if (categories.length > 0) {
-            const cats = categories.map(cat => ({ shop_id: insertedShop.id, name: cat.name }));
-            await window.supabase.from('categories').insert(cats);
+        if (shopError) {
+            console.error('❌', shopError);
+            alert('Erreur: ' + shopError.message);
+            return;
         }
         
+        console.log('✅ Boutique créée:', insertedShop.id);
+        
+        // Catégories
+        if (categories.length > 0) {
+            const categoriesData = categories.map(cat => ({
+                shop_id: insertedShop.id,
+                name: cat.name
+            }));
+            await window.supabase.from('categories').insert(categoriesData);
+            console.log('✅ Catégories créées');
+        }
+        
+        // Produits
         if (products.length > 0) {
-            const prods = products.map(p => ({
+            const productsData = products.map(p => ({
                 shop_id: insertedShop.id,
                 name: p.name,
-                slug: generateSlug(p.name) + '-' + Date.now(),
+                slug: generateSlug(p.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7),
                 description: p.description || '',
-                price: p.basePrice,
-                stock: p.stock,
+                price: p.basePrice || p.price || 0,
+                stock: p.stock || 0,
                 product_type: 'standard',
                 photos: p.photos || []
             }));
-            await window.supabase.from('products').insert(prods);
+            
+            const { error: prodError } = await window.supabase
+                .from('products').insert(productsData);
+            
+            if (prodError) {
+                console.error('❌ Produits:', prodError);
+            } else {
+                console.log('✅ Produits créés:', productsData.length);
+            }
         }
         
-        alert(`✅ Boutique "${name}" créée !`);
+        alert(`✅ Boutique "${name}" créée avec succès !`);
         window.location.href = 'vendor-dashboard.html';
         
     } catch (error) {
         console.error('❌', error);
-        alert('Erreur');
+        alert('Erreur lors de la création');
     }
 }
 
