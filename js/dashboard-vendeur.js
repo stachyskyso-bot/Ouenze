@@ -3,13 +3,12 @@
 // ============================================================
 
 let activeCharts = {};
-let currentUser = null;
-let currentProfile = null;
-let shops = [];
-let orders = [];
-let salesCounts = {};
+let dashUser = null;
+let dashProfile = null;
+let dashShops = [];
+let dashOrders = [];
+let dashSalesCounts = {};
 
-// ============ UTILITAIRES ============
 function escapeHtml(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"]/g, m => ({
@@ -36,7 +35,6 @@ function destroyChart(id) {
     }
 }
 
-// ============ ACCÈS VENDEUR ============
 async function checkVendorAccess() {
     try {
         console.log('🔍 Vérification accès vendeur...');
@@ -71,8 +69,8 @@ async function checkVendorAccess() {
             return null;
         }
         
-        currentUser = { id: user.id, email: user.email, name: profile.full_name };
-        currentProfile = profile;
+        dashUser = { id: user.id, email: user.email, name: profile.full_name };
+        dashProfile = profile;
         
         console.log('✅ Vendeur autorisé');
         return { user, profile };
@@ -84,52 +82,29 @@ async function checkVendorAccess() {
     }
 }
 
-// ============ CHARGEMENT DES DONNÉES ============
 async function loadVendorData() {
-    if (!currentUser) return;
+    if (!dashUser) return;
     
     try {
         console.log('🏪 Chargement des boutiques...');
         
-        const { data: vendorShops, error: shopsError } = await window.supabase
+        const { data: shops, error: shopsError } = await window.supabase
             .from('shops')
             .select('*')
-            .eq('owner_id', currentUser.id)
+            .eq('owner_id', dashUser.id)
             .order('created_at', { ascending: false });
         
         if (shopsError) throw shopsError;
         
-        shops = vendorShops || [];
-        console.log(`✅ ${shops.length} boutique(s) chargée(s)`);
+        dashShops = shops || [];
+        console.log(`✅ ${dashShops.length} boutique(s) chargée(s)`);
         
-        // Charger les produits
-        for (const shop of shops) {
+        for (const shop of dashShops) {
             const { data: products } = await window.supabase
                 .from('products')
                 .select('*')
                 .eq('shop_id', shop.id);
             shop.products = products || [];
-        }
-        
-        // Compter les ventes (commandes livrées)
-        if (shops.length > 0) {
-            const shopIds = shops.map(s => s.id);
-            
-            const { data: orderItems } = await window.supabase
-                .from('order_items')
-                .select('shop_id, order_id, orders!inner(status)')
-                .in('shop_id', shopIds)
-                .eq('orders.status', 'delivered');
-            
-            salesCounts = {};
-            const seen = {};
-            (orderItems || []).forEach(item => {
-                const key = `${item.shop_id}-${item.order_id}`;
-                if (!seen[key]) {
-                    seen[key] = true;
-                    salesCounts[item.shop_id] = (salesCounts[item.shop_id] || 0) + 1;
-                }
-            });
         }
         
         console.log('✅ Données chargées');
@@ -139,19 +114,17 @@ async function loadVendorData() {
     }
 }
 
-// ============ AFFICHAGE ============
 function showDashboard() {
     const container = document.getElementById('appContainer');
     if (!container) return;
     
-    const totalProducts = shops.reduce((s, shop) => s + (shop.products?.length || 0), 0);
-    const totalSales = Object.values(salesCounts).reduce((s, c) => s + c, 0);
+    const totalProducts = dashShops.reduce((s, shop) => s + (shop.products?.length || 0), 0);
     
     container.innerHTML = `
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Mes boutiques</h3>
-                <div class="stat-value">${shops.length}</div>
+                <div class="stat-value">${dashShops.length}</div>
             </div>
             <div class="stat-card">
                 <h3>Produits</h3>
@@ -159,7 +132,7 @@ function showDashboard() {
             </div>
             <div class="stat-card">
                 <h3>Ventes</h3>
-                <div class="stat-value">${totalSales}</div>
+                <div class="stat-value">0</div>
             </div>
             <div class="stat-card">
                 <h3>Chiffre d'affaires</h3>
@@ -176,9 +149,9 @@ function showDashboard() {
             </button>
         </div>
         
-        <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques (${shops.length})</h2>
+        <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques (${dashShops.length})</h2>
         
-        ${shops.length === 0 ? `
+        ${dashShops.length === 0 ? `
             <div class="stat-card" style="text-align:center; padding:40px;">
                 <i class="fas fa-store" style="font-size:48px; color:var(--gray-500); margin-bottom:16px;"></i>
                 <p style="font-size:16px; font-weight:600;">Aucune boutique</p>
@@ -187,13 +160,12 @@ function showDashboard() {
                     <i class="fas fa-plus"></i> Créer ma première boutique
                 </button>
             </div>
-        ` : shops.map(shop => renderShop(shop)).join('')}
+        ` : dashShops.map(shop => renderShop(shop)).join('')}
     `;
 }
 
 function renderShop(shop) {
     const productCount = shop.products?.length || 0;
-    const salesCount = salesCounts[shop.id] || 0;
     const rating = shop.rating || 0;
     const stars = generateStars(rating);
     
@@ -224,7 +196,7 @@ function renderShop(shop) {
                         <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Produits</div>
                     </div>
                     <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:var(--success);">${salesCount}</div>
+                        <div style="font-size:24px;font-weight:700;color:var(--success);">0</div>
                         <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Ventes</div>
                     </div>
                     <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
@@ -246,7 +218,6 @@ function renderShop(shop) {
     `;
 }
 
-// ============ ACTIONS ============
 function createNewShop() {
     window.location.href = 'shop-designer.html';
 }
@@ -259,7 +230,6 @@ function viewShop(shopId) {
     window.open(`index.html?shop=${shopId}`, '_blank');
 }
 
-// ============ INITIALISATION ============
 async function init() {
     console.log('🚀 Init dashboard vendeur...');
     
@@ -268,8 +238,8 @@ async function init() {
     
     const avatar = document.getElementById('userAvatar');
     const name = document.getElementById('userName');
-    if (avatar) avatar.innerText = currentUser.name?.charAt(0).toUpperCase() || 'V';
-    if (name) name.innerText = currentUser.name || 'Vendeur';
+    if (avatar) avatar.innerText = dashUser.name?.charAt(0).toUpperCase() || 'V';
+    if (name) name.innerText = dashUser.name || 'Vendeur';
     
     await loadVendorData();
     showDashboard();
