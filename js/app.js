@@ -1,185 +1,164 @@
 // ============================================================
-// APP.JS - VERSION COMPLÈTE ET CORRIGÉE
+// APP.JS - VERSION CORRIGÉE
 // ============================================================
 
-// ============================================================
-// EMPÊCHER LE DOUBLE CHARGEMENT
-// ============================================================
 if (window.__APP_LOADED__) {
     console.warn('⚠️ app.js déjà chargé, abandon');
 } else {
     window.__APP_LOADED__ = true;
 
-    // ============================================================
-    // VARIABLES GLOBALES
-    // ============================================================
+    // ============ VARIABLES GLOBALES ============
     let currentUser = null;
     let currentProfile = null;
-    let currentUserType = null; // 'client', 'vendeur', 'livreur', 'admin'
+    let currentUserType = null;
     let shops = [];
     let orders = [];
     let cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
     let selectedPayment = null;
 
-    // ============================================================
-    // INITIALISATION
-    // ============================================================
+    // ============ UTILITAIRES ============
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"]/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        }[m]));
+    }
 
+    function formatPrice(price) {
+        return Number(price || 0).toLocaleString();
+    }
+
+    function generateStars(rating) {
+        let stars = '';
+        const full = Math.floor(rating);
+        const half = rating % 1 >= 0.5;
+        for (let i = 0; i < full; i++) stars += '<i class="fas fa-star"></i>';
+        if (half) stars += '<i class="fas fa-star-half-alt"></i>';
+        for (let i = 0; i < 5 - Math.ceil(rating); i++) stars += '<i class="far fa-star"></i>';
+        return stars;
+    }
+
+    function getShopLevel(shop) {
+        const rating = shop.rating || 0;
+        if (rating >= 4.5) return { level: 'gold', name: 'Or', class: 'level-gold' };
+        if (rating >= 4) return { level: 'silver', name: 'Argent', class: 'level-silver' };
+        if (rating >= 3) return { level: 'bronze', name: 'Bronze', class: 'level-bronze' };
+        return { level: null, name: 'Standard', class: '' };
+    }
+
+    // ============ INITIALISATION ============
     async function initApp() {
-        console.log('🚀 Initialisation de l\'application...');
+        console.log('🚀 Initialisation...');
         
         try {
-            // Récupérer l'utilisateur connecté
             currentUser = await getCurrentUser();
             
             if (currentUser) {
-                console.log('👤 Utilisateur connecté:', currentUser.email);
+                console.log('👤 Connecté:', currentUser.email);
                 currentProfile = await getProfile(currentUser.id);
                 currentUserType = currentProfile?.user_type || 'client';
-                console.log('📋 Profil:', currentProfile);
+                console.log('📋 Type:', currentUserType);
                 
-                // Mettre à jour l'interface
                 updateHeaderUI();
-                
-                // Charger les données selon le type
                 await loadUserData();
             } else {
-                console.log('👤 Aucun utilisateur connecté');
+                console.log('👤 Non connecté');
             }
             
-            // Afficher la page d'accueil
             showHomePage();
             
         } catch (error) {
-            console.error("❌ Erreur d'initialisation:", error);
+            console.error("❌ Erreur init:", error);
             showHomePage();
         }
     }
 
     async function loadUserData() {
         try {
-            // Charger les boutiques
             shops = await getShops();
-            console.log('🏪 Boutiques chargées:', shops.length);
+            console.log('🏪 Boutiques:', shops.length);
             
-            // Charger les commandes si client
             if (currentUserType === 'client') {
                 orders = await getUserOrders(currentUser.id);
-                console.log('📦 Commandes chargées:', orders.length);
+                console.log('📦 Commandes:', orders.length);
             }
         } catch (error) {
-            console.error("❌ Erreur de chargement des données:", error);
+            console.error("❌ Erreur chargement:", error);
         }
     }
 
-    // ============================================================
-    // AUTHENTIFICATION - VERSION CORRIGÉE
-    // ============================================================
-
+    // ============ AUTHENTIFICATION ============
     async function doLogin() {
-        console.log('🔍 doLogin appelée !');
+        console.log('🔍 doLogin...');
         
-        // 1. Récupérer les valeurs du formulaire
         const emailInput = document.getElementById('loginEmail');
         const passwordInput = document.getElementById('loginPassword');
         
         if (!emailInput || !passwordInput) {
-            console.error('❌ Champs de connexion introuvables !');
-            alert('Erreur technique : formulaire de connexion non trouvé.');
+            alert('Formulaire non trouvé');
             return;
         }
         
         const email = emailInput.value.trim();
         const password = passwordInput.value;
         
-        console.log('📧 Email saisi:', email);
-        console.log('🔑 Mot de passe saisi:', password ? '✅ Rempli' : '❌ Vide');
-        
-        // 2. Validation des champs
-        if (!email) {
-            alert("Veuillez entrer votre email.");
-            return;
-        }
-        if (!password) {
-            alert("Veuillez entrer votre mot de passe.");
+        if (!email || !password) {
+            alert("Email et mot de passe requis");
             return;
         }
         
         try {
-            // 3. Connexion DIRECTE avec Supabase
-            console.log('🔐 Tentative de connexion...');
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await window.supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
             
             if (error) {
-                console.error('❌ Erreur Supabase:', error.message);
+                console.error('❌', error.message);
                 alert("Email ou mot de passe incorrect");
                 return;
             }
             
             const user = data.user;
-            console.log('✅ Connexion réussie !');
-            console.log('👤 Utilisateur:', user.email);
+            console.log('✅ Connexion:', user.email);
             
-            // 4. Mettre à jour l'état global
             currentUser = user;
             currentProfile = await getProfile(user.id);
             currentUserType = currentProfile?.user_type || 'client';
             
-            // 5. Mettre à jour l'interface
             updateHeaderUI();
             
-            // 6. Fermer la modale et recharger
             const modal = document.querySelector('.modal.active');
             if (modal) modal.remove();
             
             await loadUserData();
-            showHomePage();
             
             alert(`Bienvenue ${currentProfile?.full_name || user.email}`);
             
+            // Redirection selon le rôle
+            setTimeout(() => {
+                switch (currentUserType) {
+                    case 'vendeur':
+                        window.location.href = 'vendor-dashboard.html';
+                        break;
+                    case 'livreur':
+                        window.location.href = 'delivery-dashboard.html';
+                        break;
+                    default:
+                        showHomePage();
+                }
+            }, 500);
+            
         } catch (error) {
-            console.error('❌ Erreur inattendue:', error);
-            alert("Une erreur est survenue. Veuillez réessayer.");
+            console.error('❌ Erreur:', error);
+            alert("Une erreur est survenue");
         }
-
-
-
-
-        const user = data.user;
-    currentUser = user;
-    currentProfile = await getProfile(user.id);
-    currentUserType = currentProfile?.user_type || 'client';
-    
-    updateHeaderUI();
-    
-    // Redirection selon le rôle
-    setTimeout(() => {
-        switch (currentUserType) {
-            case 'vendeur':
-                window.location.href = 'vendor-dashboard.html';
-                break;
-            case 'livreur':
-                window.location.href = 'delivery-dashboard.html';
-                break;
-            case 'admin':
-                window.location.href = 'admin-dashboard.html';
-                break;
-            default:
-                window.location.href = 'index.html';
-        }
-    }, 500);
-
-
-        
-        
     }
 
     async function doSignUp() {
-        console.log('🔍 doSignUp appelée !');
-        
         const email = document.getElementById('signupEmail').value.trim();
         const password = document.getElementById('signupPassword').value;
         const fullName = document.getElementById('signupName').value.trim();
@@ -188,18 +167,17 @@ if (window.__APP_LOADED__) {
         const city = document.getElementById('signupCity').value.trim();
         
         if (!email || !password || !fullName) {
-            alert("Veuillez remplir tous les champs obligatoires");
+            alert("Champs obligatoires manquants");
             return;
         }
         
         if (password.length < 6) {
-            alert("Le mot de passe doit contenir au moins 6 caractères");
+            alert("Mot de passe trop court (min 6)");
             return;
         }
         
         try {
-            console.log('🔐 Tentative d\'inscription...');
-            const { data, error } = await supabase.auth.signUp({
+            const { data, error } = await window.supabase.auth.signUp({
                 email: email,
                 password: password,
                 options: {
@@ -214,37 +192,30 @@ if (window.__APP_LOADED__) {
             });
             
             if (error) {
-                console.error('❌ Erreur inscription:', error.message);
-                alert("Erreur lors de l'inscription: " + error.message);
+                alert("Erreur: " + error.message);
                 return;
             }
             
-            console.log('✅ Inscription réussie !');
             alert(`Inscription réussie ! Bienvenue ${fullName}`);
             
-            // Fermer la modale
             const modal = document.querySelector('.modal.active');
             if (modal) modal.remove();
             
-            // Rediriger vers la bonne page selon le type
             if (userType === 'vendeur') {
-                alert("Redirection vers le créateur de boutique...");
                 window.location.href = 'shop-designer.html';
             } else {
                 initApp();
             }
             
         } catch (error) {
-            console.error('❌ Erreur inattendue:', error);
-            alert("Une erreur est survenue. Veuillez réessayer.");
+            console.error('❌', error);
+            alert("Erreur lors de l'inscription");
         }
     }
 
     async function logout() {
-        console.log('🔍 logout appelée !');
-        
         try {
-            await supabase.auth.signOut();
+            await window.supabase.auth.signOut();
             currentUser = null;
             currentProfile = null;
             currentUserType = null;
@@ -254,42 +225,17 @@ if (window.__APP_LOADED__) {
             showHomePage();
             alert("Déconnexion réussie");
         } catch (error) {
-            console.error("❌ Erreur de déconnexion:", error);
-            alert("Erreur lors de la déconnexion");
+            console.error("❌", error);
         }
     }
 
-    // ============================================================
-    // AFFICHAGE
-    // ============================================================
-
+    // ============ HEADER ============
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
-        const container = document.getElementById('headerActions');
-    const navLinks = document.querySelector('.nav-links');
-    if (!container) return;
-    
-    // Définir les liens selon le rôle
-    const linksByRole = {
-        'client': ['Accueil', 'Panier', 'Commandes', 'Profil'],
-        'vendeur': ['Accueil', 'Ma boutique', 'Commandes', 'Comptabilité', 'Profil'],
-        'livreur': ['Accueil', 'Mes livraisons', 'Activités', 'Profil'],
-        'admin': ['Accueil', 'Admin', 'Utilisateurs', 'Boutiques', 'Statistiques']
-    };
-    
-    // Mettre à jour les liens
-    if (navLinks && currentUserType) {
-        const allowed = linksByRole[currentUserType] || linksByRole.client;
-        // Filtrer les liens visibles
-        navLinks.querySelectorAll('a').forEach(link => {
-            const text = link.textContent.trim();
-            link.style.display = allowed.some(a => text.includes(a)) ? '' : 'none';
-        });
-    }
         if (!container) return;
         
         if (currentUser && currentProfile) {
-            const userTypeLabels = {
+            const labels = {
                 'client': 'Client',
                 'vendeur': 'Vendeur',
                 'livreur': 'Livreur',
@@ -299,11 +245,13 @@ if (window.__APP_LOADED__) {
             container.innerHTML = `
                 <div class="user-menu" onclick="showProfile()">
                     <div class="user-avatar">
-                        ${currentProfile.avatar_url ? `<img src="${currentProfile.avatar_url}">` : currentProfile.full_name?.charAt(0) || 'U'}
+                        ${currentProfile.avatar_url 
+                            ? `<img src="${currentProfile.avatar_url}">` 
+                            : currentProfile.full_name?.charAt(0) || 'U'}
                     </div>
                     <div class="user-info">
                         <div>${currentProfile.full_name?.split(' ')[0] || 'Utilisateur'}</div>
-                        <small>${userTypeLabels[currentUserType] || 'Client'}</small>
+                        <small>${labels[currentUserType] || 'Client'}</small>
                     </div>
                     <button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
                         <i class="fas fa-sign-out-alt"></i>
@@ -320,124 +268,15 @@ if (window.__APP_LOADED__) {
                 <button class="auth-btn" onclick="openRegisterModal()">Inscription</button>
                 <div class="cart-icon" onclick="showCart()">
                     <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-count">${cart.reduce((s, i) => s + i.quantity, 0)}</span>
+                    <span class="cart-count">0</span>
                 </div>
             `;
         }
     }
 
-    // ============================================================
-    // PAGE D'ACCUEIL
-    // ============================================================
-
-
-
-
-
-
-    // ============================================================
-// AFFICHAGE DÉTAIL D'UNE BOUTIQUE
-// ============================================================
-
-// ============================================================
-// AFFICHAGE DÉTAIL D'UNE BOUTIQUE
-// ============================================================
-
-async function viewShopDetail(shopId) {
-    console.log('🔍 Affichage du détail de la boutique:', shopId);
-    
-    try {
-        // 1. Récupérer la boutique
-        const { data: shop, error: shopError } = await supabase
-            .from('shops')
-            .select('*')
-            .eq('id', shopId)
-            .single();
-        
-        if (shopError) {
-            console.error('❌ Erreur boutique:', shopError);
-            alert('Boutique non trouvée');
-            return;
-        }
-        
-        console.log('🏪 Boutique trouvée:', shop);
-        
-        // 2. Récupérer les produits de la boutique
-        const { data: products, error: productsError } = await supabase
-            .from('products')
-            .select('*')
-            .eq('shop_id', shopId);
-        
-        if (productsError) {
-            console.error('❌ Erreur produits:', productsError);
-        }
-        
-        console.log('📦 Produits récupérés:', products);
-        console.log('📊 Nombre de produits:', products?.length || 0);
-        
-        // 3. Afficher la boutique avec ses produits
-        const container = document.getElementById('appContainer');
-        container.innerHTML = `
-            <button onclick="resetToHome()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px;margin-bottom:20px;">
-                ← Retour
-            </button>
-            
-            <div style="background:white;border-radius:20px;padding:24px;border:1px solid var(--gray-200);">
-                <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
-                    <div style="width:80px;height:80px;background:var(--gray-100);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">
-                        ${shop.logo_url ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '🏪'}
-                    </div>
-                    <div>
-                        <h2 style="font-size:24px;">${escapeHtml(shop.name)}</h2>
-                        <p style="color:var(--gray-500);">${escapeHtml(shop.description || '')}</p>
-                        <p style="font-size:13px;color:var(--gray-500);">
-                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                            ${shop.country ? `, ${escapeHtml(shop.country)}` : ''}
-                        </p>
-                        <p style="font-size:13px;color:var(--gray-500);">
-                            ⭐ ${shop.rating || 0}/5 (${shop.total_ratings || 0} avis)
-                        </p>
-                    </div>
-                </div>
-                
-                <h3 style="margin:20px 0 12px;">Produits (${products?.length || 0})</h3>
-                ${products && products.length > 0 ? `
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
-                    ${products.map(p => `
-                        <div style="background:var(--gray-100);border-radius:12px;padding:12px;text-align:center;">
-                            ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">` : '<div style="height:120px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;">📦</div>'}
-                            <h4 style="margin:8px 0 4px;">${escapeHtml(p.name)}</h4>
-                            <p style="font-weight:700;color:var(--primary);">${p.price.toLocaleString()} FCFA</p>
-                            <button onclick="addToCart('${shop.id}', '${p.id}', '${escapeHtml(p.name)}', ${p.price})" 
-                                    style="background:var(--primary);color:white;border:none;padding:6px 16px;border-radius:30px;cursor:pointer;margin-top:8px;">
-                                Ajouter au panier
-                            </button>
-                        </div>
-                    `).join('')}
-                </div>
-                ` : `
-                <div style="text-align:center;padding:40px;color:var(--gray-500);background:var(--gray-100);border-radius:12px;">
-                    <p>Aucun produit disponible dans cette boutique</p>
-                    <p style="font-size:12px;margin-top:8px;">Connectez-vous en tant que vendeur pour ajouter des produits</p>
-                </div>
-                `}
-            </div>
-        `;
-        
-    } catch (error) {
-        console.error('❌ Erreur:', error);
-        alert('Erreur lors du chargement de la boutique');
-    }
-}
-
-
-
-
-
-
-    
+    // ============ PAGE D'ACCUEIL ============
     async function showHomePage() {
-        console.log('🏠 Affichage de la page d\'accueil...');
+        console.log('🏠 Page d\'accueil...');
         
         const container = document.getElementById('appContainer');
         if (!container) return;
@@ -465,109 +304,169 @@ async function viewShopDetail(shopId) {
         `;
         
         await displayShops();
-
-
-
-        
     }
 
-  async function displayShops() {
-    const grid = document.getElementById('shopsGrid');
-    if (!grid) {
-        console.error('❌ shopsGrid non trouvé');
-        return;
-    }
-    
-    try {
-        console.log('🏪 Chargement des boutiques...');
+    async function displayShops() {
+        const grid = document.getElementById('shopsGrid');
+        if (!grid) return;
         
-        // 🔥 TEST DIRECT : Récupérer les boutiques de Supabase
-        const { data: shopsList, error } = await supabase
-            .from('shops')
-            .select('*');
-        
-        if (error) {
-            console.error('❌ Erreur Supabase:', error);
-            return;
-        }
-        
-        console.log('📊 Boutiques récupérées:', shopsList);
-        
-        if (!shopsList || shopsList.length === 0) {
-            grid.innerHTML = `
-                <div style="text-align:center;padding:60px;color:var(--gray-500);">
-                    <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
-                    <p>Aucune boutique trouvée</p>
-                    <p style="font-size:12px;margin-top:8px;">Connectez-vous pour créer votre première boutique</p>
-                </div>`;
-            return;
-        }
-        
-        // Affichage des boutiques
-        grid.innerHTML = shopsList.map(shop => {
-            const rating = shop.rating || 0;
-            const stars = generateStars(rating);
-            const productCount = shop.products?.[0]?.count || 0;
+        try {
+            console.log('🏪 Chargement boutiques...');
             
-            return `
-                <div class="shop-card" onclick="viewShopDetail('${shop.id}')">
-                    <div class="shop-logo-area">
-                        <div class="shop-logo-img">
-                            ${shop.logo_url ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '<i class="fas fa-store" style="font-size:28px;"></i>'}
+            const { data: shopsList, error } = await window.supabase
+                .from('shops')
+                .select(`*, products(count)`);
+            
+            if (error) throw error;
+            
+            console.log('📊 Boutiques:', shopsList?.length);
+            
+            if (!shopsList || shopsList.length === 0) {
+                grid.innerHTML = `
+                    <div style="text-align:center;padding:60px;color:var(--gray-500);">
+                        <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
+                        <p>Aucune boutique trouvée</p>
+                    </div>`;
+                return;
+            }
+            
+            grid.innerHTML = shopsList.map(shop => {
+                const rating = shop.rating || 0;
+                const stars = generateStars(rating);
+                const productCount = shop.products?.[0]?.count || 0;
+                const level = getShopLevel(shop);
+                
+                return `
+                    <div class="shop-card" onclick="viewShopDetail('${shop.id}')">
+                        <div class="shop-logo-area">
+                            <div class="shop-logo-img">
+                                ${shop.logo_url 
+                                    ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` 
+                                    : '<i class="fas fa-store" style="font-size:28px;"></i>'}
+                            </div>
+                            <div class="shop-name">${escapeHtml(shop.name)}</div>
+                            <div class="shop-rating">
+                                <div class="stars">${stars}</div>
+                                <span>(${shop.total_ratings || 0})</span>
+                            </div>
+                            <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">
+                                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                            </div>
+                            <div style="margin-top:6px;">
+                                <span class="level-badge ${level.class}">
+                                    <i class="fas fa-crown"></i> ${level.name}
+                                </span>
+                                <span style="font-size:10px;margin-left:6px;">
+                                    <i class="fas fa-chart-line"></i> ${shop.total_sales || 0} ventes
+                                </span>
+                            </div>
                         </div>
-                        <div class="shop-name">${escapeHtml(shop.name)}</div>
-                        <div class="shop-rating">
-                            <div class="stars">${stars}</div>
-                            <span>(${shop.total_ratings || 0})</span>
-                        </div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">
-                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                        </div>
-                        <div style="margin-top:6px;">
-                            <span class="level-badge level-gold">
-                                <i class="fas fa-crown"></i> Or
-                            </span>
-                            <span style="font-size:10px;margin-left:6px;">
-                                <i class="fas fa-chart-line"></i> ${shop.total_sales || 0} ventes
-                            </span>
+                        <div class="shop-details">
+                            <div class="shop-metrics">
+                                <div class="metric">
+                                    <div class="metric-value">${productCount}</div>
+                                    <div>Produits</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${shop.total_sales || 0}</div>
+                                    <div>Ventes</div>
+                                </div>
+                            </div>
+                            <button class="btn-visit-shop" style="margin-top:10px;width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:30px;cursor:pointer;font-size:11px;">
+                                <i class="fas fa-eye"></i> Voir la boutique
+                            </button>
                         </div>
                     </div>
-                    <div class="shop-details">
-                        <div class="shop-metrics">
-                            <div class="metric">
-                                <div class="metric-value">${productCount}</div>
-                                <div>Produits</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${shop.total_sales || 0}</div>
-                                <div>Ventes</div>
-                            </div>
+                `;
+            }).join('');
+            
+        } catch (error) {
+            console.error("❌ Erreur:", error);
+            grid.innerHTML = `
+                <div style="text-align:center;padding:60px;color:var(--danger);">
+                    <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;"></i>
+                    <p>Erreur de chargement</p>
+                </div>`;
+        }
+    }
+
+    // ============ VUE BOUTIQUE ============
+    async function viewShopDetail(shopId) {
+        console.log('🔍 Détail boutique:', shopId);
+        
+        try {
+            const { data: shop, error: shopError } = await window.supabase
+                .from('shops')
+                .select('*')
+                .eq('id', shopId)
+                .single();
+            
+            if (shopError) throw shopError;
+            
+            const { data: products, error: productsError } = await window.supabase
+                .from('products')
+                .select('*')
+                .eq('shop_id', shopId);
+            
+            if (productsError) console.error('❌', productsError);
+            
+            const container = document.getElementById('appContainer');
+            container.innerHTML = `
+                <button onclick="resetToHome()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px;margin-bottom:20px;">
+                    ← Retour
+                </button>
+                
+                <div style="background:white;border-radius:20px;padding:24px;border:1px solid var(--gray-200);">
+                    <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+                        <div style="width:80px;height:80px;background:var(--gray-100);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">
+                            ${shop.logo_url 
+                                ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` 
+                                : '🏪'}
                         </div>
-                        <button class="btn-visit-shop" style="margin-top:10px;width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:30px;cursor:pointer;font-size:11px;">
-                            <i class="fas fa-eye"></i> Voir la boutique
-                        </button>
+                        <div>
+                            <h2 style="font-size:24px;">${escapeHtml(shop.name)}</h2>
+                            <p style="color:var(--gray-500);">${escapeHtml(shop.description || '')}</p>
+                            <p style="font-size:13px;color:var(--gray-500);">
+                                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                            </p>
+                            <p style="font-size:13px;color:var(--gray-500);">
+                                ⭐ ${shop.rating || 0}/5 (${shop.total_ratings || 0} avis)
+                            </p>
+                        </div>
                     </div>
+                    
+                    <h3 style="margin:20px 0 12px;">Produits (${products?.length || 0})</h3>
+                    ${products && products.length > 0 ? `
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
+                        ${products.map(p => `
+                            <div style="background:var(--gray-100);border-radius:12px;padding:12px;text-align:center;">
+                                ${p.photos && p.photos[0] 
+                                    ? `<img src="${p.photos[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">` 
+                                    : '<div style="height:120px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;">📦</div>'}
+                                <h4 style="margin:8px 0 4px;">${escapeHtml(p.name)}</h4>
+                                <p style="font-weight:700;color:var(--primary);">${formatPrice(p.price)} FCFA</p>
+                                <button onclick="addToCart('${shop.id}', '${p.id}', '${escapeHtml(p.name)}', ${p.price})" 
+                                        style="background:var(--primary);color:white;border:none;padding:6px 16px;border-radius:30px;cursor:pointer;margin-top:8px;">
+                                    Ajouter
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : `
+                    <div style="text-align:center;padding:40px;color:var(--gray-500);background:var(--gray-100);border-radius:12px;">
+                        <p>Aucun produit</p>
+                    </div>
+                    `}
                 </div>
             `;
-        }).join('');
-        
-        console.log('✅ Affichage de', shopsList.length, 'boutiques');
-        
-    } catch (error) {
-        console.error("❌ Erreur d'affichage des boutiques:", error);
-        grid.innerHTML = `
-            <div style="text-align:center;padding:60px;color:var(--danger);">
-                <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;"></i>
-                <p>Erreur de chargement des boutiques</p>
-                <p style="font-size:12px;">${error.message}</p>
-            </div>`;
+            
+        } catch (error) {
+            console.error('❌ Erreur:', error);
+            alert('Erreur chargement boutique');
+        }
     }
-}
 
-    // ============================================================
-    // PANIER
-    // ============================================================
-
+    // ============ PANIER ============
     function saveCart() {
         localStorage.setItem('ouenze_cart', JSON.stringify(cart));
         updateCartCount();
@@ -580,78 +479,32 @@ async function viewShopDetail(shopId) {
         });
     }
 
-    function addToCart(shopId, productId, productName, price, variant = null) {
+    function addToCart(shopId, productId, productName, price) {
         if (!currentUser) {
             alert("Connectez-vous");
             openLoginModal();
             return;
         }
         
-        const existing = cart.find(i => 
-            i.productId === productId && 
-            i.shopId === shopId &&
-            i.variant === variant
-        );
+        const existing = cart.find(i => i.productId === productId && i.shopId === shopId);
         
         if (existing) {
             existing.quantity++;
         } else {
-            cart.push({ 
-                productId, 
-                productName, 
-                price: parseFloat(price), 
-                quantity: 1, 
-                shopId, 
-                variant
+            cart.push({
+                productId,
+                productName,
+                price: parseFloat(price),
+                quantity: 1,
+                shopId
             });
         }
         
         saveCart();
-        updateCartCount();
         alert(`${productName} ajouté au panier`);
     }
 
-    // ============================================================
-    // FONCTIONS UTILITAIRES
-    // ============================================================
-
-    function escapeHtml(s) {
-        if (s === null || s === undefined) return '';
-        return String(s).replace(/[&<>]/g, m => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;'
-        }[m]));
-    }
-
-    function formatPrice(price) {
-        return Number(price || 0).toLocaleString();
-    }
-
-    function generateStars(rating) {
-        let stars = '';
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
-        
-        for (let i = 0; i < fullStars; i++) stars += '<i class="fas fa-star"></i>';
-        if (hasHalfStar) stars += '<i class="fas fa-star-half-alt"></i>';
-        for (let i = 0; i < 5 - Math.ceil(rating); i++) stars += '<i class="far fa-star"></i>';
-        return stars;
-    }
-
-    function getShopLevel(shop) {
-        const rating = shop.rating || 0;
-        if (rating >= 4.5) return { level: 'gold', name: 'Or' };
-        if (rating >= 4) return { level: 'silver', name: 'Argent' };
-        if (rating >= 3) return { level: 'bronze', name: 'Bronze' };
-        return { level: null, name: 'Standard' };
-    }
-
-    // ============================================================
-    // MODALES
-    // ============================================================
-
+    // ============ MODALES ============
     function openLoginModal() {
         const modal = document.createElement('div');
         modal.className = 'modal active';
@@ -693,7 +546,7 @@ async function viewShopDetail(shopId) {
                 </div>
                 <div class="form-group">
                     <label>Mot de passe *</label>
-                    <input type="password" id="signupPassword" placeholder="•••••••• (min 6 caractères)">
+                    <input type="password" id="signupPassword" placeholder="Min 6 caractères">
                 </div>
                 <div class="form-group">
                     <label>Téléphone</label>
@@ -713,50 +566,50 @@ async function viewShopDetail(shopId) {
                 </div>
                 <button class="btn-submit" onclick="doSignUp()">S'inscrire</button>
                 <div style="text-align:center;margin-top:12px;">
-                    <a href="#" onclick="this.closest('.modal').remove();openLoginModal()" style="color:var(--primary);cursor:pointer;">Déjà un compte ? Se connecter</a>
+                    <a href="#" onclick="this.closest('.modal').remove();openLoginModal()" style="color:var(--primary);cursor:pointer;">Déjà un compte ?</a>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
     }
 
-    // ============================================================
-    // NAVIGATION
-    // ============================================================
-
+    // ============ NAVIGATION ============
     function resetToHome() {
         showHomePage();
     }
 
     function showCart() {
-        alert("Panier: " + cart.length + " articles");
+        if (cart.length === 0) {
+            alert("Panier vide");
+            return;
+        }
+        let msg = "Panier:\n\n";
+        cart.forEach(i => {
+            msg += `${i.productName} x${i.quantity} - ${formatPrice(i.price * i.quantity)} FCFA\n`;
+        });
+        msg += `\nTotal: ${formatPrice(cart.reduce((s, i) => s + i.price * i.quantity, 0))} FCFA`;
+        alert(msg);
     }
 
     function showProfile() {
         if (!currentUser) {
-            alert("Connectez-vous");
             openLoginModal();
             return;
         }
-        alert("Profil utilisateur: " + currentUser.email);
+        alert(`Profil\n\nNom: ${currentProfile?.full_name}\nEmail: ${currentUser.email}\nType: ${currentUserType}`);
     }
 
     function setSort(sort) {
         console.log("Tri par:", sort);
     }
 
-    // ============================================================
-    // INITIALISATION
-    // ============================================================
-
+    // ============ INITIALISATION ============
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('📄 DOM chargé, initialisation...');
+        console.log('📄 DOM chargé');
         initApp();
     });
 
-    // ============================================================
-    // EXPORTS GLOBAUX
-    // ============================================================
+    // ============ EXPORTS ============
     window.doLogin = doLogin;
     window.doSignUp = doSignUp;
     window.logout = logout;
@@ -769,5 +622,6 @@ async function viewShopDetail(shopId) {
     window.addToCart = addToCart;
     window.setSort = setSort;
     window.viewShopDetail = viewShopDetail;
-    console.log('✅ app.js chargé avec succès');
-} // Fin du guard
+
+    console.log('✅ app.js chargé');
+}
