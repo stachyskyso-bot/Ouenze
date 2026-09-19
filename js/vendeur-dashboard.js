@@ -1,5 +1,5 @@
 // ============================================================
-// VENDOR-DASHBOARD-V2.JS — VERSION SUPABASE
+// VENDOR-DASHBOARD.JS — VERSION SUPABASE
 // ============================================================
 
 console.log('🔥 vendor-dashboard-v2.js chargé');
