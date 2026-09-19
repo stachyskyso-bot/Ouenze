@@ -1,14 +1,15 @@
 // ============================================================
-// OUENZE - VENDOR DASHBOARD
+// VENDOR-DASHBOARD-V2.JS — VERSION SUPABASE
 // ============================================================
 
-let activeCharts = {};
-let dashUser = null;
-let dashProfile = null;
-let dashShops = [];
-let dashOrders = [];
-let dashSalesCounts = {};
+console.log('🔥 vendor-dashboard-v2.js chargé');
 
+let activeCharts = {};
+let vendorCurrentUser = null;
+let vendorCurrentProfile = null;
+let vendorShops = [];
+
+// ============ UTILITAIRES ============
 function escapeHtml(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"]/g, m => ({
@@ -28,13 +29,7 @@ function generateStars(rating) {
     return stars;
 }
 
-function destroyChart(id) {
-    if (activeCharts[id]) {
-        activeCharts[id].destroy();
-        delete activeCharts[id];
-    }
-}
-
+// ============ ACCÈS VENDEUR ============
 async function checkVendorAccess() {
     try {
         console.log('🔍 Vérification accès vendeur...');
@@ -69,8 +64,8 @@ async function checkVendorAccess() {
             return null;
         }
         
-        dashUser = { id: user.id, email: user.email, name: profile.full_name };
-        dashProfile = profile;
+        vendorCurrentUser = { id: user.id, email: user.email, name: profile.full_name };
+        vendorCurrentProfile = profile;
         
         console.log('✅ Vendeur autorisé');
         return { user, profile };
@@ -82,8 +77,9 @@ async function checkVendorAccess() {
     }
 }
 
+// ============ CHARGEMENT DES DONNÉES ============
 async function loadVendorData() {
-    if (!dashUser) return;
+    if (!vendorCurrentUser) return;
     
     try {
         console.log('🏪 Chargement des boutiques...');
@@ -91,15 +87,15 @@ async function loadVendorData() {
         const { data: shops, error: shopsError } = await window.supabase
             .from('shops')
             .select('*')
-            .eq('owner_id', dashUser.id)
+            .eq('owner_id', vendorCurrentUser.id)
             .order('created_at', { ascending: false });
         
         if (shopsError) throw shopsError;
         
-        dashShops = shops || [];
-        console.log(`✅ ${dashShops.length} boutique(s) chargée(s)`);
+        vendorShops = shops || [];
+        console.log(`✅ ${vendorShops.length} boutique(s) chargée(s)`);
         
-        for (const shop of dashShops) {
+        for (const shop of vendorShops) {
             const { data: products } = await window.supabase
                 .from('products')
                 .select('*')
@@ -110,21 +106,22 @@ async function loadVendorData() {
         console.log('✅ Données chargées');
         
     } catch (error) {
-        console.error('❌ Erreur chargement:', error);
+        console.error('❌ Erreur:', error);
     }
 }
 
+// ============ AFFICHAGE ============
 function showDashboard() {
     const container = document.getElementById('appContainer');
     if (!container) return;
     
-    const totalProducts = dashShops.reduce((s, shop) => s + (shop.products?.length || 0), 0);
+    const totalProducts = vendorShops.reduce((s, shop) => s + (shop.products?.length || 0), 0);
     
     container.innerHTML = `
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Mes boutiques</h3>
-                <div class="stat-value">${dashShops.length}</div>
+                <div class="stat-value">${vendorShops.length}</div>
             </div>
             <div class="stat-card">
                 <h3>Produits</h3>
@@ -149,18 +146,17 @@ function showDashboard() {
             </button>
         </div>
         
-        <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques (${dashShops.length})</h2>
+        <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques (${vendorShops.length})</h2>
         
-        ${dashShops.length === 0 ? `
+        ${vendorShops.length === 0 ? `
             <div class="stat-card" style="text-align:center; padding:40px;">
                 <i class="fas fa-store" style="font-size:48px; color:var(--gray-500); margin-bottom:16px;"></i>
                 <p style="font-size:16px; font-weight:600;">Aucune boutique</p>
-                <p style="color:var(--gray-500); margin-bottom:16px;">Vous n'avez pas encore créé de boutique.</p>
-                <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px; font-size:14px;">
+                <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px; font-size:14px; margin-top:16px;">
                     <i class="fas fa-plus"></i> Créer ma première boutique
                 </button>
             </div>
-        ` : dashShops.map(shop => renderShop(shop)).join('')}
+        ` : vendorShops.map(shop => renderShop(shop)).join('')}
     `;
 }
 
@@ -218,6 +214,7 @@ function renderShop(shop) {
     `;
 }
 
+// ============ ACTIONS ============
 function createNewShop() {
     window.location.href = 'shop-designer.html';
 }
@@ -230,6 +227,7 @@ function viewShop(shopId) {
     window.open(`index.html?shop=${shopId}`, '_blank');
 }
 
+// ============ INITIALISATION ============
 async function init() {
     console.log('🚀 Init dashboard vendeur...');
     
@@ -238,8 +236,8 @@ async function init() {
     
     const avatar = document.getElementById('userAvatar');
     const name = document.getElementById('userName');
-    if (avatar) avatar.innerText = dashUser.name?.charAt(0).toUpperCase() || 'V';
-    if (name) name.innerText = dashUser.name || 'Vendeur';
+    if (avatar) avatar.innerText = vendorCurrentUser.name?.charAt(0).toUpperCase() || 'V';
+    if (name) name.innerText = vendorCurrentUser.name || 'Vendeur';
     
     await loadVendorData();
     showDashboard();
