@@ -1,19 +1,21 @@
 // ============================================================
-// VENDOR-DASHBOARD.JS — VERSION SUPABASE
+// VENDOR-DASHBOARD.JS — VERSION RPC SUPABASE
 // ============================================================
 
-console.log('🔥 vendor-dashboard-v2.js chargé');
+console.log('🔥 vendor-dashboard.js chargé');
 
-let activeCharts = {};
-let vendorCurrentUser = null;
-let vendorCurrentProfile = null;
-let vendorShops = [];
+// ============ ÉTAT GLOBAL ============
+let dashUser = null;
+let dashShops = [];
 
 // ============ UTILITAIRES ============
 function escapeHtml(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"]/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;'
     }[m]));
 }
 
@@ -29,99 +31,57 @@ function generateStars(rating) {
     return stars;
 }
 
-// ============ ACCÈS VENDEUR ============
-async function checkVendorAccess() {
-    try {
-        console.log('🔍 Vérification accès vendeur...');
-        
-        const { data: { user }, error: userError } = await window.supabase.auth.getUser();
-        
-        if (userError || !user) {
-            console.warn('❌ Pas connecté');
-            window.location.href = 'index.html';
-            return null;
-        }
-        
-        console.log('👤 User:', user.email, '| ID:', user.id);
-        
-        const { data: profile, error: profileError } = await window.supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-        
-        if (profileError || !profile) {
-            console.warn('❌ Profil introuvable');
-            window.location.href = 'index.html';
-            return null;
-        }
-        
-        console.log('📋 user_type:', profile.user_type);
-        
-        if (profile.user_type !== 'vendeur') {
-            console.warn('⛔ Pas vendeur');
-            window.location.href = 'index.html';
-            return null;
-        }
-        
-        vendorCurrentUser = { id: user.id, email: user.email, name: profile.full_name };
-        vendorCurrentProfile = profile;
-        
-        console.log('✅ Vendeur autorisé');
-        return { user, profile };
-        
-    } catch (error) {
-        console.error('❌ Erreur:', error);
-        window.location.href = 'index.html';
-        return null;
-    }
-}
-
-// ============ CHARGEMENT DES DONNÉES ============
+// ============ CHARGEMENT VIA RPC ============
 async function loadVendorData() {
-    if (!vendorCurrentUser) return;
+    console.log('🚀 Chargement via RPC...');
     
     try {
-        console.log('🏪 Chargement des boutiques...');
+        const { data, error } = await window.supabase.rpc('get_vendor_dashboard');
         
-        const { data: shops, error: shopsError } = await window.supabase
-            .from('shops')
-            .select('*')
-            .eq('owner_id', vendorCurrentUser.id)
-            .order('created_at', { ascending: false });
-        
-        if (shopsError) throw shopsError;
-        
-        vendorShops = shops || [];
-        console.log(`✅ ${vendorShops.length} boutique(s) chargée(s)`);
-        
-        for (const shop of vendorShops) {
-            const { data: products } = await window.supabase
-                .from('products')
-                .select('*')
-                .eq('shop_id', shop.id);
-            shop.products = products || [];
+        if (error) {
+            console.error('❌ Erreur RPC:', error);
+            return false;
         }
         
-        console.log('✅ Données chargées');
+        if (!data || !data.success) {
+            console.error('❌ RPC sans succès');
+            return false;
+        }
+        
+        console.log('✅ Données reçues');
+        
+        if (data.user?.user_type !== 'vendeur') {
+            console.warn('⛔ Pas vendeur');
+            window.location.href = 'index.html';
+            return false;
+        }
+        
+        dashUser = data.user;
+        dashShops = data.shops || [];
+        
+        console.log(`👤 User: ${dashUser.email}`);
+        console.log(`🏪 ${dashShops.length} boutique(s)`);
+        
+        return true;
         
     } catch (error) {
-        console.error('❌ Erreur:', error);
+        console.error('❌ Exception:', error);
+        return false;
     }
 }
 
-// ============ AFFICHAGE ============
+// ============ AFFICHAGE DASHBOARD ============
 function showDashboard() {
     const container = document.getElementById('appContainer');
     if (!container) return;
     
-    const totalProducts = vendorShops.reduce((s, shop) => s + (shop.products?.length || 0), 0);
+    const totalProducts = dashShops.reduce((s, shop) => s + (shop.product_count || 0), 0);
     
     container.innerHTML = `
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Mes boutiques</h3>
-                <div class="stat-value">${vendorShops.length}</div>
+                <div class="stat-value">${dashShops.length}</div>
             </div>
             <div class="stat-card">
                 <h3>Produits</h3>
@@ -146,22 +106,24 @@ function showDashboard() {
             </button>
         </div>
         
-        <h2 style="font-size: 20px; margin-bottom: 20px;">Mes boutiques (${vendorShops.length})</h2>
+        <h2 style="font-size:20px; margin-bottom:20px;">Mes boutiques (${dashShops.length})</h2>
         
-        ${vendorShops.length === 0 ? `
+        ${dashShops.length === 0 ? `
             <div class="stat-card" style="text-align:center; padding:40px;">
                 <i class="fas fa-store" style="font-size:48px; color:var(--gray-500); margin-bottom:16px;"></i>
                 <p style="font-size:16px; font-weight:600;">Aucune boutique</p>
-                <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px; font-size:14px; margin-top:16px;">
+                <p style="color:var(--gray-500); margin-bottom:16px;">Vous n'avez pas encore créé de boutique.</p>
+                <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px; font-size:14px;">
                     <i class="fas fa-plus"></i> Créer ma première boutique
                 </button>
             </div>
-        ` : vendorShops.map(shop => renderShop(shop)).join('')}
+        ` : dashShops.map(shop => renderShop(shop)).join('')}
     `;
 }
 
+// ============ RENDU D'UNE BOUTIQUE ============
 function renderShop(shop) {
-    const productCount = shop.products?.length || 0;
+    const productCount = shop.product_count || 0;
     const rating = shop.rating || 0;
     const stars = generateStars(rating);
     
@@ -180,6 +142,7 @@ function renderShop(shop) {
                         <div style="font-size:13px;color:var(--warning);">${stars} ${rating}/5</div>
                         <div style="font-size:12px;color:var(--gray-500);margin-top:4px;">
                             <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                            ${shop.district ? `, ${escapeHtml(shop.district)}` : ''}
                         </div>
                     </div>
                 </div>
@@ -192,7 +155,7 @@ function renderShop(shop) {
                         <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Produits</div>
                     </div>
                     <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:var(--success);">0</div>
+                        <div style="font-size:24px;font-weight:700;color:var(--success);">${shop.total_sales || 0}</div>
                         <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Ventes</div>
                     </div>
                     <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
@@ -229,30 +192,28 @@ function viewShop(shopId) {
 
 // ============ INITIALISATION ============
 async function init() {
-    console.log('🚀 Init dashboard vendeur...');
+    console.log('🚀 Init dashboard vendeur (RPC)...');
     
-    const access = await checkVendorAccess();
-    if (!access) return;
+    // Charger via RPC
+    const ok = await loadVendorData();
+    if (!ok) return;
     
+    // Mettre à jour l'UI
     const avatar = document.getElementById('userAvatar');
     const name = document.getElementById('userName');
-    if (avatar) avatar.innerText = vendorCurrentUser.name?.charAt(0).toUpperCase() || 'V';
-    if (name) name.innerText = vendorCurrentUser.name || 'Vendeur';
+    if (avatar) avatar.innerText = dashUser.full_name?.charAt(0).toUpperCase() || 'V';
+    if (name) name.innerText = dashUser.full_name || 'Vendeur';
     
-    await loadVendorData();
+    // Afficher
     showDashboard();
     
     console.log('✅ Dashboard prêt');
 }
 
-window.addEventListener('beforeunload', () => {
-    Object.keys(activeCharts).forEach(k => {
-        if (activeCharts[k]) activeCharts[k].destroy();
-    });
-});
-
+// ============ EXPORTS ============
 window.createNewShop = createNewShop;
 window.openShopDesigner = openShopDesigner;
 window.viewShop = viewShop;
 
+// ============ DÉMARRAGE ============
 init();
