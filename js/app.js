@@ -302,9 +302,53 @@ if (window.__APP_LOADED__) {
             </div>
             <div id="shopsGrid" class="shops-grid"></div>
         `;
-        
+        <button onclick="window.location.href='reset-password.html'" class="btn-cancel" style="margin-top:10px;">
+    <i class="fas fa-key"></i> Changer mon mot de passe
+</button>
         await displayShops();
     }
+
+
+
+
+
+
+
+
+
+// Forcer la connexion pour pouvoir changer le mot de passe
+async function forceLogin(email, password) {
+    try {
+        const { data, error } = await window.supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+        
+        if (error) {
+            console.error('❌', error);
+            alert('Email ou mot de passe incorrect');
+            return false;
+        }
+        
+        console.log('✅ Connecté:', data.user.email);
+        alert('Connecté ! Vous pouvez maintenant changer votre mot de passe.');
+        window.location.href = 'reset-password.html';
+        return true;
+        
+    } catch (error) {
+        console.error('❌', error);
+        return false;
+    }
+}
+
+window.forceLogin = forceLogin;
+
+
+
+
+
+
+    
 
     async function displayShops() {
         const grid = document.getElementById('shopsGrid');
@@ -506,28 +550,30 @@ if (window.__APP_LOADED__) {
 
     // ============ MODALES ============
     function openLoginModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                <h3 style="margin-bottom:20px;">Connexion</h3>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" placeholder="exemple@email.com">
-                </div>
-                <div class="form-group">
-                    <label>Mot de passe</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••">
-                </div>
-                <button class="btn-submit" onclick="doLogin()">Se connecter</button>
-                <div style="text-align:center;margin-top:12px;">
-                    <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a>
-                </div>
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-card">
+            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            <h3 style="margin-bottom:20px;">Connexion</h3>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="exemple@email.com">
             </div>
-        `;
-        document.body.appendChild(modal);
-    }
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+            </div>
+            <button class="btn-submit" onclick="doLogin()">Se connecter</button>
+            <div style="text-align:center;margin-top:12px;font-size:13px;">
+                <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a>
+                <br><br>
+                <a href="reset-password.html" style="color:var(--gray-500);font-size:12px;">Mot de passe oublié ?</a>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
 
     function openRegisterModal() {
         const modal = document.createElement('div');
@@ -610,29 +656,7 @@ if (window.__APP_LOADED__) {
     });
 
 
-     function openLoginModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom:20px;">Connexion</h3>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="loginEmail" placeholder="exemple@email.com">
-            </div>
-            <div class="form-group">
-                <label>Mot de passe</label>
-                <input type="password" id="loginPassword" placeholder="••••••••">
-            </div>
-            <button class="btn-submit" onclick="doLogin()">Se connecter</button>
-            <div style="text-align:center;margin-top:12px;">
-                <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
+     
     
 
     // ============ EXPORTS ============
