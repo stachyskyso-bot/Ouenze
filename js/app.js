@@ -1,20 +1,325 @@
 // ============================================================
-// APP.JS - VERSION PROPRE SUPABASE
+// APP.JS - VERSION MINIMALE (RÉPARATION)
 // ============================================================
 
-if (window.__APP_LOADED__) {
-    console.warn('⚠️ app.js déjà chargé');
-} else {
-    window.__APP_LOADED__ = true;
+(function() {
+    'use strict';
 
-    // ============ VARIABLES GLOBALES ============
-    let currentUser = null;
-    let currentProfile = null;
-    let currentUserType = null;
-    let shops = [];
-    let orders = [];
-    let cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
-    let selectedPayment = null;
+    // ============ ÉTAT ============
+    window.currentUser = null;
+    window.currentProfile = null;
+    window.currentUserType = null;
+    window.shops = [];
+    window.cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
+
+    // ============ HEADER ============
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (!container) return;
+
+        if (window.currentUser && window.currentProfile) {
+            container.innerHTML = `
+                <div class="user-menu" onclick="showProfile()">
+                    <div class="user-avatar">
+                        ${window.currentProfile.avatar_url 
+                            ? '<img src="' + window.currentProfile.avatar_url + '">' 
+                            : (window.currentProfile.full_name || 'U').charAt(0)}
+                    </div>
+                    <div class="user-info">
+                        <div>${(window.currentProfile.full_name || 'Utilisateur').split(' ')[0]}</div>
+                        <small>${window.currentUserType || 'Client'}</small>
+                    </div>
+                    <button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                <div class="cart-icon" onclick="showCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">${window.cart.reduce((s, i) => s + i.quantity, 0)}</span>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <button class="auth-btn" onclick="openLoginModal()">Connexion</button>
+                <button class="auth-btn" onclick="openRegisterModal()">Inscription</button>
+                <div class="cart-icon" onclick="showCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">${window.cart.reduce((s, i) => s + i.quantity, 0)}</span>
+                </div>
+            `;
+        }
+    }
+
+    // ============ INIT ============
+    async function initApp() {
+        console.log('🚀 initApp...');
+        
+        if (typeof window.getCurrentUser !== 'function') {
+            console.error('❌ getCurrentUser non disponible');
+            updateHeaderUI();
+            return;
+        }
+
+        try {
+            window.currentUser = await window.getCurrentUser();
+            
+            if (window.currentUser && typeof window.getProfile === 'function') {
+                window.currentProfile = await window.getProfile(window.currentUser.id);
+                window.currentUserType = window.currentProfile?.user_type || 'client';
+            }
+        } catch (e) {
+            console.error('❌ Erreur init:', e);
+        }
+
+        updateHeaderUI();
+    }
+
+    // ============ LOGIN ============
+    async function doLogin() {
+        const emailInput = document.getElementById('loginEmail');
+        const passwordInput = document.getElementById('loginPassword');
+
+        if (!emailInput || !passwordInput) {
+            alert('Formulaire non trouvé');
+            return;
+        }
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!email || !password) {
+            alert("Email et mot de passe requis");
+            return;
+        }
+
+        try {
+            const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                alert("Email ou mot de passe incorrect");
+                return;
+            }
+
+            window.currentUser = data.user;
+            window.currentProfile = await window.getProfile(data.user.id);
+            window.currentUserType = window.currentProfile?.user_type || 'client';
+
+            const modal = document.querySelector('.modal.active');
+            if (modal) modal.remove();
+
+            updateHeaderUI();
+            alert('Bienvenue ' + (window.currentProfile?.full_name || data.user.email));
+
+            setTimeout(() => {
+                switch (window.currentUserType) {
+                    case 'vendeur':
+                        window.location.href = 'vendor-dashboard.html';
+                        break;
+                    case 'livreur':
+                        window.location.href = 'delivery-dashboard.html';
+                        break;
+                }
+            }, 500);
+
+        } catch (e) {
+            alert("Une erreur est survenue");
+        }
+    }
+
+    // ============ SIGNUP ============
+    async function doSignUp() {
+        const email = document.getElementById('signupEmail')?.value.trim();
+        const password = document.getElementById('signupPassword')?.value;
+        const fullName = document.getElementById('signupName')?.value.trim();
+        const userType = document.getElementById('signupType')?.value || 'client';
+        const phone = document.getElementById('signupPhone')?.value.trim() || '';
+        const city = document.getElementById('signupCity')?.value.trim() || '';
+
+        if (!email || !password || !fullName) {
+            alert("Champs obligatoires manquants");
+            return;
+        }
+
+        if (password.length < 6) {
+            alert("Mot de passe trop court (min 6)");
+            return;
+        }
+
+        try {
+            const { data, error } = await window.supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        full_name: fullName,
+                        user_type: userType,
+                        phone,
+                        city,
+                        country: 'Congo-Brazzaville'
+                    }
+                }
+            });
+
+            if (error) {
+                alert("Erreur: " + error.message);
+                return;
+            }
+
+            const modal = document.querySelector('.modal.active');
+            if (modal) modal.remove();
+
+            alert('Bienvenue ' + fullName + ' !');
+
+            if (userType === 'vendeur') {
+                window.location.href = 'shop-designer.html';
+            } else {
+                initApp();
+            }
+
+        } catch (e) {
+            alert("Une erreur est survenue");
+        }
+    }
+
+    // ============ LOGOUT ============
+    async function logout() {
+        await window.supabase.auth.signOut();
+        window.currentUser = null;
+        window.currentProfile = null;
+        window.currentUserType = null;
+        window.cart = [];
+        localStorage.removeItem('ouenze_cart');
+        updateHeaderUI();
+        alert("Déconnexion réussie");
+    }
+
+    // ============ PASSWORD RESET ============
+    async function requestPasswordReset() {
+        const email = document.getElementById('loginEmail')?.value.trim();
+
+        if (!email) {
+            alert("Entre ton email d'abord");
+            return;
+        }
+
+        const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/reset-password.html'
+        });
+
+        if (error) {
+            alert("Impossible d'envoyer l'email");
+            return;
+        }
+
+        alert("Email de réinitialisation envoyé à " + email);
+    }
+
+    // ============ LOGIN MODAL ============
+    function openLoginModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3 style="margin-bottom:20px;">Connexion</h3>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="exemple@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <div style="text-align:right;margin-bottom:12px;">
+                    <button type="button" onclick="requestPasswordReset()" 
+                            style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:13px;">
+                        Mot de passe oublié ?
+                    </button>
+                </div>
+                <button class="btn-submit" onclick="doLogin()">Se connecter</button>
+                <div style="text-align:center;margin-top:12px;">
+                    <a href="#" onclick="event.preventDefault();this.closest('.modal').remove();openRegisterModal();" 
+                       style="color:var(--primary);cursor:pointer;">
+                        Créer un compte
+                    </a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // ============ REGISTER MODAL ============
+    function openRegisterModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3 style="margin-bottom:20px;">Inscription</h3>
+                <div class="form-group">
+                    <label>Nom complet *</label>
+                    <input type="text" id="signupName" placeholder="Jean Dupont">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="signupEmail" placeholder="exemple@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe *</label>
+                    <input type="password" id="signupPassword" placeholder="Min 6 caractères">
+                </div>
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input type="tel" id="signupPhone" placeholder="+242 06 XX XX XX">
+                </div>
+                <div class="form-group">
+                    <label>Ville</label>
+                    <input type="text" id="signupCity" placeholder="Brazzaville">
+                </div>
+                <div class="form-group">
+                    <label>Type de compte</label>
+                    <select id="signupType">
+                        <option value="client">Client</option>
+                        <option value="vendeur">Vendeur</option>
+                        <option value="livreur">Livreur</option>
+                    </select>
+                </div>
+                <button class="btn-submit" onclick="doSignUp()">S'inscrire</button>
+                <div style="text-align:center;margin-top:12px;">
+                    <a href="#" onclick="event.preventDefault();this.closest('.modal').remove();openLoginModal();" 
+                       style="color:var(--primary);cursor:pointer;">
+                        Déjà un compte ? Se connecter
+                    </a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // ============ AUTRES ============
+    function showCart() {
+        alert("Panier: " + window.cart.length + " article(s)");
+    }
+
+    function showProfile() {
+        if (!window.currentUser) {
+            openLoginModal();
+            return;
+        }
+        alert("Profil: " + window.currentUser.email);
+    }
+
+
+
+
+    // ============ ÉTAT GLOBAL ============
+    window.currentUser = null;
+    window.currentProfile = null;
+    window.currentUserType = null;
+    window.shops = [];
+    window.orders = [];
+    window.cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
+    window.selectedPayment = null;
 
     // ============ UTILITAIRES ============
     function escapeHtml(s) {
@@ -49,18 +354,37 @@ if (window.__APP_LOADED__) {
         return { level: null, name: 'Standard', class: '' };
     }
 
+    function saveCart() {
+        localStorage.setItem('ouenze_cart', JSON.stringify(window.cart));
+        updateCartCount();
+    }
+
+    function updateCartCount() {
+        const count = window.cart.reduce((s, i) => s + i.quantity, 0);
+        document.querySelectorAll('#cartCountHeader, .cart-count').forEach(el => {
+            if (el) el.innerText = count;
+        });
+    }
+
     // ============ INITIALISATION ============
     async function initApp() {
         console.log('🚀 Initialisation...');
         
+        if (typeof window.getCurrentUser !== 'function') {
+            console.error('❌ getCurrentUser non disponible');
+            updateHeaderUI();
+            showHomePage();
+            return;
+        }
+
         try {
-            currentUser = await getCurrentUser();
+            window.currentUser = await window.getCurrentUser();
             
-            if (currentUser) {
-                console.log('👤 Connecté:', currentUser.email);
-                currentProfile = await getProfile(currentUser.id);
-                currentUserType = currentProfile?.user_type || 'client';
-                console.log('📋 Type:', currentUserType);
+            if (window.currentUser) {
+                console.log('👤 Connecté:', window.currentUser.email);
+                window.currentProfile = await window.getProfile(window.currentUser.id);
+                window.currentUserType = window.currentProfile?.user_type || 'client';
+                console.log('📋 Type:', window.currentUserType);
                 
                 updateHeaderUI();
                 await loadUserData();
@@ -72,74 +396,114 @@ if (window.__APP_LOADED__) {
             
         } catch (error) {
             console.error("❌ Erreur init:", error);
+            updateHeaderUI();
             showHomePage();
         }
     }
 
     async function loadUserData() {
         try {
-            shops = await getShops();
-            console.log('🏪 Boutiques:', shops.length);
+            if (typeof window.getShops === 'function') {
+                window.shops = await window.getShops();
+                console.log('🏪 Boutiques:', window.shops.length);
+            }
             
-            if (currentUserType === 'client') {
-                orders = await getUserOrders(currentUser.id);
-                console.log('📦 Commandes:', orders.length);
+            if (window.currentUserType === 'client' && typeof window.getUserOrders === 'function') {
+                window.orders = await window.getUserOrders(window.currentUser.id);
+                console.log('📦 Commandes:', window.orders.length);
             }
         } catch (error) {
             console.error("❌ Erreur chargement:", error);
         }
     }
 
+    // ============ HEADER ============
+    function updateHeaderUI() {
+        const container = document.getElementById('headerActions');
+        if (!container) return;
+
+        if (window.currentUser && window.currentProfile) {
+            const labels = {
+                'client': 'Client',
+                'vendeur': 'Vendeur',
+                'livreur': 'Livreur',
+                'admin': 'Admin'
+            };
+
+            container.innerHTML = `
+                <div class="user-menu" onclick="showProfile()">
+                    <div class="user-avatar">
+                        ${window.currentProfile.avatar_url 
+                            ? '<img src="' + window.currentProfile.avatar_url + '">' 
+                            : (window.currentProfile.full_name || 'U').charAt(0)}
+                    </div>
+                    <div class="user-info">
+                        <div>${(window.currentProfile.full_name || 'Utilisateur').split(' ')[0]}</div>
+                        <small>${labels[window.currentUserType] || 'Client'}</small>
+                    </div>
+                    <button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                <div class="cart-icon" onclick="showCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">${window.cart.reduce((s, i) => s + i.quantity, 0)}</span>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <button class="auth-btn" onclick="openLoginModal()">Connexion</button>
+                <button class="auth-btn" onclick="openRegisterModal()">Inscription</button>
+                <div class="cart-icon" onclick="showCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">${window.cart.reduce((s, i) => s + i.quantity, 0)}</span>
+                </div>
+            `;
+        }
+    }
+
     // ============ AUTHENTIFICATION ============
     async function doLogin() {
         console.log('🔍 doLogin...');
-        
+
         const emailInput = document.getElementById('loginEmail');
         const passwordInput = document.getElementById('loginPassword');
-        
+
         if (!emailInput || !passwordInput) {
             alert('Formulaire non trouvé');
             return;
         }
-        
+
         const email = emailInput.value.trim();
         const password = passwordInput.value;
-        
+
         if (!email || !password) {
             alert("Email et mot de passe requis");
             return;
         }
-        
+
         try {
-            const { data, error } = await window.supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-            
+            const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
+
             if (error) {
-                console.error('❌', error.message);
                 alert("Email ou mot de passe incorrect");
                 return;
             }
-            
-            const user = data.user;
-            console.log('✅ Connexion:', user.email);
-            
-            currentUser = user;
-            currentProfile = await getProfile(user.id);
-            currentUserType = currentProfile?.user_type || 'client';
-            
-            updateHeaderUI();
-            
+
+            window.currentUser = data.user;
+            window.currentProfile = await window.getProfile(data.user.id);
+            window.currentUserType = window.currentProfile?.user_type || 'client';
+
             const modal = document.querySelector('.modal.active');
             if (modal) modal.remove();
-            
+
+            updateHeaderUI();
             await loadUserData();
-            
-            alert(`Bienvenue ${currentProfile?.full_name || user.email}`);
-            
+
+            alert('Bienvenue ' + (window.currentProfile?.full_name || data.user.email));
+
             setTimeout(() => {
-                switch (currentUserType) {
+                switch (window.currentUserType) {
                     case 'vendeur':
                         window.location.href = 'vendor-dashboard.html';
                         break;
@@ -150,75 +514,70 @@ if (window.__APP_LOADED__) {
                         showHomePage();
                 }
             }, 500);
-            
-        } catch (error) {
-            console.error('❌ Erreur:', error);
+
+        } catch (e) {
+            console.error('❌', e);
             alert("Une erreur est survenue");
         }
     }
 
     async function doSignUp() {
-        console.log('🔍 doSignUp Supabase...');
-        
+        console.log('🔍 doSignUp...');
+
         const email = document.getElementById('signupEmail')?.value.trim();
         const password = document.getElementById('signupPassword')?.value;
         const fullName = document.getElementById('signupName')?.value.trim();
         const userType = document.getElementById('signupType')?.value || 'client';
         const phone = document.getElementById('signupPhone')?.value.trim() || '';
         const city = document.getElementById('signupCity')?.value.trim() || '';
-        
+
         if (!email || !password || !fullName) {
             alert("Veuillez remplir tous les champs obligatoires");
             return;
         }
-        
+
         if (password.length < 6) {
             alert("Le mot de passe doit contenir au moins 6 caractères");
             return;
         }
-        
+
         try {
-            console.log('🔐 Inscription Supabase...');
-            
             const { data, error } = await window.supabase.auth.signUp({
-                email: email,
-                password: password,
+                email,
+                password,
                 options: {
                     data: {
                         full_name: fullName,
                         user_type: userType,
-                        phone: phone,
-                        city: city,
+                        phone,
+                        city,
                         country: 'Congo-Brazzaville'
                     }
                 }
             });
-            
+
             if (error) {
-                console.error('❌ Erreur:', error.message);
                 alert("Erreur lors de l'inscription: " + error.message);
                 return;
             }
-            
-            console.log('✅ Inscription réussie:', data.user?.email);
-            
+
             const modal = document.querySelector('.modal.active');
             if (modal) modal.remove();
-            
+
             if (data.session) {
-                alert(`Bienvenue ${fullName} !`);
+                alert('Bienvenue ' + fullName + ' !');
                 if (userType === 'vendeur') {
                     window.location.href = 'shop-designer.html';
                 } else {
                     initApp();
                 }
             } else {
-                alert(`Inscription réussie !\n\nUn email de confirmation a été envoyé à ${email}.`);
+                alert('Inscription réussie !\n\nUn email de confirmation a été envoyé à ' + email);
                 resetToHome();
             }
-            
-        } catch (error) {
-            console.error('❌ Erreur:', error);
+
+        } catch (e) {
+            console.error('❌', e);
             alert("Une erreur est survenue");
         }
     }
@@ -226,10 +585,10 @@ if (window.__APP_LOADED__) {
     async function logout() {
         try {
             await window.supabase.auth.signOut();
-            currentUser = null;
-            currentProfile = null;
-            currentUserType = null;
-            cart = [];
+            window.currentUser = null;
+            window.currentProfile = null;
+            window.currentUserType = null;
+            window.cart = [];
             localStorage.removeItem('ouenze_cart');
             updateHeaderUI();
             showHomePage();
@@ -239,28 +598,23 @@ if (window.__APP_LOADED__) {
         }
     }
 
-    // ============ MOT DE PASSE OUBLIÉ ============
     async function requestPasswordReset() {
-        const emailInput = document.getElementById('loginEmail');
-        const email = emailInput?.value.trim();
+        const email = document.getElementById('loginEmail')?.value.trim();
 
         if (!email) {
-            alert("Entre d'abord ton adresse email dans le champ Email.");
-            emailInput?.focus();
+            alert("Entre d'abord ton email dans le champ Email.");
+            document.getElementById('loginEmail')?.focus();
             return;
         }
 
         try {
-            console.log('📧 Demande de récupération pour:', email);
-
-            const redirectUrl = `${window.location.origin}/reset-password.html`;
+            const redirectUrl = window.location.origin + '/reset-password.html';
 
             const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: redirectUrl
             });
 
             if (error) {
-                console.error('❌ Erreur:', error);
                 alert("Impossible d'envoyer l'email de récupération.");
                 return;
             }
@@ -268,63 +622,18 @@ if (window.__APP_LOADED__) {
             alert("Si un compte correspond à cette adresse, un email de réinitialisation vient d'être envoyé.\n\nVérifie également tes spams.");
 
         } catch (error) {
-            console.error('❌ Erreur:', error);
+            console.error('❌', error);
             alert("Une erreur est survenue lors de la demande.");
-        }
-    }
-
-    // ============ HEADER ============
-    function updateHeaderUI() {
-        const container = document.getElementById('headerActions');
-        if (!container) return;
-        
-        if (currentUser && currentProfile) {
-            const labels = {
-                'client': 'Client',
-                'vendeur': 'Vendeur',
-                'livreur': 'Livreur',
-                'admin': 'Admin'
-            };
-            
-            container.innerHTML = `
-                <div class="user-menu" onclick="showProfile()">
-                    <div class="user-avatar">
-                        ${currentProfile.avatar_url 
-                            ? `<img src="${currentProfile.avatar_url}">` 
-                            : currentProfile.full_name?.charAt(0) || 'U'}
-                    </div>
-                    <div class="user-info">
-                        <div>${currentProfile.full_name?.split(' ')[0] || 'Utilisateur'}</div>
-                        <small>${labels[currentUserType] || 'Client'}</small>
-                    </div>
-                    <button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-                <div class="cart-icon" onclick="showCart()">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-count">${cart.reduce((s, i) => s + i.quantity, 0)}</span>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `
-                <button class="auth-btn" onclick="openLoginModal()">Connexion</button>
-                <button class="auth-btn" onclick="openRegisterModal()">Inscription</button>
-                <div class="cart-icon" onclick="showCart()">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-count">0</span>
-                </div>
-            `;
         }
     }
 
     // ============ PAGE D'ACCUEIL ============
     async function showHomePage() {
         console.log('🏠 Page d\'accueil...');
-        
+
         const container = document.getElementById('appContainer');
         if (!container) return;
-        
+
         container.innerHTML = `
             <div class="ranking-bar">
                 <div class="ranking-filters">
@@ -346,25 +655,25 @@ if (window.__APP_LOADED__) {
             </div>
             <div id="shopsGrid" class="shops-grid"></div>
         `;
-        
+
         await displayShops();
     }
 
     async function displayShops() {
         const grid = document.getElementById('shopsGrid');
         if (!grid) return;
-        
+
         try {
             console.log('🏪 Chargement boutiques...');
-            
+
             const { data: shopsList, error } = await window.supabase
                 .from('shops')
-                .select(`*, products(count)`);
-            
+                .select('*, products(count)');
+
             if (error) throw error;
-            
+
             console.log('📊 Boutiques:', shopsList?.length);
-            
+
             if (!shopsList || shopsList.length === 0) {
                 grid.innerHTML = `
                     <div style="text-align:center;padding:60px;color:var(--gray-500);">
@@ -373,19 +682,19 @@ if (window.__APP_LOADED__) {
                     </div>`;
                 return;
             }
-            
+
             grid.innerHTML = shopsList.map(shop => {
                 const rating = shop.rating || 0;
                 const stars = generateStars(rating);
                 const productCount = shop.products?.[0]?.count || 0;
                 const level = getShopLevel(shop);
-                
+
                 return `
                     <div class="shop-card" onclick="viewShopDetail('${shop.id}')">
                         <div class="shop-logo-area">
                             <div class="shop-logo-img">
                                 ${shop.logo_url 
-                                    ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` 
+                                    ? '<img src="' + shop.logo_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">' 
                                     : '<i class="fas fa-store" style="font-size:28px;"></i>'}
                             </div>
                             <div class="shop-name">${escapeHtml(shop.name)}</div>
@@ -423,7 +732,7 @@ if (window.__APP_LOADED__) {
                     </div>
                 `;
             }).join('');
-            
+
         } catch (error) {
             console.error("❌ Erreur:", error);
             grid.innerHTML = `
@@ -437,34 +746,34 @@ if (window.__APP_LOADED__) {
     // ============ VUE BOUTIQUE ============
     async function viewShopDetail(shopId) {
         console.log('🔍 Détail boutique:', shopId);
-        
+
         try {
             const { data: shop, error: shopError } = await window.supabase
                 .from('shops')
                 .select('*')
                 .eq('id', shopId)
                 .single();
-            
+
             if (shopError) throw shopError;
-            
+
             const { data: products, error: productsError } = await window.supabase
                 .from('products')
                 .select('*')
                 .eq('shop_id', shopId);
-            
+
             if (productsError) console.error('❌', productsError);
-            
+
             const container = document.getElementById('appContainer');
             container.innerHTML = `
                 <button onclick="resetToHome()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px;margin-bottom:20px;">
                     ← Retour
                 </button>
-                
+
                 <div style="background:white;border-radius:20px;padding:24px;border:1px solid var(--gray-200);">
                     <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
                         <div style="width:80px;height:80px;background:var(--gray-100);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">
                             ${shop.logo_url 
-                                ? `<img src="${shop.logo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` 
+                                ? '<img src="' + shop.logo_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">' 
                                 : '🏪'}
                         </div>
                         <div>
@@ -478,14 +787,14 @@ if (window.__APP_LOADED__) {
                             </p>
                         </div>
                     </div>
-                    
+
                     <h3 style="margin:20px 0 12px;">Produits (${products?.length || 0})</h3>
                     ${products && products.length > 0 ? `
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
                         ${products.map(p => `
                             <div style="background:var(--gray-100);border-radius:12px;padding:12px;text-align:center;">
                                 ${p.photos && p.photos[0] 
-                                    ? `<img src="${p.photos[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">` 
+                                    ? '<img src="' + p.photos[0] + '" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">' 
                                     : '<div style="height:120px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;">📦</div>'}
                                 <h4 style="margin:8px 0 4px;">${escapeHtml(p.name)}</h4>
                                 <p style="font-weight:700;color:var(--primary);">${formatPrice(p.price)} FCFA</p>
@@ -503,7 +812,7 @@ if (window.__APP_LOADED__) {
                     `}
                 </div>
             `;
-            
+
         } catch (error) {
             console.error('❌ Erreur:', error);
             alert('Erreur chargement boutique');
@@ -511,31 +820,19 @@ if (window.__APP_LOADED__) {
     }
 
     // ============ PANIER ============
-    function saveCart() {
-        localStorage.setItem('ouenze_cart', JSON.stringify(cart));
-        updateCartCount();
-    }
-
-    function updateCartCount() {
-        const count = cart.reduce((s, i) => s + i.quantity, 0);
-        document.querySelectorAll('#cartCountHeader, .cart-count').forEach(el => {
-            if (el) el.innerText = count;
-        });
-    }
-
     function addToCart(shopId, productId, productName, price) {
-        if (!currentUser) {
+        if (!window.currentUser) {
             alert("Connectez-vous");
             openLoginModal();
             return;
         }
-        
-        const existing = cart.find(i => i.productId === productId && i.shopId === shopId);
-        
+
+        const existing = window.cart.find(i => i.productId === productId && i.shopId === shopId);
+
         if (existing) {
             existing.quantity++;
         } else {
-            cart.push({
+            window.cart.push({
                 productId,
                 productName,
                 price: parseFloat(price),
@@ -543,16 +840,37 @@ if (window.__APP_LOADED__) {
                 shopId
             });
         }
-        
+
         saveCart();
-        alert(`${productName} ajouté au panier`);
+        alert(productName + ' ajouté au panier');
     }
 
-    // ============ MODALE CONNEXION ============
+    function showCart() {
+        if (window.cart.length === 0) {
+            alert("Panier vide");
+            return;
+        }
+        let msg = "Panier:\n\n";
+        window.cart.forEach(i => {
+            msg += i.productName + ' x' + i.quantity + ' - ' + formatPrice(i.price * i.quantity) + ' FCFA\n';
+        });
+        msg += '\nTotal: ' + formatPrice(window.cart.reduce((s, i) => s + i.price * i.quantity, 0)) + ' FCFA';
+        alert(msg);
+    }
+
+    // ============ PROFIL ============
+    function showProfile() {
+        if (!window.currentUser) {
+            openLoginModal();
+            return;
+        }
+        alert('Profil\n\nNom: ' + (window.currentProfile?.full_name || 'N/A') + '\nEmail: ' + window.currentUser.email + '\nType: ' + window.currentUserType);
+    }
+
+    // ============ MODALES ============
     function openLoginModal() {
         const modal = document.createElement('div');
         modal.className = 'modal active';
-
         modal.innerHTML = `
             <div class="modal-card">
                 <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
@@ -587,11 +905,9 @@ if (window.__APP_LOADED__) {
                 </div>
             </div>
         `;
-
         document.body.appendChild(modal);
     }
 
-    // ============ MODALE INSCRIPTION ============
     function openRegisterModal() {
         const modal = document.createElement('div');
         modal.className = 'modal active';
@@ -599,32 +915,32 @@ if (window.__APP_LOADED__) {
             <div class="modal-card">
                 <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom:20px;">Inscription</h3>
-                
+
                 <div class="form-group">
                     <label>Nom complet *</label>
                     <input type="text" id="signupName" placeholder="Jean Dupont">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Email *</label>
                     <input type="email" id="signupEmail" placeholder="exemple@email.com">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Mot de passe *</label>
                     <input type="password" id="signupPassword" placeholder="Min 6 caractères">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Téléphone</label>
                     <input type="tel" id="signupPhone" placeholder="+242 06 XX XX XX">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Ville</label>
                     <input type="text" id="signupCity" placeholder="Brazzaville">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Type de compte</label>
                     <select id="signupType">
@@ -633,11 +949,11 @@ if (window.__APP_LOADED__) {
                         <option value="livreur">Livreur</option>
                     </select>
                 </div>
-                
+
                 <button class="btn-submit" onclick="doSignUp()">
                     <i class="fas fa-user-plus"></i> S'inscrire
                 </button>
-                
+
                 <div style="text-align:center;margin-top:12px;font-size:13px;">
                     <a href="#" onclick="this.closest('.modal').remove();openLoginModal()" 
                        style="color:var(--primary);cursor:pointer;">
@@ -654,38 +970,12 @@ if (window.__APP_LOADED__) {
         showHomePage();
     }
 
-    function showCart() {
-        if (cart.length === 0) {
-            alert("Panier vide");
-            return;
-        }
-        let msg = "Panier:\n\n";
-        cart.forEach(i => {
-            msg += `${i.productName} x${i.quantity} - ${formatPrice(i.price * i.quantity)} FCFA\n`;
-        });
-        msg += `\nTotal: ${formatPrice(cart.reduce((s, i) => s + i.price * i.quantity, 0))} FCFA`;
-        alert(msg);
-    }
-
-    function showProfile() {
-        if (!currentUser) {
-            openLoginModal();
-            return;
-        }
-        alert(`Profil\n\nNom: ${currentProfile?.full_name}\nEmail: ${currentUser.email}\nType: ${currentUserType}`);
-    }
-
     function setSort(sort) {
         console.log("Tri par:", sort);
     }
 
-    // ============ INITIALISATION ============
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('📄 DOM chargé');
-        initApp();
-    });
-
     // ============ EXPORTS ============
+    window.initApp = initApp;
     window.doLogin = doLogin;
     window.doSignUp = doSignUp;
     window.logout = logout;
@@ -700,5 +990,45 @@ if (window.__APP_LOADED__) {
     window.setSort = setSort;
     window.viewShopDetail = viewShopDetail;
 
+    // ============ DÉMARRAGE ============
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
+
     console.log('✅ app.js chargé');
-}
+
+
+
+
+
+
+
+
+   
+
+
+    
+
+    // ============ EXPORTS ============
+    window.initApp = initApp;
+    window.doLogin = doLogin;
+    window.doSignUp = doSignUp;
+    window.logout = logout;
+    window.requestPasswordReset = requestPasswordReset;
+    window.openLoginModal = openLoginModal;
+    window.openRegisterModal = openRegisterModal;
+    window.showCart = showCart;
+    window.showProfile = showProfile;
+
+    // ============ DÉMARRAGE ============
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
+
+    console.log('✅ app.js chargé');
+
+})();
