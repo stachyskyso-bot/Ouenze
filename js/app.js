@@ -310,38 +310,66 @@ if (window.__APP_LOADED__) {
 
 
 
+async function requestPasswordReset() {
+    const emailInput = document.getElementById('loginEmail');
+    const email = emailInput?.value.trim();
 
+    if (!email) {
+        alert(
+            "Entre d'abord ton adresse email dans le champ Email."
+        );
 
+        emailInput?.focus();
+        return;
+    }
 
-
-
-
-// Forcer la connexion pour pouvoir changer le mot de passe
-async function forceLogin(email, password) {
     try {
-        const { data, error } = await window.supabase.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-        
+        console.log('📧 Demande de récupération pour:', email);
+
+        const redirectUrl =
+            `${window.location.origin}/reset-password.html`;
+
+        const { error } =
+            await window.supabase.auth.resetPasswordForEmail(
+                email,
+                {
+                    redirectTo: redirectUrl
+                }
+            );
+
         if (error) {
-            console.error('❌', error);
-            alert('Email ou mot de passe incorrect');
-            return false;
+            console.error(
+                '❌ Erreur récupération mot de passe:',
+                error
+            );
+
+            alert(
+                "Impossible d'envoyer l'email de récupération."
+            );
+
+            return;
         }
-        
-        console.log('✅ Connecté:', data.user.email);
-        alert('Connecté ! Vous pouvez maintenant changer votre mot de passe.');
-        window.location.href = 'reset-password.html';
-        return true;
-        
+
+        alert(
+            "Si un compte correspond à cette adresse, " +
+            "un email de réinitialisation vient d'être envoyé.\n\n" +
+            "Vérifie également tes spams."
+        );
+
     } catch (error) {
-        console.error('❌', error);
-        return false;
+        console.error(
+            '❌ Erreur récupération:',
+            error
+        );
+
+        alert(
+            "Une erreur est survenue lors de la demande."
+        );
     }
 }
 
-window.forceLogin = forceLogin;
+window.requestPasswordReset = requestPasswordReset;
+
 
 
 
