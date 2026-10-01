@@ -8,16 +8,16 @@
 //                               (optionnels : fallback Supabase direct si absents)
 //   4. js/app.js
 // ============================================================
- 
+
 (function () {
     'use strict';
- 
+
     if (window.__APP_LOADED__) {
         console.warn('⚠️ app.js déjà chargé, abandon');
         return;
     }
     window.__APP_LOADED__ = true;
- 
+
     // ============ ÉTAT ============
     let currentUser = null;
     let currentProfile = null;
@@ -27,7 +27,7 @@
     let orders = [];
     let currentSort = 'rating';
     let cart = loadCart();
- 
+
     // ============ UTILITAIRES ============
     function escapeHtml(s) {
         if (s === null || s === undefined) return '';
@@ -35,16 +35,16 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[m]));
     }
- 
+
     // N'accepte que des URLs http(s) pour les images
     function safeUrl(url) {
         return /^https?:\/\//i.test(String(url || '')) ? escapeHtml(url) : '';
     }
- 
+
     function formatPrice(price) {
         return Number(price || 0).toLocaleString('fr-FR');
     }
- 
+
     function generateStars(rating) {
         const r = Math.max(0, Math.min(5, Number(rating) || 0));
         const full = Math.floor(r);
@@ -55,7 +55,7 @@
         for (let i = full + (half ? 1 : 0); i < 5; i++) stars += '<i class="far fa-star"></i>';
         return stars;
     }
- 
+
     function getShopLevel(shop) {
         const rating = shop.rating || 0;
         if (rating >= 4.5) return { name: 'Or', class: 'level-gold' };
@@ -63,7 +63,7 @@
         if (rating >= 3) return { name: 'Bronze', class: 'level-bronze' };
         return { name: 'Standard', class: '' };
     }
- 
+
     function loadCart() {
         try {
             return JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
@@ -71,21 +71,21 @@
             return [];
         }
     }
- 
+
     // ============ ACCÈS DONNÉES (database.js + fallback) ============
     async function fetchCurrentUser() {
         if (typeof getCurrentUser === 'function') return getCurrentUser();
         const { data } = await window.supabase.auth.getUser();
         return data?.user || null;
     }
- 
+
     async function fetchProfile(userId) {
         if (typeof getProfile === 'function') return getProfile(userId);
         const { data } = await window.supabase
             .from('profiles').select('*').eq('id', userId).maybeSingle();
         return data;
     }
- 
+
     async function fetchUserOrders(userId) {
         if (typeof getUserOrders === 'function') return getUserOrders(userId);
         const { data } = await window.supabase
@@ -93,15 +93,15 @@
             .order('created_at', { ascending: false });
         return data || [];
     }
- 
+
     // ============ INITIALISATION ============
     async function initApp() {
         console.log('🚀 Initialisation...');
- 
+
         if (!window.supabase || !window.supabase.auth) {
             console.error('❌ Client Supabase introuvable (vérifier supabase-config.js)');
         }
- 
+
         try {
             currentUser = await fetchCurrentUser();
             if (currentUser) {
@@ -115,13 +115,13 @@
         } catch (error) {
             console.error('❌ Erreur init:', error);
         }
- 
+
         // Toujours appelé : c'est ce qui affiche Connexion/Inscription
         updateHeaderUI();
         updateCartCount();
         showHomePage();
     }
- 
+
     async function loadUserData() {
         try {
             if (currentUserType === 'client') {
@@ -131,20 +131,20 @@
             console.error('❌ Erreur chargement données:', error);
         }
     }
- 
+
     // ============ AUTHENTIFICATION ============
     async function doLogin() {
         const email = document.getElementById('loginEmail')?.value.trim();
         const password = document.getElementById('loginPassword')?.value;
- 
+
         if (!email || !password) {
             alert('Email et mot de passe requis');
             return;
         }
- 
+
         try {
             const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
- 
+
             if (error) {
                 console.error('❌', error.message);
                 alert(/confirm/i.test(error.message)
@@ -152,15 +152,15 @@
                     : 'Email ou mot de passe incorrect');
                 return;
             }
- 
+
             currentUser = data.user;
             currentProfile = await fetchProfile(currentUser.id);
             currentUserType = currentProfile?.user_type || 'client';
- 
+
             closeModal();
             updateHeaderUI();
             await loadUserData();
- 
+
             if (currentUserType === 'vendeur') {
                 window.location.href = 'vendor-dashboard.html';
             } else if (currentUserType === 'livreur') {
@@ -173,7 +173,7 @@
             alert('Une erreur est survenue');
         }
     }
- 
+
     async function doSignUp() {
         const val = id => document.getElementById(id)?.value.trim() || '';
         const email = val('signupEmail');
@@ -182,7 +182,7 @@
         const userType = val('signupType') || 'client';
         const phone = val('signupPhone');
         const city = val('signupCity') || 'Brazzaville';
- 
+
         if (!email || !password || !fullName) {
             alert('Champs obligatoires manquants');
             return;
@@ -191,7 +191,7 @@
             alert('Mot de passe trop court (min 6 caractères)');
             return;
         }
- 
+
         try {
             const { data, error } = await window.supabase.auth.signUp({
                 email,
@@ -206,20 +206,20 @@
                     }
                 }
             });
- 
+
             if (error) {
                 alert('Erreur : ' + error.message);
                 return;
             }
- 
+
             closeModal();
- 
+
             // Si la confirmation email est activée, il n'y a pas encore de session
             if (!data.session) {
                 alert(`Inscription enregistrée, ${fullName} !\n\nConfirme ton adresse via l'email reçu, puis connecte-toi.`);
                 return;
             }
- 
+
             if (userType === 'vendeur') {
                 window.location.href = 'shop-designer.html';
             } else {
@@ -230,7 +230,7 @@
             alert("Erreur lors de l'inscription");
         }
     }
- 
+
     async function logout() {
         try {
             await window.supabase.auth.signOut();
@@ -247,28 +247,35 @@
         updateCartCount();
         showHomePage();
     }
- 
+
     async function requestPasswordReset() {
         const emailInput = document.getElementById('loginEmail');
         const email = emailInput?.value.trim();
- 
+
         if (!email) {
             alert("Entre d'abord ton adresse email dans le champ Email.");
             emailInput?.focus();
             return;
         }
- 
+
         try {
             const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${window.location.origin}/reset-password.html`
             });
- 
+
             if (error) {
                 console.error('❌ Erreur récupération:', error);
-                alert("Impossible d'envoyer l'email de récupération.");
+                const msg = error.message || '';
+                let hint = '';
+                if (/rate limit|too many|security purposes/i.test(msg)) {
+                    hint = '\n\nTrop de demandes récentes. Réessaie dans une heure.';
+                } else if (/sending|smtp|email/i.test(msg)) {
+                    hint = "\n\nLe service d'envoi d'emails n'est pas configuré correctement.";
+                }
+                alert("Impossible d'envoyer l'email de récupération." + hint + '\n\nDétail : ' + msg);
                 return;
             }
- 
+
             alert(
                 'Si un compte correspond à cette adresse, un email de réinitialisation vient d\'être envoyé.\n\n' +
                 'Vérifie également tes spams.'
@@ -278,12 +285,12 @@
             alert('Une erreur est survenue lors de la demande.');
         }
     }
- 
+
     // ============ HEADER ============
     function cartTotalQty() {
         return cart.reduce((s, i) => s + (i.quantity || 0), 0);
     }
- 
+
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (container) {
@@ -291,7 +298,7 @@
                 const labels = { client: 'Client', vendeur: 'Vendeur', livreur: 'Livreur', admin: 'Admin' };
                 const name = currentProfile?.full_name || currentUser.email || 'Utilisateur';
                 const avatar = safeUrl(currentProfile?.avatar_url);
- 
+
                 container.innerHTML = `
                     <div class="user-menu" onclick="showProfile()">
                         <div class="user-avatar">
@@ -320,7 +327,7 @@
                     </div>`;
             }
         }
- 
+
         // Liens de navigation selon le rôle
         const vendorLink = document.getElementById('vendorLink');
         if (vendorLink) {
@@ -333,12 +340,12 @@
             deliveryLink.style.display = currentUserType === 'livreur' ? '' : 'none';
         }
     }
- 
+
     // ============ PAGE D'ACCUEIL ============
     async function showHomePage() {
         const container = document.getElementById('appContainer');
         if (!container) return;
- 
+
         container.innerHTML = `
             <div class="ranking-bar">
                 <div class="ranking-filters">
@@ -361,20 +368,20 @@
             <div id="shopsGrid" class="shops-grid">
                 <div style="text-align:center;padding:60px;color:var(--gray-500);">Chargement…</div>
             </div>`;
- 
+
         await loadShops();
     }
- 
+
     async function loadShops() {
         const grid = document.getElementById('shopsGrid');
         if (!grid) return;
- 
+
         try {
             const { data, error } = await window.supabase
                 .from('shops')
                 .select('*, products(count)');
             if (error) throw error;
- 
+
             shopsCache = data || [];
             renderShops();
         } catch (error) {
@@ -386,18 +393,18 @@
                 </div>`;
         }
     }
- 
+
     function productCountOf(shop) {
         return shop.products?.[0]?.count || 0;
     }
- 
+
     function renderShops(filterText) {
         const grid = document.getElementById('shopsGrid');
         if (!grid) return;
- 
+
         document.querySelectorAll('.sort-btn').forEach(b =>
             b.classList.toggle('active', b.dataset.sort === currentSort));
- 
+
         let list = shopsCache.slice();
         const q = (filterText || '').toLowerCase().trim();
         if (q) {
@@ -406,14 +413,14 @@
                 (s.city || '').toLowerCase().includes(q) ||
                 (s.description || '').toLowerCase().includes(q));
         }
- 
+
         const sorters = {
             rating: (a, b) => (b.rating || 0) - (a.rating || 0),
             sales: (a, b) => (b.total_sales || 0) - (a.total_sales || 0),
             products: (a, b) => productCountOf(b) - productCountOf(a)
         };
         list.sort(sorters[currentSort] || sorters.rating);
- 
+
         if (list.length === 0) {
             grid.innerHTML = `
                 <div style="text-align:center;padding:60px;color:var(--gray-500);">
@@ -422,7 +429,7 @@
                 </div>`;
             return;
         }
- 
+
         grid.innerHTML = list.map(shop => {
             const level = getShopLevel(shop);
             const logo = safeUrl(shop.logo_url);
@@ -458,25 +465,25 @@
                 </div>`;
         }).join('');
     }
- 
+
     function setSort(sort) {
         currentSort = sort;
         renderShops(document.getElementById('searchInput')?.value);
     }
- 
+
     // ============ VUE BOUTIQUE ============
     async function viewShopDetail(shopId) {
         try {
             const { data: shop, error: shopError } = await window.supabase
                 .from('shops').select('*').eq('id', shopId).single();
             if (shopError) throw shopError;
- 
+
             const { data: products, error: productsError } = await window.supabase
                 .from('products').select('*').eq('shop_id', shopId);
             if (productsError) console.error('❌ Produits:', productsError);
- 
+
             (products || []).forEach(p => { productsCache[p.id] = p; });
- 
+
             const logo = safeUrl(shop.logo_url);
             const container = document.getElementById('appContainer');
             container.innerHTML = `
@@ -524,33 +531,33 @@
             alert('Erreur chargement boutique');
         }
     }
- 
+
     // ============ PANIER ============
     function saveCart() {
         localStorage.setItem('ouenze_cart', JSON.stringify(cart));
         updateCartCount();
     }
- 
+
     function updateCartCount() {
         const count = cartTotalQty();
         document.querySelectorAll('#cartCountHeader, .cart-count').forEach(el => {
             el.textContent = count;
         });
     }
- 
+
     function addToCart(productId) {
         if (!currentUser) {
             alert('Connecte-toi pour ajouter au panier');
             openLoginModal();
             return;
         }
- 
+
         const p = productsCache[productId];
         if (!p) {
             alert('Produit introuvable');
             return;
         }
- 
+
         const existing = cart.find(i => i.productId === p.id);
         if (existing) {
             existing.quantity++;
@@ -566,7 +573,7 @@
         saveCart();
         alert(`${p.name} ajouté au panier`);
     }
- 
+
     function showCart() {
         if (cart.length === 0) {
             alert('Panier vide');
@@ -579,12 +586,12 @@
         msg += `\nTotal : ${formatPrice(cart.reduce((s, i) => s + i.price * i.quantity, 0))} FCFA`;
         alert(msg);
     }
- 
+
     // ============ MODALES ============
     function closeModal() {
         document.querySelectorAll('.modal.active').forEach(m => m.remove());
     }
- 
+
     function openModal(innerHtml) {
         closeModal();
         const modal = document.createElement('div');
@@ -598,7 +605,7 @@
         document.body.appendChild(modal);
         return modal;
     }
- 
+
     function openLoginModal() {
         const modal = openModal(`
             <h3 style="margin-bottom:20px;">Connexion</h3>
@@ -624,13 +631,13 @@
                     Créer un compte
                 </a>
             </div>`);
- 
+
         modal.querySelector('#loginPassword').addEventListener('keydown', e => {
             if (e.key === 'Enter') doLogin();
         });
         modal.querySelector('#loginEmail').focus();
     }
- 
+
     function openRegisterModal() {
         const modal = openModal(`
             <h3 style="margin-bottom:20px;">Inscription</h3>
@@ -670,7 +677,7 @@
             </div>`);
         modal.querySelector('#signupName').focus();
     }
- 
+
     function showProfile() {
         if (!currentUser) {
             openLoginModal();
@@ -690,7 +697,7 @@
                 <i class="fas fa-key"></i> Changer mon mot de passe
             </button>`);
     }
- 
+
     async function showMyOrders() {
         if (!currentUser) {
             openLoginModal();
@@ -712,14 +719,14 @@
                     </small>
                 </div>`).join('') : '<p style="color:var(--gray-500);">Aucune commande pour le moment.</p>'}`);
     }
- 
+
     // ============ NAVIGATION / RECHERCHE ============
     function resetToHome() {
         showHomePage();
         window.scrollTo(0, 0);
         return false;
     }
- 
+
     function bindPageEvents() {
         const input = document.getElementById('searchInput');
         const btn = document.getElementById('searchBtn');
@@ -737,7 +744,7 @@
             input.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
         }
         if (btn) btn.addEventListener('click', runSearch);
- 
+
         const ddBtn = document.getElementById('dropdownBtn');
         const ddContent = document.getElementById('dropdownContent');
         if (ddBtn && ddContent) {
@@ -748,7 +755,7 @@
             document.addEventListener('click', () => ddContent.classList.remove('show'));
         }
     }
- 
+
     // ============ EXPORTS (utilisés par les onclick du HTML) ============
     Object.assign(window, {
         doLogin,
@@ -766,7 +773,7 @@
         setSort,
         viewShopDetail
     });
- 
+
     // ============ DÉMARRAGE ============
     function start() {
         bindPageEvents();
@@ -777,7 +784,6 @@
     } else {
         start();
     }
- 
+
     console.log('✅ app.js chargé');
 })();
- 
