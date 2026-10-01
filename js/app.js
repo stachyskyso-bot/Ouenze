@@ -609,6 +609,32 @@ if (window.__APP_LOADED__) {
         initApp();
     });
 
+
+     function openLoginModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-card">
+            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            <h3 style="margin-bottom:20px;">Connexion</h3>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="exemple@email.com">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+            </div>
+            <button class="btn-submit" onclick="doLogin()">Se connecter</button>
+            <div style="text-align:center;margin-top:12px;">
+                <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+    
+
     // ============ EXPORTS ============
     window.doLogin = doLogin;
     window.doSignUp = doSignUp;
