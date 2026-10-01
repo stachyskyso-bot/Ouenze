@@ -552,42 +552,94 @@ window.forceLogin = forceLogin;
     function openLoginModal() {
     const modal = document.createElement('div');
     modal.className = 'modal active';
+
     modal.innerHTML = `
         <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            <button
+                class="modal-close"
+                onclick="this.closest('.modal').remove()"
+            >
+                &times;
+            </button>
+
             <h3 style="margin-bottom:20px;">Connexion</h3>
-            
+
             <div class="form-group">
                 <label>Email</label>
-                <input type="email" id="loginEmail" placeholder="exemple@email.com">
+                <input
+                    type="email"
+                    id="loginEmail"
+                    placeholder="exemple@email.com"
+                    autocomplete="email"
+                >
             </div>
-            
+
             <div class="form-group">
                 <label>Mot de passe</label>
-                <input type="password" id="loginPassword" placeholder="••••••••">
+                <input
+                    type="password"
+                    id="loginPassword"
+                    placeholder="••••••••"
+                    autocomplete="current-password"
+                >
             </div>
-            
+
+            <div
+                style="
+                    text-align:right;
+                    margin-top:-4px;
+                    margin-bottom:16px;
+                "
+            >
+                <button
+                    type="button"
+                    onclick="requestPasswordReset()"
+                    style="
+                        background:none;
+                        border:none;
+                        padding:0;
+                        color:var(--primary);
+                        cursor:pointer;
+                        font-size:13px;
+                    "
+                >
+                    Mot de passe oublié ?
+                </button>
+            </div>
+
             <button class="btn-submit" onclick="doLogin()">
-                <i class="fas fa-sign-in-alt"></i> Se connecter
+                <i class="fas fa-sign-in-alt"></i>
+                Se connecter
             </button>
-            
-            <div style="text-align:center;margin-top:16px;font-size:13px;">
-                <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" 
-                   style="color:var(--primary);cursor:pointer;display:block;margin-bottom:10px;">
+
+            <div
+                style="
+                    text-align:center;
+                    margin-top:16px;
+                    font-size:13px;
+                "
+            >
+                <a
+                    href="#"
+                    onclick="
+                        event.preventDefault();
+                        this.closest('.modal').remove();
+                        openRegisterModal();
+                    "
+                    style="
+                        color:var(--primary);
+                        cursor:pointer;
+                    "
+                >
                     Créer un compte
                 </a>
-                
-                <div style="border-top:1px solid #e2e8f0; padding-top:12px; margin-top:12px;">
-                    <a href="login-for-reset.html" 
-                       style="color:var(--gray-500);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
-                        <i class="fas fa-key"></i> Mot de passe oublié ?
-                    </a>
-                </div>
             </div>
         </div>
     `;
+
     document.body.appendChild(modal);
 }
+
 
 window.openLoginModal = openLoginModal;
 
