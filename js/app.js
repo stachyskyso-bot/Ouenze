@@ -1,9 +1,9 @@
 // ============================================================
-// APP.JS - VERSION CORRIGÉE
+// APP.JS - VERSION PROPRE SUPABASE
 // ============================================================
 
 if (window.__APP_LOADED__) {
-    console.warn('⚠️ app.js déjà chargé, abandon');
+    console.warn('⚠️ app.js déjà chargé');
 } else {
     window.__APP_LOADED__ = true;
 
@@ -138,7 +138,6 @@ if (window.__APP_LOADED__) {
             
             alert(`Bienvenue ${currentProfile?.full_name || user.email}`);
             
-            // Redirection selon le rôle
             setTimeout(() => {
                 switch (currentUserType) {
                     case 'vendeur':
@@ -159,24 +158,28 @@ if (window.__APP_LOADED__) {
     }
 
     async function doSignUp() {
-        const email = document.getElementById('signupEmail').value.trim();
-        const password = document.getElementById('signupPassword').value;
-        const fullName = document.getElementById('signupName').value.trim();
-        const userType = document.getElementById('signupType').value;
-        const phone = document.getElementById('signupPhone').value.trim();
-        const city = document.getElementById('signupCity').value.trim();
+        console.log('🔍 doSignUp Supabase...');
+        
+        const email = document.getElementById('signupEmail')?.value.trim();
+        const password = document.getElementById('signupPassword')?.value;
+        const fullName = document.getElementById('signupName')?.value.trim();
+        const userType = document.getElementById('signupType')?.value || 'client';
+        const phone = document.getElementById('signupPhone')?.value.trim() || '';
+        const city = document.getElementById('signupCity')?.value.trim() || '';
         
         if (!email || !password || !fullName) {
-            alert("Champs obligatoires manquants");
+            alert("Veuillez remplir tous les champs obligatoires");
             return;
         }
         
         if (password.length < 6) {
-            alert("Mot de passe trop court (min 6)");
+            alert("Le mot de passe doit contenir au moins 6 caractères");
             return;
         }
         
         try {
+            console.log('🔐 Inscription Supabase...');
+            
             const { data, error } = await window.supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -184,32 +187,39 @@ if (window.__APP_LOADED__) {
                     data: {
                         full_name: fullName,
                         user_type: userType,
-                        phone: phone || '',
-                        city: city || 'Brazzaville',
+                        phone: phone,
+                        city: city,
                         country: 'Congo-Brazzaville'
                     }
                 }
             });
             
             if (error) {
-                alert("Erreur: " + error.message);
+                console.error('❌ Erreur:', error.message);
+                alert("Erreur lors de l'inscription: " + error.message);
                 return;
             }
             
-            alert(`Inscription réussie ! Bienvenue ${fullName}`);
+            console.log('✅ Inscription réussie:', data.user?.email);
             
             const modal = document.querySelector('.modal.active');
             if (modal) modal.remove();
             
-            if (userType === 'vendeur') {
-                window.location.href = 'shop-designer.html';
+            if (data.session) {
+                alert(`Bienvenue ${fullName} !`);
+                if (userType === 'vendeur') {
+                    window.location.href = 'shop-designer.html';
+                } else {
+                    initApp();
+                }
             } else {
-                initApp();
+                alert(`Inscription réussie !\n\nUn email de confirmation a été envoyé à ${email}.`);
+                resetToHome();
             }
             
         } catch (error) {
-            console.error('❌', error);
-            alert("Erreur lors de l'inscription");
+            console.error('❌ Erreur:', error);
+            alert("Une erreur est survenue");
         }
     }
 
@@ -226,6 +236,40 @@ if (window.__APP_LOADED__) {
             alert("Déconnexion réussie");
         } catch (error) {
             console.error("❌", error);
+        }
+    }
+
+    // ============ MOT DE PASSE OUBLIÉ ============
+    async function requestPasswordReset() {
+        const emailInput = document.getElementById('loginEmail');
+        const email = emailInput?.value.trim();
+
+        if (!email) {
+            alert("Entre d'abord ton adresse email dans le champ Email.");
+            emailInput?.focus();
+            return;
+        }
+
+        try {
+            console.log('📧 Demande de récupération pour:', email);
+
+            const redirectUrl = `${window.location.origin}/reset-password.html`;
+
+            const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectUrl
+            });
+
+            if (error) {
+                console.error('❌ Erreur:', error);
+                alert("Impossible d'envoyer l'email de récupération.");
+                return;
+            }
+
+            alert("Si un compte correspond à cette adresse, un email de réinitialisation vient d'être envoyé.\n\nVérifie également tes spams.");
+
+        } catch (error) {
+            console.error('❌ Erreur:', error);
+            alert("Une erreur est survenue lors de la demande.");
         }
     }
 
@@ -302,81 +346,9 @@ if (window.__APP_LOADED__) {
             </div>
             <div id="shopsGrid" class="shops-grid"></div>
         `;
-        <button onclick="window.location.href='reset-password.html'" class="btn-cancel" style="margin-top:10px;">
-    <i class="fas fa-key"></i> Changer mon mot de passe
-</button>
+        
         await displayShops();
     }
-
-
-
-async function requestPasswordReset() {
-    const emailInput = document.getElementById('loginEmail');
-    const email = emailInput?.value.trim();
-
-    if (!email) {
-        alert(
-            "Entre d'abord ton adresse email dans le champ Email."
-        );
-
-        emailInput?.focus();
-        return;
-    }
-
-    try {
-        console.log('📧 Demande de récupération pour:', email);
-
-        const redirectUrl =
-            `${window.location.origin}/reset-password.html`;
-
-        const { error } =
-            await window.supabase.auth.resetPasswordForEmail(
-                email,
-                {
-                    redirectTo: redirectUrl
-                }
-            );
-
-        if (error) {
-            console.error(
-                '❌ Erreur récupération mot de passe:',
-                error
-            );
-
-            alert(
-                "Impossible d'envoyer l'email de récupération."
-            );
-
-            return;
-        }
-
-        alert(
-            "Si un compte correspond à cette adresse, " +
-            "un email de réinitialisation vient d'être envoyé.\n\n" +
-            "Vérifie également tes spams."
-        );
-
-    } catch (error) {
-        console.error(
-            '❌ Erreur récupération:',
-            error
-        );
-
-        alert(
-            "Une erreur est survenue lors de la demande."
-        );
-    }
-}
-
-window.requestPasswordReset = requestPasswordReset;
-
-
-
-
-
-
-
-    
 
     async function displayShops() {
         const grid = document.getElementById('shopsGrid');
@@ -576,114 +548,50 @@ window.requestPasswordReset = requestPasswordReset;
         alert(`${productName} ajouté au panier`);
     }
 
-    // ============ MODALES ============
+    // ============ MODALE CONNEXION ============
     function openLoginModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
 
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button
-                class="modal-close"
-                onclick="this.closest('.modal').remove()"
-            >
-                &times;
-            </button>
+        modal.innerHTML = `
+            <div class="modal-card">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                <h3 style="margin-bottom:20px;">Connexion</h3>
 
-            <h3 style="margin-bottom:20px;">Connexion</h3>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="exemple@email.com" autocomplete="email">
+                </div>
 
-            <div class="form-group">
-                <label>Email</label>
-                <input
-                    type="email"
-                    id="loginEmail"
-                    placeholder="exemple@email.com"
-                    autocomplete="email"
-                >
-            </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+                </div>
 
-            <div class="form-group">
-                <label>Mot de passe</label>
-                <input
-                    type="password"
-                    id="loginPassword"
-                    placeholder="••••••••"
-                    autocomplete="current-password"
-                >
-            </div>
+                <div style="text-align:right; margin-top:-4px; margin-bottom:16px;">
+                    <button type="button" onclick="requestPasswordReset()"
+                        style="background:none;border:none;padding:0;color:var(--primary);cursor:pointer;font-size:13px;">
+                        Mot de passe oublié ?
+                    </button>
+                </div>
 
-            <div
-                style="
-                    text-align:right;
-                    margin-top:-4px;
-                    margin-bottom:16px;
-                "
-            >
-                <button
-                    type="button"
-                    onclick="requestPasswordReset()"
-                    style="
-                        background:none;
-                        border:none;
-                        padding:0;
-                        color:var(--primary);
-                        cursor:pointer;
-                        font-size:13px;
-                    "
-                >
-                    Mot de passe oublié ?
+                <button class="btn-submit" onclick="doLogin()">
+                    <i class="fas fa-sign-in-alt"></i> Se connecter
                 </button>
+
+                <div style="text-align:center;margin-top:16px;font-size:13px;">
+                    <a href="#" onclick="event.preventDefault(); this.closest('.modal').remove(); openRegisterModal();"
+                       style="color:var(--primary);cursor:pointer;">
+                        Créer un compte
+                    </a>
+                </div>
             </div>
+        `;
 
-            <button class="btn-submit" onclick="doLogin()">
-                <i class="fas fa-sign-in-alt"></i>
-                Se connecter
-            </button>
+        document.body.appendChild(modal);
+    }
 
-            <div
-                style="
-                    text-align:center;
-                    margin-top:16px;
-                    font-size:13px;
-                "
-            >
-                <a
-                    href="#"
-                    onclick="
-                        event.preventDefault();
-                        this.closest('.modal').remove();
-                        openRegisterModal();
-                    "
-                    style="
-                        color:var(--primary);
-                        cursor:pointer;
-                    "
-                >
-                    Créer un compte
-                </a>
-            </div>
-        </div>
-    `;
-
-
-
-<div style="text-align:right; margin-top:6px; margin-bottom:12px;">
-    <a href="#"
-       onclick="event.preventDefault(); requestPasswordReset();"
-       style="color:var(--primary); font-size:13px; cursor:pointer;">
-        Mot de passe oublié ?
-    </a>
-</div>
-        
-
-    document.body.appendChild(modal);
-
-        
-}
-
-
-window.openLoginModal = openLoginModal;
-
+    // ============ MODALE INSCRIPTION ============
     function openRegisterModal() {
         const modal = document.createElement('div');
         modal.className = 'modal active';
@@ -691,26 +599,32 @@ window.openLoginModal = openLoginModal;
             <div class="modal-card">
                 <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                 <h3 style="margin-bottom:20px;">Inscription</h3>
+                
                 <div class="form-group">
                     <label>Nom complet *</label>
                     <input type="text" id="signupName" placeholder="Jean Dupont">
                 </div>
+                
                 <div class="form-group">
                     <label>Email *</label>
                     <input type="email" id="signupEmail" placeholder="exemple@email.com">
                 </div>
+                
                 <div class="form-group">
                     <label>Mot de passe *</label>
                     <input type="password" id="signupPassword" placeholder="Min 6 caractères">
                 </div>
+                
                 <div class="form-group">
                     <label>Téléphone</label>
                     <input type="tel" id="signupPhone" placeholder="+242 06 XX XX XX">
                 </div>
+                
                 <div class="form-group">
                     <label>Ville</label>
                     <input type="text" id="signupCity" placeholder="Brazzaville">
                 </div>
+                
                 <div class="form-group">
                     <label>Type de compte</label>
                     <select id="signupType">
@@ -719,9 +633,16 @@ window.openLoginModal = openLoginModal;
                         <option value="livreur">Livreur</option>
                     </select>
                 </div>
-                <button class="btn-submit" onclick="doSignUp()">S'inscrire</button>
-                <div style="text-align:center;margin-top:12px;">
-                    <a href="#" onclick="this.closest('.modal').remove();openLoginModal()" style="color:var(--primary);cursor:pointer;">Déjà un compte ?</a>
+                
+                <button class="btn-submit" onclick="doSignUp()">
+                    <i class="fas fa-user-plus"></i> S'inscrire
+                </button>
+                
+                <div style="text-align:center;margin-top:12px;font-size:13px;">
+                    <a href="#" onclick="this.closest('.modal').remove();openLoginModal()" 
+                       style="color:var(--primary);cursor:pointer;">
+                        Déjà un compte ? Se connecter
+                    </a>
                 </div>
             </div>
         `;
@@ -764,14 +685,11 @@ window.openLoginModal = openLoginModal;
         initApp();
     });
 
-
-     
-    
-
     // ============ EXPORTS ============
     window.doLogin = doLogin;
     window.doSignUp = doSignUp;
     window.logout = logout;
+    window.requestPasswordReset = requestPasswordReset;
     window.showHomePage = showHomePage;
     window.resetToHome = resetToHome;
     window.showCart = showCart;
