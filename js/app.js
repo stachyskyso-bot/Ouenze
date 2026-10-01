@@ -665,7 +665,20 @@ window.requestPasswordReset = requestPasswordReset;
         </div>
     `;
 
+
+
+<div style="text-align:right; margin-top:6px; margin-bottom:12px;">
+    <a href="#"
+       onclick="event.preventDefault(); requestPasswordReset();"
+       style="color:var(--primary); font-size:13px; cursor:pointer;">
+        Mot de passe oublié ?
+    </a>
+</div>
+        
+
     document.body.appendChild(modal);
+
+        
 }
 
 
