@@ -556,24 +556,40 @@ window.forceLogin = forceLogin;
         <div class="modal-card">
             <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
             <h3 style="margin-bottom:20px;">Connexion</h3>
+            
             <div class="form-group">
                 <label>Email</label>
                 <input type="email" id="loginEmail" placeholder="exemple@email.com">
             </div>
+            
             <div class="form-group">
                 <label>Mot de passe</label>
                 <input type="password" id="loginPassword" placeholder="••••••••">
             </div>
-            <button class="btn-submit" onclick="doLogin()">Se connecter</button>
-            <div style="text-align:center;margin-top:12px;font-size:13px;">
-                <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" style="color:var(--primary);cursor:pointer;">Créer un compte</a>
-                <br><br>
-                <a href="reset-password.html" style="color:var(--gray-500);font-size:12px;">Mot de passe oublié ?</a>
+            
+            <button class="btn-submit" onclick="doLogin()">
+                <i class="fas fa-sign-in-alt"></i> Se connecter
+            </button>
+            
+            <div style="text-align:center;margin-top:16px;font-size:13px;">
+                <a href="#" onclick="this.closest('.modal').remove();openRegisterModal()" 
+                   style="color:var(--primary);cursor:pointer;display:block;margin-bottom:10px;">
+                    Créer un compte
+                </a>
+                
+                <div style="border-top:1px solid #e2e8f0; padding-top:12px; margin-top:12px;">
+                    <a href="login-for-reset.html" 
+                       style="color:var(--gray-500);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-key"></i> Mot de passe oublié ?
+                    </a>
+                </div>
             </div>
         </div>
     `;
     document.body.appendChild(modal);
 }
+
+window.openLoginModal = openLoginModal;
 
     function openRegisterModal() {
         const modal = document.createElement('div');
