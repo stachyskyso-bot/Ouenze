@@ -1,278 +1,328 @@
 // ============================================================
-// VENDOR-DASHBOARD.JS — VERSION RPC COMPLÈTE
+// VD.JS — Tableau de bord vendeur Ouenze (JCVD, 02/10/2026)
+//
+// Source de données unique : RPC Supabase get_vendor_dashboard()
+//   → { success, user:{...}, shops:[{..., design:{...}, products:[...]}] }
+// Dépendances (dans vendor-dashboard.html, dans cet ordre) :
+//   supabase-js v2 → js/supabase-config.js → js/database.js → js/vd.js
 // ============================================================
-
-console.log('🔥 vendor-dashboard.js chargé');
-
-let dashUser = null;
-let dashShops = [];
-
-// ============ UTILITAIRES ============
-function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>"]/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
-    }[m]));
-}
-
-function formatNumber(v) {
-    return Number(v || 0).toLocaleString();
-}
-
-function generateStars(rating) {
-    let stars = '';
-    for (let i = 0; i < Math.floor(rating); i++) stars += '<i class="fas fa-star"></i>';
-    if (rating % 1 >= 0.5) stars += '<i class="fas fa-star-half-alt"></i>';
-    for (let i = 0; i < 5 - Math.ceil(rating); i++) stars += '<i class="far fa-star"></i>';
-    return stars;
-}
-
-// ============ CHARGEMENT VIA RPC ============
-async function loadVendorData() {
-    console.log('🚀 Chargement via RPC...');
-    
-    try {
-        const { data, error } = await window.supabase.rpc('get_vendor_dashboard');
-        
-        if (error) {
-            console.error('❌ Erreur RPC:', error);
+ 
+(function () {
+    'use strict';
+ 
+    if (window.__VD_LOADED__) return;
+    window.__VD_LOADED__ = true;
+ 
+    // ============ ÉTAT ============
+    let dashUser = null;
+    let dashShops = [];
+ 
+    // ============ UTILITAIRES ============
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
+    }
+ 
+    // Images : http(s) ou data:image (logos/photos stockés en base64 par le shop-designer)
+    function safeUrl(url) {
+        const u = String(url || '');
+        return /^(https?:\/\/|data:image\/)/i.test(u) ? escapeHtml(u) : '';
+    }
+ 
+    // Couleurs : uniquement #hex, sinon valeur par défaut (évite l'injection CSS)
+    function safeColor(c, fallback) {
+        return /^#[0-9a-f]{3,8}$/i.test(String(c || '')) ? c : fallback;
+    }
+ 
+    // Nombres de design : bornés
+    function safeNum(n, fallback, min, max) {
+        const v = Number(n);
+        if (!Number.isFinite(v)) return fallback;
+        return Math.min(max, Math.max(min, v));
+    }
+ 
+    function formatNumber(v) {
+        return Number(v || 0).toLocaleString('fr-FR');
+    }
+ 
+    function generateStars(rating) {
+        const r = Math.max(0, Math.min(5, Number(rating) || 0));
+        const full = Math.floor(r);
+        const half = r - full >= 0.5;
+        let s = '';
+        for (let i = 0; i < full; i++) s += '<i class="fas fa-star"></i>';
+        if (half) s += '<i class="fas fa-star-half-alt"></i>';
+        for (let i = full + (half ? 1 : 0); i < 5; i++) s += '<i class="far fa-star"></i>';
+        return s;
+    }
+ 
+    function readDesign(shop) {
+        const d = shop.design || {};
+        return {
+            primary: safeColor(d.primary_color, '#1e40af'),
+            button: safeColor(d.button_color, '#1e40af'),
+            bg: safeColor(d.background_color, '#ffffff'),
+            headerText: safeColor(d.header_text_color, '#ffffff'),
+            productText: safeColor(d.product_text_color, '#1e293b'),
+            menuBg: safeColor(d.menu_bg, '#1e40af'),
+            menuText: safeColor(d.menu_text, '#ffffff'),
+            menuRadius: safeNum(d.menu_radius, 0, 0, 30),
+            menuPosition: ['horizontal', 'vertical-left', 'vertical-right'].includes(d.menu_position)
+                ? d.menu_position : 'horizontal',
+            layout: d.layout === 'list' ? 'list' : 'grid',
+            prodWidth: safeNum(d.prod_width, 200, 140, 300),
+            prodImgHeight: safeNum(d.prod_img_height, 160, 100, 250),
+            prodRadius: safeNum(d.prod_radius, 12, 0, 32),
+            prodGap: safeNum(d.prod_gap, 16, 8, 40),
+            showSearch: !!shop.show_search_bar
+        };
+    }
+ 
+    function setMessage(html) {
+        const container = document.getElementById('appContainer');
+        if (container) {
+            container.innerHTML = `<div class="stat-card" style="text-align:center;padding:40px;">${html}</div>`;
+        }
+    }
+ 
+    // ============ CHARGEMENT ============
+    async function loadVendorData() {
+        if (!window.supabase || !window.supabase.auth) {
+            setMessage('<p>Connexion au serveur impossible (configuration Supabase introuvable).</p>');
             return false;
         }
-        
-        if (!data || !data.success) {
-            console.error('❌ RPC sans succès');
-            return false;
-        }
-        
-        console.log('✅ Données reçues');
-        console.log('👤 User:', data.user?.email);
-        console.log('🏪 Boutiques:', data.shops?.length);
-        
-        if (data.user?.user_type !== 'vendeur') {
-            console.warn('⛔ Pas vendeur');
+ 
+        // 1. Session : sans connexion, retour à l'accueil
+        const { data: sessionData } = await window.supabase.auth.getSession();
+        if (!sessionData?.session) {
             window.location.href = 'index.html';
             return false;
         }
-        
+ 
+        // 2. Données via la RPC
+        const { data, error } = await window.supabase.rpc('get_vendor_dashboard');
+ 
+        if (error || !data || !data.success) {
+            console.error('❌ get_vendor_dashboard:', error || data);
+            setMessage(`
+                <i class="fas fa-exclamation-circle" style="font-size:40px;color:var(--danger,#ef4444);margin-bottom:12px;"></i>
+                <p style="font-weight:600;">Impossible de charger votre tableau de bord.</p>
+                <p style="font-size:13px;color:var(--gray-500,#64748b);">${escapeHtml(error?.message || data?.error || 'Réponse inattendue du serveur')}</p>
+                <button class="btn-sm btn-primary" onclick="location.reload()" style="margin-top:16px;">Réessayer</button>`);
+            return false;
+        }
+ 
+        if (data.user?.user_type !== 'vendeur') {
+            window.location.href = 'index.html';
+            return false;
+        }
+ 
         dashUser = data.user;
-        dashShops = data.shops || [];
-        
+        dashShops = Array.isArray(data.shops) ? data.shops : [];
+        console.log(`✅ vd.js : ${dashUser.email} — ${dashShops.length} boutique(s)`);
         return true;
-        
-    } catch (error) {
-        console.error('❌ Exception:', error);
-        return false;
     }
-}
-
-// ============ AFFICHAGE DASHBOARD ============
-function showDashboard() {
-    const container = document.getElementById('appContainer');
-    if (!container) return;
-    
-    // Totaux globaux
-    const totalProducts = dashShops.reduce((s, shop) => s + (shop.product_count || 0), 0);
-    const totalSales = dashShops.reduce((s, shop) => s + (shop.real_sales_count || 0), 0);
-    const totalRevenue = dashShops.reduce((s, shop) => s + Number(shop.real_revenue || 0), 0);
-    const totalPending = dashShops.reduce((s, shop) => s + (shop.pending_orders || 0), 0);
-    
-    container.innerHTML = `
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Mes boutiques</h3>
-                <div class="stat-value">${dashShops.length}</div>
+ 
+    // ============ TABLEAU DE BORD ============
+    function showDashboard() {
+        const container = document.getElementById('appContainer');
+        if (!container) return;
+ 
+        const sum = key => dashShops.reduce((s, shop) => s + Number(shop[key] || 0), 0);
+ 
+        container.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card"><h3>Mes boutiques</h3><div class="stat-value">${dashShops.length}</div></div>
+                <div class="stat-card"><h3>Produits</h3><div class="stat-value">${sum('product_count')}</div></div>
+                <div class="stat-card"><h3>Ventes livrées</h3><div class="stat-value">${sum('real_sales_count')}</div></div>
+                <div class="stat-card"><h3>Chiffre d'affaires</h3><div class="stat-value">${formatNumber(sum('real_revenue'))} FCFA</div></div>
+                <div class="stat-card"><h3>En attente</h3><div class="stat-value">${sum('pending_orders')}</div></div>
             </div>
-            <div class="stat-card">
-                <h3>Produits</h3>
-                <div class="stat-value">${totalProducts}</div>
+ 
+            <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+                <button class="btn-sm btn-primary" onclick="createNewShop()"><i class="fas fa-plus"></i> Créer une boutique</button>
+                <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
             </div>
-            <div class="stat-card">
-                <h3>Ventes</h3>
-                <div class="stat-value">${totalSales}</div>
+ 
+            <h2 style="font-size:20px;margin-bottom:20px;">Mes boutiques (${dashShops.length})</h2>
+ 
+            ${dashShops.length === 0 ? `
+                <div class="stat-card" style="text-align:center;padding:40px;">
+                    <i class="fas fa-store" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
+                    <p style="font-weight:600;">Aucune boutique pour l'instant</p>
+                    <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px;margin-top:16px;">
+                        <i class="fas fa-plus"></i> Créer ma première boutique
+                    </button>
+                </div>` : dashShops.map(renderShop).join('')}`;
+    }
+ 
+    // ============ UNE BOUTIQUE : stats + aperçu avec son design ============
+    function renderShop(shop) {
+        const d = readDesign(shop);
+        const id = escapeHtml(shop.id);
+        const logo = safeUrl(shop.logo_url);
+        const pending = Number(shop.pending_orders || 0);
+        const products = Array.isArray(shop.products) ? shop.products : [];
+ 
+        const metric = (value, label, color) => `
+            <div style="background:var(--gray-100,#f1f5f9);border-radius:12px;padding:14px;text-align:center;">
+                <div style="font-size:22px;font-weight:700;color:${color};">${value}</div>
+                <div style="font-size:11px;color:var(--gray-500,#64748b);margin-top:4px;">${label}</div>
+            </div>`;
+ 
+        return `
+        <div class="shop-card" style="background:var(--card-bg,#fff);border-radius:20px;border:1px solid var(--gray-200,#e2e8f0);margin-bottom:24px;overflow:hidden;">
+ 
+            <div style="padding:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                    <div>
+                        <h3 style="font-size:18px;margin:0 0 4px;">${escapeHtml(shop.name)}</h3>
+                        <div style="font-size:13px;color:var(--warning,#f59e0b);">${generateStars(shop.rating)}
+                            <span style="color:var(--gray-500,#64748b);">${Number(shop.rating || 0)}/5 (${shop.total_ratings || 0} avis)</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--gray-500,#64748b);margin-top:4px;">
+                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? ', ' + escapeHtml(shop.district) : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
+                        ${shop.is_verified ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:20px;">✓ Vérifiée</span>' : ''}
+                        ${shop.is_active === false ? '<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Désactivée</span>' : ''}
+                    </div>
+                </div>
+ 
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:16px;">
+                    ${metric(Number(shop.product_count || 0), 'Produits', d.primary)}
+                    ${metric(Number(shop.real_sales_count || 0), 'Ventes livrées', 'var(--success,#10b981)')}
+                    ${metric(formatNumber(shop.real_revenue), 'CA (FCFA)', 'var(--warning,#f59e0b)')}
+                    ${metric(Number(shop.total_orders || 0), 'Commandes', 'var(--primary,#1e40af)')}
+                    ${metric(pending, 'En attente', pending > 0 ? 'var(--danger,#ef4444)' : 'var(--gray-500,#64748b)')}
+                </div>
             </div>
-            <div class="stat-card">
-                <h3>Chiffre d'affaires</h3>
-                <div class="stat-value">${formatNumber(totalRevenue)} FCFA</div>
+ 
+            <!-- APERÇU : la boutique telle que les clients la voient -->
+            <div style="padding:0 20px 20px;">
+                <div style="font-size:12px;font-weight:600;color:var(--gray-500,#64748b);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">
+                    <i class="fas fa-palette"></i> Aperçu de votre boutique
+                </div>
+                ${renderStorefront(shop, d, logo, products)}
             </div>
-            <div class="stat-card">
-                <h3>En attente</h3>
-                <div class="stat-value">${totalPending}</div>
-            </div>
-        </div>
-        
-        <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-            <button class="btn-sm btn-primary" onclick="createNewShop()">
-                <i class="fas fa-plus"></i> Créer une boutique
-            </button>
-            <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'">
-                <i class="fas fa-calculator"></i> Comptabilité
-            </button>
-        </div>
-        
-        <h2 style="font-size:20px; margin-bottom:20px;">Mes boutiques (${dashShops.length})</h2>
-        
-        ${dashShops.length === 0 ? `
-            <div class="stat-card" style="text-align:center; padding:40px;">
-                <i class="fas fa-store" style="font-size:48px; color:var(--gray-500); margin-bottom:16px;"></i>
-                <p style="font-size:16px; font-weight:600;">Aucune boutique</p>
-                <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px; font-size:14px; margin-top:16px;">
-                    <i class="fas fa-plus"></i> Créer ma première boutique
+ 
+            <div style="padding:0 20px 20px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="openShopDesigner('${id}')"
+                        style="background:${d.button};color:#fff;border:none;padding:8px 16px;border-radius:30px;cursor:pointer;font-size:12px;">
+                    <i class="fas fa-edit"></i> Modifier la boutique
+                </button>
+                <button class="btn-sm btn-outline" onclick="viewShop('${id}')">
+                    <i class="fas fa-eye"></i> Voir en ligne
                 </button>
             </div>
-        ` : dashShops.map(shop => renderShop(shop)).join('')}
-    `;
-}
-
-// ============ RENDU D'UNE BOUTIQUE ============
-function renderShop(shop) {
-    const productCount = shop.product_count || 0;
-    const rating = shop.rating || 0;
-    const stars = generateStars(rating);
-    const design = shop.design || {};
-    
-    const primaryColor = design.primary_color || '#1e40af';
-    const bgColor = design.background_color || '#ffffff';
-    const buttonColor = design.button_color || '#1e40af';
-    const layout = design.layout || 'grid';
-    const showSearch = shop.show_search_bar || false;
-    
-    // Vraies stats
-    const realSales = shop.real_sales_count || 0;
-    const realRevenue = Number(shop.real_revenue || 0);
-    const totalOrders = shop.total_orders || 0;
-    const pendingOrders = shop.pending_orders || 0;
-    
-    return `
-        <div class="shop-card" style="background:var(--card-bg);border-radius:20px;border:1px solid var(--gray-200);margin-bottom:24px;overflow:hidden;">
-            
-            <!-- HEADER BOUTIQUE -->
-            <div style="padding:20px;background:${bgColor};border-bottom:1px solid var(--gray-200);">
-                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                    <div style="width:60px;height:60px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--gray-200);">
-                        ${shop.logo_url 
-                            ? `<img src="${shop.logo_url}" style="width:100%;height:100%;object-fit:cover;">` 
-                            : '<i class="fas fa-store" style="font-size:24px;color:' + primaryColor + ';"></i>'
-                        }
+        </div>`;
+    }
+ 
+    // Même rendu que l'aperçu du shop-designer, à partir du design enregistré
+    function renderStorefront(shop, d, logo, products) {
+        const productsStyle = d.layout === 'grid'
+            ? `display:grid;grid-template-columns:repeat(auto-fill,minmax(${Math.min(d.prodWidth, 180)}px,1fr));gap:${d.prodGap}px;`
+            : `display:flex;flex-direction:column;gap:${d.prodGap}px;`;
+ 
+        const categories = Array.isArray(shop.categories) ? shop.categories : [];
+        const menu = categories.length ? `
+            <div style="background:${d.menuBg};color:${d.menuText};border-radius:${d.menuRadius}px;padding:10px 16px;display:flex;gap:16px;flex-wrap:wrap;margin:12px 16px 0;">
+                ${categories.map(c => `<span style="font-size:13px;">${escapeHtml(c.name || c)}</span>`).join('')}
+            </div>` : '';
+ 
+        return `
+        <div style="background:${d.bg};border-radius:12px;overflow:hidden;border:1px solid var(--gray-200,#e2e8f0);">
+            <div style="background:linear-gradient(135deg,${d.primary},${d.primary}aa);padding:16px 20px;color:${d.headerText};">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:52px;height:52px;flex-shrink:0;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">`
+                               : `<i class="fas fa-store" style="font-size:22px;color:${d.primary};"></i>`}
                     </div>
-                    <div style="flex:1;">
-                        <h3 style="font-size:18px;margin:0 0 4px;">${escapeHtml(shop.name)}</h3>
-                        <div style="font-size:13px;color:var(--warning);">${stars} ${rating}/5 (${shop.total_ratings || 0} avis)</div>
-                        <div style="font-size:12px;color:var(--gray-500);margin-top:4px;">
-                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                            ${shop.district ? `, ${escapeHtml(shop.district)}` : ''}
-                        </div>
-                        <div style="font-size:11px;margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-                            ${shop.is_verified ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:20px;">✓ Vérifiée</span>' : ''}
-                            ${shop.has_physical_store ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;">🏢 Boutique physique</span>' : ''}
-                            ${showSearch ? '<span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:20px;">🔍 Recherche activée</span>' : ''}
-                        </div>
+                    <div style="min-width:0;">
+                        <div style="font-size:16px;font-weight:700;">${escapeHtml(shop.name)}</div>
+                        ${shop.description ? `<div style="font-size:11px;opacity:.9;margin-top:2px;">${escapeHtml(shop.description)}</div>` : ''}
                     </div>
                 </div>
             </div>
-            
-            <!-- MÉTRIQUES -->
-            <div style="padding:20px;">
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;">
-                    <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:${primaryColor};">${productCount}</div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Produits</div>
+ 
+            ${d.showSearch ? `
+                <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">
+                    <div style="display:flex;background:#f1f5f9;border-radius:20px;padding:8px 14px;align-items:center;gap:8px;">
+                        <input type="text" placeholder="Rechercher un produit..." disabled
+                               style="flex:1;border:none;background:transparent;outline:none;font-size:13px;">
+                        <i class="fas fa-search" style="color:${d.primary};"></i>
                     </div>
-                    <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:var(--success);">${realSales}</div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Ventes livrées</div>
-                    </div>
-                    <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:var(--warning);">${formatNumber(realRevenue)}</div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">CA (FCFA)</div>
-                    </div>
-                    <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:var(--primary);">${totalOrders}</div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">Commandes</div>
-                    </div>
-                    <div style="background:var(--gray-200);border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:${pendingOrders > 0 ? 'var(--danger)' : 'var(--gray-500)'};">${pendingOrders}</div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">En attente</div>
-                    </div>
-                </div>
-                
-                <!-- INFOS DESIGN -->
-                <div style="margin-top:16px;background:var(--gray-100);border-radius:12px;padding:12px;font-size:12px;color:var(--gray-700);">
-                    <strong><i class="fas fa-palette"></i> Design actuel :</strong>
-                    Menu: ${design.menu_position || 'horizontal'} | 
-                    Layout: ${layout} | 
-                    Couleur: <span style="display:inline-block;width:12px;height:12px;background:${primaryColor};border-radius:2px;vertical-align:middle;"></span> ${primaryColor}
-                </div>
-                
-                <!-- PRODUITS RÉCENTS -->
-                ${shop.products && shop.products.length > 0 ? `
-                    <h4 style="font-size:14px;margin:16px 0 8px;">Produits récents</h4>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        ${shop.products.slice(0, 3).map(p => `
-                            <div style="display:flex;align-items:center;gap:12px;background:var(--gray-100);border-radius:8px;padding:8px;">
-                                <div style="width:40px;height:40px;background:white;border-radius:6px;overflow:hidden;flex-shrink:0;">
-                                    ${p.photos && p.photos[0] 
-                                        ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` 
-                                        : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;">📦</div>'}
+                </div>` : ''}
+ 
+            ${menu}
+ 
+            <div style="padding:16px;">
+                ${products.length ? `
+                    <div style="${productsStyle}">
+                        ${products.slice(0, 6).map(p => {
+                            const photo = safeUrl(Array.isArray(p.photos) ? p.photos[0] : '');
+                            const list = d.layout === 'list';
+                            return `
+                            <div style="background:#fff;border-radius:${d.prodRadius}px;border:1px solid #e2e8f0;overflow:hidden;${list ? 'display:flex;gap:12px;' : ''}">
+                                <div style="${list ? 'width:80px;height:80px;' : `height:${Math.min(d.prodImgHeight, 140)}px;`}flex-shrink:0;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
+                                    ${photo ? `<img src="${photo}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+                                            : '<i class="fas fa-image" style="font-size:24px;color:#cbd5e1;"></i>'}
                                 </div>
-                                <div style="flex:1;">
-                                    <div style="font-weight:600;font-size:13px;">${escapeHtml(p.name)}</div>
-                                    <div style="font-size:11px;color:var(--gray-500);">Stock: ${p.stock || 0}</div>
+                                <div style="padding:10px;flex:1;min-width:0;">
+                                    <div style="font-weight:600;font-size:13px;color:${d.productText};">${escapeHtml(p.name)}</div>
+                                    <div style="font-weight:700;font-size:13px;color:${d.primary};">${formatNumber(p.price)} FCFA</div>
+                                    <div style="font-size:11px;color:#64748b;">Stock : ${Number(p.stock || 0)}</div>
                                 </div>
-                                <div style="font-weight:700;color:${primaryColor};font-size:13px;">${formatNumber(p.price)} FCFA</div>
-                            </div>
-                        `).join('')}
+                            </div>`;
+                        }).join('')}
                     </div>
-                ` : '<p style="font-size:12px;color:var(--gray-500);margin-top:16px;">Aucun produit</p>'}
-                
-                <!-- ACTIONS -->
-                <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-                    <button class="btn-sm btn-primary" onclick="openShopDesigner('${shop.id}')">
-                        <i class="fas fa-edit"></i> Modifier le design
-                    </button>
-                    <button class="btn-sm btn-outline" onclick="viewShop('${shop.id}')">
-                        <i class="fas fa-eye"></i> Voir en ligne
-                    </button>
-                    <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'">
-                        <i class="fas fa-calculator"></i> Comptabilité
-                    </button>
-                </div>
+                    ${products.length > 6 ? `<div style="font-size:12px;color:#64748b;margin-top:8px;">+ ${products.length - 6} autre(s) produit(s)</div>` : ''}
+                ` : '<p style="font-size:12px;color:#64748b;text-align:center;padding:20px;">Aucun produit</p>'}
             </div>
-        </div>
-    `;
-}
-
-// ============ ACTIONS ============
-function createNewShop() {
-    window.location.href = 'shop-designer.html';
-}
-
-function openShopDesigner(shopId) {
-    window.open(`shop-designer.html?edit=${shopId}`, '_blank');
-}
-
-function viewShop(shopId) {
-    window.open(`index.html?shop=${shopId}`, '_blank');
-}
-
-// ============ INITIALISATION ============
-async function init() {
-    console.log('🚀 Init dashboard vendeur (RPC)...');
-    
-    const ok = await loadVendorData();
-    if (!ok) return;
-    
-    const avatar = document.getElementById('userAvatar');
-    const name = document.getElementById('userName');
-    if (avatar) avatar.innerText = dashUser.full_name?.charAt(0).toUpperCase() || 'V';
-    if (name) name.innerText = dashUser.full_name || 'Vendeur';
-    
-    showDashboard();
-    
-    console.log('✅ Dashboard prêt');
-}
-
-window.createNewShop = createNewShop;
-window.openShopDesigner = openShopDesigner;
-window.viewShop = viewShop;
-
-init();
+        </div>`;
+    }
+ 
+    // ============ ACTIONS ============
+    function createNewShop() {
+        window.location.href = 'shop-designer.html';
+    }
+ 
+    function openShopDesigner(shopId) {
+        window.location.href = 'shop-designer.html?edit=' + encodeURIComponent(shopId);
+    }
+ 
+    function viewShop(shopId) {
+        window.open('index.html?shop=' + encodeURIComponent(shopId), '_blank');
+    }
+ 
+    // ============ DÉMARRAGE ============
+    async function init() {
+        try {
+            const ok = await loadVendorData();
+            if (!ok) return;
+ 
+            const name = dashUser.full_name || 'Vendeur';
+            const avatar = document.getElementById('userAvatar');
+            const nameEl = document.getElementById('userName');
+            if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
+            if (nameEl) nameEl.textContent = name;
+ 
+            showDashboard();
+        } catch (e) {
+            console.error('❌ vd.js:', e);
+            setMessage('<p>Une erreur inattendue est survenue.</p><button class="btn-sm btn-primary" onclick="location.reload()">Réessayer</button>');
+        }
+    }
+ 
+    Object.assign(window, { createNewShop, openShopDesigner, viewShop });
+ 
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+ 
