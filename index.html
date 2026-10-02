@@ -41,12 +41,12 @@
 <div class="nav-row">
     <div class="nav-container">
         <div class="nav-links">
-            <a href="#" onclick="resetToHome()" class="active">Accueil</a>
-            <a href="#" onclick="resetToHome()">Boutiques</a>
-            <a href="#" onclick="showCart()">Panier (<span id="cartCountHeader">0</span>)</a>
-            <a href="#" onclick="showMyOrders()">Commandes</a>
-            <a href="vendor-dashboard.html" onclick="showProfile()">Mon Profil</a>
-            <a href="" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a href="#" onclick="return resetToHome()" class="active">Accueil</a>
+            <a href="#" onclick="return resetToHome()">Boutiques</a>
+            <a href="#" onclick="showCart(); return false;">Panier (<span id="cartCountHeader">0</span>)</a>
+            <a href="#" onclick="showMyOrders(); return false;">Commandes</a>
+            <a href="#" onclick="showProfile(); return false;">Mon Profil</a>
+            <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
             <a href="delivery-dashboard.html" id="deliveryDashboardLink" style="display:none;">Mes livraisons</a>
             <a href="delivery-register.html">Devenir livreur</a>
         </div>
@@ -65,7 +65,9 @@
 <div id="appContainer" class="main"></div>
 
 <div class="footer">
-    
+    <p>© 2026 Ouenze - Marketplace Congo Brazzaville | <a href="about.html">À propos</a> | <a href="help.html">Aide</a> | <a href="privacy.html">Confidentialité</a></p>
+</div>
+
 <!-- ============================================================
      SCRIPTS - ORDRE CORRECT
      ============================================================ -->
