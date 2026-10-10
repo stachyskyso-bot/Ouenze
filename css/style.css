@@ -2120,3 +2120,246 @@ body {
     .shop-carousel { margin: 12px 12px 0; }
     .shop-carousel-nav { display: none; }
 }
+
+/* ============================================================
+   CONNEXION / INSCRIPTION
+   ============================================================ */
+.auth-sub {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin-bottom: 16px;
+}
+
+.social-auth {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 30px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.social-btn:hover {
+    filter: brightness(0.97);
+}
+
+.social-btn.google {
+    background: var(--white);
+    color: #1f2937;
+    border: 1.5px solid var(--gray-200);
+}
+
+.social-btn.facebook {
+    background: #1877f2;
+    color: var(--white);
+    border: 1.5px solid #1877f2;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0;
+    color: var(--gray-500);
+    font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-200);
+}
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.phone-field {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--white);
+}
+
+.phone-prefix {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    font-weight: 600;
+    font-size: 14px;
+    border-right: 1px solid var(--gray-200);
+}
+
+.form-group .phone-field input {
+    border: none;
+    border-radius: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.account-types {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.account-types label {
+    margin: 0;
+    cursor: pointer;
+}
+
+.account-types input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.account-types span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.account-types input:checked + span {
+    border-color: var(--primary);
+    background: #eff6ff;
+    color: var(--primary);
+}
+
+.account-types input:focus-visible + span {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.auth-note {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 6px;
+}
+
+.auth-note a {
+    color: var(--primary);
+}
+
+.password-field {
+    position: relative;
+}
+
+.form-group .password-field input {
+    padding-right: 44px;
+}
+
+.password-field button {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: none;
+    color: var(--gray-500);
+    cursor: pointer;
+}
+
+.pw-meter {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.pw-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.pw-bar i {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--gray-200);
+}
+
+.pw-meter[data-score="0"] .pw-bar i:nth-child(-n+1),
+.pw-meter[data-score="1"] .pw-bar i:nth-child(-n+1) { background: var(--danger); }
+.pw-meter[data-score="2"] .pw-bar i:nth-child(-n+2) { background: #f59e0b; }
+.pw-meter[data-score="3"] .pw-bar i:nth-child(-n+3) { background: #84cc16; }
+.pw-meter[data-score="4"] .pw-bar i { background: var(--success); }
+
+.hp-field {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.terms-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--gray-700);
+    margin: 4px 0 12px;
+    cursor: pointer;
+}
+
+.terms-line input {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.terms-line a {
+    color: var(--primary);
+}
+
+.form-error {
+    display: none;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.btn-submit:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+@media (max-width: 420px) {
+    .form-row-2 {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}

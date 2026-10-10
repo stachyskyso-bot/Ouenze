@@ -42,18 +42,57 @@
         }[m]));
     }
 
-    // Téléphone Congo-Brazzaville : +242 0X XXX XX XX (mobiles 04, 05, 06).
-    // Accepte espaces, points, tirets, et les préfixes +242 / 00242 / 242.
-    // Renvoie le numéro normalisé, ou null s'il est invalide.
-    function normalizeCongoPhone(input) {
+    // ============ PAYS (Congo-Brazzaville d'abord, RDC) ============
+    const COUNTRIES = {
+        CG: {
+            name: 'Congo-Brazzaville', flag: '🇨🇬', dial: '242', example: '06 555 25 62',
+            cities: ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Nkayi', 'Ouesso', 'Owando', 'Impfondo', 'Madingou', 'Sibiti', 'Djambala']
+        },
+        CD: {
+            name: 'RD Congo', flag: '🇨🇩', dial: '243', example: '81 234 5678',
+            cities: ['Kinshasa', 'Lubumbashi', 'Mbuji-Mayi', 'Kisangani', 'Goma', 'Bukavu', 'Kananga', 'Matadi', 'Kolwezi', 'Likasi']
+        }
+    };
+ 
+    // Renvoie le numéro au format international, ou null s'il est invalide.
+    // Congo-Brazzaville : 0 + (4|5|6) + 7 chiffres      → +242 06 555 25 62
+    // RDC               : (8x|9x) + 7 chiffres (0 initial facultatif) → +243 81 234 5678
+    function normalizePhone(input, countryCode = 'CG') {
+        const c = COUNTRIES[countryCode];
+        if (!c) return null;
         let d = String(input || '').replace(/[\s.\-()]/g, '');
-        if (d.startsWith('+242')) d = d.slice(4);
-        else if (d.startsWith('00242')) d = d.slice(5);
-        else if (d.startsWith('242') && d.length === 12) d = d.slice(3);
-        if (!/^0[456]\d{7}$/.test(d)) return null;
-        return `+242 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+        if (d.startsWith('+' + c.dial)) d = d.slice(c.dial.length + 1);
+        else if (d.startsWith('00' + c.dial)) d = d.slice(c.dial.length + 2);
+        else if (d.startsWith(c.dial) && d.length === c.dial.length + 9) d = d.slice(c.dial.length);
+        if (countryCode === 'CG') {
+            if (!/^0[456]\d{7}$/.test(d)) return null;
+            return `+242 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+        }
+        if (d.length === 10 && d.startsWith('0')) d = d.slice(1);
+        if (!/^[89]\d{8}$/.test(d)) return null;
+        return `+243 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
     }
-
+ 
+    // 0 à 4 : très faible → solide
+    function passwordScore(pw) {
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+        if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+        if (/\d/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+        return Math.min(score, 4);
+    }
+ 
+    function passwordProblem(pw, email) {
+        if (pw.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères.';
+        if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return 'Le mot de passe doit contenir des lettres et des chiffres.';
+        const local = String(email || '').split('@')[0].toLowerCase();
+        if (local.length >= 4 && pw.toLowerCase().includes(local)) return 'Le mot de passe ne doit pas contenir ton adresse email.';
+        if (/^(.)\1+$/.test(pw) || /12345678|azerty|password|motdepasse/i.test(pw)) return 'Ce mot de passe est trop facile à deviner.';
+        return '';
+    }
+ 
     // Images : http(s) ou data:image (logos/photos stockés en base64 par le shop-designer)
     function safeUrl(url) {
         const u = String(url || '');
@@ -147,6 +186,7 @@
         // Toujours appelé : c'est ce qui affiche Connexion/Inscription
         updateHeaderUI();
         updateCartCount();
+        if (needsProfileCompletion(currentUser)) openCompleteProfileModal();
  
         // Lien direct vers une boutique : index.html?shop=<id> (bouton « Voir en ligne »)
         // Pages de contenu (À propos, Aide…) : seulement l'en-tête, pas de vitrine
@@ -219,41 +259,50 @@
         }
     }
  
-    async function doSignUp() {
-        const val = id => document.getElementById(id)?.value.trim() || '';
-        const email = val('signupEmail');
-        const password = document.getElementById('signupPassword')?.value || '';
-        const fullName = val('signupName');
-        const userType = val('signupType') || 'client';
-        const rawPhone = val('signupPhone');
-        const city = val('signupCity') || 'Brazzaville';
+    let signupInFlight = false;
  
-        if (!email || !password || !fullName) {
-            alert('Champs obligatoires manquants');
-            return;
-        }
-        if (password.length < 6) {
-            alert('Mot de passe trop court (min 6 caractères)');
-            return;
-        }
-        const phone = rawPhone ? normalizeCongoPhone(rawPhone) : '';
-        if (phone === null) {
-            alert('Numéro de téléphone invalide.\n\nFormat attendu : +242 06 XXX XX XX ou +242 05 XXX XX XX');
-            document.getElementById('signupPhone')?.focus();
-            return;
-        }
+    async function doSignUp() {
+        if (signupInFlight) return;
+        const val = id => document.getElementById(id)?.value.trim() || '';
+        const fullName = val('signupName').replace(/\s+/g, ' ');
+        const email = val('signupEmail').toLowerCase();
+        const password = document.getElementById('signupPassword')?.value || '';
+        const password2 = document.getElementById('signupPassword2')?.value || '';
+        const userType = document.querySelector('input[name="signupType"]:checked')?.value === 'vendeur' ? 'vendeur' : 'client';
+        const err = (msg, field) => showFormError('signupError', msg, field);
+ 
+        // Robot : le champ invisible a été rempli → on fait comme si tout allait bien
+        if (val('signupWebsite')) { closeModal(); return; }
+ 
+        if (fullName.length < 2 || !/[A-Za-zÀ-ÿ]/.test(fullName)) return err('Indique ton nom complet.', 'signupName');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return err('Adresse email invalide.', 'signupEmail');
+        const loc = readCountryFields('signup');
+        if (loc.error) return err(loc.error, loc.field);
+        const pwIssue = passwordProblem(password, email);
+        if (pwIssue) return err(pwIssue, 'signupPassword');
+        if (password !== password2) return err('Les deux mots de passe ne sont pas identiques.', 'signupPassword2');
+        if (!document.getElementById('signupTerms')?.checked) return err('Merci d\'accepter les conditions d\'utilisation.');
+        err('');
+ 
+        const btn = document.getElementById('signupSubmit');
+        signupInFlight = true;
+        if (btn) { btn.disabled = true; btn.textContent = 'Création du compte…'; }
+        const done = () => {
+            signupInFlight = false;
+            if (btn) { btn.disabled = false; btn.textContent = 'Créer mon compte'; }
+        };
  
         try {
             const { data, error } = await window.supabase.auth.signUp({
                 email,
                 password,
                 options: {
+                    emailRedirectTo: window.location.origin + '/',
                     data: {
                         full_name: fullName,
                         user_type: userType,
-                        phone,
-                        city,
-                        country: 'Congo-Brazzaville'
+                        ...loc.values,
+                        profile_completed: true
                     }
                 }
             });
@@ -261,22 +310,28 @@
             if (error) {
                 console.error('❌ Inscription:', error.message);
                 const msg = error.message || '';
+                done();
                 if (/already registered|already exists/i.test(msg)) {
                     alert('Un compte existe déjà avec cet email.\n\nConnecte-toi, ou utilise « Mot de passe oublié » si tu ne t\'en souviens plus.');
                     openLoginModal();
                     const loginEmail = document.getElementById('loginEmail');
                     if (loginEmail) loginEmail.value = email;
                 } else if (/valid email|invalid.*email/i.test(msg)) {
-                    alert('Adresse email invalide.');
+                    err('Adresse email invalide.', 'signupEmail');
+                } else if (/pwned|leaked|compromised/i.test(msg)) {
+                    err('Ce mot de passe est apparu dans une fuite de données connue. Choisis-en un autre.', 'signupPassword');
                 } else if (/password/i.test(msg)) {
-                    alert('Mot de passe refusé : choisis-en un plus long ou plus difficile à deviner.');
+                    err('Mot de passe refusé : choisis-en un plus long ou plus difficile à deviner.', 'signupPassword');
                 } else if (/rate limit|too many|security purposes/i.test(msg)) {
-                    alert('Trop de tentatives récentes. Réessaie dans quelques minutes.');
+                    err('Trop de tentatives récentes. Réessaie dans quelques minutes.');
+                } else if (/captcha/i.test(msg)) {
+                    err('Vérification anti-robot échouée. Recharge la page et réessaie.');
                 } else {
-                    alert("Erreur lors de l'inscription.\n\nDétail : " + msg);
+                    err("Erreur lors de l'inscription : " + msg);
                 }
                 return;
             }
+            done();
  
             closeModal();
  
@@ -293,7 +348,8 @@
             }
         } catch (error) {
             console.error('❌ Erreur inscription:', error);
-            alert("Erreur lors de l'inscription");
+            done();
+            err("Erreur lors de l'inscription. Vérifie ta connexion internet et réessaie.");
         }
     }
  
@@ -1193,7 +1249,8 @@
  
     function openLoginModal() {
         const modal = openModal(`
-            <h3 style="margin-bottom:20px;">Connexion</h3>
+            <h3 style="margin-bottom:16px;">Connexion</h3>
+            ${socialButtonsHtml('Continuer')}
             <div class="form-group">
                 <label>Email</label>
                 <input type="email" id="loginEmail" placeholder="exemple@email.com" autocomplete="email">
@@ -1217,50 +1274,254 @@
                 </a>
             </div>`);
  
+        modal.classList.add('auth-modal');
         modal.querySelector('#loginPassword').addEventListener('keydown', e => {
             if (e.key === 'Enter') doLogin();
         });
         modal.querySelector('#loginEmail').focus();
     }
  
+    function socialButtonsHtml(label) {
+        return `
+            <div class="social-auth">
+                <button type="button" class="social-btn google" onclick="signInWithProvider('google')">
+                    <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
+                    ${label} avec Google
+                </button>
+                <button type="button" class="social-btn facebook" onclick="signInWithProvider('facebook')">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#fff" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+                    ${label} avec Facebook
+                </button>
+            </div>
+            <div class="auth-divider"><span>ou avec ton email</span></div>`;
+    }
+ 
+    function countryFieldsHtml(prefix, current = {}) {
+        const cc = COUNTRIES[current.country] ? current.country : 'CG';
+        return `
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Pays *</label>
+                    <select id="${prefix}Country" onchange="onCountryChange('${prefix}')">
+                        ${Object.entries(COUNTRIES).map(([code, c]) =>
+                            `<option value="${code}" ${code === cc ? 'selected' : ''}>${c.flag} ${c.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ville *</label>
+                    <select id="${prefix}City" onchange="onCityChange('${prefix}')">
+                        ${cityOptionsHtml(cc, current.city)}
+                    </select>
+                    <input type="text" id="${prefix}CityOther" placeholder="Nom de ta ville" style="display:none;margin-top:6px;" maxlength="60">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Téléphone (WhatsApp de préférence) *</label>
+                <div class="phone-field">
+                    <span class="phone-prefix" id="${prefix}Dial">+${COUNTRIES[cc].dial}</span>
+                    <input type="tel" id="${prefix}Phone" inputmode="tel" autocomplete="tel-national"
+                           placeholder="${COUNTRIES[cc].example}" value="${escapeHtml(current.phone || '')}">
+                </div>
+            </div>`;
+    }
+ 
+    function cityOptionsHtml(cc, selected) {
+        return COUNTRIES[cc].cities.map(c => `<option ${c === selected ? 'selected' : ''}>${c}</option>`).join('') +
+            '<option value="__other">Autre ville…</option>';
+    }
+ 
+    function onCountryChange(prefix) {
+        const cc = document.getElementById(prefix + 'Country').value;
+        document.getElementById(prefix + 'City').innerHTML = cityOptionsHtml(cc);
+        document.getElementById(prefix + 'CityOther').style.display = 'none';
+        document.getElementById(prefix + 'Dial').textContent = '+' + COUNTRIES[cc].dial;
+        document.getElementById(prefix + 'Phone').placeholder = COUNTRIES[cc].example;
+    }
+ 
+    function onCityChange(prefix) {
+        const other = document.getElementById(prefix + 'City').value === '__other';
+        const input = document.getElementById(prefix + 'CityOther');
+        input.style.display = other ? '' : 'none';
+        if (other) input.focus();
+    }
+ 
+    // Lit pays / ville / téléphone ; renvoie { values } ou { error, field }
+    function readCountryFields(prefix) {
+        const cc = document.getElementById(prefix + 'Country')?.value || 'CG';
+        let city = document.getElementById(prefix + 'City')?.value || '';
+        if (city === '__other') city = (document.getElementById(prefix + 'CityOther')?.value || '').trim();
+        const phone = normalizePhone(document.getElementById(prefix + 'Phone')?.value, cc);
+        if (!city || city.length < 2) return { error: 'Indique ta ville.', field: prefix + 'CityOther' };
+        if (!phone) return { error: `Numéro invalide. Exemple pour ${COUNTRIES[cc].name} : +${COUNTRIES[cc].dial} ${COUNTRIES[cc].example}`, field: prefix + 'Phone' };
+        return { values: { country: COUNTRIES[cc].name, country_code: cc, city, phone } };
+    }
+ 
+    function showFormError(boxId, message, fieldId) {
+        const box = document.getElementById(boxId);
+        if (box) {
+            box.textContent = message;
+            box.style.display = message ? 'block' : 'none';
+            if (message) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        if (fieldId) document.getElementById(fieldId)?.focus();
+    }
+ 
+    function togglePassword(id, btn) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.type = input.type === 'password' ? 'text' : 'password';
+        btn.innerHTML = input.type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+    }
+ 
+    function updatePasswordMeter() {
+        const pw = document.getElementById('signupPassword')?.value || '';
+        const meter = document.getElementById('pwMeter');
+        if (!meter) return;
+        const score = pw ? passwordScore(pw) : 0;
+        const labels = ['Trop faible', 'Faible', 'Moyen', 'Bon', 'Solide'];
+        meter.dataset.score = pw ? score : '';
+        meter.querySelector('span').textContent = pw ? labels[score] : '8 caractères minimum, avec lettres et chiffres';
+    }
+ 
     function openRegisterModal() {
         const modal = openModal(`
-            <h3 style="margin-bottom:20px;">Inscription</h3>
-            <div class="form-group">
-                <label>Nom complet *</label>
-                <input type="text" id="signupName" placeholder="Jean Dupont" autocomplete="name">
-            </div>
-            <div class="form-group">
-                <label>Email *</label>
-                <input type="email" id="signupEmail" placeholder="exemple@email.com" autocomplete="email">
-            </div>
-            <div class="form-group">
-                <label>Mot de passe *</label>
-                <input type="password" id="signupPassword" placeholder="Min 6 caractères" autocomplete="new-password">
-            </div>
-            <div class="form-group">
-                <label>Téléphone</label>
-                <input type="tel" id="signupPhone" placeholder="+242 06 XXX XX XX" autocomplete="tel" inputmode="tel">
-            </div>
-            <div class="form-group">
-                <label>Ville</label>
-                <input type="text" id="signupCity" placeholder="Brazzaville">
-            </div>
-            <div class="form-group">
-                <label>Type de compte</label>
-                <select id="signupType">
-                    <option value="client">Client</option>
-                    <option value="vendeur">Vendeur</option>
-                    <option value="livreur">Livreur</option>
-                </select>
-            </div>
-            <button class="btn-submit" onclick="doSignUp()">S'inscrire</button>
-            <div style="text-align:center;margin-top:12px;">
+            <h3 style="margin-bottom:6px;">Créer un compte</h3>
+            <p class="auth-sub">Ouenze, la marketplace du Congo-Brazzaville et de la RDC.</p>
+            ${socialButtonsHtml("S'inscrire")}
+            <form id="signupForm" onsubmit="event.preventDefault();doSignUp();" novalidate>
+                <div class="form-group">
+                    <label>Nom complet *</label>
+                    <input type="text" id="signupName" placeholder="Ex : Grâce Mabiala" autocomplete="name" maxlength="60">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="signupEmail" placeholder="exemple@email.com" autocomplete="email" maxlength="120">
+                </div>
+                ${countryFieldsHtml('signup')}
+                <div class="form-group">
+                    <label>Je veux *</label>
+                    <div class="account-types">
+                        <label><input type="radio" name="signupType" value="client" checked><span><i class="fas fa-shopping-bag"></i> Acheter</span></label>
+                        <label><input type="radio" name="signupType" value="vendeur"><span><i class="fas fa-store"></i> Vendre</span></label>
+                    </div>
+                    <p class="auth-note">Tu veux livrer ? <a href="delivery-register.html">Deviens livreur partenaire</a> (vérification du permis et du véhicule).</p>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe *</label>
+                    <div class="password-field">
+                        <input type="password" id="signupPassword" autocomplete="new-password" oninput="updatePasswordMeter()" maxlength="72">
+                        <button type="button" onclick="togglePassword('signupPassword', this)" aria-label="Afficher le mot de passe"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <div class="pw-meter" id="pwMeter"><div class="pw-bar"><i></i><i></i><i></i><i></i></div><span>8 caractères minimum, avec lettres et chiffres</span></div>
+                </div>
+                <div class="form-group">
+                    <label>Confirme le mot de passe *</label>
+                    <input type="password" id="signupPassword2" autocomplete="new-password" maxlength="72">
+                </div>
+                <!-- Piège à robots : invisible pour les humains -->
+                <input type="text" id="signupWebsite" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true">
+                <label class="terms-line">
+                    <input type="checkbox" id="signupTerms">
+                    <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                </label>
+                <div class="form-error" id="signupError" role="alert"></div>
+                <button type="submit" class="btn-submit" id="signupSubmit">Créer mon compte</button>
+            </form>
+            <div style="text-align:center;margin-top:12px;font-size:13px;">
                 <a href="#" onclick="event.preventDefault();openLoginModal();" style="color:var(--primary);cursor:pointer;">
-                    Déjà un compte ?
+                    Déjà un compte ? Se connecter
                 </a>
             </div>`);
+        modal.classList.add('auth-modal');
         modal.querySelector('#signupName').focus();
+    }
+ 
+    // ============ CONNEXION GOOGLE / FACEBOOK ============
+    async function signInWithProvider(provider) {
+        try {
+            const { error } = await window.supabase.auth.signInWithOAuth({
+                provider,
+                options: { redirectTo: window.location.origin + '/' }
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error('❌ OAuth', provider, e);
+            const name = provider === 'google' ? 'Google' : 'Facebook';
+            alert(/not enabled|unsupported provider/i.test(e?.message || '')
+                ? `La connexion avec ${name} n'est pas encore activée. Utilise ton email pour l'instant.`
+                : `Connexion avec ${name} impossible pour le moment.\n\nDétail : ${e?.message || e}`);
+        }
+    }
+ 
+    // Compte créé via Google/Facebook : il manque le pays, le téléphone et le type de compte
+    function needsProfileCompletion(user) {
+        const provider = user?.app_metadata?.provider;
+        return !!user && provider && provider !== 'email' && !user.user_metadata?.profile_completed;
+    }
+ 
+    function openCompleteProfileModal() {
+        const meta = currentUser?.user_metadata || {};
+        const modal = openModal(`
+            <h3 style="margin-bottom:6px;">Finalise ton inscription</h3>
+            <p class="auth-sub">Encore quelques informations pour pouvoir commander et être livré.</p>
+            <form onsubmit="event.preventDefault();completeProfile();" novalidate>
+                <div class="form-group">
+                    <label>Nom complet *</label>
+                    <input type="text" id="completeName" maxlength="60" value="${escapeHtml(meta.full_name || meta.name || '')}">
+                </div>
+                ${countryFieldsHtml('complete')}
+                <div class="form-group">
+                    <label>Je veux *</label>
+                    <div class="account-types">
+                        <label><input type="radio" name="completeType" value="client" checked><span><i class="fas fa-shopping-bag"></i> Acheter</span></label>
+                        <label><input type="radio" name="completeType" value="vendeur"><span><i class="fas fa-store"></i> Vendre</span></label>
+                    </div>
+                </div>
+                <label class="terms-line">
+                    <input type="checkbox" id="completeTerms">
+                    <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                </label>
+                <div class="form-error" id="completeError" role="alert"></div>
+                <button type="submit" class="btn-submit" id="completeSubmit">Valider</button>
+            </form>`);
+        modal.classList.add('auth-modal');
+    }
+ 
+    async function completeProfile() {
+        const fullName = (document.getElementById('completeName')?.value || '').trim();
+        const userType = document.querySelector('input[name="completeType"]:checked')?.value === 'vendeur' ? 'vendeur' : 'client';
+        if (fullName.length < 2) return showFormError('completeError', 'Indique ton nom complet.', 'completeName');
+        const loc = readCountryFields('complete');
+        if (loc.error) return showFormError('completeError', loc.error, loc.field);
+        if (!document.getElementById('completeTerms')?.checked) return showFormError('completeError', 'Merci d\'accepter les conditions d\'utilisation.');
+ 
+        const btn = document.getElementById('completeSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Enregistrement…';
+        try {
+            const data = { full_name: fullName, user_type: userType, ...loc.values, profile_completed: true };
+            const { error } = await window.supabase.auth.updateUser({ data });
+            if (error) throw error;
+            // Profil : toutes les colonnes si elles existent, sinon l'essentiel
+            let res = await window.supabase.from('profiles')
+                .update({ full_name: fullName, user_type: userType, phone: loc.values.phone, city: loc.values.city, country: loc.values.country })
+                .eq('id', currentUser.id);
+            if (res.error) {
+                res = await window.supabase.from('profiles').update({ full_name: fullName, user_type: userType }).eq('id', currentUser.id);
+            }
+            if (res.error) console.error('❌ Profil:', res.error);
+            closeModal();
+            if (userType === 'vendeur') {
+                window.location.href = 'shop-designer.html';
+            } else {
+                await initApp();
+            }
+        } catch (e) {
+            console.error('❌ Finalisation:', e);
+            showFormError('completeError', 'Enregistrement impossible : ' + (e?.message || 'réessaie dans un instant.'));
+            btn.disabled = false;
+            btn.textContent = 'Valider';
+        }
     }
  
     function showProfile() {
@@ -1372,6 +1633,12 @@
         showMyOrders,
         openLoginModal,
         openRegisterModal,
+        signInWithProvider,
+        completeProfile,
+        onCountryChange,
+        onCityChange,
+        togglePassword,
+        updatePasswordMeter,
         addToCart,
         setSort,
         viewShopDetail,
