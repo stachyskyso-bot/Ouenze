@@ -165,6 +165,7 @@
     // ============ INITIALISATION ============
     async function initApp() {
         console.log('🚀 Initialisation...');
+        handleOAuthReturnError();
  
         if (!window.supabase || !window.supabase.auth) {
             console.error('❌ Client Supabase introuvable (vérifier supabase-config.js)');
@@ -1442,22 +1443,59 @@
     }
  
     // ============ CONNEXION GOOGLE / FACEBOOK ============
-    async function signInWithProvider(provider) {
+    const PROVIDER_NAMES = { google: 'Google', facebook: 'Facebook' };
+
+    // Avant de partir chez Google/Facebook, on demande à Supabase si le fournisseur est activé :
+    // sinon le visiteur atterrirait sur une page d'erreur brute (« Unsupported provider »).
+    async function providerEnabled(provider) {
         try {
-            const { error } = await window.supabase.auth.signInWithOAuth({
-                provider,
-                options: { redirectTo: window.location.origin + '/' }
-            });
-            if (error) throw error;
+            const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY } });
+            if (!res.ok) return null;
+            const external = (await res.json()).external || {};
+            return external[provider] === true;
         } catch (e) {
-            console.error('❌ OAuth', provider, e);
-            const name = provider === 'google' ? 'Google' : 'Facebook';
-            alert(/not enabled|unsupported provider/i.test(e?.message || '')
-                ? `La connexion avec ${name} n'est pas encore activée. Utilise ton email pour l'instant.`
-                : `Connexion avec ${name} impossible pour le moment.\n\nDétail : ${e?.message || e}`);
+            return null;   // inconnu : on tente quand même
         }
     }
- 
+
+    async function signInWithProvider(provider) {
+        const name = PROVIDER_NAMES[provider] || provider;
+        try {
+            if (await providerEnabled(provider) === false) {
+                console.error(`❌ OAuth ${provider} désactivé dans Supabase → Authentication → Sign In / Providers`);
+                alert(`La connexion avec ${name} n'est pas encore activée sur Ouenze. Utilise ton email pour l'instant.`);
+                return;
+            }
+            const { data, error } = await window.supabase.auth.signInWithOAuth({
+                provider,
+                options: { redirectTo: window.location.origin + '/', skipBrowserRedirect: true }
+            });
+            if (error) throw error;
+            window.location.assign(data.url);
+        } catch (e) {
+            console.error('❌ OAuth', provider, e);
+            alert(`Connexion avec ${name} impossible pour le moment.\n\nDétail : ${e?.message || e}`);
+        }
+    }
+
+    // Retour de Google/Facebook avec une erreur : Supabase la met dans l'adresse (?error=… ou #error=…)
+    function handleOAuthReturnError() {
+        const params = new URLSearchParams(window.location.search);
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const code = params.get('error') || hash.get('error');
+        if (!code) return;
+        const detail = params.get('error_description') || hash.get('error_description') || code;
+        console.error('❌ Retour OAuth :', code, detail);
+        let message = 'La connexion avec Google ou Facebook a échoué.';
+        if (/access_denied/i.test(code)) message = 'Connexion annulée.';
+        else if (/database error saving new user/i.test(detail)) message = 'Ton compte n\'a pas pu être créé (erreur de la base de données). Réessaie avec ton email.';
+        else if (/email/i.test(detail) && /(not|no).*(provided|found)|missing/i.test(detail)) message = 'Facebook n\'a pas transmis ton adresse email. Autorise l\'accès à l\'email ou utilise ton email pour t\'inscrire.';
+        alert(`${message}\n\nDétail : ${detail}`);
+        ['error', 'error_code', 'error_description'].forEach(k => params.delete(k));
+        const q = params.toString();
+        history.replaceState(null, '', window.location.pathname + (q ? '?' + q : ''));
+    }
+
     // Compte créé via Google/Facebook : il manque le pays, le téléphone et le type de compte
     function needsProfileCompletion(user) {
         const provider = user?.app_metadata?.provider;
