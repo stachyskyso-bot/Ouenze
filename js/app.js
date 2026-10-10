@@ -1611,6 +1611,11 @@
             </button>`);
     }
  
+    const ORDER_LABELS = {
+        pending: 'attend le vendeur', accepted: 'acceptée', courier_assigned: 'livreur en route', picked_up: 'récupérée',
+        in_transit: 'en livraison', delivered: 'livrée', refused: 'refusée par le vendeur', cancelled: 'annulée'
+    };
+
     async function showMyOrders() {
         if (!currentUser) {
             openLoginModal();
@@ -1626,12 +1631,12 @@
             ${orders && orders.length ? orders.map(o => `
                 <div style="padding:10px 0;border-bottom:1px solid var(--gray-200);">
                     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
-                        <span><strong>#${escapeHtml(String(o.id).slice(0, 8))}</strong> — ${escapeHtml(o.status === 'delivered' ? 'livrée' : o.status || 'en attente')}</span>
+                        <span><strong>${escapeHtml(o.order_number || '#' + String(o.id).slice(0, 8))}</strong> — ${escapeHtml(ORDER_LABELS[o.status] || o.status || 'en attente')}${o.payment_status === 'test' ? ' (test)' : ''}</span>
                         ${o.status === 'delivered' ? `<button class="rate-btn" onclick="openRateOrder('${escapeHtml(o.id)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
                     </div>
                     <small style="color:var(--gray-500);">
                         ${o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR') : ''}
-                        ${o.total_amount != null ? ' · ' + formatPrice(o.total_amount) + ' FCFA' : ''}
+                        ${(o.total ?? o.total_amount) != null ? ' · ' + formatPrice(o.total ?? o.total_amount) + ' FCFA' : ''}
                     </small>
                 </div>`).join('') : '<p style="color:var(--gray-500);">Aucune commande pour le moment.</p>'}`);
     }

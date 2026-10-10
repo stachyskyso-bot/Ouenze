@@ -17,6 +17,8 @@
     let dashUser = null;
     let dashShops = [];
     let medalInfo = {};
+    let vendorOrders = [];      // commandes reçues (vendor_orders)
+    let ordersTab = 'todo';
     let pendingTransfers = {};   // shop_id → transfert en attente
  
     // ============ UTILITAIRES ============
@@ -138,6 +140,12 @@
             const { data: medals, error: mError } = await window.supabase.rpc('shop_medals');
             if (!mError) (medals || []).forEach(m => { medalInfo[m.shop_id] = m; });
         } catch (e) { /* migration pas encore passée */ }
+        // Commandes reçues (migration 20261017) ; table absente = section masquée
+        vendorOrders = null;
+        try {
+            const { data: ord, error: oError } = await window.supabase.rpc('vendor_orders');
+            if (!oError) vendorOrders = ord || [];
+        } catch (e) { /* migration pas encore passée */ }
         console.log(`✅ vd.js : ${dashUser.email} — ${dashShops.length} boutique(s)`);
         return true;
     }
@@ -163,6 +171,8 @@
                 <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
             </div>
  
+            <section id="commandes" class="vo-section">${ordersHtml()}</section>
+
             <h2 style="font-size:20px;margin-bottom:20px;">Mes boutiques (${dashShops.length})</h2>
  
             ${dashShops.length === 0 ? `
@@ -371,6 +381,86 @@
         return { error: message };
     }
  
+    // ============ COMMANDES REÇUES ============
+    const ORDER_STATUS = {
+        pending: ['À accepter', 'wait'], accepted: ['Acceptée — à préparer', 'info'], courier_assigned: ['Livreur en route', 'info'],
+        picked_up: ['Récupérée', 'info'], in_transit: ['En livraison', 'info'], delivered: ['Livrée', 'ok'],
+        refused: ['Refusée', 'ko'], cancelled: ['Annulée par le client', 'ko']
+    };
+
+    function ordersHtml() {
+        if (vendorOrders === null) return '';
+        const todo = vendorOrders.filter(o => o.status === 'pending');
+        const active = vendorOrders.filter(o => ['accepted', 'courier_assigned', 'picked_up', 'in_transit'].includes(o.status));
+        const done = vendorOrders.filter(o => ['delivered', 'refused', 'cancelled'].includes(o.status));
+        const lists = { todo, active, done };
+        const list = lists[ordersTab] || todo;
+        return `
+            <div class="vo-head">
+                <h2><i class="fas fa-receipt"></i> Commandes</h2>
+                ${todo.length ? `<span class="vo-alert">${todo.length} à accepter</span>` : ''}
+            </div>
+            <div class="vo-tabs" role="tablist">
+                ${[['todo', 'À accepter', todo.length], ['active', 'En cours', active.length], ['done', 'Terminées', done.length]].map(([k, l, n]) =>
+                    `<button class="${ordersTab === k ? 'active' : ''}" onclick="voTab('${k}')">${l} <span>${n}</span></button>`).join('')}
+            </div>
+            ${list.length ? list.map(orderCardHtml).join('') : `<p class="vo-empty">${{ todo: 'Aucune commande à accepter pour l\'instant. Tu reçois un email à chaque nouvelle commande.', active: 'Aucune commande en cours.', done: 'Aucune commande terminée.' }[ordersTab]}</p>`}`;
+    }
+
+    function orderCardHtml(o) {
+        const st = ORDER_STATUS[o.status] || [o.status, 'info'];
+        const items = Array.isArray(o.items) ? o.items : [];
+        const rate = Number(o.commission_rate) || 0.22;
+        const net = Math.round(Number(o.subtotal) * (1 - rate));
+        const id = escapeHtml(o.order_id);
+        const where = [o.district, o.city].filter(Boolean).join(', ');
+        return `
+            <div class="vo-card ${o.status === 'pending' ? 'vo-todo' : ''}">
+                <div class="vo-card-head">
+                    <div><strong>${escapeHtml(o.order_number || String(o.order_id).slice(0, 8))}</strong>
+                        <small>${escapeHtml(o.shop_name)} · ${new Date(o.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></div>
+                    <span class="vo-badge ${st[1]}">${st[0]}</span>
+                </div>
+                ${o.payment_status === 'test' ? '<p class="vo-test">Commande de TEST : rien n\'a été payé, ne rien expédier.</p>' : ''}
+                <ul class="vo-items">${items.map(i => `<li><span>${i.quantity} × ${escapeHtml(i.name)}${i.variant ? ` <small>(${escapeHtml(i.variant)})</small>` : ''}</span><span>${formatNumber(i.total)} FCFA</span></li>`).join('')}</ul>
+                <div class="vo-money"><span>Total articles <strong>${formatNumber(o.subtotal)} FCFA</strong></span><span>Tu reçois <strong>${formatNumber(net)} FCFA</strong> <small>(commission ${(rate * 100).toLocaleString('fr-FR')} %)</small></span></div>
+                <p class="vo-client"><i class="fas fa-user"></i> ${escapeHtml(o.client_name)}${where ? ` · <i class="fas fa-map-marker-alt"></i> ${escapeHtml(where)}` : ''}${o.client_phone ? ` · <a href="tel:${escapeHtml(o.client_phone)}"><i class="fas fa-phone"></i> ${escapeHtml(o.client_phone)}</a>` : ''}</p>
+                ${o.landmark && o.status !== 'pending' ? `<p class="vo-client"><i class="fas fa-flag"></i> ${escapeHtml(o.landmark)}</p>` : ''}
+                ${o.status === 'refused' && o.notes ? `<p class="vo-client">Motif du refus : ${escapeHtml(o.notes)}</p>` : ''}
+                <div class="vo-actions">
+                    ${o.status === 'pending' ? `
+                        <button class="btn-sm btn-success" onclick="voDecide('${id}', 'accept')"><i class="fas fa-check"></i> Accepter</button>
+                        <button class="btn-sm btn-outline" onclick="voDecide('${id}', 'refuse')"><i class="fas fa-times"></i> Refuser</button>` : ''}
+                    ${o.status === 'accepted' && o.payment_status === 'test' ? `<button class="btn-sm btn-outline" onclick="voDecide('${id}', 'delivered')"><i class="fas fa-box"></i> Marquer comme livrée (test)</button>` : ''}
+                </div>
+            </div>`;
+    }
+
+    function voTab(t) {
+        ordersTab = t;
+        const sec = document.getElementById('commandes');
+        if (sec) sec.innerHTML = ordersHtml();
+    }
+
+    async function voDecide(orderId, decision) {
+        const o = (vendorOrders || []).find(x => x.order_id === orderId);
+        if (!o) return;
+        let reason = null;
+        if (decision === 'refuse') {
+            reason = prompt('Pourquoi refuses-tu cette commande ? (le client verra le motif)', 'Produit en rupture de stock');
+            if (reason === null) return;
+        } else if (decision === 'accept') {
+            if (!confirm(`Accepter la commande ${o.order_number} ? Prépare les articles : un livreur va venir les récupérer.`)) return;
+        } else if (!confirm('Marquer cette commande de test comme livrée ? Elle apparaîtra dans ta comptabilité et le client pourra la noter.')) return;
+        const { error } = await window.supabase.rpc('vendor_order_decision', { target_order: orderId, decision, reason });
+        if (error) { alert(error.message || 'Action impossible.'); return; }
+        // Email au client (n'empêche pas la décision s'il échoue)
+        try { await window.supabase.functions.invoke('order-notify', { body: { action: 'decision', order_id: orderId } }); } catch (e) { /* email non envoyé */ }
+        const { data } = await window.supabase.rpc('vendor_orders');
+        vendorOrders = data || vendorOrders;
+        voTab(decision === 'accept' ? 'active' : 'done');
+    }
+
     // ============ PROGRAMME MÉDAILLES ============
     function medalCardHtml(shop) {
         const M = window.OuenzeMedals;
@@ -741,6 +831,8 @@
             if (nameEl) nameEl.textContent = name;
  
             showDashboard();
+            // Lien de l'email « Nouvelle commande » : vendor-dashboard.html#commandes
+            if (location.hash === '#commandes') document.getElementById('commandes')?.scrollIntoView({ behavior: 'smooth' });
         } catch (e) {
             console.error('❌ vd.js:', e);
             setMessage('<p>Une erreur inattendue est survenue.</p><button class="btn-sm btn-primary" onclick="location.reload()">Réessayer</button>');
@@ -749,7 +841,7 @@
  
     Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink,
         openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop,
-        openListing, listingCalc, submitListing });
+        openListing, listingCalc, submitListing, voTab, voDecide });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

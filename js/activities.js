@@ -19,7 +19,7 @@
     const box = () => document.getElementById('activitiesContainer');
 
     const ORDER_STATUS = {
-        pending: ['En attente', 'wait'], awaiting_payment: ['Paiement en attente', 'wait'], paid: ['Payée', 'info'],
+        pending: ['Attend le vendeur', 'wait'], awaiting_payment: ['Paiement en attente', 'wait'], paid: ['Payée', 'info'],
         confirmed: ['Confirmée', 'info'], accepted: ['Acceptée par le vendeur', 'info'], preparing: ['En préparation', 'info'],
         courier_assigned: ['Livreur en route', 'info'], picked_up: ['Récupérée', 'info'], in_transit: ['En livraison', 'info'],
         delivered: ['Livrée', 'ok'], cancelled: ['Annulée', 'ko'], refused: ['Refusée', 'ko'], refunded: ['Remboursée', 'ko']
@@ -38,10 +38,11 @@
             const cancelled = ['cancelled', 'refused', 'refunded'].includes(o.status);
             return {
                 type: 'buy', icon: 'fa-shopping-bag', date: o.created_at,
-                title: names || `Commande n° ${String(o.id).slice(0, 8)}`,
-                sub: `Commande n° ${String(o.id).slice(0, 8)}`,
+                title: names || o.order_number || `Commande n° ${String(o.id).slice(0, 8)}`,
+                sub: `${o.order_number || 'Commande n° ' + String(o.id).slice(0, 8)}${o.payment_status === 'test' ? ' · test' : ''}`,
                 amount: total, sign: -1, counts: !cancelled, status,
                 rateOrder: o.status === 'delivered' ? o.id : null,
+                cancelOrder: o.status === 'pending' ? o.id : null,
                 link: o.status === 'delivered' || cancelled ? null : `tracking.html?order=${encodeURIComponent(o.id)}`
             };
         });
@@ -102,15 +103,18 @@
 
     function itemHtml(i) {
         const iconClass = { buy: 'buy', sale: 'sale', invest: 'invest' }[i.type] || (i.icon === 'fa-motorcycle' ? 'courier' : 'market');
-        const inner = `
+        // Seul le titre est un lien : les boutons (Noter, Annuler) restent indépendants
+        const title = i.link ? `<a class="inv-item-link" href="${esc(i.link)}">${esc(i.title)}</a>` : esc(i.title);
+        return `<li class="inv-item">
             <span class="inv-item-icon ${iconClass}"><i class="fas ${i.icon}"></i></span>
-            <div class="inv-item-text"><strong>${esc(i.title)}</strong><small>${I.frDate(i.date)} · ${esc(i.sub)}</small></div>
+            <div class="inv-item-text"><strong>${title}</strong><small>${I.frDate(i.date)} · ${esc(i.sub)}</small></div>
             <div class="inv-item-side">
                 ${i.amount != null ? `<strong class="${i.sign > 0 ? 'inv-pos' : ''}">${i.sign > 0 ? '+' : '−'}${fcfa(i.amount)}</strong>` : ''}
                 <span class="inv-badge ${i.status[1]}">${esc(i.status[0])}</span>
                 ${i.rateOrder ? `<button class="inv-link-btn" onclick="openRateOrder('${esc(i.rateOrder)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
-            </div>`;
-        return `<li class="inv-item">${i.link ? `<a class="inv-item-link" href="${esc(i.link)}" style="display:contents;">${inner}</a>` : inner}</li>`;
+                ${i.cancelOrder ? `<button class="inv-link-btn" onclick="actCancel('${esc(i.cancelOrder)}')">Annuler</button>` : ''}
+            </div>
+        </li>`;
     }
 
     function render() {
@@ -186,6 +190,14 @@
         });
     }
 
+    async function actCancel(orderId) {
+        if (!confirm('Annuler cette commande ? Le vendeur ne l\'a pas encore acceptée.')) return;
+        const { error } = await window.supabase.rpc('cancel_my_order', { target_order: orderId });
+        if (error) { alert(error.message || 'Annulation impossible.'); return; }
+        await load();
+        render();
+    }
+
     function actFilter(f) {
         state.filter = FILTERS[f] ? f : 'all';
         render();
@@ -225,6 +237,7 @@
     }
 
     window.actFilter = actFilter;
+    window.actCancel = actCancel;
     window.OuenzeActivities = { fromOrders, fromSales, fromShares, summary, lastMonths };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

@@ -805,3 +805,30 @@
     .trk-pin.courier { animation: none; }
     .trk-progress-bar { transition: none; }
 }
+
+/* ---------- Commande envoyée ---------- */
+.co-test-badge {
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.co-done-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px auto;
+    max-width: 420px;
+    text-align: left;
+}
+
+.co-done-list li {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 8px 0;
+    font-size: 14px;
+}

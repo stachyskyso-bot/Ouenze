@@ -152,39 +152,8 @@ async function getProducts(shopId, filters = {}) {
 // COMMANDES
 // ============================================================
 
-async function createOrder(orderData, items) {
-    const { data: order, error: orderError } = await window.supabase
-        .from('orders')
-        .insert([{
-            client_id: orderData.client_id,
-            total: orderData.total,
-            delivery_fees: orderData.delivery_fees || 0,
-            status: orderData.status || 'confirmed',
-            payment_method: orderData.payment_method,
-            delivery_info: orderData.delivery_info,
-            tracking_step: 1
-        }])
-        .select()
-        .single();
-    if (orderError) throw orderError;
-    
-    const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id || null,
-        shop_id: item.shop_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        variant_name: item.variant_name || null
-    }));
-    
-    const { error: itemsError } = await window.supabase
-        .from('order_items')
-        .insert(orderItems);
-    if (itemsError) throw itemsError;
-    
-    return order;
-}
+// Les commandes sont créées par la base : rpc('place_order') (prix recalculés côté serveur,
+// une commande par boutique) — voir supabase/migrations/20261017_orders.sql et js/checkout.js.
 
 async function getUserOrders(userId) {
     const { data, error } = await window.supabase
@@ -270,7 +239,6 @@ window.getShops = getShops;
 window.getShopById = getShopById;
 window.createShop = createShop;
 window.getProducts = getProducts;
-window.createOrder = createOrder;
 window.getUserOrders = getUserOrders;
 window.getShopSalesCount = getShopSalesCount;
 window.getShopsSalesCount = getShopsSalesCount;
