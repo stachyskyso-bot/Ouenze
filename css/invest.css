@@ -445,6 +445,10 @@
     text-decoration: none;
 }
 
+.inv-item a.inv-item-link:hover {
+    text-decoration: underline;
+}
+
 .inv-badge {
     display: inline-block;
     font-size: 11px;

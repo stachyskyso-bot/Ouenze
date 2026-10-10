@@ -1014,7 +1014,7 @@ function isDuplicateNameError(error) {
 }
  
 // ============ PUBLICATION ============
-async function publishShop() {
+async function publishShopNow() {
     console.log('🚀 Publication...');
     
     const name = document.getElementById('shopNameInput').value.trim();
@@ -1136,7 +1136,7 @@ async function publishShop() {
 }
 
 // ============ MISE À JOUR ============
-async function updateShop() {
+async function updateShopNow() {
     if (!editingShopId) { alert("Erreur"); return; }
     const name = document.getElementById('shopNameInput').value.trim();
     if (!name) { alert("Nom requis"); return; }
@@ -1381,6 +1381,26 @@ window.removeVariantPhoto = removeVariantPhoto;
 window.toggleFood = toggleFood;
 window.toggleHomemade = toggleHomemade;
 window.updatePreview = updatePreview;
+// Un seul envoi à la fois : un double clic créait deux boutiques identiques
+function oneAtATime(task, buttonId, busyLabel) {
+    let running = false;
+    return async function () {
+        if (running) return;
+        running = true;
+        const btn = document.getElementById(buttonId);
+        const label = btn?.innerHTML;
+        if (btn) { btn.disabled = true; btn.textContent = busyLabel; }
+        try {
+            await task();
+        } finally {
+            running = false;
+            if (btn) { btn.disabled = false; btn.innerHTML = label; }
+        }
+    };
+}
+const publishShop = oneAtATime(publishShopNow, 'publishBtn', 'Publication…');
+const updateShop = oneAtATime(updateShopNow, 'updateBtn', 'Enregistrement…');
+
 window.publishShop = publishShop;
 window.updateShop = updateShop;
 

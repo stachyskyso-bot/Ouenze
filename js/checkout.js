@@ -5,7 +5,8 @@
 // 2. Livraison : recherche d'adresse sur la carte ou « Ma position », repères, téléphone
 //    (quartier, rue, ville et pays sont déduits de la carte, modifiables)
 // 3. Paiement + récapitulatif : Mobile Money (réseaux locaux) ou PayPal — jamais de carte
-//    en physique — puis paiement via l'Edge Function « create-order » (pawaPay)
+//    en physique — puis commande via place_order() et emails via « order-notify »
+//    (pawaPay sera branché avant le passage en mode « live »)
 //
 // Le navigateur n'envoie que des identifiants et des quantités : les prix,
 // les frais et le total sont recalculés côté serveur.
@@ -539,37 +540,46 @@
                 country: F().COUNTRIES[delivery.countryCode].name, city: delivery.city, district: delivery.district,
                 street: delivery.street, landmark: delivery.landmark, phone: delivery.phone
             },
-            payment: { method: payment.method, operator: payment.method === 'mobile_money' ? payment.operator : null, phone: payment.method === 'mobile_money' ? payment.phone : null },
-            client_total: totals().total   // contrôle seulement : le serveur recalcule
+            payment: { method: payment.method, operator: payment.method === 'mobile_money' ? payment.operator : null, phone: payment.method === 'mobile_money' ? payment.phone : null }
         };
     }
 
+    // Commande créée par la base (place_order : prix recalculés, une commande par boutique),
+    // puis emails au vendeur et au client (Edge Function « order-notify »).
+    // Mode test : commande sans paiement réservée aux admins, marquée TEST partout.
     async function coSubmit() {
         if (!readPayment()) return;
         if (!document.getElementById('coTerms')?.checked) return setError('Coche « J\'accepte les conditions de vente » pour payer.', 'coTerms');
         const btn = document.getElementById('coPay');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion…';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi…';
         setError('');
-        const { data, error } = await window.supabase.functions.invoke('create-order', { body: orderPayload() });
-        if (error || !data?.ok) {
+        const body = orderPayload();
+        const { data, error } = await window.supabase.rpc('place_order', { items: body.items, delivery: body.delivery, payment: body.payment });
+        if (error || !data?.orders?.length) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-lock"></i> Payer';
-            let message = '';
-            try { message = (await error?.context?.json())?.error || ''; } catch (e) { /* réponse non JSON */ }
-            if (!message || /not found|failed to send|FunctionsFetchError|FunctionsHttpError/i.test(String(error?.name || error?.message || ''))) {
-                message = 'Le paiement en ligne (pawaPay) est en cours d\'activation. Ta commande n\'a pas été passée et rien n\'a été débité : ton panier est conservé.';
-            }
-            return setError(message);
+            const missing = /function|Could not find|does not exist/i.test(error?.message || '');
+            return setError(missing
+                ? 'Le paiement en ligne (pawaPay) est en cours d\'activation. Ta commande n\'a pas été passée et rien n\'a été débité : ton panier est conservé.'
+                : (error?.message || 'Commande impossible pour le moment. Ton panier est conservé.'));
         }
-        // Mobile Money : confirmation sur le téléphone ; PayPal : redirection
-        if (data.redirect_url) { window.location.href = data.redirect_url; return; }
         cart = [];
         saveCart();
-        box().innerHTML = `<div class="dl-status ok"><i class="fas fa-mobile-alt"></i>
-            <h3>Confirme le paiement sur ton téléphone</h3>
-            <p>Une demande de ${fcfa(data.total)} a été envoyée au ${esc(payment.phone)}. Tape ton code secret Mobile Money pour valider.</p>
-            <a class="btn-submit" href="tracking.html?order=${encodeURIComponent(data.order_id)}">Suivre ma commande</a></div>`;
+        // Les emails ne bloquent pas la commande : si l'envoi échoue, elle est quand même passée
+        let mailed = true;
+        try {
+            const res = await window.supabase.functions.invoke('order-notify', { body: { action: 'placed', order_ids: data.orders.map(o => o.order_id) } });
+            mailed = !res.error;
+        } catch (e) { mailed = false; }
+        const test = data.mode !== 'live';
+        box().innerHTML = `<div class="dl-status ok"><i class="fas fa-check-circle"></i>
+            <h3>Commande envoyée${data.orders.length > 1 ? ` à ${data.orders.length} boutiques` : ''} !</h3>
+            ${test ? '<p class="co-test-badge">Commande de TEST : rien n\'est débité, le vendeur ne doit rien expédier.</p>' : ''}
+            <ul class="co-done-list">${data.orders.map(o => `<li><strong>${esc(o.shop_name)}</strong> — ${esc(o.order_number)}<span>${fcfa(o.total)}</span></li>`).join('')}</ul>
+            <p>Total : <strong>${fcfa(data.total)}</strong>. Chaque vendeur doit maintenant <strong>accepter</strong> sa commande${mailed ? ' : tu reçois un email à chaque étape' : ''}.</p>
+            <a class="btn-submit" href="activities.html">Suivre mes commandes</a></div>`;
+        window.scrollTo(0, 0);
     }
 
     // ============ DÉMARRAGE ============
