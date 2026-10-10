@@ -41,6 +41,7 @@
                 title: names || `Commande n° ${String(o.id).slice(0, 8)}`,
                 sub: `Commande n° ${String(o.id).slice(0, 8)}`,
                 amount: total, sign: -1, counts: !cancelled, status,
+                rateOrder: o.status === 'delivered' ? o.id : null,
                 link: o.status === 'delivered' || cancelled ? null : `tracking.html?order=${encodeURIComponent(o.id)}`
             };
         });
@@ -107,6 +108,7 @@
             <div class="inv-item-side">
                 ${i.amount != null ? `<strong class="${i.sign > 0 ? 'inv-pos' : ''}">${i.sign > 0 ? '+' : '−'}${fcfa(i.amount)}</strong>` : ''}
                 <span class="inv-badge ${i.status[1]}">${esc(i.status[0])}</span>
+                ${i.rateOrder ? `<button class="inv-link-btn" onclick="openRateOrder('${esc(i.rateOrder)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
             </div>`;
         return `<li class="inv-item">${i.link ? `<a class="inv-item-link" href="${esc(i.link)}" style="display:contents;">${inner}</a>` : inner}</li>`;
     }

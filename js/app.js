@@ -790,7 +790,9 @@
                         <h3 id="shopProductsTitle" style="margin:0 0 12px;color:${d.productText};">Produits (${currentShopProducts.length})</h3>
                         <div id="shopProductsGrid"></div>
                     </div>
-                </div>`;
+                </div>
+                <section class="shop-reviews" id="shopReviews" aria-label="Avis clients"></section>`;
+            loadShopReviews(shop);
             currentShopCategoryFilter = '';
             renderShopProducts(currentShopProducts);
             startCarousel(carouselItems.length, d.carouselSpeed);
@@ -1623,7 +1625,10 @@
             <h3 style="margin-bottom:20px;">Mes commandes</h3>
             ${orders && orders.length ? orders.map(o => `
                 <div style="padding:10px 0;border-bottom:1px solid var(--gray-200);">
-                    <div><strong>#${escapeHtml(String(o.id).slice(0, 8))}</strong> — ${escapeHtml(o.status || 'en attente')}</div>
+                    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+                        <span><strong>#${escapeHtml(String(o.id).slice(0, 8))}</strong> — ${escapeHtml(o.status === 'delivered' ? 'livrée' : o.status || 'en attente')}</span>
+                        ${o.status === 'delivered' ? `<button class="rate-btn" onclick="openRateOrder('${escapeHtml(o.id)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
+                    </div>
                     <small style="color:var(--gray-500);">
                         ${o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR') : ''}
                         ${o.total_amount != null ? ' · ' + formatPrice(o.total_amount) + ' FCFA' : ''}
@@ -1631,6 +1636,107 @@
                 </div>`).join('') : '<p style="color:var(--gray-500);">Aucune commande pour le moment.</p>'}`);
     }
  
+    // ============ NOTES : BOUTIQUE ET LIVREUR APRÈS LIVRAISON ============
+    const STAR_LABELS = ['', 'Très mauvais', 'Mauvais', 'Correct', 'Bien', 'Excellent'];
+
+    function starPicker(name, value) {
+        return `<div class="star-picker" role="radiogroup" data-name="${name}">
+            ${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="${value === n}" aria-label="${n} étoile${n > 1 ? 's' : ''} : ${STAR_LABELS[n]}"
+                class="${value >= n ? 'on' : ''}" onclick="pickStar('${name}', ${n})">★</button>`).join('')}
+            <span class="star-label" id="lbl-${name}">${value ? STAR_LABELS[value] : 'Touche une étoile'}</span>
+        </div>`;
+    }
+
+    function pickStar(name, n) {
+        const box = document.querySelector(`.star-picker[data-name="${name}"]`);
+        if (!box) return;
+        box.dataset.value = n;
+        box.querySelectorAll('button').forEach((b, i) => { b.classList.toggle('on', i < n); b.setAttribute('aria-checked', String(i + 1 === n)); });
+        document.getElementById('lbl-' + name).textContent = STAR_LABELS[n];
+        showFormError('rateError', '');
+    }
+
+    async function openRateOrder(orderId) {
+        const { data, error } = await window.supabase.rpc('order_review_status', { target_order: orderId });
+        if (error || !data) {
+            alert(/function|Could not find/i.test(error?.message || '') ? 'Les avis seront bientôt disponibles.' : (error?.message || 'Impossible de charger la commande.'));
+            return;
+        }
+        if (!data.delivered) { alert('Tu pourras noter dès que la commande sera livrée.'); return; }
+        const shops = data.shops || [];
+        const todo = shops.filter(s => !s.rated);
+        const courierTodo = data.courier && !data.courier_rated;
+        const done = s => `<p class="rate-done">${escapeHtml(s.name)} : ${'★'.repeat(s.stars)}${'☆'.repeat(5 - s.stars)} — merci !</p>`;
+        const modal = openModal(`
+            <h3 style="margin-bottom:4px;">Note ta commande</h3>
+            <p class="auth-sub">Ton avis aide les autres clients et récompense les meilleurs vendeurs et livreurs.</p>
+            ${shops.filter(s => s.rated).map(done).join('')}
+            ${data.courier_rated ? `<p class="rate-done">Livreur : ${'★'.repeat(data.courier_stars)}${'☆'.repeat(5 - data.courier_stars)} — merci !</p>` : ''}
+            ${todo.map((s, i) => `
+                <div class="rate-block">
+                    <strong><i class="fas fa-store"></i> ${escapeHtml(s.name)}</strong>
+                    ${starPicker('shop' + i, 0)}
+                    <textarea id="shopComment${i}" rows="2" maxlength="500" placeholder="Décris ton expérience : qualité, conformité, emballage…" data-shop="${escapeHtml(s.shop_id)}"></textarea>
+                </div>`).join('')}
+            ${courierTodo ? `
+                <div class="rate-block">
+                    <strong><i class="fas fa-motorcycle"></i> Le livreur</strong>
+                    ${starPicker('courier', 0)}
+                    <textarea id="courierComment" rows="2" maxlength="500" placeholder="Ponctualité, politesse, état du colis…"></textarea>
+                </div>` : ''}
+            ${!data.courier && todo.length ? '<p class="auth-note">La note du livreur sera possible quand les livraisons seront suivies en direct.</p>' : ''}
+            <div class="form-error" id="rateError" role="alert"></div>
+            ${todo.length || courierTodo
+                ? `<button class="btn-submit" id="rateSubmit" onclick="submitRating('${escapeHtml(orderId)}', ${todo.length})">Envoyer ma note</button>`
+                : '<p class="auth-note">Tout est noté pour cette commande. Merci !</p>'}`);
+        modal.classList.add('auth-modal');
+    }
+
+    async function submitRating(orderId, shopCount) {
+        const val = name => Number(document.querySelector(`.star-picker[data-name="${name}"]`)?.dataset.value) || null;
+        const shopRatings = [];
+        for (let i = 0; i < shopCount; i++) {
+            const stars = val('shop' + i);
+            const ta = document.getElementById('shopComment' + i);
+            if (stars) shopRatings.push({ shop_id: ta.dataset.shop, stars, comment: ta.value.trim() || null });
+        }
+        const courierStars = val('courier');
+        if (!shopRatings.length && !courierStars) return showFormError('rateError', 'Choisis au moins une note en touchant les étoiles.');
+        const btn = document.getElementById('rateSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Envoi…';
+        const { error } = await window.supabase.rpc('rate_order', {
+            target_order: orderId, shop_ratings: shopRatings,
+            courier_stars: courierStars, courier_comment: document.getElementById('courierComment')?.value.trim() || null
+        });
+        if (error) {
+            btn.disabled = false;
+            btn.textContent = 'Envoyer ma note';
+            return showFormError('rateError', error.message || 'Envoi impossible, réessaie.');
+        }
+        closeModal();
+        showToast('Merci pour ton avis !');
+        document.dispatchEvent(new CustomEvent('ouenze:rated', { detail: { orderId } }));
+    }
+
+    async function loadShopReviews(shop) {
+        const el = document.getElementById('shopReviews');
+        if (!el) return;
+        const { data, error } = await window.supabase.rpc('shop_reviews_public', { target_shop: shop.id, max_rows: 10 });
+        if (error || !data?.length) {
+            el.innerHTML = `<h3>Avis clients</h3><p class="reviews-none">Pas encore d'avis : les clients notent la boutique après chaque livraison.</p>`;
+            return;
+        }
+        el.innerHTML = `
+            <h3>Avis clients <span>⭐ ${Number(shop.rating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5 · ${shop.total_ratings || data.length} avis</span></h3>
+            <ul>${data.map(r => `
+                <li>
+                    <div><span class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</span>
+                        <strong>${escapeHtml(r.author)}</strong> <small>${new Date(r.created_at).toLocaleDateString('fr-FR')}</small></div>
+                    ${r.comment ? `<p>${escapeHtml(r.comment)}</p>` : ''}
+                </li>`).join('')}</ul>`;
+    }
+
     // ============ NAVIGATION / RECHERCHE ============
     function resetToHome() {
         showHomePage();
@@ -1693,6 +1799,9 @@
         doLogin,
         doSignUp,
         logout,
+        openRateOrder,
+        pickStar,
+        submitRating,
         requestPasswordReset,
         showHomePage,
         resetToHome,
