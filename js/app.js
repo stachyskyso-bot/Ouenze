@@ -124,12 +124,23 @@
         return stars;
     }
  
+    // Médaille calculée par la base (shop_medals) ; à défaut, mêmes règles côté navigateur
+    let shopMedals = {};
+    const MEDAL_CLASS = { gold: 'level-gold', silver: 'level-silver', bronze: 'level-bronze', standard: '' };
+
     function getShopLevel(shop) {
-        const rating = shop.rating || 0;
-        if (rating >= 4.5) return { name: 'Or', class: 'level-gold' };
-        if (rating >= 4) return { name: 'Argent', class: 'level-silver' };
-        if (rating >= 3) return { name: 'Bronze', class: 'level-bronze' };
-        return { name: 'Standard', class: '' };
+        const M = window.OuenzeMedals;
+        const tier = shopMedals[shop.id]
+            ? M.get(shopMedals[shop.id])
+            : M.compute(shop.rating, shop.real_sales_count ?? shop.total_sales, shop.is_verified);
+        return { id: tier.id, rank: tier.rank, name: tier.name, emoji: tier.emoji, class: MEDAL_CLASS[tier.id] };
+    }
+
+    async function loadShopMedals() {
+        try {
+            const { data, error } = await window.supabase.rpc('shop_medals');
+            if (!error && Array.isArray(data)) shopMedals = Object.fromEntries(data.map(m => [m.shop_id, m.medal]));
+        } catch (e) { /* migration pas encore passée : règles locales */ }
     }
  
     function loadCart() {
@@ -509,6 +520,7 @@
             if (error) throw error;
  
             shopsCache = data || [];
+            await loadShopMedals();
             renderShops();
         } catch (error) {
             console.error('❌ Erreur boutiques:', error);
@@ -541,8 +553,9 @@
                 (s.description || '').toLowerCase().includes(q));
         }
  
+        // « Les mieux notées » : Or d'abord, puis Argent, Bronze (avantage des médailles), puis la note
         const sorters = {
-            rating: (a, b) => (b.rating || 0) - (a.rating || 0),
+            rating: (a, b) => (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)),
             sales: (a, b) => (b.total_sales || 0) - (a.total_sales || 0),
             products: (a, b) => productCountOf(b) - productCountOf(a)
         };
@@ -577,7 +590,7 @@
                             <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
                         </div>
                         <div style="margin-top:6px;">
-                            <span class="level-badge ${level.class}"><i class="fas fa-crown"></i> ${level.name}</span>
+                            <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span>
                         </div>
                     </div>
                     <div class="shop-details">

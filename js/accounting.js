@@ -27,6 +27,7 @@
         '622': 'Loyer',
         '627': 'Publicité',
         '628': 'Téléphone et internet',
+        '632': 'Commissions Ouenze',
         '631': 'Frais bancaires et Mobile Money',
         '641': 'Impôts et taxes',
         '658': 'Autres charges',
@@ -69,7 +70,8 @@
         shopId: 'all',
         period: 'month',
         tab: 'dashboard',
-        tableMissing: false
+        tableMissing: false,
+        medals: {}      // médaille de chaque boutique (shop_medals)
     };
     const charts = {};
 
@@ -108,7 +110,12 @@
     }
 
     // ============ OPÉRATIONS → ÉCRITURES ============
-    // Une vente Ouenze = une commande livrée (toutes les lignes de la boutique regroupées)
+    // Une vente Ouenze = une commande livrée (toutes les lignes de la boutique regroupées).
+    // La commission Ouenze dépend de la médaille de la boutique (taux actuel).
+    function commissionRate(shopId) {
+        return window.OuenzeMedals?.get(state.medals[shopId] || 'standard').commission ?? 0.22;
+    }
+
     function salesOperations(sales) {
         const byOrder = new Map();
         sales.forEach(l => {
@@ -121,12 +128,21 @@
             op.amount += qty * (Number(l.unit_price) || 0);
             op.items.push(`${l.product_name} ×${qty}`);
         });
-        return [...byOrder.values()].map(op => ({
-            ...op,
-            kind: 'ouenze_sale',
-            label: `Vente Ouenze n° ${String(op.id).slice(0, 8)} — ${op.items.join(', ')}`,
-            lines: [{ account: '411', debit: op.amount, credit: 0 }, { account: '701', debit: 0, credit: op.amount }]
-        }));
+        return [...byOrder.values()].map(op => {
+            const rate = commissionRate(op.shopId);
+            const commission = Math.round(op.amount * rate);
+            return {
+                ...op,
+                kind: 'ouenze_sale',
+                commission,
+                rate,
+                label: `Vente Ouenze n° ${String(op.id).slice(0, 8)} — ${op.items.join(', ')}`,
+                lines: [
+                    { account: '411', debit: op.amount, credit: 0 }, { account: '701', debit: 0, credit: op.amount },
+                    { account: '632', debit: commission, credit: 0 }, { account: '411', debit: 0, credit: commission }
+                ]
+            };
+        });
     }
 
     function manualOperations(entries) {
@@ -240,7 +256,7 @@
                 ${kpi('Charges', fcfa(r.totalCharges), r.purchases ? `dont achats ${fcfa(r.purchases)}` : 'dépenses de la période', 'orange')}
                 ${kpi('Résultat', fcfa(r.result, true), r.result >= 0 ? 'Bénéfice' : 'Perte', r.result >= 0 ? 'green' : 'red')}
                 ${kpi('Trésorerie', fcfa(cash), `caisse ${fcfa(solde('571'))} · Mobile Money ${fcfa(solde('521'))}`, cash < 0 ? 'red' : '')}
-                ${kpi('À recevoir d\'Ouenze', fcfa(owed), 'ventes livrées pas encore versées')}
+                ${kpi('À recevoir d\'Ouenze', fcfa(owed), 'ventes livrées, commission déduite')}
             </div>
             ${cash < 0 ? `<p class="acc-hint"><i class="fas fa-info-circle"></i> Trésorerie négative : tu as noté plus de dépenses que d'entrées. Ajoute ton <strong>apport personnel</strong> de départ ou les <strong>versements reçus d'Ouenze</strong>.</p>` : ''}
             <div class="acc-charts">
@@ -400,8 +416,15 @@
             <div class="acc-card acc-result">
                 <div class="acc-row"><span>Marge commerciale <small>(ventes − achats de marchandises)</small></span><strong>${fcfa(r.margin, true)}</strong></div>
                 <div class="acc-row total big ${r.result >= 0 ? 'green' : 'red'}"><span>Résultat net — ${r.result >= 0 ? 'bénéfice' : 'perte'}</span><strong>${fcfa(r.result, true)}</strong></div>
-                <p class="acc-note">Période : ${PERIODS[state.period]}. Les frais de livraison sont payés par le client : ils n'apparaissent pas dans tes comptes.</p>
+                <p class="acc-note">Période : ${PERIODS[state.period]}. Commission Ouenze calculée au taux de ta médaille actuelle (${medalNote()}). Les frais de livraison sont payés par le client : ils n'apparaissent pas dans tes comptes.</p>
             </div>`;
+    }
+
+    function medalNote() {
+        const M = window.OuenzeMedals;
+        if (!M) return '22 %';
+        const shops = state.shopId === 'all' ? state.shops : state.shops.filter(s => s.id === state.shopId);
+        return shops.map(s => { const t = M.get(state.medals[s.id]); return `${shops.length > 1 ? esc(s.name) + ' : ' : ''}${t.emoji} ${t.name} ${(t.commission * 100).toLocaleString('fr-FR')} %`; }).join(', ');
     }
 
     function balanceHtml(ops, all) {
@@ -537,11 +560,13 @@
 
     // ============ DÉMARRAGE ============
     async function load() {
-        const [shopsRes, salesRes, entriesRes] = await Promise.all([
+        const [shopsRes, salesRes, entriesRes, medalsRes] = await Promise.all([
             window.supabase.from('shops').select('id, name').eq('owner_id', state.user.id).is('archived_at', null),
             window.supabase.rpc('vendor_sales', {}),
-            window.supabase.from('vendor_entries').select('*').order('entry_date')
+            window.supabase.from('vendor_entries').select('*').order('entry_date'),
+            window.supabase.rpc('shop_medals')
         ]);
+        state.medals = Object.fromEntries((medalsRes.error ? [] : medalsRes.data || []).map(m => [m.shop_id, m.medal]));
         state.shops = shopsRes.data || [];
         // Base sans colonne archived_at (migration 20261012 pas encore passée)
         if (shopsRes.error) {

@@ -16,6 +16,7 @@
     // ============ ÉTAT ============
     let dashUser = null;
     let dashShops = [];
+    let medalInfo = {};
     let pendingTransfers = {};   // shop_id → transfert en attente
  
     // ============ UTILITAIRES ============
@@ -131,6 +132,12 @@
         } catch (e) {
             // Table absente tant que la migration du 12/10 n'est pas exécutée
         }
+        // Médailles calculées par la base (migration 20261015) ; à défaut, règles locales
+        medalInfo = {};
+        try {
+            const { data: medals, error: mError } = await window.supabase.rpc('shop_medals');
+            if (!mError) (medals || []).forEach(m => { medalInfo[m.shop_id] = m; });
+        } catch (e) { /* migration pas encore passée */ }
         console.log(`✅ vd.js : ${dashUser.email} — ${dashShops.length} boutique(s)`);
         return true;
     }
@@ -218,6 +225,8 @@
                 </div>
             </div>
  
+            ${medalCardHtml(shop)}
+
             <!-- APERÇU : la boutique telle que les clients la voient -->
             <div style="padding:0 20px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--gray-500,#64748b);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">
@@ -362,6 +371,51 @@
         return { error: message };
     }
  
+    // ============ PROGRAMME MÉDAILLES ============
+    function medalCardHtml(shop) {
+        const M = window.OuenzeMedals;
+        if (!M) return '';
+        const info = medalInfo[shop.id];
+        const rating = Number(info?.rating ?? shop.rating) || 0;
+        const orders = Number(info?.delivered_orders ?? shop.real_sales_count) || 0;
+        const verified = !!(info?.is_verified ?? shop.is_verified);
+        const tier = info ? M.get(info.medal) : M.compute(rating, orders, verified);
+        const next = M.next(tier);
+        const bar = (label, value, target, shown) => {
+            const ok = value >= target;
+            return `<div class="medal-req ${ok ? 'ok' : ''}"><div><span>${label}</span><strong>${shown} / ${target.toLocaleString('fr-FR')}</strong></div>
+                <div class="listing-bar"><div style="width:${Math.min(100, value / target * 100)}%"></div></div></div>`;
+        };
+        const sale = 100000;
+        return `
+            <div class="medal-card medal-${tier.id}">
+                <div class="medal-head">
+                    <span class="medal-emoji">${tier.emoji}</span>
+                    <div>
+                        <small>Programme Médailles</small>
+                        <strong>Médaille ${tier.name}</strong>
+                        <span>Commission Ouenze : <b>${(tier.commission * 100).toLocaleString('fr-FR')} %</b></span>
+                    </div>
+                </div>
+                <ul class="medal-perks">${tier.perks.map(p => `<li><i class="fas fa-check"></i> ${p}</li>`).join('')}</ul>
+                ${next ? `
+                    <div class="medal-next">
+                        <p>Pour passer <strong>${next.emoji} ${next.name}</strong> (commission ${(next.commission * 100).toLocaleString('fr-FR')} %) :</p>
+                        ${bar('Note des clients', rating, next.minRating, rating.toLocaleString('fr-FR', { maximumFractionDigits: 1 }))}
+                        ${bar('Commandes livrées', orders, next.minOrders, orders.toLocaleString('fr-FR'))}
+                        ${next.verified ? `<div class="medal-req ${verified ? 'ok' : ''}"><div><span>Boutique vérifiée sur place par Ouenze</span><strong>${verified ? 'Oui' : 'Pas encore'}</strong></div></div>` : ''}
+                    </div>` : '<p class="medal-top">Tu as atteint le plus haut niveau. Garde ta note au-dessus de 4,5 pour le conserver.</p>'}
+                <details class="medal-table">
+                    <summary>Sur une vente de ${sale.toLocaleString('fr-FR')} FCFA, combien tu reçois ?</summary>
+                    <table>
+                        <thead><tr><th>Médaille</th><th>Ouenze</th><th>Toi</th></tr></thead>
+                        <tbody>${M.TIERS.map(t => { const sp = M.split(sale, t); return `<tr class="${t.id === tier.id ? 'current' : ''}"><td>${t.emoji} ${t.name}</td><td>${formatNumber(sp.ouenze)}</td><td><strong>${formatNumber(sp.vendor)}</strong></td></tr>`; }).join('')}</tbody>
+                    </table>
+                    <p>Plus ta boutique est fiable et bien notée, moins Ouenze prend de commission et plus elle te rend visible.</p>
+                </details>
+            </div>`;
+    }
+
     // ============ ENTRÉE EN BOURSE ============
     // Conditions et calculs vérifiés par la base (request_listing) ; ici on les explique.
     const SHARES_PER_COMPANY = 10000;

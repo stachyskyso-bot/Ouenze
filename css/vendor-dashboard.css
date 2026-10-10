@@ -904,3 +904,147 @@ a.share-native {
     font-size: 14px;
     color: #0f172a;
 }
+
+/* ---------- Programme Médailles ---------- */
+.medal-card {
+    margin: 0 20px 20px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    padding: 16px;
+    background: #f8fafc;
+    color: #334155;     /* explicite : le tableau de bord peut imposer une couleur claire */
+}
+
+.medal-card .medal-next p,
+.medal-card .medal-req span,
+.medal-card .medal-req strong,
+.medal-card .medal-table td,
+.medal-card .medal-table th {
+    color: #334155;
+}
+
+.medal-card .medal-req.ok strong {
+    color: #047857;
+}
+
+.medal-card.medal-gold { background: linear-gradient(135deg, #fffbeb, #fef3c7); border-color: #fcd34d; }
+.medal-card.medal-silver { background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-color: #cbd5e1; }
+.medal-card.medal-bronze { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-color: #fdba74; }
+
+.medal-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.medal-emoji {
+    font-size: 38px;
+    line-height: 1;
+}
+
+.medal-head small {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.medal-head strong {
+    display: block;
+    font-size: 17px;
+    color: #0f172a;
+}
+
+.medal-head span {
+    font-size: 13px;
+    color: #334155;
+}
+
+.medal-perks {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 4px 12px;
+    font-size: 13px;
+    color: #334155;
+}
+
+.medal-perks i {
+    color: #10b981;
+    margin-right: 4px;
+}
+
+.medal-next {
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 10px;
+    font-size: 13px;
+}
+
+.medal-req {
+    margin: 8px 0;
+    font-size: 12px;
+}
+
+.medal-req > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
+.medal-req.ok strong {
+    color: #047857;
+}
+
+.medal-req.ok .listing-bar div {
+    background: #10b981;
+}
+
+.medal-top {
+    font-size: 13px;
+    color: #92400e;
+}
+
+.medal-table {
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+.medal-table summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.medal-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.medal-table th,
+.medal-table td {
+    padding: 7px 10px;
+    text-align: right;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.medal-table th:first-child,
+.medal-table td:first-child {
+    text-align: left;
+}
+
+.medal-table tr.current td {
+    background: #eff6ff;
+    font-weight: 700;
+}
+
+.medal-table p {
+    font-size: 12px;
+    color: #64748b;
+}

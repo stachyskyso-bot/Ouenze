@@ -77,13 +77,18 @@
         </div>`;
     }
 
+    function medalBadge(id) {
+        const t = window.OuenzeMedals?.get(id);
+        return t && t.id !== 'standard' ? `<span class="inv-medal ${t.id}">${t.emoji} ${t.name}</span>` : '';
+    }
+
     function cardHtml(o) {
         const sold = soldPart(o);
         return `
             <button class="inv-card" onclick="invOpen('${esc(o.offering_id)}')">
                 <div class="inv-card-head">
                     ${logoHtml(o.shop_name, o.shop_logo)}
-                    <div><strong>${esc(o.shop_name)}</strong>
+                    <div><strong>${esc(o.shop_name)}${medalBadge(o.medal)}</strong>
                     <small><span class="inv-stars">${stars(o.rating)}</span> ${Number(o.rating).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} · ${num(o.delivered_orders)} commandes livrées${o.shop_city ? ' · ' + esc(o.shop_city) : ''}</small></div>
                 </div>
                 <div class="inv-figures">
