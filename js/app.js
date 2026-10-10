@@ -26,6 +26,8 @@
     let productsCache = {};       // id produit → produit (pour addToCart)
     let orders = [];
     let currentSort = 'rating';
+    let currentSearchType = 'all';  // onglets de recherche : all | shop | product
+    let searchSeq = 0;              // ignore les réponses de recherches périmées
     let currentShopProducts = [];   // vue boutique : produits affichés
     let currentShopCategories = [];
     let currentShopDesign = null;
@@ -159,7 +161,7 @@
             // Recherche lancée depuis une autre page : index.html?q=<texte>
             const input = document.getElementById('searchInput');
             if (input) input.value = queryParam;
-            showHomePage().then(() => renderShops(queryParam));
+            showHomePage().then(() => performSearch(queryParam));
         } else {
             showHomePage();
         }
@@ -429,6 +431,7 @@
                     <span class="rating-badge bronze"><i class="fas fa-star-half-alt"></i> Bronze</span>
                 </div>
             </div>
+            <div id="productResults"></div>
             <div id="shopsGrid" class="shops-grid">
                 <div style="text-align:center;padding:60px;color:var(--gray-500);">Chargement…</div>
             </div>`;
@@ -469,6 +472,7 @@
         document.querySelectorAll('.sort-btn').forEach(b =>
             b.classList.toggle('active', b.dataset.sort === currentSort));
  
+        grid.style.display = currentSearchType === 'product' ? 'none' : '';
         let list = shopsCache.slice();
         const q = (filterText || '').toLowerCase().trim();
         if (q) {
@@ -533,6 +537,75 @@
     function setSort(sort) {
         currentSort = sort;
         renderShops(document.getElementById('searchInput')?.value);
+    }
+ 
+    // ============ RECHERCHE (boutiques + produits) ============
+    // Caractères qui casseraient le filtre PostgREST « or(...) »
+    function cleanSearch(q) {
+        return String(q || '').replace(/[%,()*\\:"']/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+    }
+ 
+    async function performSearch(rawQuery) {
+        const q = cleanSearch(rawQuery);
+        renderShops(q);
+        const box = document.getElementById('productResults');
+        if (!box) return;
+        if (currentSearchType === 'shop' || q.length < 2) {
+            box.innerHTML = currentSearchType === 'product' && q.length < 2
+                ? '<p class="search-hint">Tape au moins 2 lettres pour chercher un produit.</p>' : '';
+            return;
+        }
+ 
+        const seq = ++searchSeq;
+        box.innerHTML = '<p class="search-hint">Recherche de produits…</p>';
+        let { data, error } = await window.supabase
+            .from('products').select('*, shops(name)')
+            .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40);
+        if (error) {
+            // Sans relation déclarée products → shops : on cherche sans le nom de boutique
+            ({ data, error } = await window.supabase
+                .from('products').select('*')
+                .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40));
+        }
+        if (seq !== searchSeq) return;  // une recherche plus récente a été lancée
+        if (error) {
+            console.error('❌ Recherche produits:', error);
+            box.innerHTML = '<p class="search-hint">Recherche de produits indisponible pour le moment.</p>';
+            return;
+        }
+        const list = data || [];
+        list.forEach(p => { productsCache[p.id] = p; });
+        if (!list.length) {
+            box.innerHTML = `<p class="search-hint">Aucun produit trouvé pour « ${escapeHtml(q)} ».</p>`;
+            return;
+        }
+        // Des produits trouvés mais aucune boutique : on n'affiche pas le bloc « Aucune boutique »
+        const shopsGrid = document.getElementById('shopsGrid');
+        const hasShops = !!shopsGrid?.querySelector('.shop-card');
+        if (shopsGrid && !hasShops) shopsGrid.style.display = 'none';
+        box.innerHTML = `
+            <h3 class="search-section-title">Produits (${list.length})</h3>
+            <div class="shop-products-grid search-products">
+                ${list.map(p => {
+                    const photo = productPhotos(p)[0] || '';
+                    const id = escapeHtml(p.id);
+                    return `
+                    <div class="product-card" role="button" tabindex="0" style="border-radius:14px;"
+                         onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
+                        <div class="product-card-img">
+                            ${photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy">` : '<i class="fas fa-image"></i>'}
+                        </div>
+                        <div class="product-card-body">
+                            <div class="product-card-name">${escapeHtml(p.name)}</div>
+                            <div class="product-card-price" style="color:var(--primary);">${productPriceLabel(p)}</div>
+                            <a class="product-card-shop" href="#" onclick="event.stopPropagation();viewShopDetail('${escapeHtml(p.shop_id)}');return false;">
+                                <i class="fas fa-store"></i> ${escapeHtml(p.shops?.name || 'Voir la boutique')}
+                            </a>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+            ${currentSearchType === 'all' && hasShops ? '<h3 class="search-section-title">Boutiques</h3>' : ''}`;
     }
  
     // ============ VUE BOUTIQUE ============
@@ -756,7 +829,7 @@
         const p = detailProduct;
         const box = document.getElementById('productDetail');
         if (!p || !box) return;
-        const d = currentShopDesign || { primary: '#1e40af', button: '#1e40af' };
+        const d = (document.getElementById('shopProductsGrid') && currentShopDesign) || { primary: '#1e40af', button: '#1e40af' };
         const options = productOptions(p);
         const variant = selectedVariant();
         const complete = !options.length || !!variant;
@@ -1161,18 +1234,31 @@
                 return;
             }
             if (!document.getElementById('shopsGrid')) {
-                showHomePage().then(() => renderShops(input?.value));
+                showHomePage().then(() => performSearch(input?.value));
             } else {
-                renderShops(input?.value);
+                performSearch(input?.value);
             }
         };
+        let typingTimer = null;
         if (input) {
             input.addEventListener('input', () => {
-                if (document.getElementById('shopsGrid')) renderShops(input.value);
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    if (document.getElementById('shopsGrid')) performSearch(input.value);
+                }, 300);
             });
-            input.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(typingTimer); runSearch(); } });
         }
         if (btn) btn.addEventListener('click', runSearch);
+ 
+        document.querySelectorAll('.search-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                currentSearchType = tab.dataset.type || 'all';
+                document.querySelectorAll('.search-tab').forEach(t => t.classList.toggle('active', t === tab));
+                input?.focus();
+                runSearch();
+            });
+        });
  
         const ddBtn = document.getElementById('dropdownBtn');
         const ddContent = document.getElementById('dropdownContent');
