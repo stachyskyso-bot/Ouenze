@@ -411,6 +411,7 @@
     async function showHomePage() {
         const container = document.getElementById('appContainer');
         if (!container) return;
+        clearInterval(carouselTimer);
  
         container.innerHTML = `
             <div class="ranking-bar">
@@ -641,8 +642,16 @@
                 prodWidth: safeNum(ds.prod_width, 200, 140, 300),
                 prodImgHeight: safeNum(ds.prod_img_height, 160, 100, 250),
                 prodRadius: safeNum(ds.prod_radius, 12, 0, 32),
-                prodGap: safeNum(ds.prod_gap, 16, 8, 40)
+                prodGap: safeNum(ds.prod_gap, 16, 8, 40),
+                carouselHeight: safeNum(ds.carousel_height, 300, 150, 500),
+                carouselRadius: safeNum(ds.carousel_radius, 12, 0, 40),
+                carouselSpeed: safeNum(ds.carousel_speed, 0, 0, 30)
             };
+            // Carrousel : uniquement des images ou vidéos dont l'adresse est sûre
+            const carouselItems = (Array.isArray(ds.carousel_media) ? ds.carousel_media : [])
+                .map(m => ({ type: m?.type === 'video' ? 'video' : 'image', src: safeMediaUrl(m?.src, m?.type) }))
+                .filter(m => m.src)
+                .slice(0, 6);
             const d = currentShopDesign;
  
             const logo = safeUrl(shop.logo_url);
@@ -665,6 +674,25 @@
                             </div>
                         </div>
                     </div>
+ 
+                    ${carouselItems.length ? `
+                        <div class="shop-carousel" id="shopCarousel"
+                             style="--carousel-h:${d.carouselHeight}px;border-radius:${d.carouselRadius}px;">
+                            <div class="shop-carousel-track">
+                                ${carouselItems.map((m, i) => `
+                                    <div class="shop-carousel-slide ${i === 0 ? 'active' : ''}">
+                                        ${m.type === 'video'
+                                            ? `<video src="${m.src}" muted loop playsinline ${i === 0 ? 'autoplay' : ''} preload="metadata"></video>`
+                                            : `<img src="${m.src}" alt="" ${i === 0 ? '' : 'loading="lazy"'}>`}
+                                    </div>`).join('')}
+                            </div>
+                            ${carouselItems.length > 1 ? `
+                                <button class="shop-carousel-nav prev" onclick="moveCarousel(-1)" aria-label="Précédent">‹</button>
+                                <button class="shop-carousel-nav next" onclick="moveCarousel(1)" aria-label="Suivant">›</button>
+                                <div class="shop-carousel-dots">
+                                    ${carouselItems.map((_, i) => `<button class="${i === 0 ? 'active' : ''}" onclick="goCarousel(${i})" aria-label="Image ${i + 1}"></button>`).join('')}
+                                </div>` : ''}
+                        </div>` : ''}
  
                     ${shop.show_search_bar ? `
                         <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">
@@ -692,11 +720,71 @@
                 </div>`;
             currentShopCategoryFilter = '';
             renderShopProducts(currentShopProducts);
+            startCarousel(carouselItems.length, d.carouselSpeed);
             window.scrollTo(0, 0);
         } catch (error) {
             console.error('❌ Erreur boutique:', error);
             alert('Erreur chargement boutique');
         }
+    }
+ 
+    // ============ CARROUSEL DE LA BOUTIQUE ============
+    let carouselIndex = 0;
+    let carouselCount = 0;
+    let carouselTimer = null;
+    let carouselDelay = 0;
+ 
+    // Images : https ou data:image ; vidéos : https ou data:video
+    function safeMediaUrl(src, type) {
+        const u = String(src || '');
+        if (type === 'video') return /^(https:\/\/|data:video\/(mp4|webm|quicktime);base64,)/i.test(u) ? u : '';
+        return safeUrl(u);
+    }
+ 
+    function goCarousel(i) {
+        const box = document.getElementById('shopCarousel');
+        if (!box || !carouselCount) return;
+        carouselIndex = (i + carouselCount) % carouselCount;
+        box.querySelectorAll('.shop-carousel-slide').forEach((slide, n) => {
+            const on = n === carouselIndex;
+            slide.classList.toggle('active', on);
+            const video = slide.querySelector('video');
+            if (video) { if (on) video.play().catch(() => {}); else video.pause(); }
+        });
+        box.querySelectorAll('.shop-carousel-dots button').forEach((dot, n) => dot.classList.toggle('active', n === carouselIndex));
+        restartCarouselTimer();
+    }
+ 
+    function moveCarousel(step) {
+        goCarousel(carouselIndex + step);
+    }
+ 
+    function restartCarouselTimer() {
+        clearInterval(carouselTimer);
+        if (carouselDelay > 0 && carouselCount > 1) {
+            carouselTimer = setInterval(() => {
+                if (!document.getElementById('shopCarousel')) { clearInterval(carouselTimer); return; }
+                goCarousel(carouselIndex + 1);
+            }, carouselDelay * 1000);
+        }
+    }
+ 
+    function startCarousel(count, speedSeconds) {
+        carouselIndex = 0;
+        carouselCount = count;
+        carouselDelay = speedSeconds;
+        restartCarouselTimer();
+        // Glisser du doigt sur téléphone
+        const box = document.getElementById('shopCarousel');
+        if (!box || count < 2) return;
+        let startX = null;
+        box.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+        box.addEventListener('touchend', e => {
+            if (startX === null) return;
+            const dx = e.changedTouches[0].clientX - startX;
+            if (Math.abs(dx) > 40) moveCarousel(dx < 0 ? 1 : -1);
+            startX = null;
+        });
     }
  
     // Grille produits de la vue boutique, selon le design de la boutique
@@ -1289,6 +1377,8 @@
         viewShopDetail,
         filterShopProducts,
         openProductDetail,
+        moveCarousel,
+        goCarousel,
         showProductPhoto,
         selectProductOption,
         changeDetailQty,

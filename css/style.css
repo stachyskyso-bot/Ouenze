@@ -2035,3 +2035,88 @@ body {
 .product-card-shop:hover {
     color: var(--primary);
 }
+
+/* Carrousel de la page boutique */
+.shop-carousel {
+    position: relative;
+    margin: 16px 16px 0;
+    height: min(var(--carousel-h, 300px), 56vw);
+    overflow: hidden;
+    background: var(--gray-100);
+    touch-action: pan-y;
+}
+
+.shop-carousel-track,
+.shop-carousel-slide {
+    position: absolute;
+    inset: 0;
+}
+
+.shop-carousel-slide {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.shop-carousel-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.shop-carousel-slide img,
+.shop-carousel-slide video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.shop-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.85);
+    color: #0f172a;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.shop-carousel-nav.prev { left: 10px; }
+.shop-carousel-nav.next { right: 10px; }
+
+.shop-carousel-dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+.shop-carousel-dots button {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+}
+
+.shop-carousel-dots button.active {
+    background: #ffffff;
+    width: 20px;
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    .shop-carousel { margin: 12px 12px 0; }
+    .shop-carousel-nav { display: none; }
+}
