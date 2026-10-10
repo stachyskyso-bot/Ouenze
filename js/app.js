@@ -1620,6 +1620,9 @@
         }
     }
  
+    // Règles partagées avec les autres pages (inscription livreur)
+    window.OuenzeForms = { COUNTRIES, normalizePhone, passwordProblem, passwordScore };
+ 
     // ============ EXPORTS (utilisés par les onclick du HTML) ============
     Object.assign(window, {
         doLogin,
