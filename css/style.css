@@ -2363,3 +2363,13 @@ body {
         gap: 0;
     }
 }
+
+/* iPhone : Safari zoome sur tout champ dont le texte fait moins de 16 px, et la page
+   reste zoomée (formulaires coupés à droite). 16 px sur téléphone et tablette évite ce zoom. */
+@media (max-width: 1024px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
