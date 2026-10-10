@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Ouenze | Politique de confidentialité</title>
+    <link rel="icon" type="image/png" href="favicon/Icon.png">
+    <link rel="apple-touch-icon" href="favicon/Icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f5f7fb; color: #1e293b; }
         :root {
+            --gray-600: #475569;
             --primary: #1e40af;
             --primary-dark: #1e3a8a;
             --white: #ffffff;
@@ -22,43 +24,6 @@
             --success: #10b981;
             --danger: #ef4444;
         }
-        
-        .header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 10px 16px; position: sticky; top: 0; z-index: 100; }
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
-        .logo h1 { font-size: 20px; font-weight: 800; color: var(--primary); cursor: pointer; }
-        .logo span { font-size: 9px; color: var(--gray-500); display: block; }
-        .header-actions { display: flex; gap: 8px; align-items: center; }
-        .cart-icon { position: relative; cursor: pointer; font-size: 18px; color: var(--primary); }
-        .cart-count { position: absolute; top: -6px; right: -10px; background: var(--danger); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; display: flex; align-items: center; justify-content: center; }
-        .auth-btn { padding: 5px 12px; border-radius: 30px; font-size: 11px; font-weight: 500; cursor: pointer; background: var(--gray-100); border: none; }
-        .user-menu { display: flex; align-items: center; gap: 8px; background: var(--gray-100); padding: 4px 10px; border-radius: 30px; cursor: pointer; }
-        .user-avatar { width: 28px; height: 28px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; }
-        .user-info { font-size: 11px; line-height: 1.2; }
-        .user-info small { font-size: 9px; color: var(--gray-500); }
-        
-        .search-wrapper { width: 100%; }
-        .search-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
-        .search-tab { padding: 3px 10px; font-size: 10px; background: var(--gray-100); border-radius: 20px; cursor: pointer; color: var(--gray-500); }
-        .search-tab.active { background: var(--primary); color: white; }
-        .search-bar { display: flex; background: var(--gray-100); border-radius: 30px; border: 1px solid var(--gray-200); }
-        .search-bar input { flex: 1; padding: 8px 14px; border: none; outline: none; background: transparent; font-size: 13px; }
-        .search-bar button { background: none; border: none; padding: 0 12px; color: var(--primary); cursor: pointer; }
-        
-        .nav-row { border-top: 1px solid var(--gray-200); background: var(--white); padding: 6px 16px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-        .nav-container { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .nav-links { display: flex; gap: 20px; }
-        .nav-links a { text-decoration: none; color: var(--gray-500); font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; }
-        .nav-links a.active { color: var(--primary); font-weight: 600; }
-        .dropdown { position: relative; }
-        .dropdown-btn { background: none; border: none; font-size: 11px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 20px; background: var(--gray-100); }
-        .dropdown-btn:hover { background: var(--gray-200); }
-        .dropdown-content { position: absolute; top: 100%; right: 0; background: var(--white); min-width: 160px; border: 1px solid var(--gray-200); border-radius: 12px; opacity: 0; visibility: hidden; transition: 0.2s; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .dropdown-content.show { opacity: 1; visibility: visible; }
-        .dropdown-content a { display: block; padding: 8px 14px; text-decoration: none; color: var(--gray-700); font-size: 11px; border-bottom: 1px solid var(--gray-200); transition: 0.2s; }
-        .dropdown-content a:hover { background: var(--gray-100); color: var(--primary); }
-        .dropdown-content a:last-child { border-bottom: none; }
-        
-        .main { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
         .page-card { background: var(--white); border-radius: 24px; border: 1px solid var(--gray-200); padding: 24px; }
         .page-header { text-align: center; margin-bottom: 24px; }
         .page-header h1 { font-size: 24px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px; }
@@ -72,8 +37,6 @@
         .section li { margin-bottom: 6px; }
         .highlight { background: var(--gray-100); padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid var(--primary); font-size: 13px; }
         .last-updated { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--gray-200); color: var(--gray-500); font-size: 10px; }
-        
-        .footer { border-top: 1px solid var(--gray-200); background: var(--white); margin-top: 32px; padding: 12px; text-align: center; font-size: 9px; color: var(--gray-500); }
         
         @media (max-width: 700px) {
             .page-card { padding: 20px; }
@@ -94,13 +57,13 @@
     </div>
     <div class="search-wrapper">
         <div class="search-tabs">
-            <span class="search-tab" data-type="all" onclick="window.location.href='index.html'">Tous</span>
-            <span class="search-tab" data-type="shop" onclick="window.location.href='index.html'">Boutiques</span>
-            <span class="search-tab" data-type="product" onclick="window.location.href='index.html'">Produits</span>
+            <span class="search-tab active" data-type="all">Tous</span>
+            <span class="search-tab" data-type="shop">Boutiques</span>
+            <span class="search-tab" data-type="product">Produits</span>
         </div>
         <div class="search-bar">
             <input type="text" id="searchInput" placeholder="Rechercher boutique ou produit...">
-            <button id="searchBtn" onclick="window.location.href='index.html'"><i class="fas fa-search"></i></button>
+            <button id="searchBtn"><i class="fas fa-search"></i></button>
         </div>
     </div>
 </div>
@@ -110,16 +73,19 @@
         <div class="nav-links">
             <a href="index.html">Accueil</a>
             <a href="index.html">Boutiques</a>
-            <a href="index.html">Panier</a>
-            <a href="index.html">Commandes</a>
+            <a href="#" onclick="showCart(); return false;">Panier (<span id="cartCountHeader">0</span>)</a>
+            <a href="#" onclick="showMyOrders(); return false;">Commandes</a>
+            <a href="#" onclick="showProfile(); return false;">Mon Profil</a>
             <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a href="delivery-dashboard.html" id="deliveryDashboardLink" style="display:none;">Mes livraisons</a>
+            <a href="delivery-register.html">Devenir livreur</a>
         </div>
         <div class="dropdown">
             <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
             <div class="dropdown-content" id="dropdownContent">
                 <a href="about.html">À propos</a>
-                <a href="privacy.html" class="active">Confidentialité</a>
                 <a href="help.html">Aide</a>
+                <a href="privacy.html" class="active">Confidentialité</a>
                 <a href="invest.html">Investir</a>
                 <a href="tracking.html">Suivi livraison</a>
             </div>
@@ -241,55 +207,14 @@
 </div>
 
 
-<!-- Supabase SDK -->
+<div class="footer">
+    <p>© 2026 Ouenze - Marketplace Congo Brazzaville | <a href="about.html">À propos</a> | <a href="help.html">Aide</a> | <a href="privacy.html">Confidentialité</a></p>
+</div>
+
+<!-- Ordre obligatoire : supabase-js → supabase-config → database → app -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Configuration Supabase -->
 <script src="js/supabase-config.js"></script>
-     <script type="module" src="js/app.js"></script>
-<script>
-    let currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-    let cart = JSON.parse(localStorage.getItem('ouenze_cart') || '[]');
-    
-    function updateCartCount() {
-        const count = cart.reduce((s, i) => s + i.quantity, 0);
-        document.querySelectorAll('.cart-count').forEach(el => { if(el) el.innerText = count; });
-    }
-    
-    function updateHeaderUI() {
-        const container = document.getElementById('headerActions');
-        if (currentUser) {
-            container.innerHTML = `<div class="user-menu" onclick="window.location.href='vendor-dashboard.html'"><div class="user-avatar">${currentUser.name.charAt(0)}</div><div class="user-info"><div>${currentUser.name.split(' ')[0]}</div><small>${currentUser.type === 'vendeur' ? 'Vendeur' : 'Client'}</small></div><button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;margin-left:4px;"><i class="fas fa-sign-out-alt"></i></button></div><div class="cart-icon" onclick="window.location.href='index.html'"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cart.reduce((s,i)=>s+i.quantity,0)}</span></div>`;
-        } else {
-            container.innerHTML = `<button class="auth-btn" onclick="window.location.href='index.html'">Connexion</button><div class="cart-icon" onclick="window.location.href='index.html'"><i class="fas fa-shopping-cart"></i><span class="cart-count">0</span></div>`;
-        }
-        updateCartCount();
-        
-        const vendorLink = document.getElementById('vendorLink');
-        if (vendorLink) vendorLink.style.display = currentUser && currentUser.type === 'vendeur' ? 'inline-block' : 'none';
-    }
-    
-    function logout() {
-        currentUser = null;
-        localStorage.removeItem('ouenze_current_user');
-        updateHeaderUI();
-        window.location.href = 'index.html';
-    }
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        updateHeaderUI();
-        
-        const dropBtn = document.getElementById('dropdownBtn');
-        const dropCont = document.getElementById('dropdownContent');
-        if(dropBtn) {
-            dropBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropCont.classList.toggle('show');
-            });
-            window.addEventListener('click', () => {
-                dropCont.classList.remove('show');
-            });
-        }
-    });
-</script>
+<script src="js/database.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

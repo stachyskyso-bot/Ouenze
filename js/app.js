@@ -147,9 +147,19 @@
         updateCartCount();
  
         // Lien direct vers une boutique : index.html?shop=<id> (bouton « Voir en ligne »)
-        const shopParam = new URLSearchParams(window.location.search).get('shop');
+        // Pages de contenu (À propos, Aide…) : seulement l'en-tête, pas de vitrine
+        if (!document.getElementById('appContainer')) return;
+ 
+        const params = new URLSearchParams(window.location.search);
+        const shopParam = params.get('shop');
+        const queryParam = params.get('q');
         if (shopParam) {
             viewShopDetail(shopParam);
+        } else if (queryParam) {
+            // Recherche lancée depuis une autre page : index.html?q=<texte>
+            const input = document.getElementById('searchInput');
+            if (input) input.value = queryParam;
+            showHomePage().then(() => renderShops(queryParam));
         } else {
             showHomePage();
         }
@@ -874,6 +884,11 @@
         const input = document.getElementById('searchInput');
         const btn = document.getElementById('searchBtn');
         const runSearch = () => {
+            if (!document.getElementById('appContainer')) {
+                const q = input?.value.trim();
+                window.location.href = 'index.html' + (q ? '?q=' + encodeURIComponent(q) : '');
+                return;
+            }
             if (!document.getElementById('shopsGrid')) {
                 showHomePage().then(() => renderShops(input?.value));
             } else {
