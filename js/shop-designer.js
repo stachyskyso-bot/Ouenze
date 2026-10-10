@@ -993,6 +993,26 @@ function markSelectedCards() {
     document.querySelectorAll('.layout-card').forEach(c => c.classList.toggle('selected', c.dataset.layout === designConfig.layout));
 }
  
+// ============ NOM UNIQUE ============
+// true = disponible, false = déjà pris (sans tenir compte des majuscules ni des espaces)
+async function isShopNameAvailable(name, excludeId = null) {
+    const { data, error } = await window.supabase.rpc('shop_name_available', { shop_name: name, exclude_shop: excludeId });
+    if (!error) return data !== false;
+    // Fonction absente (migration non exécutée) : vérification directe
+    const pattern = name.trim().replace(/[\\%_]/g, c => '\\' + c);
+    const { data: rows } = await window.supabase.from('shops').select('id, name, archived_at').ilike('name', pattern).limit(20);
+    return !(rows || []).some(r => !r.archived_at && String(r.id) !== String(excludeId)
+        && r.name.trim().toLowerCase() === name.trim().toLowerCase());
+}
+ 
+function nameTakenMessage(name) {
+    return `Le nom « ${name} » est déjà utilisé par une autre boutique. Choisis un autre nom (ex. ajoute ta ville ou ton quartier).`;
+}
+ 
+function isDuplicateNameError(error) {
+    return error && (error.code === '23505' || /shops_name_unique/i.test(error.message || ''));
+}
+ 
 // ============ PUBLICATION ============
 async function publishShop() {
     console.log('🚀 Publication...');
@@ -1004,6 +1024,7 @@ async function publishShop() {
     
     const { data: { user }, error: userError } = await window.supabase.auth.getUser();
     if (userError || !user) { alert("Connectez-vous"); return; }
+    if (!(await isShopNameAvailable(name))) { alert(nameTakenMessage(name)); document.getElementById('shopNameInput').focus(); return; }
     
     // ============ VÉRIFIER SI UNE BOUTIQUE EXISTE DÉJÀ ============
     const { data: existingShops } = await window.supabase
@@ -1048,7 +1069,7 @@ async function publishShop() {
         
         if (shopError) {
             console.error('❌', shopError);
-            alert('Erreur: ' + shopError.message);
+            alert(isDuplicateNameError(shopError) ? nameTakenMessage(name) : 'Erreur: ' + shopError.message);
             return;
         }
         
@@ -1122,6 +1143,7 @@ async function updateShop() {
     
     const { data: { user } } = await window.supabase.auth.getUser();
     if (!user) { alert("Connectez-vous"); return; }
+    if (!(await isShopNameAvailable(name, editingShopId))) { alert(nameTakenMessage(name)); document.getElementById('shopNameInput').focus(); return; }
     
     const updates = {
         name: name,
@@ -1137,7 +1159,7 @@ async function updateShop() {
     const { error } = await window.supabase
         .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id);
     
-    if (error) { alert('Erreur: ' + error.message); return; }
+    if (error) { alert(isDuplicateNameError(error) ? nameTakenMessage(name) : 'Erreur: ' + error.message); return; }
     
     alert(`✅ Boutique mise à jour !`);
     window.location.href = 'vendor-dashboard.html';

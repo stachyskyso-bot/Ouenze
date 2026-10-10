@@ -16,6 +16,7 @@
     // ============ ÉTAT ============
     let dashUser = null;
     let dashShops = [];
+    let pendingTransfers = {};   // shop_id → transfert en attente
  
     // ============ UTILITAIRES ============
     function escapeHtml(s) {
@@ -120,7 +121,16 @@
         }
  
         dashUser = data.user;
-        dashShops = Array.isArray(data.shops) ? data.shops : [];
+        dashShops = (Array.isArray(data.shops) ? data.shops : []).filter(s => !s.archived_at && s.is_active !== false);
+        pendingTransfers = {};
+        try {
+            const { data: transfers, error: tError } = await window.supabase
+                .from('shop_transfers').select('id, shop_id, to_email, price, expires_at, channels')
+                .eq('status', 'pending');
+            if (!tError) (transfers || []).forEach(t => { pendingTransfers[t.shop_id] = t; });
+        } catch (e) {
+            // Table absente tant que la migration du 12/10 n'est pas exécutée
+        }
         console.log(`✅ vd.js : ${dashUser.email} — ${dashShops.length} boutique(s)`);
         return true;
     }
@@ -172,8 +182,15 @@
                 <div style="font-size:11px;color:var(--gray-500,#64748b);margin-top:4px;">${label}</div>
             </div>`;
  
+        const transfer = pendingTransfers[shop.id];
         return `
         <div class="shop-card" style="background:var(--card-bg,#fff);border-radius:20px;border:1px solid var(--gray-200,#e2e8f0);margin-bottom:24px;overflow:hidden;">
+            ${transfer ? `
+                <div class="transfer-banner">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Transfert en attente vers <strong>${escapeHtml(transfer.to_email)}</strong>${transfer.price !== null ? ` (${formatNumber(transfer.price)} FCFA)` : ''} — valable jusqu'au ${new Date(transfer.expires_at).toLocaleString('fr-FR')}</span>
+                    <button onclick="cancelTransfer('${escapeHtml(transfer.id)}')">Annuler</button>
+                </div>` : ''}
  
             <div style="padding:20px;">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
@@ -219,6 +236,9 @@
                 </button>
                 <button class="btn-sm btn-share" onclick="openShareShop('${id}')">
                     <i class="fas fa-share-alt"></i> Partager ma boutique
+                </button>
+                <button class="btn-sm btn-manage" onclick="openManageShop('${id}')">
+                    <i class="fas fa-cog"></i> Gérer
                 </button>
             </div>
         </div>`;
@@ -299,6 +319,161 @@
  
     function viewShop(shopId) {
         window.open('index.html?shop=' + encodeURIComponent(shopId), '_blank');
+    }
+ 
+    // ============ GÉRER : TRANSFÉRER / FERMER ============
+    // Téléphone : +242 0X XXX XX XX (Congo-Brazzaville) ou +243 XX XXX XXXX (RDC)
+    function normalizePhone(input, cc) {
+        let d = String(input || '').replace(/[\s.\-()]/g, '');
+        const dial = cc === 'CD' ? '243' : '242';
+        if (d.startsWith('+' + dial)) d = d.slice(4);
+        else if (d.startsWith('00' + dial)) d = d.slice(5);
+        else if (d.startsWith(dial) && d.length === 12) d = d.slice(3);
+        if (cc === 'CG') return /^0[456]\d{7}$/.test(d) ? `+242 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}` : null;
+        if (d.length === 10 && d.startsWith('0')) d = d.slice(1);
+        return /^[89]\d{8}$/.test(d) ? `+243 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}` : null;
+    }
+ 
+    function openSheet(html) {
+        document.getElementById('shareOverlay')?.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'shareOverlay';
+        overlay.className = 'share-overlay';
+        overlay.innerHTML = `<div class="share-sheet" role="dialog"><button class="share-close" onclick="closeShareShop()" aria-label="Fermer">&times;</button>${html}</div>`;
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeShareShop(); });
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+ 
+    function sheetError(msg) {
+        const el = document.getElementById('sheetError');
+        if (el) { el.textContent = msg || ''; el.style.display = msg ? 'block' : 'none'; }
+        return false;
+    }
+ 
+    async function invokeTransfer(body) {
+        const { data, error } = await window.supabase.functions.invoke('shop-transfer', { body });
+        if (!error) return { data };
+        let message = 'Service de transfert indisponible pour le moment.';
+        try { message = (await error.context.json()).error || message; } catch (e) { /* réponse non JSON */ }
+        return { error: message };
+    }
+ 
+    function openManageShop(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        if (!shop) return;
+        const id = escapeHtml(shop.id);
+        openSheet(`
+            <h3>Gérer « ${escapeHtml(shop.name)} »</h3>
+            <p class="share-sub">Vendre ta boutique à quelqu'un, ou la fermer.</p>
+            <div class="manage-options">
+                <button class="manage-option" onclick="openTransferForm('${id}')">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span><strong>Vendre / transférer</strong><small>La boutique passe sur le compte de l'acheteur après sa confirmation (lien envoyé par email, SMS et WhatsApp).</small></span>
+                </button>
+                <button class="manage-option danger" onclick="openCloseForm('${id}')">
+                    <i class="fas fa-store-slash"></i>
+                    <span><strong>Fermer la boutique</strong><small>Archivée si elle a déjà vendu (historique conservé), sinon supprimée.</small></span>
+                </button>
+            </div>`);
+    }
+ 
+    function openTransferForm(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        if (!shop) return;
+        openSheet(`
+            <h3>Vendre « ${escapeHtml(shop.name)} »</h3>
+            <p class="share-sub">L'acheteur recevra un lien valable 72 h. La boutique ne change de propriétaire que lorsqu'il confirme avec ce compte.</p>
+            <label class="sheet-label">Email du nouveau propriétaire *</label>
+            <input class="sheet-input" type="email" id="trEmail" placeholder="acheteur@email.com" autocomplete="off">
+            <label class="sheet-label">Téléphone (SMS et WhatsApp)</label>
+            <div class="sheet-phone">
+                <select id="trCountry"><option value="CG">🇨🇬 +242</option><option value="CD">🇨🇩 +243</option></select>
+                <input class="sheet-input" type="tel" id="trPhone" inputmode="tel" placeholder="06 555 25 62">
+            </div>
+            <label class="sheet-label">Prix convenu (FCFA, facultatif)</label>
+            <input class="sheet-input" type="number" id="trPrice" min="0" step="1000" placeholder="Ex : 1 500 000">
+            <p class="sheet-warning"><i class="fas fa-info-circle"></i> Ouenze n'encaisse pas ce paiement : réglez-le entre vous avant la confirmation.</p>
+            <div class="form-error" id="sheetError" role="alert"></div>
+            <button class="share-native" id="trSubmit" onclick="submitTransfer('${escapeHtml(shop.id)}')"><i class="fas fa-paper-plane"></i> Envoyer le lien de confirmation</button>`);
+        document.getElementById('trEmail').focus();
+    }
+ 
+    async function submitTransfer(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        const email = (document.getElementById('trEmail').value || '').trim().toLowerCase();
+        const rawPhone = (document.getElementById('trPhone').value || '').trim();
+        const cc = document.getElementById('trCountry').value;
+        const priceRaw = document.getElementById('trPrice').value;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return sheetError('Email invalide.');
+        if (email === String(dashUser?.email || '').toLowerCase()) return sheetError('C\'est ton propre email.');
+        const phone = rawPhone ? normalizePhone(rawPhone, cc) : '';
+        if (phone === null) return sheetError(cc === 'CD' ? 'Numéro invalide. Exemple : +243 81 234 5678' : 'Numéro invalide. Exemple : +242 06 555 25 62');
+        const price = priceRaw === '' ? null : Number(priceRaw);
+        if (price !== null && (!Number.isFinite(price) || price < 0)) return sheetError('Prix invalide.');
+        if (!confirm(`Envoyer à ${email} le lien pour reprendre « ${shop.name} » ?`)) return;
+ 
+        const btn = document.getElementById('trSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Envoi…';
+        const { data, error } = await invokeTransfer({ action: 'create', shop_id: shopId, to_email: email, to_phone: phone || null, price });
+        if (error) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer le lien de confirmation';
+            return sheetError(error);
+        }
+        const label = v => v === true ? '✅ envoyé' : v === 'échec' ? '⚠️ échec' : '— non configuré';
+        const waText = encodeURIComponent(`Bonjour, voici le lien pour reprendre ma boutique « ${shop.name} » sur Ouenze (valable 72 h) : ${data.link}`);
+        const waNumber = phone ? phone.replace(/\D/g, '') : '';
+        openSheet(`
+            <h3>Lien envoyé ✅</h3>
+            <p class="share-sub">${escapeHtml(email)} a 72 h pour confirmer. Tu seras prévenu par email.</p>
+            <dl class="channel-list">
+                <dt>Email</dt><dd>${label(data.channels?.email)}</dd>
+                ${phone ? `<dt>SMS</dt><dd>${label(data.channels?.sms)}</dd><dt>WhatsApp</dt><dd>${label(data.channels?.whatsapp)}</dd>` : ''}
+            </dl>
+            ${phone && data.channels?.whatsapp !== true ? `
+                <a class="share-native" style="display:block;text-align:center;text-decoration:none;background:#25D366;" target="_blank" rel="noopener"
+                   href="https://wa.me/${waNumber}?text=${waText}"><i class="fab fa-whatsapp"></i> Envoyer moi-même sur WhatsApp</a>` : ''}
+            <button class="share-native" style="background:#0f172a;" onclick="closeShareShop();location.reload();">Terminé</button>`);
+    }
+ 
+    async function cancelTransfer(transferId) {
+        if (!confirm('Annuler ce transfert ? Le lien envoyé ne fonctionnera plus.')) return;
+        const { error } = await invokeTransfer({ action: 'cancel', transfer_id: transferId });
+        if (error) { alert(error); return; }
+        location.reload();
+    }
+ 
+    function openCloseForm(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        if (!shop) return;
+        openSheet(`
+            <h3>Fermer « ${escapeHtml(shop.name)} »</h3>
+            <p class="share-sub">Si la boutique a déjà vendu, elle est <strong>archivée</strong> : elle disparaît du site mais ses commandes et sa comptabilité sont conservées. Sinon, elle est <strong>supprimée définitivement</strong> avec ses produits.</p>
+            <label class="sheet-label">Pour confirmer, tape le nom de la boutique :</label>
+            <input class="sheet-input" type="text" id="closeName" placeholder="${escapeHtml(shop.name)}" autocomplete="off">
+            <div class="form-error" id="sheetError" role="alert"></div>
+            <button class="share-native" id="closeSubmit" style="background:#dc2626;" onclick="submitCloseShop('${escapeHtml(shop.id)}')"><i class="fas fa-store-slash"></i> Fermer la boutique</button>`);
+        document.getElementById('closeName').focus();
+    }
+ 
+    async function submitCloseShop(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        const typed = (document.getElementById('closeName').value || '').trim().toLowerCase();
+        if (typed !== String(shop.name).trim().toLowerCase()) return sheetError('Le nom ne correspond pas.');
+        const btn = document.getElementById('closeSubmit');
+        btn.disabled = true;
+        const { data, error } = await window.supabase.rpc('close_shop', { target_shop: shopId });
+        if (error) {
+            btn.disabled = false;
+            return sheetError(/function .* does not exist|schema cache/i.test(error.message)
+                ? 'La fermeture de boutique n\'est pas encore activée (migration SQL à exécuter).' : error.message);
+        }
+        alert(data === 'archived'
+            ? `« ${shop.name} » est archivée : elle n'apparaît plus sur le site, son historique est conservé.`
+            : `« ${shop.name} » a été supprimée.`);
+        location.reload();
     }
  
     // ============ PARTAGE DE LA BOUTIQUE ============
@@ -423,7 +598,8 @@
         }
     }
  
-    Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink });
+    Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink,
+        openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
