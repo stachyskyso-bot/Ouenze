@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <meta name="referrer" content="no-referrer">
+    <title>Ouenze | Transfert de boutique</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon/Icon.png">
+    <link rel="apple-touch-icon" href="favicon/Icon.png">
+    <!-- Polices et bibliothèques externes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/delivery.css">
+</head>
+<body>
+
+<div class="header">
+    <div class="header-top">
+        <div class="logo" onclick="window.location.href='index.html'">
+            <h1>OUENZE</h1>
+            <span>Congo Brazzaville</span>
+        </div>
+        <div class="header-actions" id="headerActions"></div>
+    </div>
+    <div class="search-wrapper">
+        <div class="search-tabs">
+            <span class="search-tab active" data-type="all">Tous</span>
+            <span class="search-tab" data-type="shop">Boutiques</span>
+            <span class="search-tab" data-type="product">Produits</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher boutique ou produit...">
+            <button id="searchBtn"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
+</div>
+
+<div class="nav-row">
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="index.html">Accueil</a>
+            <a href="index.html">Boutiques</a>
+            <a href="#" onclick="showCart(); return false;">Panier (<span id="cartCountHeader">0</span>)</a>
+            <a href="#" onclick="showMyOrders(); return false;">Commandes</a>
+            <a href="#" onclick="showProfile(); return false;">Mon Profil</a>
+            <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a href="delivery-dashboard.html" id="deliveryDashboardLink" style="display:none;">Mes livraisons</a>
+            <a href="delivery-register.html">Devenir livreur</a>
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent">
+                <a href="about.html">À propos</a>
+                <a href="help.html">Aide</a>
+                <a href="privacy.html">Confidentialité</a>
+                <a href="invest.html">Investir</a>
+                <a href="tracking.html">Suivi livraison</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main dl-page">
+    <h2 style="font-size:20px;margin-bottom:14px;"><i class="fas fa-exchange-alt" style="color:var(--primary);"></i> Transfert de boutique</h2>
+    <div class="dl-card" id="transferApp"><p style="text-align:center;color:var(--gray-500);padding:30px 0;">Vérification du lien…</p></div>
+</div>
+
+<div class="footer">
+    <p>Ouenze - Marketplace Congo Brazzaville | <a href="about.html">À propos</a> | <a href="help.html">Aide</a> | <a href="privacy.html">Confidentialité</a></p>
+</div>
+
+<!-- Ordre obligatoire : supabase-js → supabase-config → database → app → page -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/database.js"></script>
+<script src="js/app.js"></script>
+<script src="js/transfer.js"></script>
+</body>
+</html>
