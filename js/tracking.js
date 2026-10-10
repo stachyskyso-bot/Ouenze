@@ -1,366 +1,272 @@
-// ============ CONSTANTES ============
-const deliverySteps = [
-    { name: 'Commande confirmée', icon: 'fa-check-circle', duration: 2000 },
-    { name: 'Préparation en cours', icon: 'fa-box', duration: 3000 },
-    { name: 'Expédiée', icon: 'fa-shipping-fast', duration: 2500 },
-    { name: 'En transit', icon: 'fa-truck', duration: 4000 },
-    { name: 'Arrivée en ville', icon: 'fa-city', duration: 3000 },
-    { name: 'Livrée', icon: 'fa-home', duration: 0 }
-];
+// ============================================================
+// TRACKING.JS — Suivi animé de la livraison
+//
+// Étapes : payée → acceptée par le vendeur → livreur trouvé → colis récupéré
+//          → en route → livrée.
+// Le livreur (🛵) part de sa position, passe à la boutique puis rejoint le client,
+// le long de l'itinéraire routier (OSRM / OpenStreetMap, ligne courbe sinon).
+//
+// tracking.html?demo=1      : démonstration animée (Brazzaville)
+// tracking.html?order=<id>  : commande réelle — branchée avec la base des commandes
+// API : window.OuenzeTracking.show({ status, shop, client, courier, courierPos })
+// ============================================================
 
-// ============ VARIABLES GLOBALES ============
-let currentUser = null;
-let orders = [];
-let shops = [];
-let currentOrder = null;
-let trackingInterval = null;
+(function () {
+    'use strict';
 
-// ============ FONCTIONS UTILITAIRES ============
-function escapeHtml(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>]/g, m => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;'
-    }[m]));
-}
+    const STEPS = [
+        { key: 'paid', icon: 'fa-wallet', label: 'Paiement confirmé', text: 'Ton argent est bloqué en sécurité jusqu\'à la livraison.' },
+        { key: 'accepted', icon: 'fa-store', label: 'Acceptée par le vendeur', text: 'Le vendeur prépare ta commande.' },
+        { key: 'courier_assigned', icon: 'fa-motorcycle', label: 'Livreur trouvé', text: 'Un livreur proche se rend à la boutique.' },
+        { key: 'picked_up', icon: 'fa-box', label: 'Colis récupéré', text: 'Le livreur a ta commande.' },
+        { key: 'in_transit', icon: 'fa-route', label: 'En route vers toi', text: 'Prépare-toi, il arrive !' },
+        { key: 'delivered', icon: 'fa-check-circle', label: 'Livrée', text: 'Bonne réception ! Le vendeur va être payé.' }
+    ];
+    const SPEED_KMH = 25;   // vitesse moyenne d'une moto en ville
+    const REDUCED_MOTION = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-function formatDate(date) {
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return 'Date inconnue';
-    return d.toLocaleString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
+    let map = null;
+    let layers = {};
+    let routeToShop = [];
+    let routeToClient = [];
+    let state = null;
+    let animation = null;
 
-function updateUserUI() {
-    const userAvatar = document.getElementById('userAvatar');
-    const userName = document.getElementById('userName');
-    
-    if (currentUser) {
-        if (userAvatar) userAvatar.innerText = currentUser.name.charAt(0).toUpperCase();
-        if (userName) userName.innerText = currentUser.name.split(' ')[0];
-    } else {
-        if (userAvatar) userAvatar.innerText = 'U';
-        if (userName) userName.innerText = 'Invité';
+    const box = () => document.getElementById('trackingApp');
+
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
-}
 
-function getStepProgress(order) {
-    if (!order) return 0;
-    const stepIndex = order.trackingStep || 1;
-    return (stepIndex / deliverySteps.length) * 100;
-}
+    // ============ GÉOMÉTRIE ============
+    function distanceKm(a, b) {
+        const R = 6371, toRad = d => d * Math.PI / 180;
+        const dLat = toRad(b[0] - a[0]), dLng = toRad(b[1] - a[1]);
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(h));
+    }
 
-// ============ GESTION DES NOTES ============
-function submitRating(orderId, rating, comment) {
-    const order = orders.find(o => o.id === orderId);
-    if (!order) return false;
-    
-    // Récupérer les IDs uniques des boutiques concernées
-    const shopIds = [...new Set(order.items.map(i => i.shopId))];
-    
-    shopIds.forEach(shopId => {
-        const shop = shops.find(s => s.id === shopId);
-        if (shop) {
-            shop.totalRatings = (shop.totalRatings || 0) + 1;
-            shop.ratingSum = (shop.ratingSum || 0) + rating;
-            shop.rating = (shop.ratingSum / shop.totalRatings).toFixed(1);
-            shop.reviews = shop.reviews || [];
-            shop.reviews.unshift({
-                user: currentUser?.name || 'Client',
-                rating: rating,
-                comment: comment,
-                date: new Date().toISOString()
-            });
-            // Limiter à 20 avis récents
-            if (shop.reviews.length > 20) shop.reviews.pop();
+    function pathLength(path) {
+        let d = 0;
+        for (let i = 1; i < path.length; i++) d += distanceKm(path[i - 1], path[i]);
+        return d;
+    }
+
+    // Point à la fraction t (0..1) du trajet
+    function pointAt(path, t) {
+        if (path.length < 2) return path[0];
+        const total = pathLength(path);
+        let target = total * Math.min(Math.max(t, 0), 1);
+        for (let i = 1; i < path.length; i++) {
+            const seg = distanceKm(path[i - 1], path[i]);
+            if (target <= seg || i === path.length - 1) {
+                const f = seg ? target / seg : 0;
+                return [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * f, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * f];
+            }
+            target -= seg;
         }
-    });
-    
-    order.rated = true;
-    localStorage.setItem('ouenze_shops', JSON.stringify(shops));
-    localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-    
-    // Simulation d'envoi d'email
-    console.log(`📧 Email envoyé à ${currentUser?.email || 'client@email.com'}`);
-    console.log(`Merci pour votre avis sur la commande ${orderId}`);
-    console.log(`Note: ${rating}/5 - Commentaire: ${comment || 'Aucun commentaire'}`);
-    
-    return true;
-}
+        return path[path.length - 1];
+    }
 
-function openRatingModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3>Noter votre commande</h3>
-                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            </div>
-            <p>Commande #${escapeHtml(currentOrder.id)}</p>
-            <div class="rating-stars" id="ratingStars">
-                <i class="far fa-star" data-value="1"></i>
-                <i class="far fa-star" data-value="2"></i>
-                <i class="far fa-star" data-value="3"></i>
-                <i class="far fa-star" data-value="4"></i>
-                <i class="far fa-star" data-value="5"></i>
-            </div>
-            <textarea id="reviewComment" class="review-textarea" rows="3" placeholder="Votre commentaire (optionnel)"></textarea>
-            <button class="btn-primary" onclick="window.handleRatingSubmit()">Envoyer mon avis</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    
-    let selectedRating = 0;
-    const stars = modal.querySelectorAll('#ratingStars i');
-    stars.forEach(star => {
-        star.addEventListener('click', () => {
-            selectedRating = parseInt(star.dataset.value);
-            stars.forEach((s, idx) => {
-                if (idx < selectedRating) {
-                    s.className = 'fas fa-star active';
-                } else {
-                    s.className = 'far fa-star';
-                }
-            });
+    // Ligne légèrement courbe quand l'itinéraire routier n'est pas disponible
+    function curve(a, b) {
+        const mid = [(a[0] + b[0]) / 2 + (b[1] - a[1]) * 0.15, (a[1] + b[1]) / 2 - (b[0] - a[0]) * 0.15];
+        const pts = [];
+        for (let i = 0; i <= 30; i++) {
+            const t = i / 30;
+            pts.push([(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * mid[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * mid[1] + t * t * b[1]]);
+        }
+        return pts;
+    }
+
+    async function roadRoute(a, b) {
+        try {
+            const ctrl = new AbortController();
+            setTimeout(() => ctrl.abort(), 6000);
+            const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`, { signal: ctrl.signal });
+            const json = await res.json();
+            const coords = json?.routes?.[0]?.geometry?.coordinates;
+            if (Array.isArray(coords) && coords.length > 1) return coords.map(([lng, lat]) => [lat, lng]);
+        } catch (e) { /* hors ligne ou service indisponible */ }
+        return curve(a, b);
+    }
+
+    // ============ CARTE ============
+    function icon(emoji, cls) {
+        return L.divIcon({ className: '', html: `<div class="trk-pin ${cls}">${emoji}</div>`, iconSize: [40, 40], iconAnchor: [20, 20] });
+    }
+
+    async function buildMap(s) {
+        const shop = [s.shop.lat, s.shop.lng], client = [s.client.lat, s.client.lng], start = [s.courierStart.lat, s.courierStart.lng];
+        [routeToShop, routeToClient] = await Promise.all([roadRoute(start, shop), roadRoute(shop, client)]);
+        if (!window.L) return;
+        map = L.map('trkMap', { zoomControl: false, attributionControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+        layers.toShop = L.polyline(routeToShop, { color: '#94a3b8', weight: 4, dashArray: '6 8' }).addTo(map);
+        layers.toClient = L.polyline(routeToClient, { color: '#1e40af', weight: 5, opacity: 0.85 }).addTo(map);
+        layers.done = L.polyline([], { color: '#16a34a', weight: 6 }).addTo(map);
+        L.marker(shop, { icon: icon('🏪', 'shop') }).addTo(map).bindTooltip(esc(s.shop.name));
+        L.marker(client, { icon: icon('🏠', 'home') }).addTo(map).bindTooltip('Toi');
+        layers.courier = L.marker(start, { icon: icon('🛵', 'courier'), zIndexOffset: 1000 }).addTo(map);
+        map.fitBounds(L.latLngBounds([...routeToShop, ...routeToClient]), { padding: [30, 30] });
+        setTimeout(() => map && map.invalidateSize(), 150);
+    }
+
+    // ============ AFFICHAGE ============
+    function stepIndex(status) {
+        return Math.max(0, STEPS.findIndex(s => s.key === status));
+    }
+
+    function renderShell(s) {
+        box().innerHTML = `
+            ${s.demo ? `<div class="trk-demo"><i class="fas fa-play-circle"></i> Démonstration : voici comment tu suivras ta livraison.</div>` : ''}
+            <div class="trk-layout">
+                <div class="trk-map-card">
+                    <div id="trkMap" class="trk-map"></div>
+                    <div class="trk-eta" id="trkEta"></div>
+                </div>
+                <div class="trk-side">
+                    <div class="trk-progress"><div class="trk-progress-bar" id="trkBar"></div></div>
+                    <div class="trk-current" id="trkCurrent"></div>
+                    <ol class="trk-steps" id="trkSteps"></ol>
+                    <div class="trk-courier" id="trkCourier"></div>
+                </div>
+            </div>`;
+    }
+
+    function updatePanel(s, travel) {
+        const idx = stepIndex(s.status);
+        const step = STEPS[idx];
+        document.getElementById('trkBar').style.width = `${Math.round(((idx + (travel || 0)) / (STEPS.length - 1)) * 100)}%`;
+        document.getElementById('trkCurrent').innerHTML = `<i class="fas ${step.icon}"></i><div><strong>${step.label}</strong><span>${step.text}</span></div>`;
+        document.getElementById('trkSteps').innerHTML = STEPS.map((st, i) => `
+            <li class="${i < idx ? 'done' : i === idx ? 'active' : ''}">
+                <span class="trk-dot"><i class="fas ${i < idx ? 'fa-check' : st.icon}"></i></span>
+                <span>${st.label}${s.times?.[st.key] ? `<small>${esc(s.times[st.key])}</small>` : ''}</span>
+            </li>`).join('');
+
+        const c = s.courier;
+        const courierCard = document.getElementById('trkCourier');
+        courierCard.innerHTML = idx >= 2 && c ? `
+            <div class="trk-courier-avatar">${esc((c.name || '?').charAt(0))}</div>
+            <div class="trk-courier-info"><strong>${esc(c.name)}</strong><span>${c.vehicle === 'voiture' ? 'Voiture' : 'Moto'} · ${esc(c.plate || '')}${c.rating ? ` · ⭐ ${esc(c.rating)}` : ''}</span></div>
+            ${c.phone && idx < 5 ? `<a class="trk-call" href="tel:${esc(c.phone.replace(/\s/g, ''))}" aria-label="Appeler le livreur"><i class="fas fa-phone"></i></a>` : ''}` : '';
+        courierCard.style.display = courierCard.innerHTML ? '' : 'none';
+
+        const eta = document.getElementById('trkEta');
+        if (idx >= 5) eta.innerHTML = '<i class="fas fa-check-circle"></i> Livrée';
+        else if (idx >= 2) {
+            const remaining = idx <= 2 ? pathLength(routeToShop) * (1 - (travel || 0)) + pathLength(routeToClient)
+                            : idx === 3 ? pathLength(routeToClient) : pathLength(routeToClient) * (1 - (travel || 0));
+            const min = Math.max(1, Math.round(remaining / SPEED_KMH * 60) + (idx <= 3 ? 5 : 0));
+            const at = new Date(Date.now() + min * 60000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            eta.innerHTML = `<i class="fas fa-clock"></i> Arrivée vers <strong>${at}</strong> (≈ ${min} min)`;
+        } else eta.innerHTML = '<i class="fas fa-hourglass-half"></i> En attente du vendeur';
+    }
+
+    function moveCourier(path, t, donePath) {
+        if (!layers.courier) return;
+        const p = pointAt(path, t);
+        layers.courier.setLatLng(p);
+        if (donePath) {
+            const total = pathLength(path);
+            const pts = [];
+            let acc = 0;
+            pts.push(path[0]);
+            for (let i = 1; i < path.length; i++) {
+                acc += distanceKm(path[i - 1], path[i]);
+                if (acc / total > t) break;
+                pts.push(path[i]);
+            }
+            pts.push(p);
+            layers.done.setLatLngs(pts);
+        }
+    }
+
+    // Anime le livreur sur un trajet en `ms` millisecondes
+    function travel(path, ms, onFrame, donePath) {
+        return new Promise(resolve => {
+            if (REDUCED_MOTION || !layers.courier) { moveCourier(path, 1, donePath); onFrame(1); resolve(); return; }
+            const start = performance.now();
+            const frame = now => {
+                const t = Math.min(1, (now - start) / ms);
+                const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                moveCourier(path, eased, donePath);
+                onFrame(eased);
+                if (t < 1) animation = requestAnimationFrame(frame);
+                else resolve();
+            };
+            animation = requestAnimationFrame(frame);
         });
-    });
-    
-    window.handleRatingSubmit = () => {
-        if (selectedRating === 0) {
-            alert("Veuillez sélectionner une note");
+    }
+
+    const wait = ms => new Promise(r => setTimeout(r, REDUCED_MOTION ? 0 : ms));
+
+    // ============ DÉMONSTRATION ============
+    function demoState() {
+        const now = new Date();
+        const t = m => new Date(now.getTime() + m * 60000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return {
+            demo: true,
+            status: 'paid',
+            shop: { name: 'Tech BZV — Marché Total', lat: -4.2781, lng: 15.2731 },
+            client: { lat: -4.2612, lng: 15.2868 },
+            courierStart: { lat: -4.2872, lng: 15.2648 },
+            courier: { name: 'Jean Mabiala', vehicle: 'moto', plate: '123 AB 4', rating: '4.9', phone: '+242 06 555 25 62' },
+            times: { paid: t(0) }
+        };
+    }
+
+    async function playDemo() {
+        const s = state;
+        const t = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        updatePanel(s);
+        await wait(1800);
+        s.status = 'accepted'; s.times.accepted = t(); updatePanel(s);
+        await wait(1800);
+        s.status = 'courier_assigned'; s.times.courier_assigned = t(); updatePanel(s);
+        await travel(routeToShop, 5000, f => updatePanel(s, f), false);
+        s.status = 'picked_up'; s.times.picked_up = t(); updatePanel(s);
+        layers.toShop?.setStyle({ opacity: 0.25 });
+        await wait(1500);
+        s.status = 'in_transit'; s.times.in_transit = t(); updatePanel(s);
+        await travel(routeToClient, 8000, f => updatePanel(s, f), true);
+        s.status = 'delivered'; s.times.delivered = t(); updatePanel(s);
+        box().insertAdjacentHTML('beforeend', `
+            <div class="trk-done">
+                <p>Commande livrée ✅ Tu pourras ensuite noter la boutique et le livreur.</p>
+                <button class="btn-submit" onclick="location.reload()"><i class="fas fa-redo"></i> Revoir l'animation</button>
+            </div>`);
+    }
+
+    // ============ COMMANDE RÉELLE ============
+    // Branché dès que le schéma des commandes est en place : appelle show() avec
+    // la commande et la position du livreur (mise à jour en temps réel).
+    async function show(order) {
+        state = order;
+        renderShell(order);
+        await buildMap(order);
+        const idx = stepIndex(order.status);
+        if (idx >= 3) moveCourier(routeToClient, idx >= 5 ? 1 : 0, true);
+        updatePanel(order);
+    }
+
+    async function init() {
+        const params = new URLSearchParams(location.search);
+        if (params.get('order') && !params.has('demo')) {
+            box().innerHTML = `<div class="dl-card"><div class="dl-status"><i class="fas fa-route" style="color:var(--primary);"></i>
+                <h3>Suivi de ta commande</h3>
+                <p>Le suivi en direct des commandes s'active avec le paiement en ligne. Tu recevras un SMS à chaque étape.</p>
+                <a class="btn-submit" href="tracking.html?demo=1">Voir une démonstration</a></div></div>`;
             return;
         }
-        
-        const comment = modal.querySelector('#reviewComment').value;
-        const success = submitRating(currentOrder.id, selectedRating, comment);
-        
-        if (success) {
-            alert(`✅ Merci pour votre avis !\n\nUn email de confirmation a été envoyé à ${currentUser?.email || 'votre email'}\n\nVotre note aide les vendeurs à s'améliorer.`);
-            modal.remove();
-            renderTracking();
-        } else {
-            alert("Une erreur est survenue");
-        }
-    };
-}
-
-// ============ AFFICHAGE DU SUIVI ============
-function renderTracking() {
-    const container = document.getElementById('appContainer');
-    if (!container) return;
-    
-    if (!currentOrder) {
-        container.innerHTML = `
-            <div class="tracking-card">
-                <div class="tracking-header">
-                    <h2>Commande non trouvée</h2>
-                    <p>Veuillez vérifier le numéro de commande</p>
-                </div>
-                <div class="tracking-body empty-state">
-                    <i class="fas fa-search"></i>
-                    <p>Aucune commande trouvée avec cet identifiant.</p>
-                    <button onclick="window.location.href='index.html'" class="btn-primary btn-inline">Retour à l'accueil</button>
-                </div>
-            </div>
-        `;
-        return;
+        state = demoState();
+        renderShell(state);
+        await buildMap(state);
+        playDemo();
     }
-    
-    const stepIndex = currentOrder.trackingStep || 1;
-    const progress = getStepProgress(currentOrder);
-    const isCompleted = stepIndex >= deliverySteps.length;
-    
-    container.innerHTML = `
-        <div class="tracking-card">
-            <div class="tracking-header">
-                <h2><i class="fas fa-truck"></i> Suivi de livraison</h2>
-                <p>Commande #${escapeHtml(currentOrder.id)} - ${formatDate(currentOrder.date)}</p>
-                <p><strong>Total:</strong> ${(currentOrder.total || 0).toLocaleString()} FCFA</p>
-            </div>
-            <div class="tracking-body">
-                
-                <!-- Jauge de progression -->
-                <div class="progress-container">
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width: ${progress}%;"></div>
-                    </div>
-                    <div class="progress-stats">
-                        <span>Commande</span>
-                        <span>Préparation</span>
-                        <span>Expédition</span>
-                        <span>Transit</span>
-                        <span>Livraison</span>
-                    </div>
-                </div>
-                
-                <!-- Animation voiture -->
-                <div class="delivery-animation">
-                    <div class="delivery-car"><i class="fas fa-truck"></i> Livraison en cours</div>
-                    <div class="delivery-road"></div>
-                    <div style="font-size:12px;color:var(--gray-500);margin-top:12px;">Votre colis est en route vers son destinataire</div>
-                </div>
-                
-                <!-- Étapes -->
-                <div class="steps-container">
-                    ${deliverySteps.map((step, idx) => `
-                        <div class="step ${idx + 1 < stepIndex ? 'completed' : idx + 1 === stepIndex ? 'active' : ''}">
-                            <div class="step-icon"><i class="fas ${step.icon}"></i></div>
-                            <div class="step-label">${escapeHtml(step.name)}</div>
-                            ${currentOrder.statusHistory?.find(h => h.status === step.name) ? 
-                                `<div class="step-date">${formatDate(currentOrder.statusHistory.find(h => h.status === step.name).date)}</div>` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <!-- Historique détaillé -->
-                <div class="timeline">
-                    <h3>Historique de livraison</h3>
-                    ${currentOrder.statusHistory?.length ? currentOrder.statusHistory.map((h, idx) => `
-                        <div class="timeline-item">
-                            <div class="timeline-icon ${idx === 0 ? 'completed' : ''}">
-                                <i class="fas ${deliverySteps.find(s => s.name === h.status)?.icon || 'fa-clock'}"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-title">${escapeHtml(h.status)}</div>
-                                <div class="timeline-desc">${escapeHtml(h.message || 'Mise à jour du statut')}</div>
-                                <div class="timeline-date">${formatDate(h.date)}</div>
-                            </div>
-                        </div>
-                    `).join('') : ''}
-                </div>
-                
-                ${isCompleted && !currentOrder.rated ? `
-                    <div class="review-section">
-                        <i class="fas fa-star"></i>
-                        <h3>Votre commande est livrée !</h3>
-                        <p>Nous serions ravis de connaître votre avis sur cette boutique.</p>
-                        <button onclick="window.openRatingModal()" class="btn-primary" style="margin-top:12px;">Noter et commenter</button>
-                    </div>
-                ` : ''}
-                
-                <button onclick="window.location.href='index.html'" class="btn-secondary">Retour à l'accueil</button>
-            </div>
-        </div>
-    `;
-}
 
-// ============ SIMULATION DE SUIVI ============
-function startTrackingSimulation() {
-    if (!currentOrder || currentOrder.trackingStep >= deliverySteps.length || currentOrder.trackingSimulated) {
-        return;
-    }
-    
-    currentOrder.trackingSimulated = true;
-    let currentStep = currentOrder.trackingStep || 1;
-    
-    function processNextStep() {
-        if (currentStep >= deliverySteps.length) {
-            if (trackingInterval) clearInterval(trackingInterval);
-            // Envoyer email de livraison
-            console.log(`📧 Email de livraison envoyé à ${currentUser?.email || 'client@email.com'}`);
-            console.log(`Votre commande ${currentOrder.id} a été livrée avec succès !`);
-            renderTracking();
-            return;
-        }
-        
-        const step = deliverySteps[currentStep - 1];
-        currentOrder.trackingStep = currentStep;
-        currentOrder.status = step.name;
-        currentOrder.statusHistory = currentOrder.statusHistory || [];
-        currentOrder.statusHistory.unshift({
-            status: step.name,
-            date: new Date().toISOString(),
-            message: step.name === 'Livrée' ? 'Colis livré avec succès' : `Votre commande est ${step.name.toLowerCase()}`
-        });
-        
-        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-        renderTracking();
-        
-        // Simuler l'envoi d'email à chaque étape
-        console.log(`📧 Email: Votre commande ${currentOrder.id} est ${step.name.toLowerCase()}`);
-        
-        currentStep++;
-        
-        if (currentStep <= deliverySteps.length) {
-            const duration = deliverySteps[currentStep - 2]?.duration || 3000;
-            setTimeout(processNextStep, duration);
-        }
-    }
-    
-    setTimeout(processNextStep, 1000);
-}
-
-// ============ CHARGEMENT DE LA COMMANDE ============
-function loadOrder() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get('id');
-    
-    if (orderId) {
-        currentOrder = orders.find(o => o.id === orderId);
-    } else if (currentUser) {
-        const pendingOrders = orders.filter(o => 
-            o.userId === currentUser.email && 
-            o.trackingStep < deliverySteps.length
-        );
-        if (pendingOrders.length > 0) currentOrder = pendingOrders[0];
-    }
-    
-    // Si aucune commande trouvée, prendre la dernière
-    if (!currentOrder && orders.length > 0) {
-        currentOrder = orders[orders.length - 1];
-    }
-    
-    // Initialiser le tracking si nécessaire
-    if (currentOrder && (!currentOrder.trackingStep || currentOrder.trackingStep === 0)) {
-        currentOrder.trackingStep = 1;
-        currentOrder.statusHistory = currentOrder.statusHistory || [];
-        if (currentOrder.statusHistory.length === 0) {
-            currentOrder.statusHistory.push({
-                status: 'Commande confirmée',
-                date: currentOrder.date || new Date().toISOString(),
-                message: 'Votre commande a été confirmée'
-            });
-        }
-        localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-    }
-    
-    renderTracking();
-    
-    if (currentOrder && currentOrder.trackingStep < deliverySteps.length && !currentOrder.trackingSimulated) {
-        startTrackingSimulation();
-    }
-}
-
-// ============ INITIALISATION ============
-function init() {
-    // Récupérer les données
-    currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-    orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
-    shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    
-    // Mettre à jour l'interface utilisateur
-    updateUserUI();
-    
-    // Charger la commande
-    loadOrder();
-}
-
-// Nettoyage au déchargement
-window.addEventListener('beforeunload', () => {
-    if (trackingInterval) clearInterval(trackingInterval);
-});
-
-// Exports globaux pour les appels onclick
-window.openRatingModal = openRatingModal;
-window.handleRatingSubmit = null; // Sera défini dans openRatingModal
-
-// Démarrer l'application
-init();
+    window.OuenzeTracking = { show };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();

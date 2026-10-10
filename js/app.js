@@ -28,7 +28,8 @@
     let currentSort = 'rating';
     let currentSearchType = 'all';  // onglets de recherche : all | shop | product
     let searchSeq = 0;              // ignore les réponses de recherches périmées
-    let currentShopProducts = [];   // vue boutique : produits affichés
+    let currentShopProducts = [];
+    let currentShopName = '';       // vue boutique : nom (pour le panier)
     let currentShopCategories = [];
     let currentShopDesign = null;
     let currentShopCategoryFilter = '';
@@ -709,6 +710,8 @@
                 .filter(m => m.src)
                 .slice(0, 6);
             const d = currentShopDesign;
+            currentShopName = shop.name || '';
+            (products || []).forEach(p => { p.shop_name = shop.name; });
  
             const logo = safeUrl(shop.logo_url);
             const container = document.getElementById('appContainer');
@@ -1155,7 +1158,8 @@
                 price: Number(variant ? variant.price : p.price) || 0,
                 photo: (variant?.photos?.[0] && safeUrl(variant.photos[0])) || productPhotos(p)[0] || '',
                 quantity,
-                shopId: p.shop_id
+                shopId: p.shop_id,
+                shopName: p.shop_name || p.shops?.name || ''
             });
         }
         saveCart();
@@ -1200,7 +1204,8 @@
             <h3 style="margin-bottom:12px;">Mon panier (${cartTotalQty()})</h3>
             <div class="cart-list">${cart.map(cartItemHtml).join('')}</div>
             <div class="cart-total"><span>Total</span><strong>${formatPrice(total)} FCFA</strong></div>
-            <p class="cart-note"><i class="fas fa-info-circle"></i> Frais de livraison calculés à la validation. La validation de commande (adresse et paiement) arrive très bientôt.</p>`;
+            <p class="cart-note"><i class="fas fa-info-circle"></i> Frais de livraison (10 %) ajoutés à l'étape suivante.</p>
+            <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Valider ma commande</a>`;
         const existing = document.getElementById('cartModalBody');
         if (existing) existing.innerHTML = html;
         else openModal(`<div id="cartModalBody">${html}</div>`);
