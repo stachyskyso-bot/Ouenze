@@ -306,4 +306,58 @@ as $$
 $$;
 grant execute on function public.my_share_orders() to authenticated;
 
+-- ---------- Admin : demandes d'entrée en bourse, avec le contact du vendeur ----------
+create or replace function public.admin_listings()
+returns table (
+    offering_id uuid, shop_id uuid, shop_name text, shop_city text, rating numeric, delivered_orders integer,
+    owner_email text, percent_offered numeric, total_shares integer, remaining_shares integer,
+    price_per_share numeric, valuation numeric, status text, pitch text, admin_note text,
+    created_at timestamptz, reviewed_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+    if not public.is_admin() then raise exception 'Réservé aux administrateurs' using errcode = '42501'; end if;
+    return query
+    select o.id, s.id, s.name::text, s.city::text, coalesce(s.rating, 0)::numeric, public.shop_delivered_orders(s.id),
+           u.email::text, o.percent_offered, o.total_shares, public.offering_remaining(o.id),
+           o.price_per_share, o.price_per_share * 10000, o.status, o.pitch, o.admin_note, o.created_at, o.reviewed_at
+      from public.share_offerings o
+      join public.shops s on s.id = o.shop_id
+      left join auth.users u on u.id = o.owner_id
+     order by (o.status = 'pending') desc, o.created_at desc;
+end;
+$$;
+revoke all on function public.admin_listings() from public;
+grant execute on function public.admin_listings() to authenticated;
+
+-- ---------- Admin : réservations de parts, avec le contact de l'investisseur ----------
+create or replace function public.admin_share_orders()
+returns table (
+    order_id uuid, shop_name text, investor_email text, quantity integer, price_per_share numeric,
+    amount numeric, status text, payment_ref text, created_at timestamptz, paid_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+    if not public.is_admin() then raise exception 'Réservé aux administrateurs' using errcode = '42501'; end if;
+    return query
+    select so.id, s.name::text, u.email::text, so.quantity, so.price_per_share, so.amount, so.status,
+           so.payment_ref, so.created_at, so.paid_at
+      from public.share_orders so
+      join public.share_offerings o on o.id = so.offering_id
+      join public.shops s on s.id = o.shop_id
+      left join auth.users u on u.id = so.investor_id
+     order by (so.status = 'requested') desc, so.created_at desc;
+end;
+$$;
+revoke all on function public.admin_share_orders() from public;
+grant execute on function public.admin_share_orders() to authenticated;
+
 notify pgrst, 'reload schema';

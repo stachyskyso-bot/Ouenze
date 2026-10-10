@@ -839,3 +839,68 @@ body {
     font-size: 12px;
     cursor: pointer;
 }
+
+/* ---------- Entrée en bourse ---------- */
+.btn-market {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+}
+
+a.share-native {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+}
+
+.listing-req {
+    margin: 10px 0;
+    font-size: 13px;
+}
+
+.listing-req > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.listing-bar {
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.listing-bar div {
+    height: 100%;
+    background: #f59e0b;
+    border-radius: 8px;
+}
+
+.listing-req.ok .listing-bar div {
+    background: #10b981;
+}
+
+.listing-calc {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.listing-calc div {
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.listing-calc span {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.listing-calc strong {
+    font-size: 14px;
+    color: #0f172a;
+}
