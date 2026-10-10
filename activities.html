@@ -10,35 +10,78 @@
     <!-- Polices et bibliothèques externes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Styles personnalisés -->
-    <link rel="stylesheet" href="css/activities.css">
+    <!-- Styles : communs au site, puis propres à Invest -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/invest.css">
 </head>
 <body>
 
 <div class="header">
-    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
-    <div class="header-actions" id="headerActions"></div>
+    <div class="header-top">
+        <div class="logo" onclick="window.location.href='index.html'">
+            <h1>OUENZE</h1>
+            <span>Congo Brazzaville</span>
+        </div>
+        <div class="header-actions" id="headerActions"></div>
+    </div>
+    <div class="search-wrapper">
+        <div class="search-tabs">
+            <span class="search-tab active" data-type="all">Tous</span>
+            <span class="search-tab" data-type="shop">Boutiques</span>
+            <span class="search-tab" data-type="product">Produits</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher boutique ou produit...">
+            <button id="searchBtn"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
 </div>
 
-<div class="nav-tabs">
-    <button class="nav-tab" data-tab="invest" onclick="window.location.href='invest.html'">Investir</button>
-    <button class="nav-tab active" data-tab="activities">Mes activités</button>
-    <button class="nav-tab" data-tab="portfolio" onclick="window.location.href='portfolio.html'">Mon portefeuille</button>
+<div class="nav-row">
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="index.html">Accueil</a>
+            <a href="index.html">Boutiques</a>
+            <a href="#" onclick="showCart(); return false;">Panier (<span id="cartCountHeader">0</span>)</a>
+            <a href="#" onclick="showMyOrders(); return false;">Commandes</a>
+            <a href="#" onclick="showProfile(); return false;">Mon Profil</a>
+            <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a href="delivery-dashboard.html" id="deliveryDashboardLink" style="display:none;">Mes livraisons</a>
+            <a href="delivery-register.html">Devenir livreur</a>
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent">
+                <a href="about.html">À propos</a>
+                <a href="help.html">Aide</a>
+                <a href="privacy.html">Confidentialité</a>
+                <a href="invest.html">Investir</a>
+                <a href="tracking.html">Suivi livraison</a>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="main" id="appContainer"></div>
+<div class="main invest-page">
+    <nav class="invest-tabs" aria-label="Investissement">
+        <a class="invest-tab" href="invest.html"><i class="fas fa-chart-line"></i> Investir</a>
+        <a class="invest-tab active" href="activities.html" aria-current="page"><i class="fas fa-history"></i> Mes activités</a>
+        <a class="invest-tab" href="portfolio.html"><i class="fas fa-wallet"></i> Mon portefeuille</a>
+    </nav>
+    <div id="activitiesContainer"><p class="inv-loading">Chargement…</p></div>
+</div>
 
 <div class="footer">
-    <p>Ouenze - Suivi de vos activités | Transactions sécurisées</p>
+    <p>Ouenze - Marketplace Congo Brazzaville | <a href="about.html">À propos</a> | <a href="help.html">Aide</a> | <a href="privacy.html">Confidentialité</a></p>
 </div>
 
-<!-- Scripts -->
-<script src="database.js"></script>
-<script src="js/activities.js"></script>
-<!-- Supabase SDK -->
+<!-- Ordre obligatoire : supabase-js → supabase-config → database → app → Chart.js → page -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Configuration Supabase -->
 <script src="js/supabase-config.js"></script>
-     <script type="module" src="js/app.js"></script>
+<script src="js/database.js"></script>
+<script src="js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="js/invest-common.js"></script>
+<script src="js/activities.js"></script>
 </body>
 </html>
