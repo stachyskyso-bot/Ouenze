@@ -124,12 +124,23 @@
         return stars;
     }
  
+    // Médaille calculée par la base (shop_medals) ; à défaut, mêmes règles côté navigateur
+    let shopMedals = {};
+    const MEDAL_CLASS = { gold: 'level-gold', silver: 'level-silver', bronze: 'level-bronze', standard: '' };
+
     function getShopLevel(shop) {
-        const rating = shop.rating || 0;
-        if (rating >= 4.5) return { name: 'Or', class: 'level-gold' };
-        if (rating >= 4) return { name: 'Argent', class: 'level-silver' };
-        if (rating >= 3) return { name: 'Bronze', class: 'level-bronze' };
-        return { name: 'Standard', class: '' };
+        const M = window.OuenzeMedals;
+        const tier = shopMedals[shop.id]
+            ? M.get(shopMedals[shop.id])
+            : M.compute(shop.rating, shop.real_sales_count ?? shop.total_sales, shop.is_verified);
+        return { id: tier.id, rank: tier.rank, name: tier.name, emoji: tier.emoji, class: MEDAL_CLASS[tier.id] };
+    }
+
+    async function loadShopMedals() {
+        try {
+            const { data, error } = await window.supabase.rpc('shop_medals');
+            if (!error && Array.isArray(data)) shopMedals = Object.fromEntries(data.map(m => [m.shop_id, m.medal]));
+        } catch (e) { /* migration pas encore passée : règles locales */ }
     }
  
     function loadCart() {
@@ -509,6 +520,7 @@
             if (error) throw error;
  
             shopsCache = data || [];
+            await loadShopMedals();
             renderShops();
         } catch (error) {
             console.error('❌ Erreur boutiques:', error);
@@ -541,8 +553,9 @@
                 (s.description || '').toLowerCase().includes(q));
         }
  
+        // « Les mieux notées » : Or d'abord, puis Argent, Bronze (avantage des médailles), puis la note
         const sorters = {
-            rating: (a, b) => (b.rating || 0) - (a.rating || 0),
+            rating: (a, b) => (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)),
             sales: (a, b) => (b.total_sales || 0) - (a.total_sales || 0),
             products: (a, b) => productCountOf(b) - productCountOf(a)
         };
@@ -577,7 +590,7 @@
                             <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
                         </div>
                         <div style="margin-top:6px;">
-                            <span class="level-badge ${level.class}"><i class="fas fa-crown"></i> ${level.name}</span>
+                            <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span>
                         </div>
                     </div>
                     <div class="shop-details">
@@ -777,7 +790,9 @@
                         <h3 id="shopProductsTitle" style="margin:0 0 12px;color:${d.productText};">Produits (${currentShopProducts.length})</h3>
                         <div id="shopProductsGrid"></div>
                     </div>
-                </div>`;
+                </div>
+                <section class="shop-reviews" id="shopReviews" aria-label="Avis clients"></section>`;
+            loadShopReviews(shop);
             currentShopCategoryFilter = '';
             renderShopProducts(currentShopProducts);
             startCarousel(carouselItems.length, d.carouselSpeed);
@@ -1235,20 +1250,23 @@
     }
  
     // ============ MODALES ============
-    function closeModal() {
-        document.querySelectorAll('.modal.active').forEach(m => m.remove());
+    // Une fenêtre « locked » (finalisation de l'inscription) reste ouverte : les autres
+    // fenêtres s'ouvrent par-dessus et elle réapparaît quand on les ferme.
+    function closeModal(force) {
+        document.querySelectorAll('.modal.active').forEach(m => { if (force || !m.dataset.locked) m.remove(); });
     }
  
-    function openModal(innerHtml) {
+    function openModal(innerHtml, options = {}) {
         closeModal();
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
-                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                ${options.locked ? '' : '<button class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</button>'}
                 ${innerHtml}
             </div>`;
-        modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+        if (options.locked) modal.dataset.locked = '1';
+        else modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
         document.body.appendChild(modal);
         return modal;
     }
@@ -1293,10 +1311,6 @@
                 <button type="button" class="social-btn google" onclick="signInWithProvider('google')">
                     <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
                     ${label} avec Google
-                </button>
-                <button type="button" class="social-btn facebook" onclick="signInWithProvider('facebook')">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#fff" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
-                    ${label} avec Facebook
                 </button>
             </div>
             <div class="auth-divider"><span>ou avec ton email</span></div>`;
@@ -1443,9 +1457,9 @@
     }
  
     // ============ CONNEXION GOOGLE / FACEBOOK ============
-    const PROVIDER_NAMES = { google: 'Google', facebook: 'Facebook' };
+    const PROVIDER_NAMES = { google: 'Google' };
 
-    // Avant de partir chez Google/Facebook, on demande à Supabase si le fournisseur est activé :
+    // Avant de partir chez Google, on demande à Supabase si le fournisseur est activé :
     // sinon le visiteur atterrirait sur une page d'erreur brute (« Unsupported provider »).
     async function providerEnabled(provider) {
         try {
@@ -1478,7 +1492,7 @@
         }
     }
 
-    // Retour de Google/Facebook avec une erreur : Supabase la met dans l'adresse (?error=… ou #error=…)
+    // Retour de Google avec une erreur : Supabase la met dans l'adresse (?error=… ou #error=…)
     function handleOAuthReturnError() {
         const params = new URLSearchParams(window.location.search);
         const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -1486,27 +1500,30 @@
         if (!code) return;
         const detail = params.get('error_description') || hash.get('error_description') || code;
         console.error('❌ Retour OAuth :', code, detail);
-        let message = 'La connexion avec Google ou Facebook a échoué.';
+        let message = 'La connexion avec Google a échoué.';
         if (/access_denied/i.test(code)) message = 'Connexion annulée.';
         else if (/database error saving new user/i.test(detail)) message = 'Ton compte n\'a pas pu être créé (erreur de la base de données). Réessaie avec ton email.';
-        else if (/email/i.test(detail) && /(not|no).*(provided|found)|missing/i.test(detail)) message = 'Facebook n\'a pas transmis ton adresse email. Autorise l\'accès à l\'email ou utilise ton email pour t\'inscrire.';
         alert(`${message}\n\nDétail : ${detail}`);
         ['error', 'error_code', 'error_description'].forEach(k => params.delete(k));
         const q = params.toString();
         history.replaceState(null, '', window.location.pathname + (q ? '?' + q : ''));
     }
 
-    // Compte créé via Google/Facebook : il manque le pays, le téléphone et le type de compte
+    // Compte créé via Google : il manque le pays, la ville, le téléphone et le type de compte
     function needsProfileCompletion(user) {
         const provider = user?.app_metadata?.provider;
         return !!user && provider && provider !== 'email' && !user.user_metadata?.profile_completed;
     }
  
     function openCompleteProfileModal() {
+        if (document.querySelector('.modal[data-locked]')) return;
         const meta = currentUser?.user_metadata || {};
         const modal = openModal(`
-            <h3 style="margin-bottom:6px;">Finalise ton inscription</h3>
-            <p class="auth-sub">Encore quelques informations pour pouvoir commander et être livré.</p>
+            <div class="complete-head">
+                <span class="complete-badge"><i class="fas fa-check-circle"></i> Connecté avec Google</span>
+                <h3>Plus qu'une étape</h3>
+                <p class="auth-sub">${escapeHtml(currentUser?.email || '')} — indique ta ville, ton téléphone et ce que tu veux faire sur Ouenze.</p>
+            </div>
             <form onsubmit="event.preventDefault();completeProfile();" novalidate>
                 <div class="form-group">
                     <label>Nom complet *</label>
@@ -1515,24 +1532,29 @@
                 ${countryFieldsHtml('complete')}
                 <div class="form-group">
                     <label>Je veux *</label>
-                    <div class="account-types">
+                    <div class="account-types three">
                         <label><input type="radio" name="completeType" value="client" checked><span><i class="fas fa-shopping-bag"></i> Acheter</span></label>
                         <label><input type="radio" name="completeType" value="vendeur"><span><i class="fas fa-store"></i> Vendre</span></label>
+                        <label><input type="radio" name="completeType" value="livreur"><span><i class="fas fa-motorcycle"></i> Livrer</span></label>
                     </div>
+                    <p class="auth-note">Vendre : tu crées ta boutique juste après. Livrer : ton permis et ton véhicule seront vérifiés.</p>
                 </div>
                 <label class="terms-line">
                     <input type="checkbox" id="completeTerms">
                     <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
                 </label>
                 <div class="form-error" id="completeError" role="alert"></div>
-                <button type="submit" class="btn-submit" id="completeSubmit">Valider</button>
-            </form>`);
+                <button type="submit" class="btn-submit" id="completeSubmit">Terminer mon inscription</button>
+            </form>
+            <p class="complete-out">Pas toi ? <button type="button" onclick="logout()">Se déconnecter</button></p>`, { locked: true });
         modal.classList.add('auth-modal');
     }
  
     async function completeProfile() {
         const fullName = (document.getElementById('completeName')?.value || '').trim();
-        const userType = document.querySelector('input[name="completeType"]:checked')?.value === 'vendeur' ? 'vendeur' : 'client';
+        const choice = document.querySelector('input[name="completeType"]:checked')?.value || 'client';
+        // Un livreur reste « client » tant que son dossier (permis, véhicule) n'est pas validé
+        const userType = choice === 'vendeur' ? 'vendeur' : 'client';
         if (fullName.length < 2) return showFormError('completeError', 'Indique ton nom complet.', 'completeName');
         const loc = readCountryFields('complete');
         if (loc.error) return showFormError('completeError', loc.error, loc.field);
@@ -1542,7 +1564,7 @@
         btn.disabled = true;
         btn.textContent = 'Enregistrement…';
         try {
-            const data = { full_name: fullName, user_type: userType, ...loc.values, profile_completed: true };
+            const data = { full_name: fullName, user_type: userType, ...loc.values, profile_completed: true, wants_delivery: choice === 'livreur' };
             const { error } = await window.supabase.auth.updateUser({ data });
             if (error) throw error;
             // Profil : toutes les colonnes si elles existent, sinon l'essentiel
@@ -1553,9 +1575,11 @@
                 res = await window.supabase.from('profiles').update({ full_name: fullName, user_type: userType }).eq('id', currentUser.id);
             }
             if (res.error) console.error('❌ Profil:', res.error);
-            closeModal();
-            if (userType === 'vendeur') {
+            closeModal(true);
+            if (choice === 'vendeur') {
                 window.location.href = 'shop-designer.html';
+            } else if (choice === 'livreur') {
+                window.location.href = 'delivery-register.html';
             } else {
                 await initApp();
             }
@@ -1563,7 +1587,7 @@
             console.error('❌ Finalisation:', e);
             showFormError('completeError', 'Enregistrement impossible : ' + (e?.message || 'réessaie dans un instant.'));
             btn.disabled = false;
-            btn.textContent = 'Valider';
+            btn.textContent = 'Terminer mon inscription';
         }
     }
  
@@ -1601,7 +1625,10 @@
             <h3 style="margin-bottom:20px;">Mes commandes</h3>
             ${orders && orders.length ? orders.map(o => `
                 <div style="padding:10px 0;border-bottom:1px solid var(--gray-200);">
-                    <div><strong>#${escapeHtml(String(o.id).slice(0, 8))}</strong> — ${escapeHtml(o.status || 'en attente')}</div>
+                    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+                        <span><strong>#${escapeHtml(String(o.id).slice(0, 8))}</strong> — ${escapeHtml(o.status === 'delivered' ? 'livrée' : o.status || 'en attente')}</span>
+                        ${o.status === 'delivered' ? `<button class="rate-btn" onclick="openRateOrder('${escapeHtml(o.id)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
+                    </div>
                     <small style="color:var(--gray-500);">
                         ${o.created_at ? new Date(o.created_at).toLocaleDateString('fr-FR') : ''}
                         ${o.total_amount != null ? ' · ' + formatPrice(o.total_amount) + ' FCFA' : ''}
@@ -1609,6 +1636,107 @@
                 </div>`).join('') : '<p style="color:var(--gray-500);">Aucune commande pour le moment.</p>'}`);
     }
  
+    // ============ NOTES : BOUTIQUE ET LIVREUR APRÈS LIVRAISON ============
+    const STAR_LABELS = ['', 'Très mauvais', 'Mauvais', 'Correct', 'Bien', 'Excellent'];
+
+    function starPicker(name, value) {
+        return `<div class="star-picker" role="radiogroup" data-name="${name}">
+            ${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="${value === n}" aria-label="${n} étoile${n > 1 ? 's' : ''} : ${STAR_LABELS[n]}"
+                class="${value >= n ? 'on' : ''}" onclick="pickStar('${name}', ${n})">★</button>`).join('')}
+            <span class="star-label" id="lbl-${name}">${value ? STAR_LABELS[value] : 'Touche une étoile'}</span>
+        </div>`;
+    }
+
+    function pickStar(name, n) {
+        const box = document.querySelector(`.star-picker[data-name="${name}"]`);
+        if (!box) return;
+        box.dataset.value = n;
+        box.querySelectorAll('button').forEach((b, i) => { b.classList.toggle('on', i < n); b.setAttribute('aria-checked', String(i + 1 === n)); });
+        document.getElementById('lbl-' + name).textContent = STAR_LABELS[n];
+        showFormError('rateError', '');
+    }
+
+    async function openRateOrder(orderId) {
+        const { data, error } = await window.supabase.rpc('order_review_status', { target_order: orderId });
+        if (error || !data) {
+            alert(/function|Could not find/i.test(error?.message || '') ? 'Les avis seront bientôt disponibles.' : (error?.message || 'Impossible de charger la commande.'));
+            return;
+        }
+        if (!data.delivered) { alert('Tu pourras noter dès que la commande sera livrée.'); return; }
+        const shops = data.shops || [];
+        const todo = shops.filter(s => !s.rated);
+        const courierTodo = data.courier && !data.courier_rated;
+        const done = s => `<p class="rate-done">${escapeHtml(s.name)} : ${'★'.repeat(s.stars)}${'☆'.repeat(5 - s.stars)} — merci !</p>`;
+        const modal = openModal(`
+            <h3 style="margin-bottom:4px;">Note ta commande</h3>
+            <p class="auth-sub">Ton avis aide les autres clients et récompense les meilleurs vendeurs et livreurs.</p>
+            ${shops.filter(s => s.rated).map(done).join('')}
+            ${data.courier_rated ? `<p class="rate-done">Livreur : ${'★'.repeat(data.courier_stars)}${'☆'.repeat(5 - data.courier_stars)} — merci !</p>` : ''}
+            ${todo.map((s, i) => `
+                <div class="rate-block">
+                    <strong><i class="fas fa-store"></i> ${escapeHtml(s.name)}</strong>
+                    ${starPicker('shop' + i, 0)}
+                    <textarea id="shopComment${i}" rows="2" maxlength="500" placeholder="Décris ton expérience : qualité, conformité, emballage…" data-shop="${escapeHtml(s.shop_id)}"></textarea>
+                </div>`).join('')}
+            ${courierTodo ? `
+                <div class="rate-block">
+                    <strong><i class="fas fa-motorcycle"></i> Le livreur</strong>
+                    ${starPicker('courier', 0)}
+                    <textarea id="courierComment" rows="2" maxlength="500" placeholder="Ponctualité, politesse, état du colis…"></textarea>
+                </div>` : ''}
+            ${!data.courier && todo.length ? '<p class="auth-note">La note du livreur sera possible quand les livraisons seront suivies en direct.</p>' : ''}
+            <div class="form-error" id="rateError" role="alert"></div>
+            ${todo.length || courierTodo
+                ? `<button class="btn-submit" id="rateSubmit" onclick="submitRating('${escapeHtml(orderId)}', ${todo.length})">Envoyer ma note</button>`
+                : '<p class="auth-note">Tout est noté pour cette commande. Merci !</p>'}`);
+        modal.classList.add('auth-modal');
+    }
+
+    async function submitRating(orderId, shopCount) {
+        const val = name => Number(document.querySelector(`.star-picker[data-name="${name}"]`)?.dataset.value) || null;
+        const shopRatings = [];
+        for (let i = 0; i < shopCount; i++) {
+            const stars = val('shop' + i);
+            const ta = document.getElementById('shopComment' + i);
+            if (stars) shopRatings.push({ shop_id: ta.dataset.shop, stars, comment: ta.value.trim() || null });
+        }
+        const courierStars = val('courier');
+        if (!shopRatings.length && !courierStars) return showFormError('rateError', 'Choisis au moins une note en touchant les étoiles.');
+        const btn = document.getElementById('rateSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Envoi…';
+        const { error } = await window.supabase.rpc('rate_order', {
+            target_order: orderId, shop_ratings: shopRatings,
+            courier_stars: courierStars, courier_comment: document.getElementById('courierComment')?.value.trim() || null
+        });
+        if (error) {
+            btn.disabled = false;
+            btn.textContent = 'Envoyer ma note';
+            return showFormError('rateError', error.message || 'Envoi impossible, réessaie.');
+        }
+        closeModal();
+        showToast('Merci pour ton avis !');
+        document.dispatchEvent(new CustomEvent('ouenze:rated', { detail: { orderId } }));
+    }
+
+    async function loadShopReviews(shop) {
+        const el = document.getElementById('shopReviews');
+        if (!el) return;
+        const { data, error } = await window.supabase.rpc('shop_reviews_public', { target_shop: shop.id, max_rows: 10 });
+        if (error || !data?.length) {
+            el.innerHTML = `<h3>Avis clients</h3><p class="reviews-none">Pas encore d'avis : les clients notent la boutique après chaque livraison.</p>`;
+            return;
+        }
+        el.innerHTML = `
+            <h3>Avis clients <span>⭐ ${Number(shop.rating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5 · ${shop.total_ratings || data.length} avis</span></h3>
+            <ul>${data.map(r => `
+                <li>
+                    <div><span class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</span>
+                        <strong>${escapeHtml(r.author)}</strong> <small>${new Date(r.created_at).toLocaleDateString('fr-FR')}</small></div>
+                    ${r.comment ? `<p>${escapeHtml(r.comment)}</p>` : ''}
+                </li>`).join('')}</ul>`;
+    }
+
     // ============ NAVIGATION / RECHERCHE ============
     function resetToHome() {
         showHomePage();
@@ -1671,6 +1799,9 @@
         doLogin,
         doSignUp,
         logout,
+        openRateOrder,
+        pickStar,
+        submitRating,
         requestPasswordReset,
         showHomePage,
         resetToHome,

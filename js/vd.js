@@ -16,6 +16,7 @@
     // ============ ÉTAT ============
     let dashUser = null;
     let dashShops = [];
+    let medalInfo = {};
     let pendingTransfers = {};   // shop_id → transfert en attente
  
     // ============ UTILITAIRES ============
@@ -131,6 +132,12 @@
         } catch (e) {
             // Table absente tant que la migration du 12/10 n'est pas exécutée
         }
+        // Médailles calculées par la base (migration 20261015) ; à défaut, règles locales
+        medalInfo = {};
+        try {
+            const { data: medals, error: mError } = await window.supabase.rpc('shop_medals');
+            if (!mError) (medals || []).forEach(m => { medalInfo[m.shop_id] = m; });
+        } catch (e) { /* migration pas encore passée */ }
         console.log(`✅ vd.js : ${dashUser.email} — ${dashShops.length} boutique(s)`);
         return true;
     }
@@ -218,6 +225,8 @@
                 </div>
             </div>
  
+            ${medalCardHtml(shop)}
+
             <!-- APERÇU : la boutique telle que les clients la voient -->
             <div style="padding:0 20px 20px;">
                 <div style="font-size:12px;font-weight:600;color:var(--gray-500,#64748b);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">
@@ -236,6 +245,9 @@
                 </button>
                 <button class="btn-sm btn-share" onclick="openShareShop('${id}')">
                     <i class="fas fa-share-alt"></i> Partager ma boutique
+                </button>
+                <button class="btn-sm btn-market" onclick="openListing('${id}')">
+                    <i class="fas fa-chart-line"></i> Entrer en bourse
                 </button>
                 <button class="btn-sm btn-manage" onclick="openManageShop('${id}')">
                     <i class="fas fa-cog"></i> Gérer
@@ -359,6 +371,143 @@
         return { error: message };
     }
  
+    // ============ PROGRAMME MÉDAILLES ============
+    function medalCardHtml(shop) {
+        const M = window.OuenzeMedals;
+        if (!M) return '';
+        const info = medalInfo[shop.id];
+        const rating = Number(info?.rating ?? shop.rating) || 0;
+        const orders = Number(info?.delivered_orders ?? shop.real_sales_count) || 0;
+        const verified = !!(info?.is_verified ?? shop.is_verified);
+        const tier = info ? M.get(info.medal) : M.compute(rating, orders, verified);
+        const next = M.next(tier);
+        const bar = (label, value, target, shown) => {
+            const ok = value >= target;
+            return `<div class="medal-req ${ok ? 'ok' : ''}"><div><span>${label}</span><strong>${shown} / ${target.toLocaleString('fr-FR')}</strong></div>
+                <div class="listing-bar"><div style="width:${Math.min(100, value / target * 100)}%"></div></div></div>`;
+        };
+        const sale = 100000;
+        return `
+            <div class="medal-card medal-${tier.id}">
+                <div class="medal-head">
+                    <span class="medal-emoji">${tier.emoji}</span>
+                    <div>
+                        <small>Programme Médailles</small>
+                        <strong>Médaille ${tier.name}</strong>
+                        <span>Commission Ouenze : <b>${(tier.commission * 100).toLocaleString('fr-FR')} %</b></span>
+                    </div>
+                </div>
+                <ul class="medal-perks">${tier.perks.map(p => `<li><i class="fas fa-check"></i> ${p}</li>`).join('')}</ul>
+                ${next ? `
+                    <div class="medal-next">
+                        <p>Pour passer <strong>${next.emoji} ${next.name}</strong> (commission ${(next.commission * 100).toLocaleString('fr-FR')} %) :</p>
+                        ${bar('Note des clients', rating, next.minRating, rating.toLocaleString('fr-FR', { maximumFractionDigits: 1 }))}
+                        ${bar('Commandes livrées', orders, next.minOrders, orders.toLocaleString('fr-FR'))}
+                        ${next.verified ? `<div class="medal-req ${verified ? 'ok' : ''}"><div><span>Boutique vérifiée sur place par Ouenze</span><strong>${verified ? 'Oui' : 'Pas encore'}</strong></div></div>` : ''}
+                    </div>` : '<p class="medal-top">Tu as atteint le plus haut niveau. Garde ta note au-dessus de 4,5 pour le conserver.</p>'}
+                <details class="medal-table">
+                    <summary>Sur une vente de ${sale.toLocaleString('fr-FR')} FCFA, combien tu reçois ?</summary>
+                    <table>
+                        <thead><tr><th>Médaille</th><th>Ouenze</th><th>Toi</th></tr></thead>
+                        <tbody>${M.TIERS.map(t => { const sp = M.split(sale, t); return `<tr class="${t.id === tier.id ? 'current' : ''}"><td>${t.emoji} ${t.name}</td><td>${formatNumber(sp.ouenze)}</td><td><strong>${formatNumber(sp.vendor)}</strong></td></tr>`; }).join('')}</tbody>
+                    </table>
+                    <p>Plus ta boutique est fiable et bien notée, moins Ouenze prend de commission et plus elle te rend visible.</p>
+                </details>
+            </div>`;
+    }
+
+    // ============ ENTRÉE EN BOURSE ============
+    // Conditions et calculs vérifiés par la base (request_listing) ; ici on les explique.
+    const SHARES_PER_COMPANY = 10000;
+
+    function progressRow(label, value, target, display) {
+        const ratio = Math.max(0, Math.min(1, value / target));
+        return `<div class="listing-req ${value >= target ? 'ok' : ''}">
+            <div><span>${label}</span><strong>${display} / ${target.toLocaleString('fr-FR')}</strong></div>
+            <div class="listing-bar"><div style="width:${ratio * 100}%"></div></div></div>`;
+    }
+
+    async function openListing(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        if (!shop) return;
+        openSheet('<h3>Entrer en bourse</h3><p class="share-sub">Vérification de ta boutique…</p>');
+        const { data, error } = await window.supabase.rpc('listing_eligibility', { target_shop: shop.id });
+        const e = Array.isArray(data) ? data[0] : data;
+        if (error || !e) {
+            openSheet(`<h3>Entrer en bourse</h3><p class="share-sub">${/function|does not exist|Could not find/i.test(error?.message || '')
+                ? 'La bourse n\'est pas encore activée sur Ouenze. Réessaie bientôt.' : 'Vérification impossible pour le moment. Réessaie plus tard.'}</p>`);
+            return;
+        }
+        const name = escapeHtml(shop.name);
+        if (e.active_status === 'pending') {
+            openSheet(`<h3>« ${name} » en vérification</h3>
+                <p class="share-sub">Ta demande d'entrée en bourse est en cours. L'équipe Ouenze va te contacter pour vérifier ta boutique sur place.</p>
+                <a class="share-native" href="activities.html"><i class="fas fa-history"></i> Suivre dans Mes activités</a>`);
+            return;
+        }
+        if (e.active_status === 'open') {
+            openSheet(`<h3>« ${name} » est en bourse</h3>
+                <p class="share-sub">Les investisseurs peuvent réserver tes parts.</p>
+                <a class="share-native" href="invest.html"><i class="fas fa-chart-line"></i> Voir sur le marché</a>`);
+            return;
+        }
+        const rating = Number(e.rating) || 0;
+        const orders = Number(e.delivered_orders) || 0;
+        if (!e.eligible) {
+            openSheet(`<h3>Entrer en bourse</h3>
+                <p class="share-sub">Vends des parts de « ${name} » à des investisseurs pour financer ta croissance. Il faut d'abord :</p>
+                ${progressRow('Note des clients', rating, 3.5, rating.toLocaleString('fr-FR', { maximumFractionDigits: 1 }))}
+                ${progressRow('Commandes livrées', orders, 75, orders.toLocaleString('fr-FR'))}
+                <p class="sheet-warning"><i class="fas fa-lightbulb"></i> Chaque commande livrée et chaque bon avis te rapprochent du but. Ensuite, l'équipe Ouenze vérifie ta boutique sur place.</p>`);
+            return;
+        }
+        openSheet(`<h3>Entrer en bourse</h3>
+            <p class="share-sub">« ${name} » remplit les conditions (${rating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ★, ${orders} commandes livrées). Ta boutique compte ${SHARES_PER_COMPANY.toLocaleString('fr-FR')} parts : choisis combien tu en vends.</p>
+            <label class="sheet-label" for="lsPercent">Part du capital mise en vente (1 à 49 %) *</label>
+            <input class="sheet-input" type="number" id="lsPercent" min="1" max="49" step="1" value="10" oninput="listingCalc()">
+            <label class="sheet-label" for="lsPrice">Prix d'une part (FCFA, minimum 100) *</label>
+            <input class="sheet-input" type="number" id="lsPrice" min="100" step="50" value="500" oninput="listingCalc()">
+            <label class="sheet-label" for="lsPitch">Pourquoi investir chez toi ? (facultatif)</label>
+            <textarea class="sheet-input" id="lsPitch" rows="3" maxlength="1000" placeholder="Ex : ouvrir une 2e boutique à Pointe-Noire, acheter un stock plus important…"></textarea>
+            <div class="listing-calc" id="lsCalc"></div>
+            <p class="sheet-warning"><i class="fas fa-info-circle"></i> L'équipe Ouenze vérifie ta boutique sur place (local, pièce d'identité) avant de l'ouvrir aux investisseurs.</p>
+            <div class="form-error" id="sheetError" role="alert"></div>
+            <button class="share-native" id="lsSubmit" onclick="submitListing('${escapeHtml(shop.id)}')"><i class="fas fa-paper-plane"></i> Envoyer ma demande</button>`);
+        listingCalc();
+    }
+
+    function listingCalc() {
+        const percent = Number(document.getElementById('lsPercent')?.value) || 0;
+        const price = Number(document.getElementById('lsPrice')?.value) || 0;
+        const shares = Math.round(percent * SHARES_PER_COMPANY / 100);
+        const el = document.getElementById('lsCalc');
+        if (!el) return;
+        el.innerHTML = `<div><span>Parts mises en vente</span><strong>${shares.toLocaleString('fr-FR')}</strong></div>
+            <div><span>Montant levé si tout est vendu</span><strong>${formatNumber(shares * price)} FCFA</strong></div>
+            <div><span>Valorisation de la boutique</span><strong>${formatNumber(price * SHARES_PER_COMPANY)} FCFA</strong></div>
+            <div><span>Tu gardes</span><strong>${Math.max(0, 100 - percent).toLocaleString('fr-FR')} %</strong></div>`;
+    }
+
+    async function submitListing(shopId) {
+        const percent = Number(document.getElementById('lsPercent').value);
+        const price = Number(document.getElementById('lsPrice').value);
+        const pitch = document.getElementById('lsPitch').value.trim();
+        if (!(percent >= 1 && percent <= 49)) return sheetError('Choisis une part entre 1 et 49 % : tu gardes le contrôle de ta boutique.');
+        if (!(price >= 100)) return sheetError('Le prix d\'une part doit être d\'au moins 100 FCFA.');
+        const btn = document.getElementById('lsSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Envoi…';
+        const { error } = await window.supabase.rpc('request_listing', { target_shop: shopId, percent, share_price: price, pitch_text: pitch || null });
+        if (error) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer ma demande';
+            return sheetError(error.message || 'Envoi impossible, réessaie.');
+        }
+        openSheet(`<h3>Demande envoyée ✅</h3>
+            <p class="share-sub">L'équipe Ouenze va te contacter pour vérifier ta boutique sur place. Dès validation, elle apparaîtra sur la page Investir.</p>
+            <a class="share-native" href="activities.html"><i class="fas fa-history"></i> Suivre dans Mes activités</a>`);
+    }
+
     function openManageShop(shopId) {
         const shop = dashShops.find(s => String(s.id) === String(shopId));
         if (!shop) return;
@@ -599,7 +748,8 @@
     }
  
     Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink,
-        openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop });
+        openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop,
+        openListing, listingCalc, submitListing });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

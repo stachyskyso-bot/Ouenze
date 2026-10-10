@@ -250,6 +250,13 @@
         const idx = stepIndex(order.status);
         if (idx >= 3) moveCourier(routeToClient, idx >= 5 ? 1 : 0, true);
         updatePanel(order);
+        if (order.status === 'delivered' && order.id && window.openRateOrder) {
+            box().insertAdjacentHTML('beforeend', `
+                <div class="trk-done">
+                    <p>Commande livrée ✅ Comment s'est passé ton achat ?</p>
+                    <button class="btn-submit" onclick="openRateOrder('${String(order.id).replace(/[^a-zA-Z0-9-]/g, '')}')"><i class="fas fa-star"></i> Noter la boutique et le livreur</button>
+                </div>`);
+        }
     }
 
     async function init() {

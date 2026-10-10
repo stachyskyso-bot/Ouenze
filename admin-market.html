@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ouenze | Investir dans les boutiques</title>
+    <meta name="robots" content="noindex">
+    <title>Ouenze | Admin bourse</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon/Icon.png">
     <link rel="apple-touch-icon" href="favicon/Icon.png">
     <!-- Polices et bibliothèques externes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Styles : communs au site, puis propres à Invest -->
+    <!-- Styles : communs au site, puis espace livreur / admin -->
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/invest.css">
+    <link rel="stylesheet" href="css/delivery.css">
 </head>
-<body class="invest-body">
+<body>
 
 <div class="header">
     <div class="header-top">
@@ -62,26 +63,21 @@
     </div>
 </div>
 
-<div class="main invest-page">
-    <nav class="invest-tabs" aria-label="Investissement">
-        <a class="invest-tab active" href="invest.html" aria-current="page"><i class="fas fa-chart-line"></i> Investir</a>
-        <a class="invest-tab" href="activities.html"><i class="fas fa-history"></i> Mes activités</a>
-        <a class="invest-tab" href="portfolio.html"><i class="fas fa-wallet"></i> Mon portefeuille</a>
-    </nav>
-    <div id="investContainer"><p class="inv-loading">Chargement…</p></div>
+<div class="main adm-page">
+    <h2 style="font-size:20px;margin-bottom:14px;"><i class="fas fa-landmark" style="color:var(--primary);"></i> Bourse : demandes et paiements</h2>
+    <p style="font-size:13px;margin:-8px 0 14px;"><a href="admin-deliverers.html">Livreurs</a> · <strong>Bourse</strong></p>
+    <div id="adminApp"><p style="text-align:center;color:var(--gray-500);padding:30px 0;">Chargement…</p></div>
 </div>
 
 <div class="footer">
-    <p>Ouenze - Marketplace Congo Brazzaville | <a href="about.html">À propos</a> | <a href="help.html">Aide</a> | <a href="privacy.html">Confidentialité</a></p>
+    <p>Ouenze - Administration</p>
 </div>
 
-<!-- Ordre obligatoire : supabase-js → supabase-config → database → app → Chart.js → page -->
+<!-- Ordre obligatoire : supabase-js → supabase-config → database → app → page -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/database.js"></script>
 <script src="js/app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
-<script src="js/invest-common.js"></script>
-<script src="js/invest.js"></script>
+<script src="js/admin-market.js"></script>
 </body>
 </html>

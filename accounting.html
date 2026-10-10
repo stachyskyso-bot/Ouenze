@@ -2,50 +2,87 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Ouenze | Comptabilité vendeur</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouenze | Comptabilité</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon/Icon.png">
     <link rel="apple-touch-icon" href="favicon/Icon.png">
     <!-- Polices et bibliothèques externes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Styles personnalisés -->
+    <!-- Styles : communs au site, puis page comptabilité -->
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/accounting.css">
 </head>
 <body>
 
 <div class="header">
-    <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
-    <div class="user-menu" onclick="window.location.href='vendor-dashboard.html'">
-        <div class="user-avatar" id="userAvatar">V</div>
-        <div><span id="userName">Vendeur</span><br><small>Comptabilité</small></div>
-        <i class="fas fa-arrow-right"></i>
+    <div class="header-top">
+        <div class="logo" onclick="window.location.href='index.html'">
+            <h1>OUENZE</h1>
+            <span>Congo Brazzaville</span>
+        </div>
+        <div class="header-actions" id="headerActions"></div>
+    </div>
+    <div class="search-wrapper">
+        <div class="search-tabs">
+            <span class="search-tab active" data-type="all">Tous</span>
+            <span class="search-tab" data-type="shop">Boutiques</span>
+            <span class="search-tab" data-type="product">Produits</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher boutique ou produit...">
+            <button id="searchBtn"><i class="fas fa-search"></i></button>
+        </div>
     </div>
 </div>
 
-<div class="nav-tabs">
-    <button class="nav-tab active" data-tab="dashboard">Tableau de bord</button>
-    <button class="nav-tab" data-tab="journal">Livre journal</button>
-    <button class="nav-tab" data-tab="cpc">Compte de résultat (CPC)</button>
-    <button class="nav-tab" data-tab="balance">Balance générale</button>
-    <button class="nav-tab" data-tab="entry">Saisie manuelle</button>
+<div class="nav-row">
+    <div class="nav-container">
+        <div class="nav-links">
+            <a href="index.html">Accueil</a>
+            <a href="index.html">Boutiques</a>
+            <a href="#" onclick="showCart(); return false;">Panier (<span id="cartCountHeader">0</span>)</a>
+            <a href="#" onclick="showMyOrders(); return false;">Commandes</a>
+            <a href="#" onclick="showProfile(); return false;">Mon Profil</a>
+            <a href="vendor-dashboard.html" id="vendorLink" style="display:none;">Ma boutique</a>
+            <a href="delivery-dashboard.html" id="deliveryDashboardLink" style="display:none;">Mes livraisons</a>
+            <a href="delivery-register.html">Devenir livreur</a>
+        </div>
+        <div class="dropdown">
+            <button class="dropdown-btn" id="dropdownBtn"><i class="fas fa-bars"></i> Menu</button>
+            <div class="dropdown-content" id="dropdownContent">
+                <a href="about.html">À propos</a>
+                <a href="help.html">Aide</a>
+                <a href="privacy.html">Confidentialité</a>
+                <a href="invest.html">Investir</a>
+                <a href="tracking.html">Suivi livraison</a>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="container" id="appContainer"></div>
+<div class="main acc-page">
+    <div class="acc-head">
+        <div>
+            <h2><i class="fas fa-calculator"></i> Comptabilité</h2>
+            <p>Ventes Ouenze enregistrées automatiquement · plan comptable SYSCOHADA simplifié</p>
+        </div>
+        <a class="acc-back" href="vendor-dashboard.html"><i class="fas fa-store"></i> Ma boutique</a>
+    </div>
+    <div id="accountingApp"><p class="acc-loading">Chargement…</p></div>
+</div>
 
 <div class="footer">
-    <p>Ouenze - Comptabilité vendeur | Tenue de livres automatisée</p>
+    <p>Ouenze - Marketplace Congo Brazzaville | <a href="about.html">À propos</a> | <a href="help.html">Aide</a> | <a href="privacy.html">Confidentialité</a></p>
 </div>
 
-<!-- Scripts -->
-<script src="database.js"></script>
-<script src="js/accounting.js"></script>
-<!-- Supabase SDK -->
+<!-- Ordre obligatoire : supabase-js → supabase-config → database → app → Chart.js → page -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Configuration Supabase -->
 <script src="js/supabase-config.js"></script>
-     <script type="module" src="js/app.js"></script>
+<script src="js/database.js"></script>
+<script src="js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="js/accounting.js"></script>
 </body>
 </html>
