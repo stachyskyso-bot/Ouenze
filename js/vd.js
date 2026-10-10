@@ -217,6 +217,9 @@
                 <button class="btn-sm btn-outline" onclick="viewShop('${id}')">
                     <i class="fas fa-eye"></i> Voir en ligne
                 </button>
+                <button class="btn-sm btn-share" onclick="openShareShop('${id}')">
+                    <i class="fas fa-share-alt"></i> Partager ma boutique
+                </button>
             </div>
         </div>`;
     }
@@ -298,6 +301,109 @@
         window.open('index.html?shop=' + encodeURIComponent(shopId), '_blank');
     }
  
+    // ============ PARTAGE DE LA BOUTIQUE ============
+    function shopLink(shopId) {
+        return `${window.location.origin}/?shop=${encodeURIComponent(shopId)}`;
+    }
+ 
+    function shareMessage(shop) {
+        return `Découvrez ma boutique « ${shop.name} » sur Ouenze 🛍️`;
+    }
+ 
+    function openShareShop(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        if (!shop) return;
+        const url = shopLink(shop.id);
+        const text = shareMessage(shop);
+        const u = encodeURIComponent(url);
+        const t = encodeURIComponent(text);
+        const networks = [
+            { name: 'WhatsApp', icon: 'fab fa-whatsapp', color: '#25D366', href: `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}` },
+            { name: 'Facebook', icon: 'fab fa-facebook-f', color: '#1877F2', href: `https://www.facebook.com/sharer/sharer.php?u=${u}` },
+            { name: 'Messenger', icon: 'fab fa-facebook-messenger', color: '#0084FF', href: `fb-messenger://share/?link=${u}`, mobileOnly: true },
+            { name: 'Telegram', icon: 'fab fa-telegram-plane', color: '#229ED9', href: `https://t.me/share/url?url=${u}&text=${t}` },
+            { name: 'X (Twitter)', icon: 'fab fa-twitter', color: '#0f1419', href: `https://twitter.com/intent/tweet?text=${t}&url=${u}` },
+            { name: 'SMS', icon: 'fas fa-sms', color: '#64748b', href: `sms:?&body=${encodeURIComponent(text + ' ' + url)}`, mobileOnly: true },
+            { name: 'E-mail', icon: 'fas fa-envelope', color: '#ea580c', href: `mailto:?subject=${encodeURIComponent(shop.name + ' sur Ouenze')}&body=${encodeURIComponent(text + '\n' + url)}` }
+        ];
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const canNativeShare = typeof navigator.share === 'function';
+ 
+        document.getElementById('shareOverlay')?.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'shareOverlay';
+        overlay.className = 'share-overlay';
+        overlay.innerHTML = `
+            <div class="share-sheet" role="dialog" aria-label="Partager ma boutique">
+                <button class="share-close" onclick="closeShareShop()" aria-label="Fermer">&times;</button>
+                <h3>Partager « ${escapeHtml(shop.name)} »</h3>
+                <p class="share-sub">Envoyez le lien de votre boutique à vos clients.</p>
+ 
+                ${canNativeShare ? `
+                    <button class="share-native" onclick="nativeShareShop('${escapeHtml(shop.id)}')">
+                        <i class="fas fa-share-alt"></i> Partager via Instagram, Snapchat, TikTok…
+                    </button>` : ''}
+ 
+                <div class="share-grid">
+                    ${networks.filter(n => !n.mobileOnly || isMobile).map(n => `
+                        <a class="share-item" href="${n.href}" target="_blank" rel="noopener">
+                            <span class="share-icon" style="background:${n.color};"><i class="${n.icon}"></i></span>
+                            <span>${n.name}</span>
+                        </a>`).join('')}
+                    <button class="share-item" onclick="copyShopLink('${escapeHtml(shop.id)}', 'Instagram')">
+                        <span class="share-icon" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);"><i class="fab fa-instagram"></i></span>
+                        <span>Instagram</span>
+                    </button>
+                    <button class="share-item" onclick="copyShopLink('${escapeHtml(shop.id)}', 'Snapchat')">
+                        <span class="share-icon" style="background:#FFFC00;color:#000;"><i class="fab fa-snapchat-ghost"></i></span>
+                        <span>Snapchat</span>
+                    </button>
+                </div>
+ 
+                <div class="share-link">
+                    <input type="text" readonly value="${escapeHtml(url)}" onclick="this.select()">
+                    <button onclick="copyShopLink('${escapeHtml(shop.id)}')"><i class="fas fa-copy"></i> Copier</button>
+                </div>
+                <p class="share-tip" id="shareTip">Astuce : mettez ce lien dans la bio de votre Instagram, TikTok ou Snapchat.</p>
+            </div>`;
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeShareShop(); });
+        document.body.appendChild(overlay);
+    }
+ 
+    function closeShareShop() {
+        document.getElementById('shareOverlay')?.remove();
+    }
+ 
+    async function nativeShareShop(shopId) {
+        const shop = dashShops.find(s => String(s.id) === String(shopId));
+        if (!shop) return;
+        try {
+            await navigator.share({ title: shop.name, text: shareMessage(shop), url: shopLink(shop.id) });
+        } catch (e) {
+            // Partage annulé par l'utilisateur : rien à faire
+        }
+    }
+ 
+    // Instagram et Snapchat n'acceptent pas de lien depuis le web : on copie le lien à coller
+    async function copyShopLink(shopId, network) {
+        const url = shopLink(shopId);
+        let ok = false;
+        try {
+            await navigator.clipboard.writeText(url);
+            ok = true;
+        } catch (e) {
+            const input = document.querySelector('.share-link input');
+            if (input) { input.select(); ok = document.execCommand('copy'); }
+        }
+        const tip = document.getElementById('shareTip');
+        if (tip) {
+            tip.textContent = !ok ? 'Copie impossible : sélectionnez le lien ci-dessus et copiez-le.'
+                : network ? `Lien copié ✅ Collez-le dans ${network} (story, message ou bio).`
+                : 'Lien copié ✅';
+            tip.classList.toggle('ok', ok);
+        }
+    }
+ 
     // ============ DÉMARRAGE ============
     async function init() {
         try {
@@ -317,7 +423,7 @@
         }
     }
  
-    Object.assign(window, { createNewShop, openShopDesigner, viewShop });
+    Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

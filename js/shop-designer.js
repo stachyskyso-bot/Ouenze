@@ -110,22 +110,39 @@ function debouncedUpdatePreview() {
 }
 
 // ============ CARROUSEL ============
+// Les médias sont stockés dans shops.design (base64) : on limite leur nombre et leur poids
+const MAX_CAROUSEL_MEDIA = 6;
+const MAX_CAROUSEL_VIDEO_BYTES = 2 * 1024 * 1024;
 function setupCarouselUpload() {
     const carouselInput = document.getElementById('carouselMedia');
     if (carouselInput) {
-        carouselInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    const type = file.type.startsWith('image/') ? 'image' : 'video';
-                    carouselMedia.push({ type, src: ev.target.result });
-                    renderCarouselList();
-                    debouncedUpdatePreview();
-                };
-                reader.readAsDataURL(file);
-            });
+        carouselInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files).slice(0, MAX_CAROUSEL_MEDIA - carouselMedia.length);
             e.target.value = '';
+            if (!files.length) { alert(`Maximum ${MAX_CAROUSEL_MEDIA} images ou vidéos dans le carrousel`); return; }
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    // Bannière : 1600 px de large suffisent, même sur grand écran
+                    const src = await compressImage(file, 1600, 0.8).catch(() => null);
+                    if (src) carouselMedia.push({ type: 'image', src });
+                } else if (file.type.startsWith('video/')) {
+                    if (file.size > MAX_CAROUSEL_VIDEO_BYTES) {
+                        alert(`La vidéo « ${file.name} » est trop lourde (${(file.size / 1048576).toFixed(1)} Mo). Maximum 2 Mo : raccourcissez-la ou utilisez une image.`);
+                        continue;
+                    }
+                    const src = await new Promise(res => {
+                        const r = new FileReader();
+                        r.onload = () => res(r.result);
+                        r.onerror = () => res(null);
+                        r.readAsDataURL(file);
+                    });
+                    if (src) carouselMedia.push({ type: 'video', src });
+                } else {
+                    alert(`« ${file.name} » n'est ni une image ni une vidéo`);
+                }
+            }
+            renderCarouselList();
+            debouncedUpdatePreview();
         });
     }
 }
@@ -905,6 +922,77 @@ function updatePreview() {
     `;
 }
 
+// ============ DESIGN ============
+function buildDesignPayload() {
+    const v = id => document.getElementById(id)?.value;
+    return {
+        menu_position: designConfig.menuPosition,
+        menu_bg: designConfig.menuBg,
+        menu_text: designConfig.menuText,
+        menu_radius: designConfig.menuRadius,
+        carousel_height: designConfig.carouselHeight,
+        carousel_radius: designConfig.carouselRadius,
+        carousel_speed: designConfig.carouselSpeed,
+        carousel_media: carouselMedia.map(m => ({ type: m.type === 'video' ? 'video' : 'image', src: m.src })),
+        prod_width: designConfig.prodWidth,
+        prod_img_height: designConfig.prodImgHeight,
+        prod_radius: designConfig.prodRadius,
+        prod_gap: designConfig.prodGap,
+        layout: designConfig.layout,
+        primary_color: v('primaryColor'),
+        button_color: v('buttonColor'),
+        background_color: v('bgColor'),
+        header_text_color: v('headerTextColor'),
+        product_text_color: v('productTextColor')
+    };
+}
+ 
+// Recharge un design enregistré dans le formulaire (modification d'une boutique)
+function applyDesign(d, showSearchBar) {
+    d = d || {};
+    const num = (x, def) => (Number.isFinite(Number(x)) ? Number(x) : def);
+    designConfig.menuPosition = ['horizontal', 'vertical-left', 'vertical-right'].includes(d.menu_position) ? d.menu_position : 'horizontal';
+    designConfig.menuBg = d.menu_bg || designConfig.menuBg;
+    designConfig.menuText = d.menu_text || designConfig.menuText;
+    designConfig.menuRadius = num(d.menu_radius, designConfig.menuRadius);
+    designConfig.carouselHeight = num(d.carousel_height, designConfig.carouselHeight);
+    designConfig.carouselRadius = num(d.carousel_radius, designConfig.carouselRadius);
+    designConfig.carouselSpeed = num(d.carousel_speed, designConfig.carouselSpeed);
+    designConfig.prodWidth = num(d.prod_width, designConfig.prodWidth);
+    designConfig.prodImgHeight = num(d.prod_img_height, designConfig.prodImgHeight);
+    designConfig.prodRadius = num(d.prod_radius, designConfig.prodRadius);
+    designConfig.prodGap = num(d.prod_gap, designConfig.prodGap);
+    designConfig.layout = d.layout === 'list' ? 'list' : 'grid';
+    carouselMedia = Array.isArray(d.carousel_media) ? d.carousel_media.filter(m => m && m.src) : [];
+ 
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('primaryColor', d.primary_color);
+    set('buttonColor', d.button_color);
+    set('bgColor', d.background_color);
+    set('headerTextColor', d.header_text_color);
+    set('productTextColor', d.product_text_color);
+    set('menuBgColor', designConfig.menuBg);
+    set('menuTextColor', designConfig.menuText);
+    const sliders = { menuRadius: 'menuRadius', carouselHeight: 'carouselHeight', carouselRadius: 'carouselRadius',
+                      prodWidth: 'prodWidth', prodImgHeight: 'prodImgHeight', prodRadius: 'prodRadius', prodGap: 'prodGap' };
+    Object.entries(sliders).forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = designConfig[key];
+        const label = document.getElementById(id + 'Val');
+        if (label) label.innerText = designConfig[key];
+    });
+    const search = document.getElementById('showSearchBar');
+    if (search) search.checked = !!showSearchBar;
+    markSelectedCards();
+    renderCarouselList();
+}
+ 
+function markSelectedCards() {
+    document.querySelectorAll('.menu-pos-card').forEach(c => c.classList.toggle('selected', c.dataset.pos === designConfig.menuPosition));
+    document.querySelectorAll('.speed-card').forEach(c => c.classList.toggle('selected', Number(c.dataset.speed) === designConfig.carouselSpeed));
+    document.querySelectorAll('.layout-card').forEach(c => c.classList.toggle('selected', c.dataset.layout === designConfig.layout));
+}
+ 
 // ============ PUBLICATION ============
 async function publishShop() {
     console.log('🚀 Publication...');
@@ -951,25 +1039,7 @@ async function publishShop() {
         has_physical_store: false,
         is_active: true,
         show_search_bar: document.getElementById('showSearchBar')?.checked || false,
-        design: {
-            menu_position: designConfig.menuPosition,
-            menu_bg: designConfig.menuBg,
-            menu_text: designConfig.menuText,
-            menu_radius: designConfig.menuRadius,
-            carousel_height: designConfig.carouselHeight,
-            carousel_radius: designConfig.carouselRadius,
-            carousel_speed: designConfig.carouselSpeed,
-            prod_width: designConfig.prodWidth,
-            prod_img_height: designConfig.prodImgHeight,
-            prod_radius: designConfig.prodRadius,
-            prod_gap: designConfig.prodGap,
-            layout: designConfig.layout,
-            primary_color: document.getElementById('primaryColor').value,
-            button_color: document.getElementById('buttonColor').value,
-            background_color: document.getElementById('bgColor').value,
-            header_text_color: document.getElementById('headerTextColor').value,
-            product_text_color: document.getElementById('productTextColor').value
-        }
+        design: buildDesignPayload()
     };
     
     try {
@@ -1059,7 +1129,9 @@ async function updateShop() {
         logo_url: tempLogo || '',
         city: document.getElementById('shopCity').value || 'Brazzaville',
         district: document.getElementById('shopQuartier').value || '',
-        address: document.getElementById('shopAddress')?.value || ''
+        address: document.getElementById('shopAddress')?.value || '',
+        show_search_bar: document.getElementById('showSearchBar')?.checked || false,
+        design: buildDesignPayload()
     };
     
     const { error } = await window.supabase
@@ -1086,6 +1158,9 @@ async function loadShopForEditing(shopId) {
     document.getElementById('shopDescInput').value = shop.description || '';
     document.getElementById('shopCity').value = shop.city || '';
     document.getElementById('shopQuartier').value = shop.district || '';
+    const addressInput = document.getElementById('shopAddress');
+    if (addressInput) addressInput.value = shop.address || '';
+    applyDesign(shop.design, shop.show_search_bar);
     
     if (shop.logo_url) {
         tempLogo = shop.logo_url;
@@ -1244,6 +1319,7 @@ async function init() {
     setupLogoUpload();
     setupCarouselUpload();
     setupEventListeners();
+    markSelectedCards();
     
     const urlParams = new URLSearchParams(window.location.search);
     const editShopIdParam = urlParams.get('edit');
