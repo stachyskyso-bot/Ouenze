@@ -74,6 +74,19 @@ window.OuenzeInvest = (function () {
     }
 
     const charts = {};
+    // Couleurs des graphiques adaptées au fond bleu nuit des pages investissement
+    function darkChartDefaults() {
+        if (!window.Chart || darkChartDefaults.done) return;
+        darkChartDefaults.done = true;
+        Chart.defaults.color = '#8da2c0';
+        Chart.defaults.borderColor = 'rgba(141, 162, 192, 0.14)';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.plugins.tooltip.backgroundColor = '#0b1628';
+        Chart.defaults.plugins.tooltip.borderColor = '#1f3050';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.elements.arc.borderColor = '#0f1b31';
+    }
+
     function chart(id, config) {
         charts[id]?.destroy();
         const el = document.getElementById(id);
@@ -82,12 +95,13 @@ window.OuenzeInvest = (function () {
             el.parentElement.innerHTML = '<p class="inv-none">Graphique indisponible (pas de connexion).</p>';
             return null;
         }
+        if (document.body.classList.contains('invest-body')) darkChartDefaults();
         charts[id] = new Chart(el, config);
         return charts[id];
     }
 
     const money = v => Math.round(v).toLocaleString('fr-FR') + ' FCFA';
-    const PALETTE = ['#1e40af', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#f97316', '#14b8a6', '#64748b', '#eab308'];
+    const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#f97316', '#14b8a6', '#64748b', '#eab308'];
 
     return { SHARES_PER_COMPANY, esc, fcfa, num, pct, frDate, monthLabel, stars, logoHtml, isMissing, migrationWarning, loginBox, currentUser, chart, money, PALETTE };
 })();

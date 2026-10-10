@@ -657,3 +657,247 @@
         display: none;
     }
 }
+
+/* ============================================================
+   THÈME « SALLE DES MARCHÉS » — bleu nuit, sobre et lisible
+   L'en-tête et le menu du site restent identiques : seule la zone
+   d'investissement passe en sombre. Les composants ci-dessus utilisent
+   les variables du site : on les redéfinit ici, tout bascule d'un coup.
+   ============================================================ */
+body.invest-body {
+    background: #0a1426;
+}
+
+.invest-body .invest-page {
+    --white: #0f1b31;          /* panneaux */
+    --gray-100: #15233d;       /* fonds secondaires */
+    --gray-200: #1f3050;       /* bordures */
+    --gray-500: #8da2c0;       /* textes secondaires */
+    --gray-700: #c3d0e4;       /* textes courants */
+    --black: #e8eef8;          /* titres */
+    --primary: #3b82f6;        /* accent (plus clair sur fond sombre) */
+    --success: #22c55e;
+    --danger: #f43f5e;
+    color: #e8eef8;
+    font-variant-numeric: tabular-nums;   /* chiffres alignés, comme sur un terminal */
+}
+
+.invest-body .footer {
+    background: #0a1426;
+    border-top-color: #1f3050;
+    color: #8da2c0;
+}
+
+.invest-body .footer a {
+    color: #93c5fd;
+}
+
+/* Onglets */
+.invest-body .invest-tabs {
+    background: #0f1b31;
+    border-color: #1f3050;
+}
+
+.invest-body .invest-tab {
+    color: #8da2c0;
+}
+
+.invest-body .invest-tab.active {
+    background: #1d4ed8;
+    color: #ffffff;
+}
+
+/* Bandeau : bleu nuit avec une grille discrète de graphique */
+.invest-body .inv-hero {
+    background:
+        linear-gradient(rgba(59, 130, 246, 0.06) 1px, transparent 1px) 0 0 / 100% 28px,
+        linear-gradient(90deg, rgba(59, 130, 246, 0.06) 1px, transparent 1px) 0 0 / 28px 100%,
+        linear-gradient(135deg, #0f1f3d 0%, #102a5c 60%, #1d4ed8 140%);
+    border: 1px solid #1f3050;
+}
+
+.invest-body .inv-steps div {
+    background: rgba(15, 27, 49, 0.7);
+    border: 1px solid #1f3050;
+}
+
+.invest-body .inv-steps b {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+/* Bandeau d'indices du marché */
+.inv-ticker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--gray-200);
+    border-radius: 14px;
+    background: var(--white);
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+
+.inv-ticker div {
+    padding: 10px 14px;
+    border-left: 1px solid var(--gray-200);
+    min-width: 0;
+}
+
+.inv-ticker div:first-child {
+    border-left: none;
+}
+
+.inv-ticker span {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gray-500);
+}
+
+.inv-ticker strong {
+    display: block;
+    font-size: 16px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Avertissements sur fond sombre */
+.invest-body .inv-risk {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fcd9a0;
+}
+
+.invest-body .inv-risk i {
+    color: #f59e0b;
+}
+
+.invest-body .inv-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fcd9a0;
+}
+
+/* Champs de recherche / tri */
+.invest-body .inv-toolbar input,
+.invest-body .inv-toolbar select {
+    color: #e8eef8;
+    border-color: #1f3050;
+    background: #0f1b31;
+}
+
+.invest-body .inv-toolbar input::placeholder {
+    color: #6b7f9e;
+}
+
+/* Cartes et panneaux */
+.invest-body .inv-card,
+.invest-body .inv-kpi,
+.invest-body .inv-box,
+.invest-body .inv-empty {
+    box-shadow: none;
+}
+
+.invest-body .inv-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+.invest-body .inv-logo {
+    background: #15233d;
+    color: #93c5fd;
+    border: 1px solid #1f3050;
+}
+
+.invest-body .inv-figures div,
+.invest-body .inv-detail-figures div {
+    background: #0b1628;
+    border: 1px solid #1a2a47;
+}
+
+.invest-body .inv-progress {
+    background: #15233d;
+}
+
+.invest-body .inv-progress div {
+    background: linear-gradient(90deg, #2563eb, #22c55e);
+}
+
+.invest-body .inv-kpi.blue strong { color: #60a5fa; }
+.invest-body .inv-kpi.green strong,
+.invest-body .inv-pos { color: #4ade80; }
+.invest-body .inv-kpi.red strong,
+.invest-body .inv-neg { color: #fb7185; }
+.invest-body .inv-kpi.orange strong { color: #fbbf24; }
+
+.invest-body .inv-table th {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+}
+
+.invest-body .inv-table tbody tr:hover {
+    background: #13213b;
+}
+
+/* Badges et icônes d'activité, lisibles sur fond sombre */
+.invest-body .inv-badge { background: #1a2a47; color: #c3d0e4; }
+.invest-body .inv-badge.ok { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.invest-body .inv-badge.wait { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.invest-body .inv-badge.ko { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+.invest-body .inv-badge.info { background: rgba(59, 130, 246, 0.18); color: #93c5fd; }
+
+.invest-body .inv-item-icon.buy { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.invest-body .inv-item-icon.sale { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.invest-body .inv-item-icon.invest { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+.invest-body .inv-item-icon.market { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.invest-body .inv-item-icon.courier { background: rgba(14, 165, 233, 0.15); color: #7dd3fc; }
+
+.invest-body .inv-filters button {
+    background: #0f1b31;
+    border-color: #1f3050;
+    color: #c3d0e4;
+}
+
+.invest-body .inv-filters button.active {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff;
+}
+
+.invest-body .inv-empty .btn-submit,
+.invest-body .invest-page .btn-submit {
+    background: #1d4ed8;
+}
+
+/* Médaille sur les cartes du marché */
+.inv-medal {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.inv-medal.gold { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+.inv-medal.silver { background: rgba(203, 213, 225, 0.14); color: #e2e8f0; }
+.inv-medal.bronze { background: rgba(194, 65, 12, 0.18); color: #fdba74; }
+
+@media (max-width: 760px) {
+    .inv-ticker {
+        grid-template-columns: 1fr 1fr;
+    }
+    .inv-ticker div:nth-child(3) {
+        border-left: none;
+    }
+    .inv-ticker div:nth-child(n+3) {
+        border-top: 1px solid var(--gray-200);
+    }
+}

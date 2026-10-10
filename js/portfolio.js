@@ -115,7 +115,7 @@
         const points = paid.map(o => ({ x: I.frDate(o.paid_at || o.created_at), y: (sum += Number(o.amount) || 0) }));
         I.chart('pfTime', {
             type: 'line',
-            data: { labels: points.map(p => p.x), datasets: [{ label: 'Capital investi', data: points.map(p => p.y), borderColor: '#1e40af', backgroundColor: 'rgba(30,64,175,0.12)', fill: true, stepped: true, pointRadius: 3 }] },
+            data: { labels: points.map(p => p.x), datasets: [{ label: 'Capital investi', data: points.map(p => p.y), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', fill: true, stepped: true, pointRadius: 3 }] },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => I.money(c.parsed.y) } } },

@@ -170,8 +170,8 @@
             data: {
                 labels: keys.map(label),
                 datasets: [
-                    { label: 'Achats', data: keys.map(k => rows[k].buy), backgroundColor: '#1e40af', borderRadius: 4 },
-                    { label: 'Ventes', data: keys.map(k => rows[k].sale), backgroundColor: '#10b981', borderRadius: 4 },
+                    { label: 'Achats', data: keys.map(k => rows[k].buy), backgroundColor: '#3b82f6', borderRadius: 4 },
+                    { label: 'Ventes', data: keys.map(k => rows[k].sale), backgroundColor: '#22c55e', borderRadius: 4 },
                     { label: 'Investissements', data: keys.map(k => rows[k].invest), backgroundColor: '#8b5cf6', borderRadius: 4 }
                 ]
             },

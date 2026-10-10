@@ -43,6 +43,7 @@
                     <div><b>3</b>Paie par Mobile Money : les parts apparaissent dans ton portefeuille.</div>
                 </div>
             </section>
+            ${state.offers.length ? tickerHtml() : ''}
             <p class="inv-risk"><i class="fas fa-exclamation-triangle"></i> Investir comporte un risque de perte en capital. Les parts ne sont pas cotées sur un marché réglementé et peuvent être difficiles à revendre. N'investis que l'argent dont tu n'as pas besoin.</p>
             ${state.offers.length ? `
                 <div class="inv-toolbar">
@@ -60,6 +61,20 @@
                 <p>Les premières boutiques arrivent dès qu'elles remplissent les conditions et sont vérifiées par Ouenze.</p>
                 <p><strong>Tu es vendeur ?</strong> Avec 3,5 ★ et 75 commandes livrées, demande l'entrée en bourse depuis ton espace boutique.</p>
                 <a class="btn-submit" href="vendor-dashboard.html">Mon espace boutique</a></div>`}`;
+    }
+
+    // Indices du marché, calculés sur les offres ouvertes (aucun chiffre inventé)
+    function tickerHtml() {
+        const offers = state.offers;
+        const cap = offers.reduce((s, o) => s + o.valuation, 0);
+        const available = offers.reduce((s, o) => s + o.remaining_shares * o.price_per_share, 0);
+        const avgRating = offers.reduce((s, o) => s + o.rating, 0) / offers.length;
+        return `<div class="inv-ticker">
+            <div><span>Boutiques cotées</span><strong>${num(offers.length)}</strong></div>
+            <div><span>Capitalisation</span><strong>${fcfa(cap)}</strong></div>
+            <div><span>Parts disponibles</span><strong>${fcfa(available)}</strong></div>
+            <div><span>Note moyenne</span><strong>${avgRating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ★</strong></div>
+        </div>`;
     }
 
     function cardHtml(o) {
