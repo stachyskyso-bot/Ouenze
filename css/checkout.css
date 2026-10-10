@@ -97,14 +97,119 @@
     color: var(--black) !important;
 }
 
-/* ---------- Carte ---------- */
+/* ---------- Recherche d'adresse + carte ---------- */
+.co-search-box {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.co-search {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid var(--primary);
+    border-radius: 14px;
+    padding: 0 12px;
+    background: var(--white);
+}
+
+.co-search i {
+    color: var(--primary);
+}
+
+.co-search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    font: inherit;
+    font-size: 15px;
+    padding: 13px 0;
+    background: transparent;
+}
+
+.co-locate-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    border-radius: 14px;
+    background: var(--primary);
+    color: #ffffff;
+    font: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 0 14px;
+    cursor: pointer;
+}
+
+.co-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 50;   /* au-dessus de la carte, sous l'en-tête du site */
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--white);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    overflow: hidden;
+}
+
+.co-suggestions li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-top: 1px solid var(--gray-100);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.co-suggestions li:first-child {
+    border-top: none;
+}
+
+.co-suggestions li:hover,
+.co-suggestions li:focus {
+    background: #eff6ff;
+    outline: none;
+}
+
+.co-suggestions li > i {
+    color: var(--primary);
+}
+
+.co-suggestions li span {
+    min-width: 0;
+}
+
+.co-suggestions small {
+    display: block;
+    color: var(--gray-500);
+    font-size: 12px;
+}
+
+.co-suggestions li.info {
+    cursor: default;
+    color: var(--gray-500);
+    font-size: 13px;
+}
+
 .co-map-wrap {
     position: relative;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 }
 
 .co-map {
-    height: 300px;
+    height: 380px;
     border-radius: 16px;
     border: 1px solid var(--gray-200);
     background: var(--gray-100);
@@ -118,27 +223,51 @@
     font-size: 13px;
 }
 
-.co-locate {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    z-index: 500;
-    border: none;
-    background: var(--white);
-    color: var(--primary);
-    font: inherit;
-    font-weight: 700;
-    font-size: 13px;
-    padding: 9px 14px;
-    border-radius: 30px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-    cursor: pointer;
+/* Adresse retenue : grise tant que rien n'est choisi, verte ensuite */
+.co-place {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    margin-bottom: 16px;
+    font-size: 14px;
 }
 
-.co-map-hint {
+.co-place > i {
+    font-size: 20px;
+    color: var(--gray-500);
+}
+
+.co-place small {
+    display: block;
     font-size: 12px;
     color: var(--gray-500);
-    margin-bottom: 14px;
+    font-weight: 400;
+}
+
+.co-place.ok {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #14532d;
+}
+
+.co-place.ok > i {
+    color: var(--success);
+}
+
+.co-more {
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.co-more summary {
+    cursor: pointer;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 10px;
 }
 
 /* ---------- Paiement ---------- */
@@ -235,65 +364,145 @@
     margin: 12px 0;
 }
 
+.co-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
 /* ---------- Récapitulatif ---------- */
-.co-review-block {
+.co-summary {
     border: 1px solid var(--gray-200);
     border-radius: 14px;
+    margin: 16px 0 4px;
+}
+
+.co-summary-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 10px 12px;
-    margin-bottom: 10px;
     font-size: 13px;
 }
 
-.co-review-block p {
-    color: var(--gray-700);
-    line-height: 1.6;
+.co-summary-row + .co-summary-row {
+    border-top: 1px solid var(--gray-100);
 }
 
-.co-review-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 700;
-    margin-bottom: 6px;
-}
-
-.co-review-head i {
+.co-summary-row > i {
     color: var(--primary);
-    margin-right: 4px;
+    width: 16px;
+    text-align: center;
 }
 
-.co-review-head button {
+.co-summary-row span {
+    flex: 1;
+    min-width: 0;
+}
+
+.co-summary-row small {
+    color: var(--gray-500);
+}
+
+.co-summary-row button {
     border: none;
     background: none;
     color: var(--primary);
     font: inherit;
     font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
 }
 
-.co-review-line {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 3px 0;
-}
-
-.co-review-line small {
-    color: var(--gray-500);
-}
-
-.co-steps-info {
-    background: var(--gray-100);
+.co-next {
+    background: #eff6ff;
     border-radius: 14px;
     padding: 12px 14px;
     font-size: 13px;
     margin-bottom: 12px;
 }
 
-.co-steps-info ol {
-    margin: 6px 0 0 18px;
-    line-height: 1.7;
+.co-next ol {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.co-next li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
     color: var(--gray-700);
+}
+
+.co-next li b {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ---------- Barre d'action (toujours visible en bas) ---------- */
+.co-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px -22px -22px;   /* colle aux bords de .dl-card (padding 22px) */
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.06);
+    border-radius: 0 0 20px 20px;
+}
+
+.co-bar-back {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    background: var(--white);
+    color: var(--gray-700);
+    cursor: pointer;
+}
+
+.co-bar-total {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.co-bar-total small {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.co-bar-total strong {
+    font-size: 17px;
+    white-space: nowrap;
+}
+
+.co-bar .btn-submit {
+    width: auto;
+    margin: 0;
+    padding: 13px 18px;
+    white-space: nowrap;
+}
+
+.form-error {
+    scroll-margin-bottom: 100px;
 }
 
 .co-pay {
@@ -302,7 +511,23 @@
 
 @media (max-width: 520px) {
     .co-map {
-        height: 260px;
+        height: 320px;
+    }
+    .co-locate-btn span {
+        display: none;
+    }
+    .co-locate-btn {
+        padding: 0 15px;
+        font-size: 16px;
+    }
+    .co-bar {
+        margin: 16px -16px -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    .co-bar .btn-submit {
+        padding: 13px 14px;
+        font-size: 14px;
     }
     .co-methods {
         grid-template-columns: 1fr;
