@@ -39,7 +39,19 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[m]));
     }
- 
+
+    // Téléphone Congo-Brazzaville : +242 0X XXX XX XX (mobiles 04, 05, 06).
+    // Accepte espaces, points, tirets, et les préfixes +242 / 00242 / 242.
+    // Renvoie le numéro normalisé, ou null s'il est invalide.
+    function normalizeCongoPhone(input) {
+        let d = String(input || '').replace(/[\s.\-()]/g, '');
+        if (d.startsWith('+242')) d = d.slice(4);
+        else if (d.startsWith('00242')) d = d.slice(5);
+        else if (d.startsWith('242') && d.length === 12) d = d.slice(3);
+        if (!/^0[456]\d{7}$/.test(d)) return null;
+        return `+242 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+    }
+
     // Images : http(s) ou data:image (logos/photos stockés en base64 par le shop-designer)
     function safeUrl(url) {
         const u = String(url || '');
@@ -201,7 +213,7 @@
         const password = document.getElementById('signupPassword')?.value || '';
         const fullName = val('signupName');
         const userType = val('signupType') || 'client';
-        const phone = val('signupPhone');
+        const rawPhone = val('signupPhone');
         const city = val('signupCity') || 'Brazzaville';
  
         if (!email || !password || !fullName) {
@@ -210,6 +222,12 @@
         }
         if (password.length < 6) {
             alert('Mot de passe trop court (min 6 caractères)');
+            return;
+        }
+        const phone = rawPhone ? normalizeCongoPhone(rawPhone) : '';
+        if (phone === null) {
+            alert('Numéro de téléphone invalide.\n\nFormat attendu : +242 06 XXX XX XX ou +242 05 XXX XX XX');
+            document.getElementById('signupPhone')?.focus();
             return;
         }
  
@@ -229,7 +247,22 @@
             });
  
             if (error) {
-                alert('Erreur : ' + error.message);
+                console.error('❌ Inscription:', error.message);
+                const msg = error.message || '';
+                if (/already registered|already exists/i.test(msg)) {
+                    alert('Un compte existe déjà avec cet email.\n\nConnecte-toi, ou utilise « Mot de passe oublié » si tu ne t\'en souviens plus.');
+                    openLoginModal();
+                    const loginEmail = document.getElementById('loginEmail');
+                    if (loginEmail) loginEmail.value = email;
+                } else if (/valid email|invalid.*email/i.test(msg)) {
+                    alert('Adresse email invalide.');
+                } else if (/password/i.test(msg)) {
+                    alert('Mot de passe refusé : choisis-en un plus long ou plus difficile à deviner.');
+                } else if (/rate limit|too many|security purposes/i.test(msg)) {
+                    alert('Trop de tentatives récentes. Réessaie dans quelques minutes.');
+                } else {
+                    alert("Erreur lors de l'inscription.\n\nDétail : " + msg);
+                }
                 return;
             }
  
@@ -765,7 +798,7 @@
             </div>
             <div class="form-group">
                 <label>Téléphone</label>
-                <input type="tel" id="signupPhone" placeholder="+242 06 XX XX XX" autocomplete="tel">
+                <input type="tel" id="signupPhone" placeholder="+242 06 XXX XX XX" autocomplete="tel" inputmode="tel">
             </div>
             <div class="form-group">
                 <label>Ville</label>

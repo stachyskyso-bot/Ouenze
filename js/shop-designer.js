@@ -11,7 +11,8 @@ let carouselInterval = null;
 let currentUser = null;
 let currentUserEmail = null;
 let editingProductId = null;
-let tempVariants = [];
+let tempVariants = [];          // combinaisons : [{ key, values:{Option:valeur}, price, stock }]
+let tempVariantOptions = [];    // options : [{ name:'Couleur', values:['Noir','Blanc'] }]
 let tempProductPhotos = [];
 let updateTimeout = null;
 let editingShopId = null;
@@ -38,7 +39,30 @@ function escapeHtml(str) {
 }
 
 function formatNumber(v) {
-    return Number(v || 0).toLocaleString();
+    return Number(v || 0).toLocaleString('fr-FR');
+}
+
+function todayIso() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function formatDateFr(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+// Prix affiché d'un produit : le plus bas parmi ses variantes, sinon le prix de base
+function productPriceRange(p) {
+    const prices = (p.variants || []).map(v => Number(v.price)).filter(n => n > 0);
+    if (prices.length === 0) return { min: p.basePrice, max: p.basePrice };
+    return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+function productPriceLabel(p) {
+    const { min, max } = productPriceRange(p);
+    return (min !== max ? 'dès ' : '') + formatNumber(min) + ' FCFA';
 }
 
 function generateSlug(text) {
@@ -112,18 +136,18 @@ function addCategory() {
 }
 
 function updateCategoryName(catId, newName) {
-    const cat = categories.find(c => c.id === catId);
+    const cat = categories.find(c => String(c.id) === String(catId));
     if (cat) cat.name = newName;
     debouncedUpdatePreview();
 }
 
 function removeCategory(id) {
     if (confirm("Supprimer cette catégorie ?")) {
-        if (products.some(p => p.categoryId === id)) {
+        if (products.some(p => String(p.categoryId) === String(id))) {
             alert("Supprimez d'abord les produits de cette catégorie");
             return;
         }
-        categories = categories.filter(c => c.id !== id);
+        categories = categories.filter(c => String(c.id) !== String(id));
         renderCategories();
         debouncedUpdatePreview();
     }
@@ -140,10 +164,10 @@ function renderCategories() {
         <div class="category-item">
             <div class="category-header">
                 <input type="text" class="category-name-input" value="${escapeHtml(cat.name)}" 
-                       onchange="window.updateCategoryName(${cat.id}, this.value)" style="flex:1;">
-                <button class="btn-danger" onclick="window.removeCategory(${cat.id})">Supprimer</button>
+                       onchange="window.updateCategoryName('${cat.id}', this.value)" style="flex:1;">
+                <button class="btn-danger" onclick="window.removeCategory('${cat.id}')">Supprimer</button>
             </div>
-            <div class="category-products">${products.filter(p => p.categoryId === cat.id).length} produit(s)</div>
+            <div class="category-products">${products.filter(p => String(p.categoryId) === String(cat.id)).length} produit(s)</div>
         </div>
     `).join('');
 }
@@ -180,11 +204,13 @@ function openAddProductModal(productId = null) {
     
     if (!productId) {
         tempVariants = [];
+        tempVariantOptions = [];
         tempProductPhotos = [];
     } else {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId));
         if (product) {
-            tempVariants = [...(product.variants || [])];
+            tempVariants = (product.variants || []).map(v => ({ ...v, values: { ...v.values } }));
+            tempVariantOptions = (product.variantOptions || []).map(o => ({ name: o.name, values: [...o.values] }));
             tempProductPhotos = [...(product.photos || [])];
         }
     }
@@ -195,29 +221,32 @@ function openAddProductModal(productId = null) {
 }
 
 function renderProductForm() {
-    const product = editingProductId ? products.find(p => p.id === editingProductId) : null;
+    const product = editingProductId ? products.find(p => String(p.id) === String(editingProductId)) : null;
     const form = document.getElementById('productForm');
     if (!form) return;
     
+    const food = product?.food || null;
+    const hasVariants = tempVariantOptions.length > 0;
+
     form.innerHTML = `
         <div class="form-group">
             <label>Nom du produit *</label>
-            <input type="text" id="productName" value="${escapeHtml(product?.name || '')}">
+            <input type="text" id="productName" value="${escapeHtml(product?.name || '')}" placeholder="Ex : iPhone 15, PlayStation 5, Gâteau au chocolat">
         </div>
         <div class="form-group">
             <label>Catégorie *</label>
             <select id="productCategory">
-                ${categories.map(cat => `<option value="${cat.id}" ${product?.categoryId === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}
+                ${categories.map(cat => `<option value="${cat.id}" ${String(product?.categoryId) === String(cat.id) ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}
             </select>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Prix (FCFA)</label>
-                <input type="number" id="productBasePrice" value="${product?.basePrice || ''}">
+                <label id="basePriceLabel">${hasVariants ? 'Prix par défaut des versions (FCFA)' : 'Prix (FCFA) *'}</label>
+                <input type="number" id="productBasePrice" min="0" value="${product?.basePrice || ''}">
             </div>
-            <div class="form-group">
+            <div class="form-group" id="productStockGroup" style="${hasVariants ? 'display:none;' : ''}">
                 <label>Stock</label>
-                <input type="number" id="productStock" value="${product?.stock || 0}">
+                <input type="number" id="productStock" min="0" value="${product?.stock || 0}">
             </div>
         </div>
         <div class="form-group">
@@ -229,13 +258,272 @@ function renderProductForm() {
             <div id="productPhotosContainer" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
             <input type="file" id="productPhotoInput" accept="image/*" multiple style="margin-top:8px;">
         </div>
+
+        <!-- ===== VARIANTES ===== -->
+        <div class="form-section">
+            <label class="toggle-line">
+                <input type="checkbox" id="hasVariants" ${hasVariants ? 'checked' : ''} onchange="window.toggleVariants(this.checked)">
+                <span><strong>Plusieurs versions</strong> — taille, couleur, capacité, modèle… avec des prix différents</span>
+            </label>
+            <div id="variantsSection" style="${hasVariants ? '' : 'display:none;'}">
+                <p class="hint">Ex. iPhone : <em>Modèle</em> = 15, 15 Pro · <em>Capacité</em> = 128 Go, 256 Go · <em>Couleur</em> = Noir, Blanc. Séparez les valeurs par des virgules.</p>
+                <div id="variantOptionsContainer"></div>
+                <button type="button" class="btn-sm" id="addOptionBtn" onclick="window.addVariantOption()">+ Ajouter une option</button>
+                <div id="variantCombosContainer" style="margin-top:12px;"></div>
+            </div>
+        </div>
+
+        <!-- ===== ALIMENTAIRE ===== -->
+        <div class="form-section">
+            <label class="toggle-line">
+                <input type="checkbox" id="isFood" ${food ? 'checked' : ''} onchange="window.toggleFood(this.checked)">
+                <span><strong>Produit alimentaire</strong> — date de péremption, ingrédients, conservation</span>
+            </label>
+            <div id="foodSection" style="${food ? '' : 'display:none;'}">
+                <div class="form-group">
+                    <label>Ce produit est-il fait maison ? *</label>
+                    <div class="radio-line">
+                        <label><input type="radio" name="foodHomemade" value="no" ${!food?.homemade ? 'checked' : ''} onchange="window.toggleHomemade(false)"> Non, produit industriel / emballé</label>
+                        <label><input type="radio" name="foodHomemade" value="yes" ${food?.homemade ? 'checked' : ''} onchange="window.toggleHomemade(true)"> Oui, fait maison</label>
+                    </div>
+                </div>
+                <div id="foodIndustrial" style="${food?.homemade ? 'display:none;' : ''}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date de péremption *</label>
+                            <input type="date" id="foodExpiry" min="${todayIso()}" value="${escapeHtml(food?.expiry_date || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label>Type de date</label>
+                            <select id="foodExpiryType">
+                                <option value="dlc" ${food?.expiry_type !== 'ddm' ? 'selected' : ''}>À consommer jusqu'au (DLC)</option>
+                                <option value="ddm" ${food?.expiry_type === 'ddm' ? 'selected' : ''}>De préférence avant (DDM)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="foodHomemadeFields" style="${food?.homemade ? '' : 'display:none;'}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Se conserve combien de jours ? *</label>
+                            <input type="number" id="foodShelfLife" min="1" max="365" value="${food?.shelf_life_days || ''}" placeholder="Ex : 3">
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <label class="toggle-line" style="margin:0;">
+                                <input type="checkbox" id="foodMadeToOrder" ${food?.made_to_order ? 'checked' : ''}>
+                                <span>Préparé à la commande</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Conservation</label>
+                        <select id="foodStorage">
+                            <option value="ambiant" ${!food?.storage || food?.storage === 'ambiant' ? 'selected' : ''}>Température ambiante</option>
+                            <option value="frais" ${food?.storage === 'frais' ? 'selected' : ''}>Au frais (réfrigérateur)</option>
+                            <option value="congele" ${food?.storage === 'congele' ? 'selected' : ''}>Congelé</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Poids / volume</label>
+                        <input type="text" id="foodWeight" value="${escapeHtml(food?.weight || '')}" placeholder="Ex : 500 g, 1 L">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Origine</label>
+                    <input type="text" id="foodOrigin" value="${escapeHtml(food?.origin || '')}" placeholder="Ex : Congo, Cameroun, France">
+                </div>
+                <div class="form-group">
+                    <label>Ingrédients</label>
+                    <textarea id="foodIngredients" rows="2" placeholder="Ex : farine, sucre, œufs, beurre">${escapeHtml(food?.ingredients || '')}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Allergènes</label>
+                    <input type="text" id="foodAllergens" value="${escapeHtml(food?.allergens || '')}" placeholder="Ex : gluten, arachides, lait">
+                </div>
+            </div>
+        </div>
+
         <button class="btn-primary" onclick="window.saveProduct()">${product ? 'Mettre à jour' : 'Ajouter'}</button>
     `;
-    
+
     renderProductPhotos(tempProductPhotos);
-    
+    renderVariantOptions();
+    renderVariantCombos();
+
     const photoInput = document.getElementById('productPhotoInput');
     if (photoInput) photoInput.addEventListener('change', handleProductPhotoUpload);
+}
+
+// ============ VARIANTES ============
+const MAX_VARIANT_OPTIONS = 3;
+const MAX_VARIANT_COMBOS = 100;
+const OPTION_SUGGESTIONS = ['Couleur', 'Taille', 'Pointure', 'Capacité', 'Modèle', 'Version', 'Saveur', 'Contenance'];
+
+function toggleVariants(on) {
+    document.getElementById('variantsSection').style.display = on ? '' : 'none';
+    document.getElementById('productStockGroup').style.display = on ? 'none' : '';
+    document.getElementById('basePriceLabel').innerText = on ? 'Prix par défaut des versions (FCFA)' : 'Prix (FCFA) *';
+    if (on && tempVariantOptions.length === 0) addVariantOption();
+}
+
+function addVariantOption() {
+    if (tempVariantOptions.length >= MAX_VARIANT_OPTIONS) return;
+    const used = tempVariantOptions.map(o => o.name);
+    const name = OPTION_SUGGESTIONS.find(s => !used.includes(s)) || '';
+    tempVariantOptions.push({ name, values: [] });
+    renderVariantOptions();
+    renderVariantCombos();
+}
+
+function removeVariantOption(idx) {
+    tempVariantOptions.splice(idx, 1);
+    renderVariantOptions();
+    renderVariantCombos();
+}
+
+function updateVariantOptionName(idx, name) {
+    tempVariantOptions[idx].name = name.trim();
+    renderVariantCombos();
+}
+
+function updateVariantOptionValues(idx, text) {
+    const seen = new Set();
+    tempVariantOptions[idx].values = text.split(',').map(v => v.trim())
+        .filter(v => v && !seen.has(v.toLowerCase()) && seen.add(v.toLowerCase()));
+    renderVariantCombos();
+}
+
+function renderVariantOptions() {
+    const container = document.getElementById('variantOptionsContainer');
+    if (!container) return;
+    container.innerHTML = `
+        <datalist id="optionSuggestions">${OPTION_SUGGESTIONS.map(s => `<option value="${s}">`).join('')}</datalist>
+        ${tempVariantOptions.map((o, i) => `
+            <div class="variant-option-row">
+                <input type="text" list="optionSuggestions" value="${escapeHtml(o.name)}" placeholder="Option (ex : Couleur)"
+                       onchange="window.updateVariantOptionName(${i}, this.value)" style="flex:0 0 32%;">
+                <input type="text" value="${escapeHtml(o.values.join(', '))}" placeholder="Valeurs : Noir, Blanc, Bleu"
+                       onchange="window.updateVariantOptionValues(${i}, this.value)" style="flex:1;">
+                <button type="button" class="btn-danger" onclick="window.removeVariantOption(${i})" title="Retirer cette option">✕</button>
+            </div>`).join('')}`;
+    const addBtn = document.getElementById('addOptionBtn');
+    if (addBtn) addBtn.style.display = tempVariantOptions.length >= MAX_VARIANT_OPTIONS ? 'none' : '';
+}
+
+// Produit cartésien des valeurs : [{Couleur:'Noir', Capacité:'128 Go'}, ...]
+function buildCombinations(options) {
+    const valid = options.filter(o => o.name && o.values.length > 0);
+    if (valid.length === 0) return [];
+    return valid.reduce((acc, opt) =>
+        acc.flatMap(combo => opt.values.map(v => ({ ...combo, [opt.name]: v }))), [{}]);
+}
+
+function comboKey(values) {
+    return Object.values(values).join(' / ');
+}
+
+// Régénère les combinaisons en conservant prix et stock déjà saisis
+function renderVariantCombos() {
+    const container = document.getElementById('variantCombosContainer');
+    if (!container) return;
+
+    const combos = buildCombinations(tempVariantOptions);
+    if (combos.length > MAX_VARIANT_COMBOS) {
+        container.innerHTML = `<p class="hint" style="color:var(--danger);">Trop de combinaisons (${combos.length}). Maximum ${MAX_VARIANT_COMBOS} : réduisez le nombre de valeurs.</p>`;
+        tempVariants = [];
+        return;
+    }
+
+    const previous = new Map(tempVariants.map(v => [v.key, v]));
+    const basePrice = parseFloat(document.getElementById('productBasePrice')?.value) || '';
+    tempVariants = combos.map(values => {
+        const key = comboKey(values);
+        const old = previous.get(key);
+        return { key, values, price: old ? old.price : basePrice, stock: old ? old.stock : 0 };
+    });
+
+    if (tempVariants.length === 0) {
+        container.innerHTML = '<p class="hint">Renseignez au moins une option et ses valeurs pour créer les versions.</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <strong style="font-size:13px;">${tempVariants.length} version(s)</strong>
+            <button type="button" class="btn-sm" onclick="window.applyBasePriceToVariants()">Appliquer le prix par défaut à toutes</button>
+        </div>
+        <table class="variants-table">
+            <thead><tr><th>Version</th><th>Prix (FCFA)</th><th>Stock</th></tr></thead>
+            <tbody>
+                ${tempVariants.map((v, i) => `
+                    <tr>
+                        <td>${escapeHtml(v.key)}</td>
+                        <td><input type="number" min="0" value="${v.price}" onchange="window.updateVariantField(${i}, 'price', this.value)"></td>
+                        <td><input type="number" min="0" value="${v.stock}" onchange="window.updateVariantField(${i}, 'stock', this.value)"></td>
+                    </tr>`).join('')}
+            </tbody>
+        </table>`;
+}
+
+function updateVariantField(idx, field, value) {
+    if (!tempVariants[idx]) return;
+    tempVariants[idx][field] = field === 'price' ? (parseFloat(value) || '') : (parseInt(value) || 0);
+}
+
+function applyBasePriceToVariants() {
+    const base = parseFloat(document.getElementById('productBasePrice')?.value);
+    if (isNaN(base) || base <= 0) { alert("Saisissez d'abord un prix par défaut"); return; }
+    tempVariants.forEach(v => { v.price = base; });
+    renderVariantCombos();
+}
+
+// ============ ALIMENTAIRE ============
+function toggleFood(on) {
+    document.getElementById('foodSection').style.display = on ? '' : 'none';
+}
+
+function toggleHomemade(homemade) {
+    document.getElementById('foodIndustrial').style.display = homemade ? 'none' : '';
+    document.getElementById('foodHomemadeFields').style.display = homemade ? '' : 'none';
+}
+
+// Lit et valide la section alimentaire. Renvoie { food } ou { error }.
+function readFoodForm() {
+    if (!document.getElementById('isFood')?.checked) return { food: null };
+    const v = id => document.getElementById(id)?.value.trim() || '';
+    const homemade = document.querySelector('input[name="foodHomemade"]:checked')?.value === 'yes';
+    const food = {
+        homemade,
+        storage: v('foodStorage') || 'ambiant',
+        weight: v('foodWeight'),
+        origin: v('foodOrigin'),
+        ingredients: v('foodIngredients'),
+        allergens: v('foodAllergens')
+    };
+    if (homemade) {
+        const days = parseInt(v('foodShelfLife'));
+        if (!days || days < 1 || days > 365) return { error: 'Indiquez combien de jours le produit fait maison se conserve (1 à 365).' };
+        food.shelf_life_days = days;
+        food.made_to_order = !!document.getElementById('foodMadeToOrder')?.checked;
+    } else {
+        const expiry = v('foodExpiry');
+        if (!expiry) return { error: 'La date de péremption est obligatoire pour un produit alimentaire industriel.' };
+        if (expiry < todayIso()) return { error: 'La date de péremption est déjà passée : ce produit ne peut pas être mis en vente.' };
+        food.expiry_date = expiry;
+        food.expiry_type = v('foodExpiryType') === 'ddm' ? 'ddm' : 'dlc';
+    }
+    return { food };
+}
+
+function foodSummary(food) {
+    if (!food) return '';
+    if (food.homemade) {
+        return `Fait maison · se conserve ${food.shelf_life_days} j${food.made_to_order ? ' · préparé à la commande' : ''}`;
+    }
+    return `${food.expiry_type === 'ddm' ? 'DDM' : 'DLC'} ${formatDateFr(food.expiry_date)}`;
 }
 
 function renderProductPhotos(photos) {
@@ -277,34 +565,59 @@ function removeProductPhoto(idx) {
 
 function saveProduct() {
     const name = document.getElementById('productName').value.trim();
-    const categoryId = parseInt(document.getElementById('productCategory').value);
+    const categoryValue = document.getElementById('productCategory').value;
+    const categoryId = categories.find(c => String(c.id) === categoryValue)?.id;
     const basePrice = parseFloat(document.getElementById('productBasePrice').value);
     const stock = parseInt(document.getElementById('productStock').value);
     const description = document.getElementById('productDesc').value;
     
+    const withVariants = document.getElementById('hasVariants')?.checked;
+
     if (!name) { alert("Nom requis"); return; }
     if (!categoryId) { alert("Catégorie requise"); return; }
-    if (isNaN(basePrice) || basePrice <= 0) { alert("Prix valide requis"); return; }
-    
+
+    let variants = [];
+    let variantOptions = [];
+    if (withVariants) {
+        variantOptions = tempVariantOptions.filter(o => o.name && o.values.length > 0);
+        const names = variantOptions.map(o => o.name.toLowerCase());
+        if (new Set(names).size !== names.length) { alert("Deux options portent le même nom"); return; }
+        if (tempVariants.length === 0) { alert("Ajoutez au moins une option avec ses valeurs, ou décochez « Plusieurs versions »"); return; }
+        const missing = tempVariants.filter(v => !(Number(v.price) > 0));
+        if (missing.length) { alert(`Prix manquant pour : ${missing.slice(0, 3).map(v => v.key).join(', ')}${missing.length > 3 ? '…' : ''}`); return; }
+        variants = tempVariants.map(v => ({ key: v.key, values: v.values, price: Number(v.price), stock: Number(v.stock) || 0 }));
+    } else if (isNaN(basePrice) || basePrice <= 0) {
+        alert("Prix valide requis"); return;
+    }
+
+    const { food, error: foodError } = readFoodForm();
+    if (foodError) { alert(foodError); return; }
+
     const productData = {
         id: editingProductId || Date.now(),
-        name, categoryId, basePrice, stock, description,
+        name, categoryId, description,
+        // Avec variantes : prix affiché = le moins cher, stock = somme des versions
+        basePrice: variants.length ? Math.min(...variants.map(v => v.price)) : basePrice,
+        stock: variants.length ? variants.reduce((s, v) => s + v.stock, 0) : (stock || 0),
         photos: tempProductPhotos,
-        variants: []
+        variantOptions,
+        variants,
+        food
     };
     
     if (editingProductId) {
-        const index = products.findIndex(p => p.id === editingProductId);
+        const index = products.findIndex(p => String(p.id) === String(editingProductId));
         if (index !== -1) products[index] = productData;
     } else {
         products.push(productData);
     }
     
+    const wasEditing = !!editingProductId;
     closeProductModal();
     renderProductsList();
     renderCategories();
     debouncedUpdatePreview();
-    alert(editingProductId ? "Produit modifié" : "Produit ajouté");
+    alert(wasEditing ? "Produit modifié" : "Produit ajouté");
 }
 
 function renderProductsList() {
@@ -315,24 +628,31 @@ function renderProductsList() {
         return;
     }
     container.innerHTML = products.map(p => {
-        const category = categories.find(c => c.id === p.categoryId);
+        const category = categories.find(c => String(c.id) === String(p.categoryId));
+        const hasVariants = (p.variants || []).length > 0;
+        // Avec variantes, prix et stock se modifient version par version (bouton Modifier)
+        const priceStock = hasVariants ? `
+                    <div class="product-variants-summary">${productPriceLabel(p)}<br><small>${p.stock} en stock</small></div>` : `
+                    <input type="number" class="product-price-input" value="${p.basePrice}"
+                           onchange="window.updateProductField('${p.id}', 'price', parseFloat(this.value))" placeholder="Prix">
+                    <input type="number" class="product-stock-input" value="${p.stock}"
+                           onchange="window.updateProductField('${p.id}', 'stock', parseInt(this.value))" placeholder="Stock">`;
         return `
             <div class="product-item">
                 <div class="product-header">
-                    <input type="text" class="product-name-input" value="${escapeHtml(p.name)}" 
-                           onchange="window.updateProductField(${p.id}, 'name', this.value)" placeholder="Nom">
-                    <input type="number" class="product-price-input" value="${p.basePrice}" 
-                           onchange="window.updateProductField(${p.id}, 'price', parseFloat(this.value))" placeholder="Prix">
-                    <input type="number" class="product-stock-input" value="${p.stock}" 
-                           onchange="window.updateProductField(${p.id}, 'stock', parseInt(this.value))" placeholder="Stock">
+                    <input type="text" class="product-name-input" value="${escapeHtml(p.name)}"
+                           onchange="window.updateProductField('${p.id}', 'name', this.value)" placeholder="Nom">
+                    ${priceStock}
                     <div>
-                        <button class="btn-sm" onclick="window.editProduct(${p.id})">Modifier</button>
-                        <button class="btn-sm" style="background:#fee2e2;" onclick="window.deleteProduct(${p.id})">Supprimer</button>
+                        <button class="btn-sm" onclick="window.editProduct('${p.id}')">Modifier</button>
+                        <button class="btn-sm" style="background:#fee2e2;" onclick="window.deleteProduct('${p.id}')">Supprimer</button>
                     </div>
                 </div>
                 <div style="font-size:12px; color:var(--gray-500);">
-                    Catégorie: ${category?.name || 'Sans catégorie'} | ${p.photos?.length || 0} photo(s)
+                    Catégorie: ${escapeHtml(category?.name || 'Sans catégorie')} | ${p.photos?.length || 0} photo(s)
+                    ${hasVariants ? ` | ${p.variants.length} version(s) : ${escapeHtml((p.variantOptions || []).map(o => o.name).join(', '))}` : ''}
                 </div>
+                ${p.food ? `<div class="food-badge">🍽️ ${escapeHtml(foodSummary(p.food))}</div>` : ''}
                 ${p.photos && p.photos.length > 0 ? `
                     <div style="display:flex;gap:8px;margin-top:8px;">
                         ${p.photos.slice(0, 5).map(photo => `
@@ -348,7 +668,7 @@ function renderProductsList() {
 }
 
 function updateProductField(productId, field, value) {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => String(p.id) === String(productId));
     if (product) {
         if (field === 'name') product.name = value;
         if (field === 'price') product.basePrice = value;
@@ -362,7 +682,7 @@ function editProduct(id) { openAddProductModal(id); }
 
 function deleteProduct(id) {
     if (confirm("Supprimer ce produit ?")) {
-        products = products.filter(p => p.id !== id);
+        products = products.filter(p => String(p.id) !== String(id));
         renderProductsList();
         renderCategories();
         debouncedUpdatePreview();
@@ -373,6 +693,7 @@ function closeProductModal() {
     document.getElementById('productModal').classList.remove('active');
     tempProductPhotos = [];
     tempVariants = [];
+    tempVariantOptions = [];
     editingProductId = null;
 }
 
@@ -483,7 +804,7 @@ function updatePreview() {
                                 </div>
                                 <div style="padding:12px;flex:1;">
                                     <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
-                                    <div style="font-weight:700;color:${primaryColor};font-size:14px;">${formatNumber(p.basePrice)} FCFA</div>
+                                    <div style="font-weight:700;color:${primaryColor};font-size:14px;">${productPriceLabel(p)}</div>
                                     <button style="background:${buttonColor};color:white;border:none;padding:8px;border-radius:30px;width:100%;cursor:pointer;font-size:12px;font-weight:500;margin-top:8px;">
                                         Ajouter
                                     </button>
@@ -581,37 +902,55 @@ async function publishShop() {
         
         console.log('✅ Boutique créée:', insertedShop.id);
         
-        // Catégories
+        // Catégories : on récupère les identifiants créés pour y rattacher les produits
+        const categoryIdMap = new Map();
         if (categories.length > 0) {
             const categoriesData = categories.map(cat => ({
                 shop_id: insertedShop.id,
                 name: cat.name
             }));
-            await window.supabase.from('categories').insert(categoriesData);
-            console.log('✅ Catégories créées');
+            const { data: insertedCats, error: catError } = await window.supabase
+                .from('categories').insert(categoriesData).select('id, name');
+            if (catError) {
+                console.error('❌ Catégories:', catError);
+            } else {
+                // PostgREST renvoie les lignes dans l'ordre d'insertion
+                categories.forEach((cat, i) => {
+                    if (insertedCats?.[i]) categoryIdMap.set(String(cat.id), insertedCats[i].id);
+                });
+                console.log('✅ Catégories créées');
+            }
         }
-        
+
         // Produits
         if (products.length > 0) {
             const productsData = products.map(p => ({
                 shop_id: insertedShop.id,
+                category_id: categoryIdMap.get(String(p.categoryId)) || null,
                 name: p.name,
                 slug: generateSlug(p.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7),
                 description: p.description || '',
                 price: p.basePrice || p.price || 0,
                 stock: p.stock || 0,
-                product_type: 'standard',
-                photos: p.photos || []
+                product_type: p.food ? 'food' : 'standard',
+                photos: p.photos || [],
+                variants: { options: p.variantOptions || [], items: p.variants || [] },
+                food_info: p.food || null
             }));
-            
+
             const { error: prodError } = await window.supabase
                 .from('products').insert(productsData);
-            
+
             if (prodError) {
                 console.error('❌ Produits:', prodError);
-            } else {
-                console.log('✅ Produits créés:', productsData.length);
+                const hint = /variants|food_info|column/i.test(prodError.message || '')
+                    ? "\n\nLa base de données n'a pas encore les colonnes pour les versions et les infos alimentaires (migration SQL à exécuter)."
+                    : '';
+                alert(`⚠️ La boutique "${name}" est créée, mais ses produits n'ont pas pu être enregistrés.${hint}\n\nDétail : ${prodError.message}`);
+                window.location.href = 'vendor-dashboard.html';
+                return;
             }
+            console.log('✅ Produits créés:', productsData.length);
         }
         
         alert(`✅ Boutique "${name}" créée avec succès !`);
@@ -678,7 +1017,10 @@ async function loadShopForEditing(shopId) {
     products = (prods || []).map(p => ({
         id: p.id, name: p.name, categoryId: p.category_id,
         basePrice: p.price, stock: p.stock, description: p.description,
-        photos: p.photos || []
+        photos: p.photos || [],
+        variantOptions: p.variants?.options || [],
+        variants: p.variants?.items || [],
+        food: p.food_info || null
     }));
     
     document.getElementById('pageTitle').innerText = `Modification : ${shop.name}`;
@@ -847,6 +1189,15 @@ window.closeProductModal = closeProductModal;
 window.saveProduct = saveProduct;
 window.updateProductField = updateProductField;
 window.removeProductPhoto = removeProductPhoto;
+window.toggleVariants = toggleVariants;
+window.addVariantOption = addVariantOption;
+window.removeVariantOption = removeVariantOption;
+window.updateVariantOptionName = updateVariantOptionName;
+window.updateVariantOptionValues = updateVariantOptionValues;
+window.updateVariantField = updateVariantField;
+window.applyBasePriceToVariants = applyBasePriceToVariants;
+window.toggleFood = toggleFood;
+window.toggleHomemade = toggleHomemade;
 window.updatePreview = updatePreview;
 window.publishShop = publishShop;
 window.updateShop = updateShop;
