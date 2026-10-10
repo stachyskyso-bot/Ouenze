@@ -644,28 +644,224 @@
         }
  
         const isList = d.layout === 'list';
+        grid.className = 'shop-products-grid' + (isList ? ' is-list' : '');
         grid.style.cssText = isList
             ? `display:flex;flex-direction:column;gap:${d.prodGap}px;`
             : `display:grid;grid-template-columns:repeat(auto-fill,minmax(min(${d.prodWidth}px,100%),1fr));gap:${d.prodGap}px;`;
  
         grid.innerHTML = list.map(p => {
-            const photo = safeUrl(Array.isArray(p.photos) ? p.photos[0] : '');
+            const photo = productPhotos(p)[0] || '';
+            const versions = productVariants(p);
+            const id = escapeHtml(p.id);
             return `
-            <div style="background:#fff;border-radius:${d.prodRadius}px;border:1px solid #e2e8f0;overflow:hidden;${isList ? 'display:flex;gap:12px;' : ''}">
-                <div style="${isList ? 'width:96px;height:96px;' : `height:${d.prodImgHeight}px;`}flex-shrink:0;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
-                    ${photo ? `<img src="${photo}" alt="" style="width:100%;height:100%;object-fit:cover;">`
-                            : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'}
+            <div class="product-card ${isList ? 'is-list' : ''}" role="button" tabindex="0"
+                 onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')"
+                 style="border-radius:${d.prodRadius}px;">
+                <div class="product-card-img" style="${isList ? '' : `height:${d.prodImgHeight}px;`}">
+                    ${photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy">`
+                            : '<i class="fas fa-image"></i>'}
+                    ${versions.length ? `<span class="product-card-tag">${versions.length} versions</span>` : ''}
                 </div>
-                <div style="padding:12px;flex:1;min-width:0;">
-                    <div style="font-weight:600;font-size:14px;color:${d.productText};margin-bottom:4px;">${escapeHtml(p.name)}</div>
-                    <div style="font-weight:700;font-size:14px;color:${d.primary};">${formatPrice(p.price)} FCFA</div>
-                    <button onclick="addToCart('${escapeHtml(p.id)}')"
-                            style="background:${d.button};color:#fff;border:none;padding:8px;border-radius:30px;width:100%;cursor:pointer;font-size:12px;font-weight:500;margin-top:8px;">
-                        Ajouter
+                <div class="product-card-body">
+                    <div class="product-card-name" style="color:${d.productText};">${escapeHtml(p.name)}</div>
+                    <div class="product-card-price" style="color:${d.primary};">${productPriceLabel(p)}</div>
+                    ${productStock(p) <= 0 ? '<div class="product-card-out">Rupture de stock</div>' : ''}
+                    <button class="product-card-btn" style="background:${d.button};"
+                            onclick="event.stopPropagation();${versions.length ? `openProductDetail('${id}')` : `addToCart('${id}')`}">
+                        ${versions.length ? 'Choisir' : 'Ajouter'}
                     </button>
                 </div>
             </div>`;
         }).join('');
+    }
+ 
+    // ============ FICHE PRODUIT ============
+    // Versions enregistrées par le shop-designer : products.variants = { options, items }
+    function productVariants(p) {
+        return Array.isArray(p?.variants?.items) ? p.variants.items.filter(v => v && v.key) : [];
+    }
+ 
+    function productOptions(p) {
+        return Array.isArray(p?.variants?.options) ? p.variants.options.filter(o => o?.name && o.values?.length) : [];
+    }
+ 
+    // Photos du produit, puis une photo par version
+    function productPhotos(p) {
+        const own = Array.isArray(p?.photos) ? p.photos : [];
+        const fromVersions = productVariants(p).flatMap(v => Array.isArray(v.photos) ? v.photos : []);
+        return [...new Set([...own, ...fromVersions].map(safeUrl).filter(Boolean))];
+    }
+ 
+    function productStock(p) {
+        const versions = productVariants(p);
+        return versions.length ? versions.reduce((s, v) => s + (Number(v.stock) || 0), 0) : Number(p?.stock) || 0;
+    }
+ 
+    function productPriceLabel(p) {
+        const prices = productVariants(p).map(v => Number(v.price)).filter(n => n > 0);
+        if (!prices.length) return `${formatPrice(p.price)} FCFA`;
+        const min = Math.min(...prices), max = Math.max(...prices);
+        return `${min !== max ? 'dès ' : ''}${formatPrice(min)} FCFA`;
+    }
+ 
+    function foodInfoHtml(food) {
+        if (!food || typeof food !== 'object') return '';
+        const storage = { ambiant: 'Température ambiante', frais: 'Au frais (réfrigérateur)', congele: 'Congelé' }[food.storage];
+        const rows = [];
+        if (food.homemade) {
+            rows.push(['Fabrication', `Fait maison${food.made_to_order ? ', préparé à la commande' : ''}`]);
+            if (food.shelf_life_days) rows.push(['Se conserve', `${Number(food.shelf_life_days)} jour(s)${food.made_to_order ? ' après préparation' : ''}`]);
+        } else if (food.expiry_date) {
+            const [y, m, d] = String(food.expiry_date).split('-');
+            rows.push([food.expiry_type === 'ddm' ? 'À consommer de préférence avant' : 'À consommer jusqu\'au', `${d}/${m}/${y}`]);
+        }
+        if (storage) rows.push(['Conservation', storage]);
+        if (food.weight) rows.push(['Poids / volume', food.weight]);
+        if (food.origin) rows.push(['Origine', food.origin]);
+        if (food.ingredients) rows.push(['Ingrédients', food.ingredients]);
+        if (food.allergens) rows.push(['Allergènes', food.allergens]);
+        if (!rows.length) return '';
+        return `
+            <div class="pd-section">
+                <h4><i class="fas fa-utensils"></i> Informations alimentaires</h4>
+                <dl class="pd-food">${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>
+            </div>`;
+    }
+ 
+    let detailProduct = null;      // produit affiché dans la fiche
+    let detailSelection = {};      // { Couleur: 'Noir', Capacité: '128 Go' }
+    let detailQty = 1;
+ 
+    function selectedVariant() {
+        const options = productOptions(detailProduct);
+        if (!options.length || options.some(o => !detailSelection[o.name])) return null;
+        return productVariants(detailProduct).find(v =>
+            options.every(o => v.values?.[o.name] === detailSelection[o.name])) || null;
+    }
+ 
+    function openProductDetail(productId) {
+        const p = productsCache[productId];
+        if (!p) return;
+        detailProduct = p;
+        detailQty = 1;
+        detailSelection = {};
+        // Une seule valeur possible pour une option : sélection automatique
+        productOptions(p).forEach(o => { if (o.values.length === 1) detailSelection[o.name] = o.values[0]; });
+        const modal = openModal('<div id="productDetail"></div>');
+        modal.classList.add('product-modal');
+        renderProductDetail();
+    }
+ 
+    function renderProductDetail(activePhoto) {
+        const p = detailProduct;
+        const box = document.getElementById('productDetail');
+        if (!p || !box) return;
+        const d = currentShopDesign || { primary: '#1e40af', button: '#1e40af' };
+        const options = productOptions(p);
+        const variant = selectedVariant();
+        const complete = !options.length || !!variant;
+ 
+        // Photos : celles de la version choisie d'abord
+        const variantPhotos = (variant?.photos || []).map(safeUrl).filter(Boolean);
+        const photos = variantPhotos.length ? [...new Set([...variantPhotos, ...productPhotos(p)])] : productPhotos(p);
+        const main = activePhoto && photos.includes(activePhoto) ? activePhoto : photos[0];
+ 
+        const price = variant ? Number(variant.price) : (options.length ? null : Number(p.price));
+        const stock = variant ? Number(variant.stock) || 0 : (options.length ? null : Number(p.stock) || 0);
+        if (stock !== null && detailQty > Math.max(stock, 1)) detailQty = Math.max(stock, 1);
+ 
+        // Une valeur est grisée si aucune version en stock ne la combine avec les choix déjà faits
+        const isAvailable = (optName, value) => productVariants(p).some(v =>
+            v.values?.[optName] === value && Number(v.stock) > 0 &&
+            options.every(o => o.name === optName || !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
+ 
+        box.innerHTML = `
+            <div class="pd-layout">
+                <div class="pd-gallery">
+                    <div class="pd-main-photo">
+                        ${main ? `<img src="${main}" alt="${escapeHtml(p.name)}">` : '<i class="fas fa-image"></i>'}
+                    </div>
+                    ${photos.length > 1 ? `
+                        <div class="pd-thumbs">
+                            ${photos.map(src => `
+                                <button class="pd-thumb ${src === main ? 'active' : ''}" onclick="showProductPhoto(this.dataset.src)" data-src="${escapeHtml(src)}">
+                                    <img src="${src}" alt="">
+                                </button>`).join('')}
+                        </div>` : ''}
+                </div>
+                <div class="pd-info">
+                    <h3 class="pd-name">${escapeHtml(p.name)}</h3>
+                    <div class="pd-price" style="color:${d.primary};">
+                        ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
+                    </div>
+                    ${variant ? `<div class="pd-variant-label">${escapeHtml(variant.key)}</div>` : ''}
+                    <div class="pd-stock ${stock === 0 ? 'out' : ''}">
+                        ${stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
+                    </div>
+ 
+                    ${options.map(o => `
+                        <div class="pd-option">
+                            <div class="pd-option-name">${escapeHtml(o.name)} : <strong>${escapeHtml(detailSelection[o.name] || 'à choisir')}</strong></div>
+                            <div class="pd-chips">
+                                ${o.values.map(v => {
+                                    const selected = detailSelection[o.name] === v;
+                                    const available = isAvailable(o.name, v);
+                                    return `<button class="pd-chip ${selected ? 'selected' : ''} ${available ? '' : 'unavailable'}"
+                                                    style="${selected ? `border-color:${d.primary};color:${d.primary};` : ''}"
+                                                    data-opt="${escapeHtml(o.name)}" data-val="${escapeHtml(v)}"
+                                                    onclick="selectProductOption(this.dataset.opt, this.dataset.val)">${escapeHtml(v)}</button>`;
+                                }).join('')}
+                            </div>
+                        </div>`).join('')}
+ 
+                    <div class="pd-buy">
+                        <div class="pd-qty">
+                            <button onclick="changeDetailQty(-1)" aria-label="Moins">−</button>
+                            <span>${detailQty}</span>
+                            <button onclick="changeDetailQty(1)" aria-label="Plus">+</button>
+                        </div>
+                        <button class="pd-add" style="background:${d.button};"
+                                ${complete && stock !== 0 ? '' : 'disabled'} onclick="addDetailToCart()">
+                            <i class="fas fa-shopping-cart"></i>
+                            ${!complete ? `Choisissez ${escapeHtml(options.filter(o => !detailSelection[o.name]).map(o => o.name.toLowerCase()).join(' et '))}`
+                                        : stock === 0 ? 'Indisponible' : 'Ajouter au panier'}
+                        </button>
+                    </div>
+ 
+                    ${p.description ? `
+                        <div class="pd-section">
+                            <h4>Description</h4>
+                            <p class="pd-desc">${escapeHtml(p.description)}</p>
+                        </div>` : ''}
+                    ${foodInfoHtml(p.food_info)}
+                </div>
+            </div>`;
+    }
+ 
+    function showProductPhoto(src) {
+        renderProductDetail(src);
+    }
+ 
+    function selectProductOption(name, value) {
+        if (detailSelection[name] === value) delete detailSelection[name];
+        else detailSelection[name] = value;
+        detailQty = 1;
+        renderProductDetail();
+    }
+ 
+    function changeDetailQty(delta) {
+        const variant = selectedVariant();
+        const max = variant ? Number(variant.stock) || 0 : (productOptions(detailProduct).length ? 99 : Number(detailProduct?.stock) || 0);
+        detailQty = Math.min(Math.max(1, detailQty + delta), Math.max(max, 1));
+        renderProductDetail(document.querySelector('.pd-main-photo img')?.getAttribute('src'));
+    }
+ 
+    function addDetailToCart() {
+        const p = detailProduct;
+        if (!p) return;
+        const variant = selectedVariant();
+        if (productOptions(p).length && !variant) return;
+        if (addToCart(p.id, variant?.key || null, detailQty)) closeModal();
     }
  
     // Filtre de la vue boutique : catégorie (menu) + texte (barre de recherche)
@@ -698,46 +894,121 @@
         });
     }
  
-    function addToCart(productId) {
+    // Ajoute un produit (ou une de ses versions) au panier. Renvoie true si c'est fait.
+    function addToCart(productId, variantKey = null, quantity = 1) {
         if (!currentUser) {
             alert('Connecte-toi pour ajouter au panier');
             openLoginModal();
-            return;
+            return false;
         }
  
         const p = productsCache[productId];
         if (!p) {
             alert('Produit introuvable');
-            return;
+            return false;
         }
  
-        const existing = cart.find(i => i.productId === p.id);
+        // Produit à versions : il faut en choisir une dans la fiche
+        const variants = productVariants(p);
+        if (variants.length && !variantKey) {
+            openProductDetail(productId);
+            return false;
+        }
+        const variant = variantKey ? variants.find(v => v.key === variantKey) : null;
+        if (variantKey && !variant) {
+            alert('Version introuvable');
+            return false;
+        }
+ 
+        const stock = variant ? Number(variant.stock) || 0 : Number(p.stock) || 0;
+        const existing = cart.find(i => i.productId === p.id && (i.variantKey || null) === (variantKey || null));
+        const already = existing ? existing.quantity : 0;
+        if (stock > 0 && already + quantity > stock) {
+            alert(`Stock insuffisant : ${stock} disponible(s)${already ? `, dont ${already} déjà dans ton panier` : ''}.`);
+            return false;
+        }
+ 
         if (existing) {
-            existing.quantity++;
+            existing.quantity += quantity;
         } else {
             cart.push({
                 productId: p.id,
                 productName: p.name,
-                price: Number(p.price) || 0,
-                quantity: 1,
+                variantKey: variantKey || null,
+                price: Number(variant ? variant.price : p.price) || 0,
+                photo: (variant?.photos?.[0] && safeUrl(variant.photos[0])) || productPhotos(p)[0] || '',
+                quantity,
                 shopId: p.shop_id
             });
         }
         saveCart();
-        alert(`${p.name} ajouté au panier`);
+        showToast(`${p.name}${variantKey ? ` (${variantKey})` : ''} ajouté au panier`);
+        return true;
+    }
+ 
+    function showToast(message) {
+        document.querySelector('.toast-msg')?.remove();
+        const t = document.createElement('div');
+        t.className = 'toast-msg';
+        t.textContent = message;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2500);
+    }
+ 
+    function cartItemHtml(item, idx) {
+        return `
+            <div class="cart-item">
+                <div class="cart-item-img">${item.photo ? `<img src="${safeUrl(item.photo)}" alt="">` : '<i class="fas fa-box"></i>'}</div>
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${escapeHtml(item.productName)}</div>
+                    ${item.variantKey ? `<div class="cart-item-variant">${escapeHtml(item.variantKey)}</div>` : ''}
+                    <div class="cart-item-price">${formatPrice(item.price)} FCFA</div>
+                </div>
+                <div class="cart-item-actions">
+                    <div class="pd-qty small">
+                        <button onclick="changeCartQty(${idx}, -1)" aria-label="Moins">−</button>
+                        <span>${item.quantity}</span>
+                        <button onclick="changeCartQty(${idx}, 1)" aria-label="Plus">+</button>
+                    </div>
+                    <button class="cart-item-remove" onclick="removeCartItem(${idx})" aria-label="Retirer"><i class="fas fa-trash"></i> Retirer</button>
+                </div>
+            </div>`;
     }
  
     function showCart() {
-        if (cart.length === 0) {
-            alert('Panier vide');
+        const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const html = cart.length === 0 ? `
+            <h3 style="margin-bottom:12px;">Mon panier</h3>
+            <div class="cart-empty"><i class="fas fa-shopping-basket"></i><p>Ton panier est vide.</p></div>` : `
+            <h3 style="margin-bottom:12px;">Mon panier (${cartTotalQty()})</h3>
+            <div class="cart-list">${cart.map(cartItemHtml).join('')}</div>
+            <div class="cart-total"><span>Total</span><strong>${formatPrice(total)} FCFA</strong></div>
+            <p class="cart-note"><i class="fas fa-info-circle"></i> Frais de livraison calculés à la validation. La validation de commande (adresse et paiement) arrive très bientôt.</p>`;
+        const existing = document.getElementById('cartModalBody');
+        if (existing) existing.innerHTML = html;
+        else openModal(`<div id="cartModalBody">${html}</div>`);
+    }
+ 
+    function changeCartQty(idx, delta) {
+        const item = cart[idx];
+        if (!item) return;
+        const p = productsCache[item.productId];
+        const variant = item.variantKey ? productVariants(p).find(v => v.key === item.variantKey) : null;
+        const stock = p ? (variant ? Number(variant.stock) || 0 : Number(p.stock) || 0) : 0;
+        if (delta > 0 && stock > 0 && item.quantity + delta > stock) {
+            showToast(`Stock maximum atteint (${stock})`);
             return;
         }
-        let msg = 'Panier :\n\n';
-        cart.forEach(i => {
-            msg += `${i.productName} x${i.quantity} — ${formatPrice(i.price * i.quantity)} FCFA\n`;
-        });
-        msg += `\nTotal : ${formatPrice(cart.reduce((s, i) => s + i.price * i.quantity, 0))} FCFA`;
-        alert(msg);
+        item.quantity += delta;
+        if (item.quantity <= 0) cart.splice(idx, 1);
+        saveCart();
+        showCart();
+    }
+ 
+    function removeCartItem(idx) {
+        cart.splice(idx, 1);
+        saveCart();
+        showCart();
     }
  
     // ============ MODALES ============
@@ -930,7 +1201,14 @@
         addToCart,
         setSort,
         viewShopDetail,
-        filterShopProducts
+        filterShopProducts,
+        openProductDetail,
+        showProductPhoto,
+        selectProductOption,
+        changeDetailQty,
+        addDetailToCart,
+        changeCartQty,
+        removeCartItem
     });
  
     // ============ DÉMARRAGE ============
