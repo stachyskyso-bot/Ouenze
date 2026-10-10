@@ -229,7 +229,22 @@
             });
  
             if (error) {
-                alert('Erreur : ' + error.message);
+                console.error('❌ Inscription:', error.message);
+                const msg = error.message || '';
+                if (/already registered|already exists/i.test(msg)) {
+                    alert('Un compte existe déjà avec cet email.\n\nConnecte-toi, ou utilise « Mot de passe oublié » si tu ne t\'en souviens plus.');
+                    openLoginModal();
+                    const loginEmail = document.getElementById('loginEmail');
+                    if (loginEmail) loginEmail.value = email;
+                } else if (/valid email|invalid.*email/i.test(msg)) {
+                    alert('Adresse email invalide.');
+                } else if (/password/i.test(msg)) {
+                    alert('Mot de passe refusé : choisis-en un plus long ou plus difficile à deviner.');
+                } else if (/rate limit|too many|security purposes/i.test(msg)) {
+                    alert('Trop de tentatives récentes. Réessaie dans quelques minutes.');
+                } else {
+                    alert("Erreur lors de l'inscription.\n\nDétail : " + msg);
+                }
                 return;
             }
  
