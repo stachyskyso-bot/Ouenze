@@ -1,0 +1,582 @@
+/* ============================================================
+   CHECKOUT.CSS — validation de commande et suivi de livraison
+   Chargé après css/style.css et css/delivery.css
+   ============================================================ */
+
+.cart-checkout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    margin-top: 10px;
+}
+
+/* ---------- Panier ---------- */
+.co-shop {
+    border: 1px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.co-shop-name {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: var(--gray-700);
+}
+
+.co-shop-name i {
+    color: var(--primary);
+    margin-right: 4px;
+}
+
+.co-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--gray-100);
+}
+
+.co-item-img {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--gray-100);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+}
+
+.co-item-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.co-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+}
+
+.co-item-info small {
+    color: var(--gray-500);
+}
+
+.co-item-info span {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.co-totals {
+    margin: 14px 0;
+    font-size: 14px;
+}
+
+.co-totals > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 2px;
+    color: var(--gray-700);
+}
+
+.co-grand {
+    border-top: 1px solid var(--gray-200);
+    margin-top: 6px;
+    padding-top: 10px !important;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--black) !important;
+}
+
+/* ---------- Carte ---------- */
+.co-map-wrap {
+    position: relative;
+    margin-bottom: 6px;
+}
+
+.co-map {
+    height: 300px;
+    border-radius: 16px;
+    border: 1px solid var(--gray-200);
+    background: var(--gray-100);
+    z-index: 0;
+}
+
+.co-map-fallback {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--gray-500);
+    font-size: 13px;
+}
+
+.co-locate {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 500;
+    border: none;
+    background: var(--white);
+    color: var(--primary);
+    font: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px 14px;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+}
+
+.co-map-hint {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-bottom: 14px;
+}
+
+/* ---------- Paiement ---------- */
+.co-methods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.co-method,
+.co-operator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: 14px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.co-method input,
+.co-operator input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.co-method > i {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.co-method strong {
+    display: block;
+    font-size: 14px;
+}
+
+.co-method small {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.co-method.selected,
+.co-operator.selected {
+    border-color: var(--primary);
+    background: #eff6ff;
+}
+
+.co-operators {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+/* Les libellés de formulaire sont en bloc par défaut (style.css) : on garde la mise en ligne */
+.form-group .co-operator,
+.co-methods .co-method {
+    display: flex;
+    min-width: 0;
+}
+
+.co-operator {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.co-op-logo {
+    flex-shrink: 0;
+    min-width: 46px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.co-paypal-note {
+    font-size: 13px;
+    color: var(--gray-700);
+    background: #eff6ff;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.co-no-card {
+    font-size: 12px;
+    color: #991b1b;
+    margin: 12px 0;
+}
+
+/* ---------- Récapitulatif ---------- */
+.co-review-block {
+    border: 1px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
+.co-review-block p {
+    color: var(--gray-700);
+    line-height: 1.6;
+}
+
+.co-review-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.co-review-head i {
+    color: var(--primary);
+    margin-right: 4px;
+}
+
+.co-review-head button {
+    border: none;
+    background: none;
+    color: var(--primary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.co-review-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 3px 0;
+}
+
+.co-review-line small {
+    color: var(--gray-500);
+}
+
+.co-steps-info {
+    background: var(--gray-100);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.co-steps-info ol {
+    margin: 6px 0 0 18px;
+    line-height: 1.7;
+    color: var(--gray-700);
+}
+
+.co-pay {
+    background: var(--success) !important;
+}
+
+@media (max-width: 520px) {
+    .co-map {
+        height: 260px;
+    }
+    .co-methods {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   SUIVI DE LIVRAISON (tracking.html)
+   ============================================================ */
+.trk-page {
+    max-width: 1100px;
+}
+
+.trk-demo {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.trk-layout {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
+.trk-map-card {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    background: var(--white);
+}
+
+.trk-map {
+    height: 460px;
+    background: var(--gray-100);
+    z-index: 0;
+}
+
+.trk-eta {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 500;
+    background: rgba(15, 23, 42, 0.88);
+    color: #ffffff;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.trk-eta i {
+    margin-right: 6px;
+    color: #86efac;
+}
+
+.trk-pin {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border: 3px solid #ffffff;
+}
+
+.trk-pin.shop { border-color: #f59e0b; }
+.trk-pin.home { border-color: #16a34a; }
+.trk-pin.courier {
+    border-color: #1e40af;
+    animation: trkPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes trkPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(30, 64, 175, 0.45); }
+    50% { box-shadow: 0 0 0 10px rgba(30, 64, 175, 0); }
+}
+
+.trk-side {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    padding: 18px;
+}
+
+.trk-progress {
+    height: 8px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.trk-progress-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #1e40af, #16a34a);
+    border-radius: 8px;
+    transition: width 0.4s ease;
+}
+
+.trk-current {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: #f0fdf4;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+.trk-current > i {
+    font-size: 22px;
+    color: var(--success);
+}
+
+.trk-current strong {
+    display: block;
+    font-size: 15px;
+}
+
+.trk-current span {
+    font-size: 12px;
+    color: var(--gray-700);
+}
+
+.trk-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 14px;
+}
+
+.trk-steps li {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.trk-steps li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 36px;
+    width: 2px;
+    height: 14px;
+    background: var(--gray-200);
+}
+
+.trk-steps li.done::after {
+    background: var(--success);
+}
+
+.trk-steps small {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.trk-dot {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+}
+
+.trk-steps li.done {
+    color: var(--black);
+}
+
+.trk-steps li.done .trk-dot {
+    background: var(--success);
+    color: #ffffff;
+}
+
+.trk-steps li.active {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.trk-steps li.active .trk-dot {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 0 0 4px #dbeafe;
+}
+
+.trk-courier {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--gray-200);
+    padding-top: 12px;
+}
+
+.trk-courier-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #ffffff;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.trk-courier-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.trk-courier-info strong {
+    display: block;
+}
+
+.trk-courier-info span {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.trk-call {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--success);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.trk-done {
+    text-align: center;
+    margin-top: 14px;
+}
+
+.trk-done p {
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.trk-done .btn-submit {
+    width: auto;
+    padding: 12px 22px;
+}
+
+@media (max-width: 860px) {
+    .trk-layout {
+        grid-template-columns: 1fr;
+    }
+    .trk-map {
+        height: 360px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .trk-pin.courier { animation: none; }
+    .trk-progress-bar { transition: none; }
+}
