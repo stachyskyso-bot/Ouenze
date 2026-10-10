@@ -42,6 +42,33 @@ function formatNumber(v) {
     return Number(v || 0).toLocaleString('fr-FR');
 }
 
+// Réduit une photo (souvent 3–5 Mo sur smartphone) à 1000 px max en JPEG :
+// pages plus légères pour les clients sur réseau mobile.
+function compressImage(file, maxSize = 1000, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) { reject(new Error('Ce fichier n\'est pas une image')); return; }
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error);
+        reader.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('Image illisible'));
+            img.onload = () => {
+                const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';  // fond blanc pour les PNG transparents
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 function todayIso() {
     const d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -58,6 +85,13 @@ function productPriceRange(p) {
     const prices = (p.variants || []).map(v => Number(v.price)).filter(n => n > 0);
     if (prices.length === 0) return { min: p.basePrice, max: p.basePrice };
     return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+// Photos d'un produit : les siennes, sinon celles de ses versions (une par version)
+function productAllPhotos(p) {
+    const own = p.photos || [];
+    const fromVariants = (p.variants || []).map(v => v.photos?.[0]).filter(Boolean);
+    return [...new Set([...own, ...fromVariants])];
 }
 
 function productPriceLabel(p) {
@@ -209,7 +243,7 @@ function openAddProductModal(productId = null) {
     } else {
         const product = products.find(p => String(p.id) === String(productId));
         if (product) {
-            tempVariants = (product.variants || []).map(v => ({ ...v, values: { ...v.values } }));
+            tempVariants = (product.variants || []).map(v => ({ ...v, values: { ...v.values }, photos: [...(v.photos || [])] }));
             tempVariantOptions = (product.variantOptions || []).map(o => ({ name: o.name, values: [...o.values] }));
             tempProductPhotos = [...(product.photos || [])];
         }
@@ -442,7 +476,7 @@ function renderVariantCombos() {
     tempVariants = combos.map(values => {
         const key = comboKey(values);
         const old = previous.get(key);
-        return { key, values, price: old ? old.price : basePrice, stock: old ? old.stock : 0 };
+        return { key, values, price: old ? old.price : basePrice, stock: old ? old.stock : 0, photos: old?.photos ? [...old.photos] : [] };
     });
 
     if (tempVariants.length === 0) {
@@ -455,17 +489,67 @@ function renderVariantCombos() {
             <strong style="font-size:13px;">${tempVariants.length} version(s)</strong>
             <button type="button" class="btn-sm" onclick="window.applyBasePriceToVariants()">Appliquer le prix par défaut à toutes</button>
         </div>
-        <table class="variants-table">
-            <thead><tr><th>Version</th><th>Prix (FCFA)</th><th>Stock</th></tr></thead>
-            <tbody>
-                ${tempVariants.map((v, i) => `
-                    <tr>
-                        <td>${escapeHtml(v.key)}</td>
-                        <td><input type="number" min="0" value="${v.price}" onchange="window.updateVariantField(${i}, 'price', this.value)"></td>
-                        <td><input type="number" min="0" value="${v.stock}" onchange="window.updateVariantField(${i}, 'stock', this.value)"></td>
-                    </tr>`).join('')}
-            </tbody>
-        </table>`;
+        <p class="hint">Chaque version doit avoir au moins une photo. Astuce : la photo d'une version est reprise automatiquement par les autres versions de même ${escapeHtml(photoOptionName() || 'option')} qui n'en ont pas encore.</p>
+        <div class="variant-cards">
+            ${tempVariants.map((v, i) => `
+                <div class="variant-card ${v.photos.length ? '' : 'missing-photo'}">
+                    <div class="variant-photos">
+                        ${v.photos.map((src, j) => `
+                            <div class="variant-thumb">
+                                <img src="${src}" alt="">
+                                <button type="button" onclick="window.removeVariantPhoto(${i}, ${j})" title="Retirer">✕</button>
+                            </div>`).join('')}
+                        ${v.photos.length < MAX_VARIANT_PHOTOS ? `
+                            <label class="variant-photo-add" title="Ajouter une photo">
+                                <i class="fas fa-camera"></i><span>${v.photos.length ? '+' : 'Photo *'}</span>
+                                <input type="file" accept="image/*" multiple onchange="window.addVariantPhotos(${i}, this)">
+                            </label>` : ''}
+                    </div>
+                    <div class="variant-fields">
+                        <div class="variant-name">${escapeHtml(v.key)}</div>
+                        <div class="variant-inputs">
+                            <label>Prix (FCFA)<input type="number" min="0" value="${v.price}" onchange="window.updateVariantField(${i}, 'price', this.value)"></label>
+                            <label>Stock<input type="number" min="0" value="${v.stock}" onchange="window.updateVariantField(${i}, 'stock', this.value)"></label>
+                        </div>
+                    </div>
+                </div>`).join('')}
+        </div>`;
+}
+
+// ============ PHOTOS DES VERSIONS ============
+const MAX_VARIANT_PHOTOS = 3;
+
+// Option qui détermine l'apparence (Couleur…) : sa photo vaut pour toutes les tailles
+function photoOptionName() {
+    const named = tempVariantOptions.filter(o => o.name && o.values.length);
+    const visual = named.find(o => /coul|colo|motif|mod[eè]le|finition/i.test(o.name));
+    return (visual || named[0])?.name || '';
+}
+
+async function addVariantPhotos(idx, input) {
+    const variant = tempVariants[idx];
+    if (!variant) return;
+    const files = Array.from(input.files || []).slice(0, MAX_VARIANT_PHOTOS - variant.photos.length);
+    input.value = '';
+    const photos = (await Promise.all(files.map(f => compressImage(f).catch(() => null)))).filter(Boolean);
+    if (!photos.length) { alert("Impossible de lire cette image"); return; }
+    variant.photos.push(...photos);
+    
+    // Même couleur (ou même valeur de l'option visuelle) sans photo : on reprend celle-ci
+    const opt = photoOptionName();
+    if (opt) {
+        tempVariants.forEach(other => {
+            if (other !== variant && other.photos.length === 0 && other.values[opt] === variant.values[opt]) {
+                other.photos = [variant.photos[0]];
+            }
+        });
+    }
+    renderVariantCombos();
+}
+
+function removeVariantPhoto(idx, photoIdx) {
+    tempVariants[idx]?.photos.splice(photoIdx, 1);
+    renderVariantCombos();
 }
 
 function updateVariantField(idx, field, value) {
@@ -547,15 +631,11 @@ function renderProductPhotos(photos) {
 function handleProductPhotoUpload(e) {
     const files = Array.from(e.target.files);
     if (tempProductPhotos.length + files.length > 5) { alert("Maximum 5 photos"); return; }
-    files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = ev => {
-            tempProductPhotos.push(ev.target.result);
-            renderProductPhotos(tempProductPhotos);
-        };
-        reader.readAsDataURL(file);
-    });
     e.target.value = '';
+    Promise.all(files.map(f => compressImage(f).catch(() => null))).then(results => {
+        results.filter(Boolean).forEach(src => tempProductPhotos.push(src));
+        renderProductPhotos(tempProductPhotos);
+    });
 }
 
 function removeProductPhoto(idx) {
@@ -585,7 +665,9 @@ function saveProduct() {
         if (tempVariants.length === 0) { alert("Ajoutez au moins une option avec ses valeurs, ou décochez « Plusieurs versions »"); return; }
         const missing = tempVariants.filter(v => !(Number(v.price) > 0));
         if (missing.length) { alert(`Prix manquant pour : ${missing.slice(0, 3).map(v => v.key).join(', ')}${missing.length > 3 ? '…' : ''}`); return; }
-        variants = tempVariants.map(v => ({ key: v.key, values: v.values, price: Number(v.price), stock: Number(v.stock) || 0 }));
+        const noPhoto = tempVariants.filter(v => !v.photos?.length);
+        if (noPhoto.length) { alert(`Ajoutez au moins une photo pour : ${noPhoto.slice(0, 3).map(v => v.key).join(', ')}${noPhoto.length > 3 ? '…' : ''}`); return; }
+        variants = tempVariants.map(v => ({ key: v.key, values: v.values, price: Number(v.price), stock: Number(v.stock) || 0, photos: v.photos }));
     } else if (isNaN(basePrice) || basePrice <= 0) {
         alert("Prix valide requis"); return;
     }
@@ -649,13 +731,13 @@ function renderProductsList() {
                     </div>
                 </div>
                 <div style="font-size:12px; color:var(--gray-500);">
-                    Catégorie: ${escapeHtml(category?.name || 'Sans catégorie')} | ${p.photos?.length || 0} photo(s)
+                    Catégorie: ${escapeHtml(category?.name || 'Sans catégorie')} | ${productAllPhotos(p).length} photo(s)
                     ${hasVariants ? ` | ${p.variants.length} version(s) : ${escapeHtml((p.variantOptions || []).map(o => o.name).join(', '))}` : ''}
                 </div>
                 ${p.food ? `<div class="food-badge">🍽️ ${escapeHtml(foodSummary(p.food))}</div>` : ''}
-                ${p.photos && p.photos.length > 0 ? `
+                ${productAllPhotos(p).length > 0 ? `
                     <div style="display:flex;gap:8px;margin-top:8px;">
-                        ${p.photos.slice(0, 5).map(photo => `
+                        ${productAllPhotos(p).slice(0, 6).map(photo => `
                             <div style="width:50px;height:50px;border-radius:8px;overflow:hidden;border:1px solid var(--gray-200);">
                                 <img src="${photo}" style="width:100%;height:100%;object-fit:cover;">
                             </div>
@@ -800,7 +882,7 @@ function updatePreview() {
                                 <div style="height:${designConfig.layout === 'list' ? '80px' : designConfig.prodImgHeight + 'px'};
                                             ${designConfig.layout === 'list' ? 'width:80px;' : ''}
                                             background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                    ${p.photos?.[0] ? `<img src="${p.photos[0]}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'}
+                                    ${productAllPhotos(p)[0] ? `<img src="${productAllPhotos(p)[0]}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fas fa-image" style="font-size:32px;color:#cbd5e1;"></i>'}
                                 </div>
                                 <div style="padding:12px;flex:1;">
                                     <div style="font-weight:600;font-size:14px;color:${productTextColor};margin-bottom:4px;">${escapeHtml(p.name)}</div>
@@ -1196,6 +1278,8 @@ window.updateVariantOptionName = updateVariantOptionName;
 window.updateVariantOptionValues = updateVariantOptionValues;
 window.updateVariantField = updateVariantField;
 window.applyBasePriceToVariants = applyBasePriceToVariants;
+window.addVariantPhotos = addVariantPhotos;
+window.removeVariantPhoto = removeVariantPhoto;
 window.toggleFood = toggleFood;
 window.toggleHomemade = toggleHomemade;
 window.updatePreview = updatePreview;

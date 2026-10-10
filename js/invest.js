@@ -151,104 +151,31 @@ function generatePriceHistory(shopId) {
 }
 
 // ============ AUTHENTIFICATION ============
-function updateHeaderUI() {
-    const container = document.getElementById('headerActions');
-    if (container) {
-        if (currentUser) {
-            container.innerHTML = `
-                <div class="user-menu" onclick="showProfile()">
-                    <div class="user-avatar">${escapeHtml(currentUser.name.charAt(0))}</div>
-                    <div>${escapeHtml(currentUser.name.split(' ')[0])}<br><small>Investisseur</small></div>
-                    <button onclick="event.stopPropagation();logout()" style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>`;
-        } else {
-            container.innerHTML = `<button class="auth-btn" onclick="openLoginModal()">Connexion</button>`;
-        }
-    }
-}
-
-function openLoginModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            <h3 style="margin-bottom:20px;">Connexion</h3>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="loginEmail" placeholder="exemple@email.com">
-            </div>
-            <div class="form-group">
-                <label>Mot de passe</label>
-                <input type="password" id="loginPassword" placeholder="••••••••">
-            </div>
-            <button class="btn-primary" style="width:100%;" onclick="doLogin()">Se connecter</button>
-            <div style="text-align:center;margin-top:16px;">
-                Pas de compte ? <a href="#" onclick="window.location.href='index.html'" style="color:var(--primary);">Inscription</a>
-            </div>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-function doLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    
-    if (!email) {
-        showToast("Email requis", true);
-        return;
-    }
-    
-    // Simulation de connexion
-    const allUsers = JSON.parse(localStorage.getItem('ouenze_all_users') || '[]');
-    const user = allUsers.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-        currentUser = { name: user.fullName, email: user.email, type: 'investor' };
-    } else {
-        currentUser = { name: email.split('@')[0], email: email, type: 'investor' };
-    }
-    
-    localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
-    updateHeaderUI();
-    document.querySelector('.modal')?.remove();
-    showInvestPage();
-    showToast(`Bienvenue ${currentUser.name}`);
-}
-
-function logout() {
+// La connexion passe par app.js (Supabase) : en-tête, fenêtre de connexion, profil.
+// Ici on lit seulement qui est connecté, pour afficher ses investissements.
+async function loadInvestor() {
     currentUser = null;
-    localStorage.removeItem('ouenze_current_user');
-    updateHeaderUI();
-    showInvestPage();
-    showToast("Déconnexion réussie");
+    try {
+        const { data } = await window.supabase.auth.getSession();
+        const user = data?.session?.user;
+        if (!user) return;
+        let name = user.email.split('@')[0];
+        const { data: profile } = await window.supabase
+            .from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+        if (profile?.full_name) name = profile.full_name;
+        currentUser = { id: user.id, name, email: user.email };
+    } catch (e) {
+        console.error('❌ invest.js session:', e);
+    }
 }
 
-function showProfile() {
-    if (!currentUser) {
-        openLoginModal();
-        return;
-    }
-    
-    document.getElementById('appContainer').innerHTML = `
-        <div class="shop-detail-container profile-container">
-            <div class="profile-avatar-large">${escapeHtml(currentUser.name.charAt(0))}</div>
-            <h3 style="margin:15px 0;">${escapeHtml(currentUser.name)}</h3>
-            <p>${escapeHtml(currentUser.email)}</p>
-            <p>Type: Investisseur</p>
-            ${currentUser.paymentMethod ? `<p>Mode de paiement: ${currentUser.paymentMethod}</p>` : ''}
-            <div class="action-buttons" style="justify-content:center; margin-top:20px;">
-                <button class="btn-primary" onclick="logout()">Se déconnecter</button>
-                <button class="btn-outline" onclick="showInvestPage()">Retour</button>
-            </div>
-        </div>`;
+function askLogin() {
+    if (typeof window.openLoginModal === 'function') window.openLoginModal();
 }
 
 // ============ PAGE INVESTISSEMENT ============
 function showInvestPage() {
-    document.querySelectorAll('.nav-tab').forEach(tab => {
+    document.querySelectorAll('.invest-tab').forEach(tab => {
         if (tab.dataset.tab === 'invest') tab.classList.add('active');
         else tab.classList.remove('active');
     });
@@ -256,7 +183,17 @@ function showInvestPage() {
     const eligibleShops = shops.filter(s => s.rating >= 3);
     const sortedShops = sortShops(eligibleShops, currentSort);
     
-    document.getElementById('appContainer').innerHTML = `
+    document.getElementById('investContainer').innerHTML = `
+        <div class="invest-hero">
+            <div>
+                <h2>Investir dans les boutiques congolaises</h2>
+                <p>Achetez des parts des boutiques les mieux notées (3 étoiles minimum) et suivez leur valeur.</p>
+            </div>
+        </div>
+        <div class="demo-banner">
+            <i class="fas fa-flask"></i>
+            <span><strong>Démonstration</strong> — les boutiques, cours et transactions affichés ici sont fictifs. Aucun paiement n'est effectué.</span>
+        </div>
         <div class="filters-bar">
             <div class="sort-buttons">
                 <button class="sort-btn ${currentSort === 'rating' ? 'active' : ''}" onclick="setSort('rating')">Par note</button>
@@ -307,7 +244,7 @@ function renderShopsGrid(shopsList) {
                     </div>
                     <div class="shop-name">${escapeHtml(shop.name)}</div>
                     <div class="shop-rating">${generateStars(shop.rating || 0)} ${shop.rating || 0}/5</div>
-                    <div class="shop-price">${valuation.toLocaleString()} FCFA</div>
+                    <div class="shop-price">${valuation.toLocaleString('fr-FR')} FCFA</div>
                     <div class="shop-level">
                         <span class="level-badge ${levelBadgeClass}">
                             <i class="fas fa-crown"></i> ${level.name || 'Standard'}
@@ -350,7 +287,7 @@ function showShopDetail(shopId) {
     const totalShares = userInvestments.reduce((s, i) => s + i.quantity, 0);
     const avgPrice = getAverageBuyPrice(shopId, currentUser?.email);
     
-    document.getElementById('appContainer').innerHTML = `
+    document.getElementById('investContainer').innerHTML = `
         <button class="back-btn" onclick="showInvestPage()">
             <i class="fas fa-arrow-left"></i> Retour
         </button>
@@ -377,9 +314,9 @@ function showShopDetail(shopId) {
             ${currentUser ? `
             <div class="investment-range">
                 <strong><i class="fas fa-chart-line"></i> Fourchette d'investissement</strong><br>
-                Minimum: ${level.minInvestment.toLocaleString()} FCFA | Maximum: ${level.maxInvestment.toLocaleString()} FCFA
-                ${totalInvested > 0 ? `<br><span style="color:var(--primary);">💰 Votre investissement: ${totalInvested.toLocaleString()} FCFA (${totalShares} actions)</span>` : ''}
-                ${avgPrice > 0 ? `<br><span style="color:var(--gray-500);">📊 Prix moyen d'achat: ${Math.round(avgPrice).toLocaleString()} FCFA/action</span>` : ''}
+                Minimum: ${level.minInvestment.toLocaleString('fr-FR')} FCFA | Maximum: ${level.maxInvestment.toLocaleString('fr-FR')} FCFA
+                ${totalInvested > 0 ? `<br><span style="color:var(--primary);">💰 Votre investissement: ${totalInvested.toLocaleString('fr-FR')} FCFA (${totalShares} actions)</span>` : ''}
+                ${avgPrice > 0 ? `<br><span style="color:var(--gray-500);">📊 Prix moyen d'achat: ${Math.round(avgPrice).toLocaleString('fr-FR')} FCFA/action</span>` : ''}
             </div>
             ` : ''}
             
@@ -395,9 +332,9 @@ function showShopDetail(shopId) {
             <div class="table-container">
                 <h3>Indicateurs financiers</h3>
                 <table class="data-table">
-                    <tr><th>Valorisation totale</th><td>${valuation.toLocaleString()} FCFA</td></tr>
-                    <tr><th>Prix par action (0.1%)</th><td>${sharePrice.toLocaleString()} FCFA</td></tr>
-                    <tr><th>Chiffre d'affaires annuel</th><td>${((shop.monthlyRevenue || valuation * 0.1) * 12).toLocaleString()} FCFA</td></tr>
+                    <tr><th>Valorisation totale</th><td>${valuation.toLocaleString('fr-FR')} FCFA</td></tr>
+                    <tr><th>Prix par action (0.1%)</th><td>${sharePrice.toLocaleString('fr-FR')} FCFA</td></tr>
+                    <tr><th>Chiffre d'affaires annuel</th><td>${((shop.monthlyRevenue || valuation * 0.1) * 12).toLocaleString('fr-FR')} FCFA</td></tr>
                     <tr><th>Croissance estimée</th><td class="trend-up">+${shop.growthRate || 12}%</td></tr>
                 </table>
             </div>
@@ -412,14 +349,15 @@ function showShopDetail(shopId) {
                     <i class="fas fa-exchange-alt"></i> Vendre des actions
                 </button>
                 ` : ''}
-                <button class="btn-outline" onclick="window.location.href='index.html?id=${shop.id}'">
+                <button class="btn-outline" onclick="window.location.href='index.html?shop=${shop.id}'">
                     <i class="fas fa-store"></i> Voir la boutique
                 </button>
             </div>
             ` : `
-            <div style="background:var(--gray-100);padding:16px;border-radius:12px;text-align:center;">
-                <i class="fas fa-lock" style="margin-right:8px;"></i>
-                Connectez-vous pour investir dans cette boutique
+            <div class="login-required">
+                <i class="fas fa-lock"></i>
+                <span>Connectez-vous pour investir dans cette boutique</span>
+                <button class="btn-primary" onclick="askLogin()">Connexion</button>
             </div>
             `}
         </div>
@@ -438,12 +376,12 @@ function drawChart(type, history) {
         labels = history.map(h => h.date.slice(5));
         data = history.map(h => h.price);
         label = 'Prix par action (FCFA)';
-        color = '#3b82f6';
+        color = '#1e40af';
     } else if (type === 'volume') {
         labels = history.slice(-10).map(h => h.date.slice(5));
         data = labels.map(() => Math.floor(Math.random() * 100 + 20));
-        label = 'Volume transacted';
-        color = '#22c55e';
+        label = 'Volume échangé';
+        color = '#10b981';
     } else {
         labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
         data = labels.map(() => Math.floor(Math.random() * 500000 + 200000));
@@ -475,12 +413,12 @@ function drawChart(type, history) {
             plugins: { 
                 legend: { 
                     position: 'top', 
-                    labels: { color: '#9ca3af', font: { size: 11 } } 
+                    labels: { color: '#64748b', font: { size: 11 } } 
                 } 
             },
             scales: {
-                y: { grid: { color: '#2a3140' }, ticks: { color: '#9ca3af' } },
-                x: { grid: { color: '#2a3140' }, ticks: { color: '#9ca3af' } }
+                y: { grid: { color: '#e2e8f0' }, ticks: { color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { color: '#64748b' } }
             }
         }
     });
@@ -496,7 +434,7 @@ function switchChart(event, type) {
 // ============ ACHAT/VENTE D'ACTIONS ============
 function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
     if (!currentUser) {
-        showToast("Connectez-vous", true);
+        askLogin();
         return;
     }
     
@@ -508,7 +446,7 @@ function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
             <h3 style="margin-bottom:20px;"><i class="fas fa-shopping-cart"></i> Acheter des actions</h3>
             <div class="investment-range" style="margin-bottom:16px;">
                 Fourchette d'investissement:<br>
-                Minimum: ${minInvestment.toLocaleString()} FCFA | Maximum: ${maxInvestment.toLocaleString()} FCFA
+                Minimum: ${minInvestment.toLocaleString('fr-FR')} FCFA | Maximum: ${maxInvestment.toLocaleString('fr-FR')} FCFA
             </div>
             <div class="form-group">
                 <label>Nombre d'actions</label>
@@ -548,7 +486,7 @@ function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
     qtyInput.addEventListener('input', (e) => {
         const qty = parseInt(e.target.value) || 0;
         const total = qty * sharePrice;
-        totalSpan.innerText = total.toLocaleString();
+        totalSpan.innerText = total.toLocaleString('fr-FR');
         
         if (total < minInvestment && total > 0) {
             warningSpan.innerHTML = '⚠️ Montant inférieur au minimum recommandé';
@@ -558,7 +496,7 @@ function openBuySharesModal(shopId, sharePrice, minInvestment, maxInvestment) {
             warningSpan.style.color = '#ef4444';
         } else if (total > 0) {
             warningSpan.innerHTML = '✅ Montant dans la fourchette recommandée';
-            warningSpan.style.color = '#22c55e';
+            warningSpan.style.color = '#10b981';
         } else {
             warningSpan.innerHTML = '';
         }
@@ -581,16 +519,11 @@ function submitBuyRequest(shopId, sharePrice, minInvestment, maxInvestment) {
     
     const total = quantity * sharePrice;
     if (total < minInvestment && total > 0) {
-        if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est inférieur au minimum recommandé. Continuer ?`)) return;
+        if (!confirm(`Le montant (${total.toLocaleString('fr-FR')} FCFA) est inférieur au minimum recommandé. Continuer ?`)) return;
     }
     if (total > maxInvestment) {
-        if (!confirm(`Le montant (${total.toLocaleString()} FCFA) est supérieur au maximum recommandé. Continuer ?`)) return;
+        if (!confirm(`Le montant (${total.toLocaleString('fr-FR')} FCFA) est supérieur au maximum recommandé. Continuer ?`)) return;
     }
-    
-    // Mettre à jour les infos de paiement
-    currentUser.paymentMethod = paymentMethod;
-    currentUser.paymentDetails = paymentDetails;
-    localStorage.setItem('ouenze_current_user', JSON.stringify(currentUser));
     
     // Créer la demande d'investissement
     if (window.createInvestmentRequest) {
@@ -631,14 +564,14 @@ function submitBuyRequest(shopId, sharePrice, minInvestment, maxInvestment) {
         localStorage.setItem('ouenze_investment_requests', JSON.stringify(requests));
     }
     
-    showToast(`✅ Demande d'achat envoyée ! ${total.toLocaleString()} FCFA - ${quantity} actions`);
+    showToast(`✅ Demande d'achat envoyée ! ${total.toLocaleString('fr-FR')} FCFA - ${quantity} actions`);
     document.querySelector('.modal')?.remove();
     showShopDetail(shopId);
 }
 
 function openSellSharesModal(shopId, sharePrice, maxQuantity) {
     if (!currentUser) {
-        showToast("Connectez-vous", true);
+        askLogin();
         return;
     }
     
@@ -680,7 +613,7 @@ function openSellSharesModal(shopId, sharePrice, maxQuantity) {
     
     document.getElementById('sellQty').addEventListener('input', (e) => {
         const total = (parseInt(e.target.value) || 0) * sharePrice;
-        document.getElementById('sellTotal').innerText = total.toLocaleString();
+        document.getElementById('sellTotal').innerText = total.toLocaleString('fr-FR');
     });
 }
 
@@ -755,7 +688,7 @@ function submitSellRequest(shopId, sharePrice, maxQuantity) {
     investmentRequests.push(request);
     localStorage.setItem('ouenze_investment_requests', JSON.stringify(investmentRequests));
     
-    showToast(`✅ Vente confirmée ! ${total.toLocaleString()} FCFA - ${quantity} actions vendues`);
+    showToast(`✅ Vente confirmée ! ${total.toLocaleString('fr-FR')} FCFA - ${quantity} actions vendues`);
     document.querySelector('.modal')?.remove();
     showShopDetail(shopId);
 }
@@ -819,14 +752,22 @@ function initData() {
     userHoldings = JSON.parse(localStorage.getItem('ouenze_holdings') || '[]');
     marketHistory = JSON.parse(localStorage.getItem('ouenze_market_history') || '[]');
     investmentRequests = JSON.parse(localStorage.getItem('ouenze_investment_requests') || '[]');
-    currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
 }
 
 // ============ INITIALISATION ============
-document.addEventListener('DOMContentLoaded', () => {
+async function refreshCurrentView() {
+    await loadInvestor();
+    if (currentShop && document.querySelector('.shop-detail-container')) showShopDetail(currentShop.id);
+    else showInvestPage();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     initData();
-    updateHeaderUI();
+    await loadInvestor();
     showInvestPage();
+    window.supabase?.auth?.onAuthStateChange?.((event) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') refreshCurrentView();
+    });
 });
 
 // Exports globaux
@@ -839,7 +780,5 @@ window.openBuySharesModal = openBuySharesModal;
 window.openSellSharesModal = openSellSharesModal;
 window.submitBuyRequest = submitBuyRequest;
 window.submitSellRequest = submitSellRequest;
-window.showProfile = showProfile;
-window.doLogin = doLogin;
-window.logout = logout;
+window.askLogin = askLogin;
 window.openLoginModal = openLoginModal;
