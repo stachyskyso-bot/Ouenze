@@ -2161,12 +2161,6 @@ body {
     border: 1.5px solid var(--gray-200);
 }
 
-.social-btn.facebook {
-    background: #1877f2;
-    color: var(--white);
-    border: 1.5px solid #1877f2;
-}
-
 .auth-divider {
     display: flex;
     align-items: center;
@@ -2371,5 +2365,51 @@ body {
     select,
     textarea {
         font-size: 16px !important;
+    }
+}
+
+/* Finalisation de l'inscription Google */
+.account-types.three {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.complete-head h3 {
+    margin: 10px 0 4px;
+}
+
+.complete-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #166534;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 20px;
+    padding: 4px 10px;
+}
+
+.complete-out {
+    text-align: center;
+    font-size: 13px;
+    color: var(--gray-500);
+    margin-top: 12px;
+}
+
+.complete-out button {
+    border: none;
+    background: none;
+    color: var(--primary);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+@media (max-width: 380px) {
+    .account-types.three span {
+        flex-direction: column;
+        gap: 4px;
+        padding: 10px 4px;
     }
 }

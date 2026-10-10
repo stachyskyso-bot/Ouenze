@@ -1235,20 +1235,23 @@
     }
  
     // ============ MODALES ============
-    function closeModal() {
-        document.querySelectorAll('.modal.active').forEach(m => m.remove());
+    // Une fenêtre « locked » (finalisation de l'inscription) reste ouverte : les autres
+    // fenêtres s'ouvrent par-dessus et elle réapparaît quand on les ferme.
+    function closeModal(force) {
+        document.querySelectorAll('.modal.active').forEach(m => { if (force || !m.dataset.locked) m.remove(); });
     }
  
-    function openModal(innerHtml) {
+    function openModal(innerHtml, options = {}) {
         closeModal();
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
             <div class="modal-card">
-                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                ${options.locked ? '' : '<button class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</button>'}
                 ${innerHtml}
             </div>`;
-        modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+        if (options.locked) modal.dataset.locked = '1';
+        else modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
         document.body.appendChild(modal);
         return modal;
     }
@@ -1293,10 +1296,6 @@
                 <button type="button" class="social-btn google" onclick="signInWithProvider('google')">
                     <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
                     ${label} avec Google
-                </button>
-                <button type="button" class="social-btn facebook" onclick="signInWithProvider('facebook')">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#fff" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
-                    ${label} avec Facebook
                 </button>
             </div>
             <div class="auth-divider"><span>ou avec ton email</span></div>`;
@@ -1443,9 +1442,9 @@
     }
  
     // ============ CONNEXION GOOGLE / FACEBOOK ============
-    const PROVIDER_NAMES = { google: 'Google', facebook: 'Facebook' };
+    const PROVIDER_NAMES = { google: 'Google' };
 
-    // Avant de partir chez Google/Facebook, on demande à Supabase si le fournisseur est activé :
+    // Avant de partir chez Google, on demande à Supabase si le fournisseur est activé :
     // sinon le visiteur atterrirait sur une page d'erreur brute (« Unsupported provider »).
     async function providerEnabled(provider) {
         try {
@@ -1478,7 +1477,7 @@
         }
     }
 
-    // Retour de Google/Facebook avec une erreur : Supabase la met dans l'adresse (?error=… ou #error=…)
+    // Retour de Google avec une erreur : Supabase la met dans l'adresse (?error=… ou #error=…)
     function handleOAuthReturnError() {
         const params = new URLSearchParams(window.location.search);
         const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -1486,27 +1485,30 @@
         if (!code) return;
         const detail = params.get('error_description') || hash.get('error_description') || code;
         console.error('❌ Retour OAuth :', code, detail);
-        let message = 'La connexion avec Google ou Facebook a échoué.';
+        let message = 'La connexion avec Google a échoué.';
         if (/access_denied/i.test(code)) message = 'Connexion annulée.';
         else if (/database error saving new user/i.test(detail)) message = 'Ton compte n\'a pas pu être créé (erreur de la base de données). Réessaie avec ton email.';
-        else if (/email/i.test(detail) && /(not|no).*(provided|found)|missing/i.test(detail)) message = 'Facebook n\'a pas transmis ton adresse email. Autorise l\'accès à l\'email ou utilise ton email pour t\'inscrire.';
         alert(`${message}\n\nDétail : ${detail}`);
         ['error', 'error_code', 'error_description'].forEach(k => params.delete(k));
         const q = params.toString();
         history.replaceState(null, '', window.location.pathname + (q ? '?' + q : ''));
     }
 
-    // Compte créé via Google/Facebook : il manque le pays, le téléphone et le type de compte
+    // Compte créé via Google : il manque le pays, la ville, le téléphone et le type de compte
     function needsProfileCompletion(user) {
         const provider = user?.app_metadata?.provider;
         return !!user && provider && provider !== 'email' && !user.user_metadata?.profile_completed;
     }
  
     function openCompleteProfileModal() {
+        if (document.querySelector('.modal[data-locked]')) return;
         const meta = currentUser?.user_metadata || {};
         const modal = openModal(`
-            <h3 style="margin-bottom:6px;">Finalise ton inscription</h3>
-            <p class="auth-sub">Encore quelques informations pour pouvoir commander et être livré.</p>
+            <div class="complete-head">
+                <span class="complete-badge"><i class="fas fa-check-circle"></i> Connecté avec Google</span>
+                <h3>Plus qu'une étape</h3>
+                <p class="auth-sub">${escapeHtml(currentUser?.email || '')} — indique ta ville, ton téléphone et ce que tu veux faire sur Ouenze.</p>
+            </div>
             <form onsubmit="event.preventDefault();completeProfile();" novalidate>
                 <div class="form-group">
                     <label>Nom complet *</label>
@@ -1515,24 +1517,29 @@
                 ${countryFieldsHtml('complete')}
                 <div class="form-group">
                     <label>Je veux *</label>
-                    <div class="account-types">
+                    <div class="account-types three">
                         <label><input type="radio" name="completeType" value="client" checked><span><i class="fas fa-shopping-bag"></i> Acheter</span></label>
                         <label><input type="radio" name="completeType" value="vendeur"><span><i class="fas fa-store"></i> Vendre</span></label>
+                        <label><input type="radio" name="completeType" value="livreur"><span><i class="fas fa-motorcycle"></i> Livrer</span></label>
                     </div>
+                    <p class="auth-note">Vendre : tu crées ta boutique juste après. Livrer : ton permis et ton véhicule seront vérifiés.</p>
                 </div>
                 <label class="terms-line">
                     <input type="checkbox" id="completeTerms">
                     <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
                 </label>
                 <div class="form-error" id="completeError" role="alert"></div>
-                <button type="submit" class="btn-submit" id="completeSubmit">Valider</button>
-            </form>`);
+                <button type="submit" class="btn-submit" id="completeSubmit">Terminer mon inscription</button>
+            </form>
+            <p class="complete-out">Pas toi ? <button type="button" onclick="logout()">Se déconnecter</button></p>`, { locked: true });
         modal.classList.add('auth-modal');
     }
  
     async function completeProfile() {
         const fullName = (document.getElementById('completeName')?.value || '').trim();
-        const userType = document.querySelector('input[name="completeType"]:checked')?.value === 'vendeur' ? 'vendeur' : 'client';
+        const choice = document.querySelector('input[name="completeType"]:checked')?.value || 'client';
+        // Un livreur reste « client » tant que son dossier (permis, véhicule) n'est pas validé
+        const userType = choice === 'vendeur' ? 'vendeur' : 'client';
         if (fullName.length < 2) return showFormError('completeError', 'Indique ton nom complet.', 'completeName');
         const loc = readCountryFields('complete');
         if (loc.error) return showFormError('completeError', loc.error, loc.field);
@@ -1542,7 +1549,7 @@
         btn.disabled = true;
         btn.textContent = 'Enregistrement…';
         try {
-            const data = { full_name: fullName, user_type: userType, ...loc.values, profile_completed: true };
+            const data = { full_name: fullName, user_type: userType, ...loc.values, profile_completed: true, wants_delivery: choice === 'livreur' };
             const { error } = await window.supabase.auth.updateUser({ data });
             if (error) throw error;
             // Profil : toutes les colonnes si elles existent, sinon l'essentiel
@@ -1553,9 +1560,11 @@
                 res = await window.supabase.from('profiles').update({ full_name: fullName, user_type: userType }).eq('id', currentUser.id);
             }
             if (res.error) console.error('❌ Profil:', res.error);
-            closeModal();
-            if (userType === 'vendeur') {
+            closeModal(true);
+            if (choice === 'vendeur') {
                 window.location.href = 'shop-designer.html';
+            } else if (choice === 'livreur') {
+                window.location.href = 'delivery-register.html';
             } else {
                 await initApp();
             }
@@ -1563,7 +1572,7 @@
             console.error('❌ Finalisation:', e);
             showFormError('completeError', 'Enregistrement impossible : ' + (e?.message || 'réessaie dans un instant.'));
             btn.disabled = false;
-            btn.textContent = 'Valider';
+            btn.textContent = 'Terminer mon inscription';
         }
     }
  
