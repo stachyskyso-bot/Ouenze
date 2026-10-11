@@ -1555,31 +1555,43 @@
                     <div class="cart-item-name">${escapeHtml(item.productName)}</div>
                     ${item.variantKey ? `<div class="cart-item-variant">${escapeHtml(item.variantKey)}</div>` : ''}
                     <div class="cart-item-price">${formatPrice(item.price)} FCFA</div>
-                </div>
-                <div class="cart-item-actions">
                     <div class="pd-qty small">
                         <button onclick="changeCartQty(${idx}, -1)" aria-label="Moins">−</button>
                         <span>${item.quantity}</span>
                         <button onclick="changeCartQty(${idx}, 1)" aria-label="Plus">+</button>
                     </div>
-                    <button class="cart-item-remove" onclick="removeCartItem(${idx})" aria-label="Retirer"><i class="fas fa-trash"></i> Retirer</button>
                 </div>
+                <button class="cart-item-remove" onclick="removeCartItem(${idx})" aria-label="Retirer ${escapeHtml(item.productName)}" title="Retirer"><i class="fas fa-trash-alt"></i></button>
             </div>`;
     }
- 
+
+    // Panier : articles groupés par boutique (une commande par boutique), puis le total
     function showCart() {
-        const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const fees = Math.round(subtotal * 0.10);
+        const byShop = new Map();
+        cart.forEach((item, idx) => {
+            const key = String(item.shopId || '');
+            if (!byShop.has(key)) byShop.set(key, { name: item.shopName || 'Boutique', rows: [] });
+            byShop.get(key).rows.push(cartItemHtml(item, idx));
+        });
         const html = cart.length === 0 ? `
-            <h3 style="margin-bottom:12px;">Mon panier</h3>
-            <div class="cart-empty"><i class="fas fa-shopping-basket"></i><p>Ton panier est vide.</p></div>` : `
-            <h3 style="margin-bottom:12px;">Mon panier (${cartTotalQty()})</h3>
-            <div class="cart-list">${cart.map(cartItemHtml).join('')}</div>
-            <div class="cart-total"><span>Total</span><strong>${formatPrice(total)} FCFA</strong></div>
-            <p class="cart-note"><i class="fas fa-info-circle"></i> Frais de livraison (10 %) ajoutés à l'étape suivante.</p>
-            <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Valider ma commande</a>`;
+            <h3 class="cart-title">Mon panier</h3>
+            <div class="cart-empty"><i class="fas fa-shopping-basket"></i><p>Ton panier est vide.</p>
+                <button class="btn-submit" onclick="closeModal();resetToHome()">Découvrir les produits</button></div>` : `
+            <h3 class="cart-title">Mon panier <small>(${cartTotalQty()} article${cartTotalQty() > 1 ? 's' : ''})</small></h3>
+            <div class="cart-list">${[...byShop.values()].map(g => `
+                <div class="cart-shop"><div class="cart-shop-name"><i class="fas fa-store"></i> ${escapeHtml(g.name)}</div>${g.rows.join('')}</div>`).join('')}</div>
+            <div class="cart-summary">
+                <div><span>Sous-total</span><span>${formatPrice(subtotal)} FCFA</span></div>
+                <div><span>Livraison (10 %)</span><span>${formatPrice(fees)} FCFA</span></div>
+                <div class="cart-grand"><span>Total</span><strong>${formatPrice(subtotal + fees)} FCFA</strong></div>
+                <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Commander</a>
+                ${byShop.size > 1 ? `<p class="cart-note"><i class="fas fa-info-circle"></i> ${byShop.size} boutiques : chacune confirme sa partie de la commande.</p>` : ''}
+            </div>`;
         const existing = document.getElementById('cartModalBody');
         if (existing) existing.innerHTML = html;
-        else openModal(`<div id="cartModalBody">${html}</div>`);
+        else openModal(`<div id="cartModalBody">${html}</div>`).classList.add('cart-modal');
     }
  
     function changeCartQty(idx, delta) {

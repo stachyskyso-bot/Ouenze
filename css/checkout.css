@@ -841,3 +841,125 @@
     font-size: 12px;
     line-height: 1.5;
 }
+
+/* ============ Commande : panier visible à côté (ordinateur) ============ */
+.co-item-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.co-remove {
+    border: none;
+    background: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.co-remove:hover {
+    color: var(--danger);
+}
+
+.co-aside {
+    display: none;
+}
+
+@media (min-width: 1000px) {
+    .co-page {
+        max-width: 1100px;
+    }
+
+    .co-layout.with-aside {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 28px;
+        align-items: start;
+    }
+
+    .co-aside {
+        display: block;
+        position: sticky;
+        top: 150px;
+        padding: 18px;
+        border-radius: 16px;
+        background: var(--gray-100);
+    }
+
+    .co-aside h4 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 15px;
+    }
+
+    .co-aside h4 button {
+        border: none;
+        background: none;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .co-aside-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-200);
+        font-size: 12px;
+    }
+
+    .co-aside-item > span {
+        position: relative;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        background: #fff;
+        color: var(--gray-500);
+    }
+
+    .co-aside-item > span img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .co-aside-item > span b {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .co-aside-item div {
+        flex: 1;
+        min-width: 0;
+        display: grid;
+    }
+
+    .co-aside-item small {
+        color: var(--gray-500);
+    }
+
+    .co-aside-item em {
+        font-style: normal;
+        font-weight: 700;
+    }
+}

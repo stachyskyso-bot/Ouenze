@@ -4089,3 +4089,136 @@ body {
         padding-right: 16px;
     }
 }
+
+/* ============ PANIER (fenêtre) ============ */
+.cart-title {
+    margin-bottom: 14px;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.cart-title small {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+}
+
+.cart-shop {
+    display: grid;
+    gap: 8px;
+}
+
+.cart-shop-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-700);
+}
+
+.cart-shop-name i {
+    color: var(--primary);
+}
+
+.cart-modal .cart-item {
+    align-items: flex-start;
+    border-radius: 14px;
+}
+
+.cart-modal .cart-item-img {
+    width: 76px;
+    height: 76px;
+    border-radius: 12px;
+}
+
+.cart-modal .cart-item-price {
+    font-size: 15px;
+    font-weight: 800;
+    margin: 2px 0 6px;
+}
+
+.cart-modal .pd-qty.small {
+    display: inline-flex;
+    border-radius: 10px;
+}
+
+.cart-modal .cart-item-remove {
+    padding: 6px;
+    color: var(--gray-500);
+    font-size: 15px;
+}
+
+.cart-modal .cart-item-remove:hover {
+    color: var(--danger);
+}
+
+.cart-summary {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--gray-200);
+    font-size: 14px;
+}
+
+.cart-summary > div {
+    display: flex;
+    justify-content: space-between;
+    color: var(--gray-700);
+}
+
+.cart-summary .cart-grand {
+    padding-top: 8px;
+    border-top: 1px dashed var(--gray-200);
+    color: var(--black);
+    font-size: 17px;
+}
+
+.cart-summary .cart-grand strong {
+    color: var(--primary);
+    font-size: 19px;
+}
+
+.cart-summary .cart-checkout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    text-decoration: none;
+}
+
+.cart-empty .btn-submit {
+    max-width: 260px;
+    margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+    .modal.cart-modal {
+        align-items: stretch;
+    }
+
+    .modal.cart-modal .modal-card {
+        max-height: none;
+        height: 100%;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal.cart-modal #cartModalBody {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .cart-modal .cart-summary {
+        position: sticky;
+        bottom: 0;
+        margin: auto -16px calc(-20px - env(safe-area-inset-bottom));
+        padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+        background: #fff;
+        box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.06);
+    }
+}
