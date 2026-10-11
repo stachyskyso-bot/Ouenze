@@ -89,7 +89,7 @@ begin
         shop_id uuid, product_id uuid, product_name text, variant_name text, variant_key text,
         quantity integer, unit_price numeric
     ) on commit drop;
-    delete from _cart;
+    delete from _cart where true;  -- pg_safeupdate (Supabase) refuse un DELETE sans WHERE
 
     for it in select * from jsonb_array_elements(items) loop
         qty := coalesce((it->>'quantity')::integer, 0);
