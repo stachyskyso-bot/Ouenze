@@ -533,11 +533,8 @@
     }
 
     function goCategories() {
-        if (document.getElementById('homeCategories')) {
-            document.getElementById('homeCategories').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-            window.location.href = 'index.html#categories';
-        }
+        if (document.getElementById('appContainer')) return showCategories();
+        window.location.href = 'index.html#categories';
         return false;
     }
 
@@ -624,6 +621,7 @@
     async function showHomePage() {
         const container = document.getElementById('appContainer');
         if (!container) return;
+        setTab(0);
         clearInterval(carouselTimer);
         const side = (cls, title, text, icon, action) => `
             <button type="button" class="home-side ${cls}" onclick="${action}">
@@ -697,7 +695,12 @@
 
         loadFeaturedProducts();
         await loadShops();
-        if (location.hash === '#categories') goCategories();
+        // Lien depuis une autre page : index.html#categories ou #cat=<clé> (traité une seule fois)
+        const hash = location.hash;
+        if (hash === '#categories' || hash.startsWith('#cat=')) {
+            history.replaceState(null, '', location.pathname + location.search);
+            if (hash === '#categories') showCategories(); else showCategory(hash.slice(5));
+        }
     }
 
     // Boutiques en vedette : médaille, puis note (la ville choisie d'abord)
@@ -773,45 +776,121 @@
         }
     }
 
-    // Catégorie : recherche par mots-clés dans le nom et la description des produits
+    // ============ CATÉGORIES ============
+    // Recherche par mots-clés dans le nom et la description des produits ; filtres appliqués dans le navigateur
+    const catView = { key: null, list: [], maxPrice: 0, inStock: false, sort: 'new' };
+
+    function setTab(i) {
+        document.querySelectorAll('.tabbar a').forEach((a, n) => a.classList.toggle('active', n === i));
+    }
+
+    function showCategories() {
+        const container = document.getElementById('appContainer');
+        if (!container) { window.location.href = 'index.html#categories'; return false; }
+        setTab(1);
+        clearInterval(carouselTimer);
+        container.classList.remove('is-searching');
+        container.innerHTML = `
+            <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <span>Catégories</span></nav>
+            <h2 class="page-title">Toutes les catégories</h2>
+            <div class="cats-grid">
+                ${MARKET_CATEGORIES.map(c => `<button type="button" class="cats-tile" onclick="showCategory('${c.key}')">
+                    <span>${c.emoji}</span><strong>${c.label}</strong></button>`).join('')}
+            </div>`;
+        window.scrollTo(0, 0);
+        return false;
+    }
+
     async function showCategory(key) {
         const cat = MARKET_CATEGORIES.find(c => c.key === key);
+        const container = document.getElementById('appContainer');
         if (!cat) return;
-        if (!document.getElementById('productResults')) await showHomePage();
-        const box = document.getElementById('productResults');
-        document.getElementById('appContainer')?.classList.add('is-searching');
-        box.innerHTML = '<p class="search-hint">Chargement…</p>';
-        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!container) { window.location.href = 'index.html#cat=' + key; return; }
+        setTab(1);
+        clearInterval(carouselTimer);
+        container.classList.remove('is-searching');
+        Object.assign(catView, { key, list: [], maxPrice: 0, inStock: false, sort: 'new' });
+        container.innerHTML = `
+            <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <a href="#" onclick="return showCategories()">Catégories</a> › <span>${cat.label}</span></nav>
+            <div class="cat-chips">${MARKET_CATEGORIES.map(c => `<button type="button" class="${c.key === key ? 'active' : ''}" onclick="showCategory('${c.key}')">${c.emoji} ${c.label}</button>`).join('')}</div>
+            <div class="cat-layout">
+                <aside class="cat-filters" id="catFilters"></aside>
+                <section>
+                    <div class="cat-head">
+                        <div><h2 class="page-title">${cat.emoji} ${cat.label}</h2><small id="catCount">Chargement…</small></div>
+                        <select id="catSort" onchange="catFilter('sort', this.value)" aria-label="Trier">
+                            <option value="new">Nouveautés</option><option value="price_asc">Prix croissant</option>
+                            <option value="price_desc">Prix décroissant</option><option value="shop">Meilleures boutiques</option>
+                        </select>
+                    </div>
+                    <div class="home-products" id="catProducts"></div>
+                </section>
+            </div>`;
+        window.scrollTo(0, 0);
         try {
             const others = MARKET_CATEGORIES.flatMap(c => c.words);
             const words = cat.words.length ? cat.words : others;
             const filter = words.map(w => `name.ilike.%${cleanSearch(w)}%,description.ilike.%${cleanSearch(w)}%`).join(',');
-            let list = await fetchProducts(q => q.or(filter).limit(60));
+            let list = await fetchProducts(q => q.or(filter).limit(80));
             if (!cat.words.length) {
                 // « Autres » : ce qui ne correspond à aucune catégorie
-                const all = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(80));
+                const all = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(120));
                 const known = new Set(list.map(p => p.id));
                 list = all.filter(p => !known.has(p.id));
             }
-            box.innerHTML = `
-                <div class="home-section-head"><h3>${cat.emoji} ${cat.label} <small>(${list.length})</small></h3>
-                    <a href="#" onclick="clearCategory();return false;"><i class="fas fa-times"></i> Fermer</a></div>
-                ${list.length ? `<div class="home-products">${list.map(homeProductCard).join('')}</div>`
-                    : '<p class="search-hint">Pas encore de produits dans cette catégorie.</p>'}`;
+            if (catView.key !== key) return;
+            catView.list = list;
+            catView.maxPrice = Math.max(0, ...list.map(minPrice));
+            renderCategory();
         } catch (e) {
             console.error('❌ Catégorie:', e);
-            box.innerHTML = '<p class="search-hint">Catégorie indisponible pour le moment.</p>';
+            document.getElementById('catProducts').innerHTML = '<p class="search-hint">Catégorie indisponible pour le moment.</p>';
         }
     }
 
+    function minPrice(p) {
+        const prices = productVariants(p).map(v => Number(v.price)).filter(n => n > 0);
+        return prices.length ? Math.min(...prices) : Number(p.price) || 0;
+    }
+
+    function renderCategory() {
+        const top = Math.max(0, ...catView.list.map(minPrice));
+        const limit = catView.maxPrice || top;
+        const shopRank = id => { const s = shopsCache.find(x => x.id === id); return s ? getShopLevel(s).rank * 10 + (Number(s.rating) || 0) : 0; };
+        const sorters = {
+            new: (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
+            price_asc: (a, b) => minPrice(a) - minPrice(b),
+            price_desc: (a, b) => minPrice(b) - minPrice(a),
+            shop: (a, b) => shopRank(b.shop_id) - shopRank(a.shop_id)
+        };
+        const list = catView.list
+            .filter(p => minPrice(p) <= limit && (!catView.inStock || productStock(p) > 0 || Number(p.stock) === 0))
+            .sort(sorters[catView.sort] || sorters.new);
+        const filters = document.getElementById('catFilters');
+        if (filters) filters.innerHTML = `
+            <h4>Filtrer</h4>
+            <label class="cat-filter">Prix maximum : <b>${formatPrice(limit)} FCFA</b>
+                <input type="range" min="0" max="${top || 0}" step="500" value="${limit}" oninput="catFilter('maxPrice', this.value)" ${top ? '' : 'disabled'}></label>
+            <label class="cat-check"><input type="checkbox" ${catView.inStock ? 'checked' : ''} onchange="catFilter('inStock', this.checked)"> En stock uniquement</label>
+            ${catView.maxPrice && catView.maxPrice < top || catView.inStock ? '<button type="button" class="cat-reset" onclick="catFilter(\'reset\')">Effacer les filtres</button>' : ''}`;
+        const count = document.getElementById('catCount');
+        if (count) count.textContent = `${list.length} produit${list.length > 1 ? 's' : ''}`;
+        const sort = document.getElementById('catSort');
+        if (sort) sort.value = catView.sort;
+        const box = document.getElementById('catProducts');
+        if (box) box.innerHTML = list.length ? list.map(homeProductCard).join('')
+            : '<p class="search-hint">Pas de produit avec ces filtres pour le moment.</p>';
+    }
+
+    function catFilter(name, value) {
+        if (name === 'reset') Object.assign(catView, { maxPrice: 0, inStock: false });
+        else if (name === 'maxPrice') catView.maxPrice = Number(value) || 0;
+        else catView[name] = value;
+        renderCategory();
+    }
+
     function clearCategory() {
-        const input = document.getElementById('searchInput');
-        if (input) input.value = '';
-        document.getElementById('appContainer')?.classList.remove('is-searching');
-        const box = document.getElementById('productResults');
-        if (box) box.innerHTML = '';
-        renderShops('');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        resetToHome();
     }
  
     async function loadShops() {
@@ -2179,6 +2258,8 @@
         openSiteMenu,
         showCategory,
         clearCategory,
+        showCategories,
+        catFilter,
         closeModal,
         updateHeaderUI,
         pickStar,
