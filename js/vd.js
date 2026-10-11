@@ -163,34 +163,123 @@
         if (!container) return;
  
         const sum = key => dashShops.reduce((s, shop) => s + Number(shop[key] || 0), 0);
- 
-        container.innerHTML = `
-            <div class="stats-grid">
-                <div class="stat-card"><h3>Mes boutiques</h3><div class="stat-value">${dashShops.length}</div></div>
-                <div class="stat-card"><h3>Produits</h3><div class="stat-value">${sum('product_count')}</div></div>
-                <div class="stat-card"><h3>Ventes livrées</h3><div class="stat-value">${sum('real_sales_count')}</div></div>
-                <div class="stat-card"><h3>Chiffre d'affaires</h3><div class="stat-value">${formatNumber(sum('real_revenue'))} FCFA</div></div>
-                <div class="stat-card"><h3>En attente</h3><div class="stat-value">${sum('pending_orders')}</div></div>
-            </div>
- 
-            <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
-                <button class="btn-sm btn-primary" onclick="createNewShop()"><i class="fas fa-plus"></i> Créer une boutique</button>
-                <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
-                <button class="btn-sm btn-outline" onclick="window.location.href='notifications.html'"><i class="fas fa-bell"></i> Notifications <span class="nav-badge notif-count" hidden></span></button>
-            </div>
- 
-            <section id="commandes" class="vo-section">${ordersHtml()}</section>
+        const orders = vendorOrders || [];
+        const pending = orders.filter(o => o.status === 'pending').length;
+        const firstShop = dashShops[0];
+        const best = dashShops.map(s => ({ s, tier: medalTier(s) })).sort((a, b) => b.tier.rank - a.tier.rank)[0];
+        const kpi = (icon, label, value, sub, tone) => `
+            <div class="kpi ${tone || ''}"><span class="kpi-icon"><i class="fas ${icon}"></i></span>
+                <div><small>${label}</small><strong>${value}</strong>${sub ? `<em>${sub}</em>` : ''}</div></div>`;
+        const side = (href, icon, label, extra = '') => `<a href="${href}" ${extra}><i class="fas ${icon}"></i><span>${label}</span></a>`;
+        const name = (dashUser.full_name || 'Vendeur').split(' ')[0];
 
-            <h2 style="font-size:20px;margin-bottom:20px;">Mes boutiques (${dashShops.length})</h2>
- 
-            ${dashShops.length === 0 ? `
-                <div class="stat-card" style="text-align:center;padding:40px;">
-                    <i class="fas fa-store" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
-                    <p style="font-weight:600;">Aucune boutique pour l'instant</p>
-                    <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px;margin-top:16px;">
-                        <i class="fas fa-plus"></i> Créer ma première boutique
-                    </button>
-                </div>` : dashShops.map(renderShop).join('')}`;
+        container.innerHTML = `
+            <div class="vd-shell">
+                <aside class="vd-side">
+                    <div class="vd-side-title">Mon espace vendeur</div>
+                    ${side('#vdTop', 'fa-th-large', 'Tableau de bord', 'class="active"')}
+                    ${side('#commandes', 'fa-receipt', `Commandes${pending ? ` <b>${pending}</b>` : ''}`)}
+                    ${side('#boutiques', 'fa-store', 'Mes boutiques')}
+                    ${firstShop ? side('#', 'fa-palette', 'Design de ma boutique', `onclick="openShopDesigner('${escapeHtml(firstShop.id)}');return false;"`) : ''}
+                    ${side('accounting.html', 'fa-calculator', 'Comptabilité')}
+                    ${side('notifications.html', 'fa-bell', 'Notifications <span class="nav-badge notif-count" hidden></span>')}
+                    ${side('index.html', 'fa-globe-africa', 'Voir le marché')}
+                    ${side('help.html', 'fa-question-circle', 'Aide')}
+                </aside>
+
+                <div class="vd-main" id="vdTop">
+                    <div class="vd-hello">
+                        <div><small>Bonjour ${escapeHtml(name)} 👋</small><h1>Tableau de bord</h1></div>
+                        ${best ? `<span class="vd-medal medal-${best.tier.id}">${best.tier.emoji} Vendeur ${escapeHtml(best.tier.name)}</span>` : ''}
+                    </div>
+
+                    <div class="kpis">
+                        ${kpi('fa-coins', "Chiffre d'affaires", `${formatNumber(sum('real_revenue'))} FCFA`, 'ventes livrées', 'blue')}
+                        ${kpi('fa-receipt', 'Commandes', formatNumber(orders.length || sum('total_orders')), pending ? `<b>${pending} à accepter</b>` : 'à jour', pending ? 'gold' : '')}
+                        ${kpi('fa-box', 'Produits', formatNumber(sum('product_count')), `${dashShops.length} boutique${dashShops.length > 1 ? 's' : ''}`)}
+                        ${kpi('fa-check-circle', 'Ventes livrées', formatNumber(sum('real_sales_count')), '', 'green')}
+                    </div>
+
+                    <div class="vd-grid">
+                        <section class="vd-card vd-chart-card">
+                            <div class="vd-card-head"><h3>Ventes des 30 derniers jours</h3><small>${formatNumber(salesTotal30())} FCFA</small></div>
+                            ${salesChartSvg()}
+                        </section>
+                        <section class="vd-card">
+                            <div class="vd-card-head"><h3>Dernières commandes</h3><a href="#commandes">Tout voir</a></div>
+                            ${orders.length ? `<ul class="vd-last">${orders.slice(0, 5).map(o => {
+                                const st = ORDER_STATUS[o.status] || [o.status, 'info'];
+                                return `<li><div><strong>${escapeHtml(o.order_number || '')}</strong><small>${new Date(o.created_at).toLocaleDateString('fr-FR')} · ${escapeHtml(o.shop_name || '')}</small></div>
+                                    <span><b>${formatNumber(o.subtotal)} FCFA</b><em class="vo-badge ${st[1]}">${escapeHtml(st[0])}</em></span></li>`;
+                            }).join('')}</ul>` : '<p class="vo-empty">Aucune commande pour l\'instant.</p>'}
+                        </section>
+                    </div>
+
+                    <div class="vd-shortcuts">
+                        <button onclick="createNewShop()"><i class="fas fa-plus"></i> Créer une boutique</button>
+                        ${firstShop ? `<button onclick="openShopDesigner('${escapeHtml(firstShop.id)}')"><i class="fas fa-box-open"></i> Ajouter des produits</button>
+                        <button onclick="openShareShop('${escapeHtml(firstShop.id)}')"><i class="fas fa-share-alt"></i> Partager ma boutique</button>` : ''}
+                        <button onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
+                    </div>
+
+                    <section id="commandes" class="vo-section">${ordersHtml()}</section>
+
+                    <h2 id="boutiques" class="vd-section-title">Mes boutiques (${dashShops.length})</h2>
+                    ${dashShops.length === 0 ? `
+                        <div class="stat-card" style="text-align:center;padding:40px;">
+                            <i class="fas fa-store" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
+                            <p style="font-weight:600;">Aucune boutique pour l'instant</p>
+                            <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px;margin-top:16px;">
+                                <i class="fas fa-plus"></i> Créer ma première boutique
+                            </button>
+                        </div>` : dashShops.map(renderShop).join('')}
+                </div>
+            </div>`;
+    }
+
+    // Médaille d'une boutique (base, sinon règles locales)
+    function medalTier(shop) {
+        const M = window.OuenzeMedals;
+        if (!M) return { id: 'standard', name: 'Standard', emoji: '⚪', rank: 0 };
+        const info = medalInfo[shop.id];
+        const t = info ? M.get(info.medal) : M.compute(Number(shop.rating) || 0, Number(shop.real_sales_count) || 0, !!shop.is_verified);
+        return { ...t, rank: ['standard', 'bronze', 'silver', 'gold'].indexOf(t.id) };
+    }
+
+    // Ventes livrées par jour (30 derniers jours), d'après les commandes reçues
+    function salesByDay() {
+        const days = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = 29; i >= 0; i--) days.push({ t: today.getTime() - i * 86400000, v: 0 });
+        (vendorOrders || []).filter(o => o.status === 'delivered').forEach(o => {
+            const d = new Date(o.created_at);
+            d.setHours(0, 0, 0, 0);
+            const slot = days.find(x => x.t === d.getTime());
+            if (slot) slot.v += Number(o.subtotal) || 0;
+        });
+        return days;
+    }
+
+    function salesTotal30() {
+        return salesByDay().reduce((s, d) => s + d.v, 0);
+    }
+
+    function salesChartSvg() {
+        const days = salesByDay();
+        const max = Math.max(1, ...days.map(d => d.v));
+        const W = 600, H = 180, pad = 8;
+        const x = i => pad + i * (W - 2 * pad) / (days.length - 1);
+        const y = v => H - pad - (v / max) * (H - 2 * pad - 10);
+        const line = days.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d.v).toFixed(1)}`).join(' ');
+        const area = `${line} L${x(days.length - 1)},${H - pad} L${x(0)},${H - pad} Z`;
+        const label = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        return `<svg class="vd-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Ventes livrées par jour">
+                <defs><linearGradient id="vdArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e40af" stop-opacity=".25"/><stop offset="1" stop-color="#1e40af" stop-opacity="0"/></linearGradient></defs>
+                <path d="${area}" fill="url(#vdArea)"/><path d="${line}" fill="none" stroke="#1e40af" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+            </svg>
+            <div class="vd-chart-axis"><span>${label(days[0].t)}</span><span>${label(days[15].t)}</span><span>Aujourd'hui</span></div>
+            ${max <= 1 ? '<p class="vd-chart-empty">Tes ventes livrées s\'afficheront ici.</p>' : ''}`;
     }
  
     // ============ UNE BOUTIQUE : stats + aperçu avec son design ============
