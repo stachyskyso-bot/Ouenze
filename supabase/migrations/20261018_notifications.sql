@@ -10,9 +10,12 @@
 --   • nouvel avis sur la boutique → le vendeur
 --   • nouvel avis sur le livreur  → le livreur
 -- Elles complètent les emails : si un email n'arrive pas (boîte pleine, spam), l'info reste ici.
+--
+-- Table « app_notifications » et non « notifications » : une ancienne table notifications
+-- (autre structure, inutilisée par le site) existe déjà sur le projet ; on n'y touche pas.
 -- ============================================================
 
-create table if not exists public.notifications (
+create table if not exists public.app_notifications (
     id uuid primary key default gen_random_uuid(),
     user_id uuid not null references auth.users (id) on delete cascade,
     kind text not null,
@@ -23,13 +26,13 @@ create table if not exists public.notifications (
     created_at timestamptz not null default now(),
     read_at timestamptz
 );
-alter table public.notifications enable row level security;
-create index if not exists notifications_user on public.notifications (user_id, created_at desc);
-create index if not exists notifications_unread on public.notifications (user_id) where read_at is null;
+alter table public.app_notifications enable row level security;
+create index if not exists app_notifications_user on public.app_notifications (user_id, created_at desc);
+create index if not exists app_notifications_unread on public.app_notifications (user_id) where read_at is null;
 
 -- Lecture de ses propres notifications ; aucune écriture directe (tout passe par les fonctions)
-drop policy if exists "notifications: lecture des siennes" on public.notifications;
-create policy "notifications: lecture des siennes" on public.notifications
+drop policy if exists "notifications: lecture des siennes" on public.app_notifications;
+create policy "notifications: lecture des siennes" on public.app_notifications
     for select to authenticated using (user_id = auth.uid());
 
 -- ---------- Outils internes ----------
@@ -52,11 +55,11 @@ begin
     if target is null then return; end if;
     -- Pas de doublon pour un même événement de commande
     if target_order is not null and exists (
-        select 1 from public.notifications n
+        select 1 from public.app_notifications n
          where n.user_id = target and n.kind = notify_user.kind and n.order_id = target_order) then
         return;
     end if;
-    insert into public.notifications (user_id, kind, title, body, order_id, shop_id)
+    insert into public.app_notifications (user_id, kind, title, body, order_id, shop_id)
     values (target, kind, left(title, 140), left(body, 600), target_order, target_shop);
 end;
 $$;
@@ -196,7 +199,7 @@ as $$
     select n.id, n.kind, n.title, n.body, n.order_id, n.shop_id, n.created_at, n.read_at,
            o.order_number, o.status, o.payment_status,
            exists (select 1 from public.shops s where s.id = n.shop_id and s.owner_id = auth.uid())
-      from public.notifications n
+      from public.app_notifications n
       left join public.orders o on o.id = n.order_id
      where n.user_id = auth.uid()
      order by n.created_at desc
@@ -212,7 +215,7 @@ stable
 security definer
 set search_path = public
 as $$
-    select count(*)::integer from public.notifications where user_id = auth.uid() and read_at is null;
+    select count(*)::integer from public.app_notifications where user_id = auth.uid() and read_at is null;
 $$;
 revoke all on function public.notifications_unread() from public;
 grant execute on function public.notifications_unread() to authenticated;
@@ -227,7 +230,7 @@ as $$
 declare
     n integer;
 begin
-    update public.notifications set read_at = now()
+    update public.app_notifications set read_at = now()
      where user_id = auth.uid() and read_at is null and (ids is null or id = any (ids));
     get diagnostics n = row_count;
     return n;
