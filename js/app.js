@@ -1278,6 +1278,7 @@
     }
  
     let detailProduct = null;      // produit affiché dans la fiche
+    const detailShops = {};        // boutiques chargées pour la fiche (vendeur, note, médaille)
     let detailSelection = {};      // { Couleur: 'Noir', Capacité: '128 Go' }
     let detailQty = 1;
  
@@ -1324,6 +1325,24 @@
             v.values?.[optName] === value && Number(v.stock) > 0 &&
             options.every(o => o.name === optName || !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
  
+        // Vendeur : boutique en cache (accueil, vue boutique) ; sinon chargée une fois puis réaffichée
+        const shop = shopsCache.find(x => x.id === p.shop_id) || (p.shop_id && detailShops[p.shop_id]) || null;
+        if (!shop && p.shop_id && !(p.shop_id in detailShops)) {
+            detailShops[p.shop_id] = null;
+            window.supabase.from('shops').select('id, name, rating, total_ratings, logo_url, is_verified, city, district')
+                .eq('id', p.shop_id).maybeSingle().then(({ data }) => {
+                    if (data) { detailShops[p.shop_id] = data; if (detailProduct === p) renderProductDetail(activePhoto); }
+                });
+        }
+        const level = shop ? getShopLevel(shop) : null;
+        const shopLogo = safeUrl(shop?.logo_url);
+        const rating = Number(shop?.rating) || 0;
+        const buyLabel = !complete ? `Choisis ${escapeHtml(options.filter(o => !detailSelection[o.name]).map(o => o.name.toLowerCase()).join(' et '))}`
+                       : stock === 0 ? 'Indisponible' : 'Ajouter au panier';
+        // Produits de la même boutique (déjà chargés)
+        const similar = Object.values(productsCache)
+            .filter(x => x.id !== p.id && x.shop_id === p.shop_id && x.is_active !== false).slice(0, 8);
+
         box.innerHTML = `
             <div class="pd-layout">
                 <div class="pd-gallery">
@@ -1343,11 +1362,18 @@
                     <div class="pd-price" style="color:${d.primary};">
                         ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
                     </div>
-                    ${variant ? `<div class="pd-variant-label">${escapeHtml(variant.key)}</div>` : ''}
-                    <div class="pd-stock ${stock === 0 ? 'out' : ''}">
-                        ${stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
-                    </div>
- 
+                    ${shop && shop.total_ratings ? `<div class="pd-rating"><span class="pd-stars">${generateStars(rating)}</span>
+                        <b>${rating.toLocaleString('fr-FR')}</b> <small>· ${shop.total_ratings} avis sur la boutique</small></div>` : ''}
+
+                    ${shop ? `
+                        <button type="button" class="pd-seller" onclick="closeModal();viewShopDetail('${escapeHtml(shop.id)}')">
+                            <span class="pd-seller-logo">${shopLogo ? `<img src="${shopLogo}" alt="">` : '<i class="fas fa-store"></i>'}</span>
+                            <span class="pd-seller-info"><strong>${escapeHtml(shop.name)}</strong>
+                                <span class="level-badge ${level.class}">${level.emoji} Vendeur ${level.name}</span>
+                                ${shop.is_verified ? '<span class="pd-verified"><i class="fas fa-check-circle"></i> Vérifiée</span>' : ''}</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>` : ''}
+
                     ${options.map(o => `
                         <div class="pd-option">
                             <div class="pd-option-name">${escapeHtml(o.name)} : <strong>${escapeHtml(detailSelection[o.name] || 'à choisir')}</strong></div>
@@ -1362,7 +1388,11 @@
                                 }).join('')}
                             </div>
                         </div>`).join('')}
- 
+
+                    <div class="pd-stock ${stock === 0 ? 'out' : ''}">
+                        ${stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock} disponible${stock > 1 ? 's' : ''})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
+                    </div>
+
                     <div class="pd-buy">
                         <div class="pd-qty">
                             <button onclick="changeDetailQty(-1)" aria-label="Moins">−</button>
@@ -1371,20 +1401,32 @@
                         </div>
                         <button class="pd-add" style="background:${d.button};"
                                 ${complete && stock !== 0 ? '' : 'disabled'} onclick="addDetailToCart()">
-                            <i class="fas fa-shopping-cart"></i>
-                            ${!complete ? `Choisissez ${escapeHtml(options.filter(o => !detailSelection[o.name]).map(o => o.name.toLowerCase()).join(' et '))}`
-                                        : stock === 0 ? 'Indisponible' : 'Ajouter au panier'}
+                            <i class="fas fa-shopping-cart"></i> ${buyLabel}
                         </button>
                     </div>
- 
-                    ${p.description ? `
-                        <div class="pd-section">
-                            <h4>Description</h4>
-                            <p class="pd-desc">${escapeHtml(p.description)}</p>
-                        </div>` : ''}
-                    ${foodInfoHtml(p.food_info)}
+
+                    <div class="pd-trust">
+                        <span><i class="fas fa-truck"></i> Livraison par un livreur noté</span>
+                        <span><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé</span>
+                        <span><i class="fas fa-key"></i> Code de remise à la livraison</span>
+                    </div>
                 </div>
-            </div>`;
+            </div>
+            ${p.description || foodInfoHtml(p.food_info) ? `
+                <div class="pd-details">
+                    ${p.description ? `<div class="pd-section"><h4>Description</h4><p class="pd-desc">${escapeHtml(p.description)}</p></div>` : ''}
+                    ${foodInfoHtml(p.food_info)}
+                </div>` : ''}
+            ${similar.length ? `
+                <div class="pd-similar">
+                    <h4>Aussi chez ${escapeHtml(shop?.name || 'ce vendeur')}</h4>
+                    <div class="pd-similar-list">${similar.map(x => {
+                        const ph = productPhotos(x)[0];
+                        return `<button type="button" class="pd-similar-item" onclick="openProductDetail('${escapeHtml(x.id)}')">
+                            <span>${ph ? `<img src="${ph}" alt="" loading="lazy">` : '<i class="fas fa-image"></i>'}</span>
+                            <strong>${escapeHtml(x.name)}</strong><b>${productPriceLabel(x)}</b></button>`;
+                    }).join('')}</div>
+                </div>` : ''}`;
     }
  
     function showProductPhoto(src) {
