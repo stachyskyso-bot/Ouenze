@@ -429,13 +429,23 @@
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (container) {
+            const cartIcon = `
+                    <button type="button" class="hdr-icon" onclick="showCart()" aria-label="Panier">
+                        <span class="hdr-icon-glyph"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cartTotalQty()}</span></span>
+                        <span class="hdr-icon-label">Panier</span>
+                    </button>`;
             if (currentUser) {
                 const labels = { client: 'Client', vendeur: 'Vendeur', livreur: 'Livreur', admin: 'Admin' };
                 const name = currentProfile?.full_name || currentUser.email || 'Utilisateur';
                 const avatar = safeUrl(currentProfile?.avatar_url);
- 
+
                 container.innerHTML = `
-                    <div class="user-menu" onclick="showProfile()">
+                    <a class="hdr-icon" href="notifications.html" aria-label="Notifications">
+                        <span class="hdr-icon-glyph"><i class="fas fa-bell"></i><span class="cart-count notif-count" hidden></span></span>
+                        <span class="hdr-icon-label">Notifications</span>
+                    </a>
+                    ${cartIcon}
+                    <div class="user-menu" onclick="showProfile()" role="button" tabindex="0" title="Mon compte">
                         <div class="user-avatar">
                             ${avatar ? `<img src="${avatar}" alt="">` : escapeHtml(name.charAt(0).toUpperCase())}
                         </div>
@@ -443,29 +453,18 @@
                             <div>${escapeHtml(name.split(' ')[0])}</div>
                             <small>${labels[currentUserType] || 'Client'}</small>
                         </div>
-                        <button onclick="event.stopPropagation();logout()" title="Déconnexion"
-                                style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
+                        <button class="user-logout" onclick="event.stopPropagation();logout()" title="Déconnexion" aria-label="Déconnexion">
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
-                    </div>
-                    <a class="notif-bell" href="notifications.html" title="Notifications" aria-label="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="cart-count notif-count" hidden></span>
-                    </a>
-                    <div class="cart-icon" onclick="showCart()">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="cart-count">${cartTotalQty()}</span>
                     </div>`;
             } else {
                 container.innerHTML = `
+                    ${cartIcon}
                     <button class="auth-btn" onclick="openLoginModal()">Connexion</button>
-                    <button class="auth-btn" onclick="openRegisterModal()">Inscription</button>
-                    <div class="cart-icon" onclick="showCart()">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="cart-count">${cartTotalQty()}</span>
-                    </div>`;
+                    <button class="auth-btn primary" onclick="openRegisterModal()">Inscription</button>`;
             }
         }
+        enhanceChrome();
  
         // Liens de navigation selon le rôle
         const vendorLink = document.getElementById('vendorLink');
@@ -497,6 +496,125 @@
         refreshNotifCount();
     }
 
+    // ============ HABILLAGE COMMUN : ville, catégories, « Devenir vendeur », barre mobile ============
+    const CITIES = ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Nkayi', 'Ouesso', 'Kinshasa', 'Lubumbashi'];
+    // Catégories du marché : recherche par mots-clés dans les produits (les catégories des boutiques sont libres)
+    const MARKET_CATEGORIES = [
+        { key: 'alimentaire', label: 'Alimentaire', emoji: '🍅', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
+        { key: 'mode', label: 'Mode', emoji: '👗', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
+        { key: 'maison', label: 'Maison', emoji: '🛋️', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
+        { key: 'beaute', label: 'Beauté', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité'] },
+        { key: 'electronique', label: 'Électronique', emoji: '🎧', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
+        { key: 'sport', label: 'Sport', emoji: '🏋️', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
+        { key: 'bebes', label: 'Bébés', emoji: '🧸', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
+        { key: 'auto', label: 'Auto', emoji: '🚗', words: ['pneu', 'voiture', 'moto', 'batterie', 'huile moteur', 'pièce auto'] },
+        { key: 'autres', label: 'Autres', emoji: '📦', words: [] }
+    ];
+
+    function currentCity() {
+        try { return localStorage.getItem('ouenze_city') || ''; } catch (e) { return ''; }
+    }
+
+    function setCity(city) {
+        try { city ? localStorage.setItem('ouenze_city', city) : localStorage.removeItem('ouenze_city'); } catch (e) { /* stockage bloqué */ }
+        document.querySelectorAll('.city-pick-label').forEach(el => { el.textContent = city || 'Toutes les villes'; });
+        if (document.getElementById('shopsGrid')) { renderShops(document.getElementById('searchInput')?.value); renderFeaturedShops(); }
+    }
+
+    function openCityPicker() {
+        const now = currentCity();
+        openModal(`
+            <h3 style="margin-bottom:6px;">Ta ville</h3>
+            <p class="auth-sub">Les boutiques de ta ville passent en premier.</p>
+            <div class="city-list">
+                ${['', ...CITIES].map(c => `<button type="button" class="${c === now ? 'active' : ''}" onclick="setCity('${c}');closeModal()">
+                    <i class="fas fa-map-marker-alt"></i> ${c || 'Toutes les villes'}</button>`).join('')}
+            </div>`);
+    }
+
+    function goCategories() {
+        if (document.getElementById('appContainer')) return showCategories();
+        window.location.href = 'index.html#categories';
+        return false;
+    }
+
+    // Menu complet (mobile) : tous les liens de la barre de navigation et du menu déroulant
+    function openSiteMenu() {
+        const links = [...document.querySelectorAll('.nav-links a, .dropdown-content a')]
+            .filter(a => a.style.display !== 'none' && !a.classList.contains('nav-cta'))
+            .map(a => a.outerHTML.replace(/\s(id|class)="[^"]*"/g, ''))
+            .join('');
+        openModal(`<h3 style="margin-bottom:12px;">Menu</h3><nav class="site-menu" onclick="if(event.target.closest('a'))closeModal()">${links}</nav>`);
+    }
+
+    function enhanceChrome() {
+        const header = document.querySelector('.header');
+        const top = header?.querySelector('.header-top');
+        // Ville
+        if (top && !top.querySelector('.city-pick')) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'city-pick';
+            btn.onclick = openCityPicker;
+            btn.innerHTML = `<i class="fas fa-map-marker-alt"></i> <span class="city-pick-label">${escapeHtml(currentCity() || 'Toutes les villes')}</span> <i class="fas fa-chevron-down"></i>`;
+            top.querySelector('.logo')?.after(btn);
+        }
+        // Barre de navigation : « Toutes les catégories » + « Devenir vendeur »
+        const navContainer = document.querySelector('.nav-container');
+        if (navContainer && !navContainer.querySelector('.nav-cats')) {
+            const cats = document.createElement('a');
+            cats.href = '#';
+            cats.className = 'nav-cats';
+            cats.innerHTML = '<i class="fas fa-bars"></i> Toutes les catégories';
+            cats.onclick = goCategories;
+            navContainer.prepend(cats);
+            const cta = document.createElement('a');
+            cta.className = 'nav-cta';
+            navContainer.appendChild(cta);
+        }
+        const cta = navContainer?.querySelector('.nav-cta');
+        if (cta) {
+            const vendor = currentUserType === 'vendeur';
+            cta.href = vendor ? 'vendor-dashboard.html' : 'shop-designer.html';
+            cta.innerHTML = vendor ? '<i class="fas fa-store"></i> Ma boutique' : '<i class="fas fa-store"></i> Devenir vendeur';
+            // Le bouton remplace le lien « Ma boutique » du menu (pas de doublon)
+            const vendorLink = document.getElementById('vendorLink');
+            if (vendorLink) vendorLink.style.display = 'none';
+        }
+        // Pied de page commun (mêmes liens sur toutes les pages)
+        const footer = document.querySelector('.footer');
+        if (footer && document.querySelector('.nav-row') && !footer.classList.contains('site-footer')) {
+            footer.classList.add('site-footer');
+            footer.innerHTML = `
+                <div class="sf-cols">
+                    <div class="sf-brand">
+                        <strong class="sf-logo">OUENZE</strong>
+                        <p>Le marché du Congo, chez vous. Des boutiques de confiance, des livreurs notés et un paiement Mobile Money sécurisé.</p>
+                    </div>
+                    <nav><h4>Acheter</h4><a href="index.html">Accueil</a><a href="index.html#categories">Catégories</a><a href="activities.html">Mes commandes</a><a href="tracking.html">Suivi livraison</a></nav>
+                    <nav><h4>Vendre et livrer</h4><a href="shop-designer.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Investir</a></nav>
+                    <nav><h4>Ouenze</h4><a href="help.html">Aide</a><a href="about.html">À propos</a><a href="privacy.html">Confidentialité</a></nav>
+                </div>
+                <div class="sf-bottom">© ${new Date().getFullYear()} Ouenze · Marketplace Congo-Brazzaville et RDC</div>`;
+        }
+        // Barre d'onglets en bas (mobile)
+        // (pas sur la page de paiement : elle a sa propre barre « Payer » en bas)
+        const here = location.pathname.split('/').pop() || 'index.html';
+        if (document.querySelector('.nav-row') && !document.querySelector('.tabbar') && here !== 'checkout.html') {
+            const bar = document.createElement('nav');
+            bar.className = 'tabbar';
+            bar.setAttribute('aria-label', 'Navigation principale');
+            bar.innerHTML = `
+                <a href="index.html" class="${here === 'index.html' ? 'active' : ''}"><i class="fas fa-home"></i><span>Accueil</span></a>
+                <a href="#" onclick="return goCategories()"><i class="fas fa-th-large"></i><span>Catégories</span></a>
+                <a href="#" onclick="showCart();return false;"><i class="fas fa-shopping-cart"></i><b class="cart-count">${cartTotalQty()}</b><span>Panier</span></a>
+                <a href="activities.html" class="${here === 'activities.html' ? 'active' : ''}"><i class="fas fa-receipt"></i><span>Commandes</span></a>
+                <a href="#" onclick="openSiteMenu();return false;"><i class="fas fa-ellipsis-h"></i><span>Menu</span></a>`;
+            document.body.appendChild(bar);
+            document.body.classList.add('has-tabbar');
+        }
+    }
+
     // ============ NOTIFICATIONS : COMPTEUR ============
     let notifTimer = null;
     async function refreshNotifCount() {
@@ -519,33 +637,276 @@
     async function showHomePage() {
         const container = document.getElementById('appContainer');
         if (!container) return;
+        setTab(0);
         clearInterval(carouselTimer);
- 
+        const side = (cls, title, text, icon, action) => `
+            <button type="button" class="home-side ${cls}" onclick="${action}">
+                <span><strong>${title}</strong><small>${text}</small></span>
+                <i class="fas ${icon}"></i>
+            </button>`;
+
         container.innerHTML = `
-            <div class="ranking-bar">
-                <div class="ranking-filters">
-                    <button class="sort-btn" data-sort="rating" onclick="setSort('rating')">
-                        <i class="fas fa-sort-down"></i> Par note
-                    </button>
-                    <button class="sort-btn" data-sort="sales" onclick="setSort('sales')">
-                        <i class="fas fa-sort"></i> Par ventes
-                    </button>
-                    <button class="sort-btn" data-sort="products" onclick="setSort('products')">
-                        <i class="fas fa-sort"></i> Par produits
-                    </button>
+            <section class="home-hero-row home-only">
+                <div class="home-hero">
+                    <div class="home-hero-text">
+                        <h2>Le marché du Congo,<br><em>chez vous.</em></h2>
+                        <p>Produits locaux · Boutiques de confiance<br>Livraison rapide · Paiement sécurisé</p>
+                        <a href="#homeProducts" class="home-hero-btn" onclick="document.getElementById('homeProducts')?.scrollIntoView({behavior:'smooth'});return false;">
+                            Commander maintenant <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="home-hero-art" id="homeHeroArt" aria-hidden="true">
+                        <span class="art-bubble b1"><i class="fas fa-shopping-basket"></i></span>
+                        <span class="art-bubble b2"><i class="fas fa-motorcycle"></i></span>
+                        <span class="art-bubble b3"><i class="fas fa-store"></i></span>
+                    </div>
                 </div>
-                <div>
-                    <span class="rating-badge gold"><i class="fas fa-crown"></i> Or</span>
-                    <span class="rating-badge silver"><i class="fas fa-star"></i> Argent</span>
-                    <span class="rating-badge bronze"><i class="fas fa-star-half-alt"></i> Bronze</span>
+                <div class="home-sides">
+                    ${side('s-blue', 'Livraison rapide', 'Des livreurs notés, près de chez toi', 'fa-shipping-fast', "location.href='delivery-register.html'")}
+                    ${side('s-gold', 'Boutiques vérifiées', 'Médailles Or, Argent, Bronze', 'fa-shield-alt', "document.getElementById('homeShops')?.scrollIntoView({behavior:'smooth'})")}
+                    ${side('s-green', 'Produits frais et locaux', 'Du Congo, pour le Congo', 'fa-carrot', "showCategory('alimentaire')")}
                 </div>
-            </div>
+            </section>
+
+            <section class="home-trust home-only">
+                <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
+                <div><i class="fas fa-shield-alt"></i><span><b>Paiement sécurisé</b><small>Mobile Money, PayPal</small></span></div>
+                <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">7j/7</a></small></span></div>
+                <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
+            </section>
+
+            <section class="home-section home-only" id="homeCategories">
+                <div class="home-section-head"><h3>Catégories populaires</h3></div>
+                <div class="home-cats">
+                    ${MARKET_CATEGORIES.map(c => `<button type="button" class="home-cat" onclick="showCategory('${c.key}')">
+                        <span class="home-cat-emoji">${c.emoji}</span><span>${c.label}</span></button>`).join('')}
+                </div>
+            </section>
+
+            <section class="home-section home-only" id="homeShops">
+                <div class="home-section-head"><h3>Boutiques en vedette</h3>
+                    <a href="#" onclick="document.getElementById('allShops')?.scrollIntoView({behavior:'smooth'});return false;">Voir tout <i class="fas fa-chevron-right"></i></a></div>
+                <div class="home-shops" id="featuredShops"><p class="search-hint">Chargement…</p></div>
+            </section>
+
+            <section class="home-section home-only" id="homeProducts">
+                <div class="home-section-head"><h3>Produits en vedette</h3></div>
+                <div class="home-products" id="featuredProducts"><p class="search-hint">Chargement…</p></div>
+            </section>
+
             <div id="productResults"></div>
-            <div id="shopsGrid" class="shops-grid">
-                <div style="text-align:center;padding:60px;color:var(--gray-500);">Chargement…</div>
-            </div>`;
- 
+
+            <section class="home-section" id="allShops">
+                <div class="home-section-head"><h3 id="allShopsTitle">Toutes les boutiques</h3></div>
+                <div class="ranking-bar">
+                    <div class="ranking-filters">
+                        <button class="sort-btn" data-sort="rating" onclick="setSort('rating')"><i class="fas fa-medal"></i> Les mieux notées</button>
+                        <button class="sort-btn" data-sort="sales" onclick="setSort('sales')"><i class="fas fa-fire"></i> Les plus vendues</button>
+                        <button class="sort-btn" data-sort="products" onclick="setSort('products')"><i class="fas fa-boxes"></i> Le plus de produits</button>
+                    </div>
+                </div>
+                <div id="shopsGrid" class="shops-grid">
+                    <div style="text-align:center;padding:60px;color:var(--gray-500);">Chargement…</div>
+                </div>
+            </section>`;
+
+        loadFeaturedProducts();
         await loadShops();
+        // Lien depuis une autre page : index.html#categories ou #cat=<clé> (traité une seule fois)
+        const hash = location.hash;
+        if (hash === '#categories' || hash.startsWith('#cat=')) {
+            history.replaceState(null, '', location.pathname + location.search);
+            if (hash === '#categories') showCategories(); else showCategory(hash.slice(5));
+        }
+    }
+
+    // Boutiques en vedette : médaille, puis note (la ville choisie d'abord)
+    function renderFeaturedShops() {
+        const box = document.getElementById('featuredShops');
+        if (!box) return;
+        const city = currentCity().toLowerCase();
+        const list = shopsCache.filter(s => s.is_active !== false && !s.archived_at)
+            .sort((a, b) => ((city && (b.city || '').toLowerCase() === city) - (city && (a.city || '').toLowerCase() === city))
+                || (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)))
+            .slice(0, 8);
+        if (!list.length) { box.innerHTML = '<p class="search-hint">Les premières boutiques arrivent bientôt.</p>'; return; }
+        box.innerHTML = list.map(shop => {
+            const level = getShopLevel(shop);
+            const logo = safeUrl(shop.logo_url);
+            return `<button type="button" class="feat-shop" onclick="viewShopDetail('${escapeHtml(shop.id)}')">
+                <span class="feat-shop-cover">${logo ? `<img src="${logo}" alt="" loading="lazy">` : '<i class="fas fa-store"></i>'}
+                    <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span></span>
+                <span class="feat-shop-body">
+                    <strong>${escapeHtml(shop.name)}</strong>
+                    <span class="feat-shop-rate"><i class="fas fa-star"></i> ${Number(shop.rating || 0).toLocaleString('fr-FR')} <small>(${shop.total_ratings || 0})</small></span>
+                    <small><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? ', ' + escapeHtml(shop.district) : ''}</small>
+                </span>
+            </button>`;
+        }).join('');
+    }
+
+    function homeProductCard(p) {
+        const photo = productPhotos(p)[0] || '';
+        const id = escapeHtml(p.id);
+        const versions = productVariants(p).length;
+        const shop = p.shops?.name || shopsCache.find(s => s.id === p.shop_id)?.name || '';
+        const out = productStock(p) <= 0 && Number(p.stock) !== 0;
+        return `<div class="home-product" role="button" tabindex="0" onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
+            <div class="home-product-img">${photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy">` : '<i class="fas fa-image"></i>'}
+                ${versions > 1 ? `<span class="product-card-tag">${versions} versions</span>` : ''}</div>
+            <div class="home-product-body">
+                <div class="home-product-name">${escapeHtml(p.name)}</div>
+                <div class="home-product-price">${productPriceLabel(p)}</div>
+                ${shop ? `<div class="home-product-shop"><i class="fas fa-store"></i> ${escapeHtml(shop)}</div>` : ''}
+                <button type="button" class="home-product-btn" ${out ? 'disabled' : ''}
+                    onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `addToCart('${id}')`}">
+                    <i class="fas fa-cart-plus"></i> ${out ? 'Épuisé' : versions ? 'Choisir' : 'Ajouter'}</button>
+            </div>
+        </div>`;
+    }
+
+    async function fetchProducts(build) {
+        let { data, error } = await build(window.supabase.from('products').select('*, shops(name)'));
+        if (error) ({ data, error } = await build(window.supabase.from('products').select('*')));
+        if (error) throw error;
+        (data || []).forEach(p => { productsCache[p.id] = p; });
+        return (data || []).filter(p => p.is_active !== false);
+    }
+
+    async function loadFeaturedProducts() {
+        const box = document.getElementById('featuredProducts');
+        if (!box) return;
+        try {
+            const list = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(18));
+            box.innerHTML = list.length ? list.slice(0, 12).map(homeProductCard).join('')
+                : '<p class="search-hint">Les premiers produits arrivent bientôt.</p>';
+            // Bannière : les vraies photos des produits du moment
+            const photos = list.map(p => productPhotos(p)[0]).filter(Boolean).slice(0, 3);
+            const art = document.getElementById('homeHeroArt');
+            if (art && photos.length) {
+                art.innerHTML = photos.map((src, i) => `<img class="art-photo p${i + 1}" src="${src}" alt="">`).join('')
+                    + '<span class="art-bubble b2"><i class="fas fa-motorcycle"></i></span>';
+            }
+        } catch (e) {
+            console.error('❌ Produits en vedette:', e);
+            box.innerHTML = '<p class="search-hint">Produits indisponibles pour le moment.</p>';
+        }
+    }
+
+    // ============ CATÉGORIES ============
+    // Recherche par mots-clés dans le nom et la description des produits ; filtres appliqués dans le navigateur
+    const catView = { key: null, list: [], maxPrice: 0, inStock: false, sort: 'new' };
+
+    function setTab(i) {
+        document.querySelectorAll('.tabbar a').forEach((a, n) => a.classList.toggle('active', n === i));
+    }
+
+    function showCategories() {
+        const container = document.getElementById('appContainer');
+        if (!container) { window.location.href = 'index.html#categories'; return false; }
+        setTab(1);
+        clearInterval(carouselTimer);
+        container.classList.remove('is-searching');
+        container.innerHTML = `
+            <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <span>Catégories</span></nav>
+            <h2 class="page-title">Toutes les catégories</h2>
+            <div class="cats-grid">
+                ${MARKET_CATEGORIES.map(c => `<button type="button" class="cats-tile" onclick="showCategory('${c.key}')">
+                    <span>${c.emoji}</span><strong>${c.label}</strong></button>`).join('')}
+            </div>`;
+        window.scrollTo(0, 0);
+        return false;
+    }
+
+    async function showCategory(key) {
+        const cat = MARKET_CATEGORIES.find(c => c.key === key);
+        const container = document.getElementById('appContainer');
+        if (!cat) return;
+        if (!container) { window.location.href = 'index.html#cat=' + key; return; }
+        setTab(1);
+        clearInterval(carouselTimer);
+        container.classList.remove('is-searching');
+        Object.assign(catView, { key, list: [], maxPrice: 0, inStock: false, sort: 'new' });
+        container.innerHTML = `
+            <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <a href="#" onclick="return showCategories()">Catégories</a> › <span>${cat.label}</span></nav>
+            <div class="cat-chips">${MARKET_CATEGORIES.map(c => `<button type="button" class="${c.key === key ? 'active' : ''}" onclick="showCategory('${c.key}')">${c.emoji} ${c.label}</button>`).join('')}</div>
+            <div class="cat-layout">
+                <aside class="cat-filters" id="catFilters"></aside>
+                <section>
+                    <div class="cat-head">
+                        <div><h2 class="page-title">${cat.emoji} ${cat.label}</h2><small id="catCount">Chargement…</small></div>
+                        <select id="catSort" onchange="catFilter('sort', this.value)" aria-label="Trier">
+                            <option value="new">Nouveautés</option><option value="price_asc">Prix croissant</option>
+                            <option value="price_desc">Prix décroissant</option><option value="shop">Meilleures boutiques</option>
+                        </select>
+                    </div>
+                    <div class="home-products" id="catProducts"></div>
+                </section>
+            </div>`;
+        window.scrollTo(0, 0);
+        try {
+            const others = MARKET_CATEGORIES.flatMap(c => c.words);
+            const words = cat.words.length ? cat.words : others;
+            const filter = words.map(w => `name.ilike.%${cleanSearch(w)}%,description.ilike.%${cleanSearch(w)}%`).join(',');
+            let list = await fetchProducts(q => q.or(filter).limit(80));
+            if (!cat.words.length) {
+                // « Autres » : ce qui ne correspond à aucune catégorie
+                const all = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(120));
+                const known = new Set(list.map(p => p.id));
+                list = all.filter(p => !known.has(p.id));
+            }
+            if (catView.key !== key) return;
+            catView.list = list;
+            catView.maxPrice = Math.max(0, ...list.map(minPrice));
+            renderCategory();
+        } catch (e) {
+            console.error('❌ Catégorie:', e);
+            document.getElementById('catProducts').innerHTML = '<p class="search-hint">Catégorie indisponible pour le moment.</p>';
+        }
+    }
+
+    function minPrice(p) {
+        const prices = productVariants(p).map(v => Number(v.price)).filter(n => n > 0);
+        return prices.length ? Math.min(...prices) : Number(p.price) || 0;
+    }
+
+    function renderCategory() {
+        const top = Math.max(0, ...catView.list.map(minPrice));
+        const limit = catView.maxPrice || top;
+        const shopRank = id => { const s = shopsCache.find(x => x.id === id); return s ? getShopLevel(s).rank * 10 + (Number(s.rating) || 0) : 0; };
+        const sorters = {
+            new: (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
+            price_asc: (a, b) => minPrice(a) - minPrice(b),
+            price_desc: (a, b) => minPrice(b) - minPrice(a),
+            shop: (a, b) => shopRank(b.shop_id) - shopRank(a.shop_id)
+        };
+        const list = catView.list
+            .filter(p => minPrice(p) <= limit && (!catView.inStock || productStock(p) > 0 || Number(p.stock) === 0))
+            .sort(sorters[catView.sort] || sorters.new);
+        const filters = document.getElementById('catFilters');
+        if (filters) filters.innerHTML = `
+            <h4>Filtrer</h4>
+            <label class="cat-filter">Prix maximum : <b>${formatPrice(limit)} FCFA</b>
+                <input type="range" min="0" max="${top || 0}" step="500" value="${limit}" oninput="catFilter('maxPrice', this.value)" ${top ? '' : 'disabled'}></label>
+            <label class="cat-check"><input type="checkbox" ${catView.inStock ? 'checked' : ''} onchange="catFilter('inStock', this.checked)"> En stock uniquement</label>
+            ${catView.maxPrice && catView.maxPrice < top || catView.inStock ? '<button type="button" class="cat-reset" onclick="catFilter(\'reset\')">Effacer les filtres</button>' : ''}`;
+        const count = document.getElementById('catCount');
+        if (count) count.textContent = `${list.length} produit${list.length > 1 ? 's' : ''}`;
+        const sort = document.getElementById('catSort');
+        if (sort) sort.value = catView.sort;
+        const box = document.getElementById('catProducts');
+        if (box) box.innerHTML = list.length ? list.map(homeProductCard).join('')
+            : '<p class="search-hint">Pas de produit avec ces filtres pour le moment.</p>';
+    }
+
+    function catFilter(name, value) {
+        if (name === 'reset') Object.assign(catView, { maxPrice: 0, inStock: false });
+        else if (name === 'maxPrice') catView.maxPrice = Number(value) || 0;
+        else catView[name] = value;
+        renderCategory();
+    }
+
+    function clearCategory() {
+        resetToHome();
     }
  
     async function loadShops() {
@@ -561,6 +922,7 @@
             shopsCache = data || [];
             await loadShopMedals();
             renderShops();
+            renderFeaturedShops();
         } catch (error) {
             console.error('❌ Erreur boutiques:', error);
             grid.innerHTML = `
@@ -598,7 +960,10 @@
             sales: (a, b) => (b.total_sales || 0) - (a.total_sales || 0),
             products: (a, b) => productCountOf(b) - productCountOf(a)
         };
-        list.sort(sorters[currentSort] || sorters.rating);
+        const city = currentCity().toLowerCase();
+        const sorter = sorters[currentSort] || sorters.rating;
+        // La ville choisie passe en premier
+        list.sort((a, b) => (city ? ((b.city || '').toLowerCase() === city) - ((a.city || '').toLowerCase() === city) : 0) || sorter(a, b));
  
         if (list.length === 0) {
             grid.innerHTML = `
@@ -658,6 +1023,10 @@
  
     async function performSearch(rawQuery) {
         const q = cleanSearch(rawQuery);
+        // Pendant une recherche, les blocs de l'accueil laissent la place aux résultats
+        document.getElementById('appContainer')?.classList.toggle('is-searching', q.length > 0);
+        const title = document.getElementById('allShopsTitle');
+        if (title) title.textContent = q ? `Boutiques pour « ${q} »` : 'Toutes les boutiques';
         renderShops(q);
         const box = document.getElementById('productResults');
         if (!box) return;
@@ -1004,6 +1373,7 @@
     }
  
     let detailProduct = null;      // produit affiché dans la fiche
+    const detailShops = {};        // boutiques chargées pour la fiche (vendeur, note, médaille)
     let detailSelection = {};      // { Couleur: 'Noir', Capacité: '128 Go' }
     let detailQty = 1;
  
@@ -1050,6 +1420,24 @@
             v.values?.[optName] === value && Number(v.stock) > 0 &&
             options.every(o => o.name === optName || !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
  
+        // Vendeur : boutique en cache (accueil, vue boutique) ; sinon chargée une fois puis réaffichée
+        const shop = shopsCache.find(x => x.id === p.shop_id) || (p.shop_id && detailShops[p.shop_id]) || null;
+        if (!shop && p.shop_id && !(p.shop_id in detailShops)) {
+            detailShops[p.shop_id] = null;
+            window.supabase.from('shops').select('id, name, rating, total_ratings, logo_url, is_verified, city, district')
+                .eq('id', p.shop_id).maybeSingle().then(({ data }) => {
+                    if (data) { detailShops[p.shop_id] = data; if (detailProduct === p) renderProductDetail(activePhoto); }
+                });
+        }
+        const level = shop ? getShopLevel(shop) : null;
+        const shopLogo = safeUrl(shop?.logo_url);
+        const rating = Number(shop?.rating) || 0;
+        const buyLabel = !complete ? `Choisis ${escapeHtml(options.filter(o => !detailSelection[o.name]).map(o => o.name.toLowerCase()).join(' et '))}`
+                       : stock === 0 ? 'Indisponible' : 'Ajouter au panier';
+        // Produits de la même boutique (déjà chargés)
+        const similar = Object.values(productsCache)
+            .filter(x => x.id !== p.id && x.shop_id === p.shop_id && x.is_active !== false).slice(0, 8);
+
         box.innerHTML = `
             <div class="pd-layout">
                 <div class="pd-gallery">
@@ -1069,11 +1457,18 @@
                     <div class="pd-price" style="color:${d.primary};">
                         ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
                     </div>
-                    ${variant ? `<div class="pd-variant-label">${escapeHtml(variant.key)}</div>` : ''}
-                    <div class="pd-stock ${stock === 0 ? 'out' : ''}">
-                        ${stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
-                    </div>
- 
+                    ${shop && shop.total_ratings ? `<div class="pd-rating"><span class="pd-stars">${generateStars(rating)}</span>
+                        <b>${rating.toLocaleString('fr-FR')}</b> <small>· ${shop.total_ratings} avis sur la boutique</small></div>` : ''}
+
+                    ${shop ? `
+                        <button type="button" class="pd-seller" onclick="closeModal();viewShopDetail('${escapeHtml(shop.id)}')">
+                            <span class="pd-seller-logo">${shopLogo ? `<img src="${shopLogo}" alt="">` : '<i class="fas fa-store"></i>'}</span>
+                            <span class="pd-seller-info"><strong>${escapeHtml(shop.name)}</strong>
+                                <span class="level-badge ${level.class}">${level.emoji} Vendeur ${level.name}</span>
+                                ${shop.is_verified ? '<span class="pd-verified"><i class="fas fa-check-circle"></i> Vérifiée</span>' : ''}</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>` : ''}
+
                     ${options.map(o => `
                         <div class="pd-option">
                             <div class="pd-option-name">${escapeHtml(o.name)} : <strong>${escapeHtml(detailSelection[o.name] || 'à choisir')}</strong></div>
@@ -1088,7 +1483,11 @@
                                 }).join('')}
                             </div>
                         </div>`).join('')}
- 
+
+                    <div class="pd-stock ${stock === 0 ? 'out' : ''}">
+                        ${stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock} disponible${stock > 1 ? 's' : ''})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
+                    </div>
+
                     <div class="pd-buy">
                         <div class="pd-qty">
                             <button onclick="changeDetailQty(-1)" aria-label="Moins">−</button>
@@ -1097,20 +1496,32 @@
                         </div>
                         <button class="pd-add" style="background:${d.button};"
                                 ${complete && stock !== 0 ? '' : 'disabled'} onclick="addDetailToCart()">
-                            <i class="fas fa-shopping-cart"></i>
-                            ${!complete ? `Choisissez ${escapeHtml(options.filter(o => !detailSelection[o.name]).map(o => o.name.toLowerCase()).join(' et '))}`
-                                        : stock === 0 ? 'Indisponible' : 'Ajouter au panier'}
+                            <i class="fas fa-shopping-cart"></i> ${buyLabel}
                         </button>
                     </div>
- 
-                    ${p.description ? `
-                        <div class="pd-section">
-                            <h4>Description</h4>
-                            <p class="pd-desc">${escapeHtml(p.description)}</p>
-                        </div>` : ''}
-                    ${foodInfoHtml(p.food_info)}
+
+                    <div class="pd-trust">
+                        <span><i class="fas fa-truck"></i> Livraison par un livreur noté</span>
+                        <span><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé</span>
+                        <span><i class="fas fa-key"></i> Code de remise à la livraison</span>
+                    </div>
                 </div>
-            </div>`;
+            </div>
+            ${p.description || foodInfoHtml(p.food_info) ? `
+                <div class="pd-details">
+                    ${p.description ? `<div class="pd-section"><h4>Description</h4><p class="pd-desc">${escapeHtml(p.description)}</p></div>` : ''}
+                    ${foodInfoHtml(p.food_info)}
+                </div>` : ''}
+            ${similar.length ? `
+                <div class="pd-similar">
+                    <h4>Aussi chez ${escapeHtml(shop?.name || 'ce vendeur')}</h4>
+                    <div class="pd-similar-list">${similar.map(x => {
+                        const ph = productPhotos(x)[0];
+                        return `<button type="button" class="pd-similar-item" onclick="openProductDetail('${escapeHtml(x.id)}')">
+                            <span>${ph ? `<img src="${ph}" alt="" loading="lazy">` : '<i class="fas fa-image"></i>'}</span>
+                            <strong>${escapeHtml(x.name)}</strong><b>${productPriceLabel(x)}</b></button>`;
+                    }).join('')}</div>
+                </div>` : ''}`;
     }
  
     function showProductPhoto(src) {
@@ -1239,31 +1650,43 @@
                     <div class="cart-item-name">${escapeHtml(item.productName)}</div>
                     ${item.variantKey ? `<div class="cart-item-variant">${escapeHtml(item.variantKey)}</div>` : ''}
                     <div class="cart-item-price">${formatPrice(item.price)} FCFA</div>
-                </div>
-                <div class="cart-item-actions">
                     <div class="pd-qty small">
                         <button onclick="changeCartQty(${idx}, -1)" aria-label="Moins">−</button>
                         <span>${item.quantity}</span>
                         <button onclick="changeCartQty(${idx}, 1)" aria-label="Plus">+</button>
                     </div>
-                    <button class="cart-item-remove" onclick="removeCartItem(${idx})" aria-label="Retirer"><i class="fas fa-trash"></i> Retirer</button>
                 </div>
+                <button class="cart-item-remove" onclick="removeCartItem(${idx})" aria-label="Retirer ${escapeHtml(item.productName)}" title="Retirer"><i class="fas fa-trash-alt"></i></button>
             </div>`;
     }
- 
+
+    // Panier : articles groupés par boutique (une commande par boutique), puis le total
     function showCart() {
-        const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const fees = Math.round(subtotal * 0.10);
+        const byShop = new Map();
+        cart.forEach((item, idx) => {
+            const key = String(item.shopId || '');
+            if (!byShop.has(key)) byShop.set(key, { name: item.shopName || 'Boutique', rows: [] });
+            byShop.get(key).rows.push(cartItemHtml(item, idx));
+        });
         const html = cart.length === 0 ? `
-            <h3 style="margin-bottom:12px;">Mon panier</h3>
-            <div class="cart-empty"><i class="fas fa-shopping-basket"></i><p>Ton panier est vide.</p></div>` : `
-            <h3 style="margin-bottom:12px;">Mon panier (${cartTotalQty()})</h3>
-            <div class="cart-list">${cart.map(cartItemHtml).join('')}</div>
-            <div class="cart-total"><span>Total</span><strong>${formatPrice(total)} FCFA</strong></div>
-            <p class="cart-note"><i class="fas fa-info-circle"></i> Frais de livraison (10 %) ajoutés à l'étape suivante.</p>
-            <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Valider ma commande</a>`;
+            <h3 class="cart-title">Mon panier</h3>
+            <div class="cart-empty"><i class="fas fa-shopping-basket"></i><p>Ton panier est vide.</p>
+                <button class="btn-submit" onclick="closeModal();resetToHome()">Découvrir les produits</button></div>` : `
+            <h3 class="cart-title">Mon panier <small>(${cartTotalQty()} article${cartTotalQty() > 1 ? 's' : ''})</small></h3>
+            <div class="cart-list">${[...byShop.values()].map(g => `
+                <div class="cart-shop"><div class="cart-shop-name"><i class="fas fa-store"></i> ${escapeHtml(g.name)}</div>${g.rows.join('')}</div>`).join('')}</div>
+            <div class="cart-summary">
+                <div><span>Sous-total</span><span>${formatPrice(subtotal)} FCFA</span></div>
+                <div><span>Livraison (10 %)</span><span>${formatPrice(fees)} FCFA</span></div>
+                <div class="cart-grand"><span>Total</span><strong>${formatPrice(subtotal + fees)} FCFA</strong></div>
+                <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Commander</a>
+                ${byShop.size > 1 ? `<p class="cart-note"><i class="fas fa-info-circle"></i> ${byShop.size} boutiques : chacune confirme sa partie de la commande.</p>` : ''}
+            </div>`;
         const existing = document.getElementById('cartModalBody');
         if (existing) existing.innerHTML = html;
-        else openModal(`<div id="cartModalBody">${html}</div>`);
+        else openModal(`<div id="cartModalBody">${html}</div>`).classList.add('cart-modal');
     }
  
     function changeCartQty(idx, delta) {
@@ -1636,18 +2059,29 @@
             return;
         }
         const labels = { client: 'Client', vendeur: 'Vendeur', livreur: 'Livreur', admin: 'Admin' };
-        openModal(`
-            <h3 style="margin-bottom:20px;">Mon profil</h3>
-            <p><strong>Nom :</strong> ${escapeHtml(currentProfile?.full_name || '—')}</p>
-            <p><strong>Email :</strong> ${escapeHtml(currentUser.email)}</p>
-            <p><strong>Type :</strong> ${labels[currentUserType] || 'Client'}</p>
-            ${currentUserType === 'vendeur' ? `
-                <button class="btn-submit" style="margin-top:16px;" onclick="window.location.href='vendor-dashboard.html'">
-                    <i class="fas fa-store"></i> Mon tableau de bord
-                </button>` : ''}
-            <button class="btn-cancel" style="margin-top:10px;width:100%;" onclick="window.location.href='reset-password.html'">
-                <i class="fas fa-key"></i> Changer mon mot de passe
-            </button>`);
+        const name = currentProfile?.full_name || currentUser.email || 'Utilisateur';
+        const avatar = safeUrl(currentProfile?.avatar_url);
+        const row = (href, icon, label, extra = '') => `<a class="pf-row" href="${href}" ${extra}><i class="fas ${icon}"></i><span>${label}</span><i class="fas fa-chevron-right"></i></a>`;
+        const modal = openModal(`
+            <div class="pf-head">
+                <div class="pf-avatar">${avatar ? `<img src="${avatar}" alt="">` : escapeHtml(name.charAt(0).toUpperCase())}</div>
+                <h3>${escapeHtml(name)}</h3>
+                <small>${escapeHtml(currentUser.email)}</small>
+                <span class="pf-role">${labels[currentUserType] || 'Client'}</span>
+            </div>
+            ${currentUserType === 'vendeur' ? `<a class="btn-submit pf-main" href="vendor-dashboard.html"><i class="fas fa-store"></i> Mon espace vendeur</a>` : ''}
+            ${currentUserType === 'livreur' ? `<a class="btn-submit pf-main" href="delivery-dashboard.html"><i class="fas fa-motorcycle"></i> Mon espace livreur</a>` : ''}
+            <nav class="pf-list">
+                ${row('activities.html', 'fa-receipt', 'Mes commandes et activités')}
+                ${row('notifications.html', 'fa-bell', 'Notifications')}
+                ${row('portfolio.html', 'fa-wallet', 'Mon portefeuille')}
+                ${currentUserType === 'client' ? row('shop-designer.html', 'fa-store', 'Devenir vendeur') + row('delivery-register.html', 'fa-motorcycle', 'Devenir livreur') : ''}
+                ${row('reset-password.html', 'fa-key', 'Sécurité : changer mon mot de passe')}
+                ${row('help.html', 'fa-question-circle', 'Aide')}
+                ${row('privacy.html', 'fa-user-shield', 'Confidentialité')}
+                ${row('#', 'fa-sign-out-alt', 'Déconnexion', 'onclick="closeModal();logout();return false;"')}
+            </nav>`);
+        modal.classList.add('profile-modal');
     }
  
     const ORDER_LABELS = {
@@ -1845,6 +2279,16 @@
         logout,
         openRateOrder,
         refreshNotifCount,
+        setCity,
+        openCityPicker,
+        goCategories,
+        openSiteMenu,
+        showCategory,
+        clearCategory,
+        showCategories,
+        catFilter,
+        closeModal,
+        updateHeaderUI,
         pickStar,
         submitRating,
         requestPasswordReset,

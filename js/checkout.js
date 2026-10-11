@@ -153,7 +153,10 @@
                 <a class="btn-submit" href="index.html">Voir les boutiques</a></div>`;
             return;
         }
-        el.innerHTML = stepper() + [cartHtml, deliveryHtml, paymentHtml][step - 1]() + actionBarHtml();
+        // Ordinateur : le panier reste visible à droite pendant la livraison et le paiement
+        el.innerHTML = `<div class="co-layout ${step > 1 ? 'with-aside' : ''}">
+            <div class="co-main">${stepper() + [cartHtml, deliveryHtml, paymentHtml][step - 1]() + actionBarHtml()}</div>
+            ${step > 1 ? asideHtml() : ''}</div>`;
         if (step === 2) initMap();
         window.scrollTo(0, 0);
     }
@@ -176,16 +179,38 @@
                                 ${i.variantKey ? `<small>${esc(i.variantKey)}</small>` : ''}
                                 <span>${fcfa(i.price)}</span>
                             </div>
-                            <div class="pd-qty small">
-                                <button onclick="coQty(${idx}, -1)" aria-label="Moins">−</button>
-                                <span>${i.quantity}</span>
-                                <button onclick="coQty(${idx}, 1)" aria-label="Plus">+</button>
+                            <div class="co-item-side">
+                                <div class="pd-qty small">
+                                    <button onclick="coQty(${idx}, -1)" aria-label="Moins">−</button>
+                                    <span>${i.quantity}</span>
+                                    <button onclick="coQty(${idx}, 1)" aria-label="Plus">+</button>
+                                </div>
+                                <button class="co-remove" onclick="coRemove(${idx})" aria-label="Retirer"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>`;
                     }).join('')}
                 </div>`).join('')}
             ${totalsHtml()}
             <div class="form-error" id="coError" role="alert"></div>`;
+    }
+
+    function asideHtml() {
+        return `<aside class="co-aside">
+            <h4>Ton panier <button type="button" onclick="coGo(1)">Modifier</button></h4>
+            ${cart.map(i => {
+                const img = safeImg(i.photo);
+                return `<div class="co-aside-item"><span>${img ? `<img src="${img}" alt="">` : '<i class="fas fa-box"></i>'}<b>${i.quantity}</b></span>
+                    <div><strong>${esc(i.productName)}</strong>${i.variantKey ? `<small>${esc(i.variantKey)}</small>` : ''}</div>
+                    <em>${fcfa(i.price * i.quantity)}</em></div>`;
+            }).join('')}
+            ${totalsHtml()}
+        </aside>`;
+    }
+
+    function coRemove(idx) {
+        cart.splice(idx, 1);
+        saveCart();
+        render();
     }
 
     function placeCardHtml() {
@@ -628,7 +653,7 @@
         render();
     }
 
-    Object.assign(window, { coNext, coBack, coGo, coQty, coLocate, coMethod, coOperator, coSubmit, coPickSuggestion });
+    Object.assign(window, { coNext, coBack, coGo, coQty, coRemove, coLocate, coMethod, coOperator, coSubmit, coPickSuggestion });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
