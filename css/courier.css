@@ -1,0 +1,258 @@
+/* ============ ESPACE LIVREUR (delivery-dashboard.html) ============ */
+.courier-page {
+    max-width: 760px;
+    margin: 16px auto;
+}
+
+.courier-gate p {
+    margin-bottom: 16px;
+}
+
+.courier-card {
+    padding: 18px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    color: #fff;
+}
+
+.courier-card.level-5 { background: linear-gradient(135deg, #78350f, #b45309); }
+.courier-card.level-4 { background: linear-gradient(135deg, #312e81, #4338ca); }
+.courier-card.level-0 { background: linear-gradient(135deg, #7f1d1d, #b91c1c); }
+
+.courier-id {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.courier-badge {
+    flex: none;
+    min-width: 64px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fde68a;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.courier-id small {
+    opacity: 0.8;
+    font-size: 12px;
+}
+
+.courier-id h2 {
+    font-size: 19px;
+    margin: 2px 0;
+}
+
+.courier-level {
+    font-size: 13px;
+    color: #fde68a;
+}
+
+.courier-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 16px 0 12px;
+}
+
+.courier-stats div {
+    padding: 8px 4px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.courier-stats b {
+    display: block;
+    font-size: 15px;
+}
+
+.courier-stats span {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.courier-rights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 13px;
+}
+
+.courier-next {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+.courier-online {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.18);
+    font-size: 13px;
+}
+
+.courier-online.on i.fa-circle { color: #34d399; }
+
+.course {
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--gray-200);
+}
+
+.course.locked {
+    background: var(--gray-100);
+    opacity: 0.85;
+}
+
+.course.active {
+    border-color: #bfdbfe;
+}
+
+.course-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.course-top strong {
+    font-size: 14px;
+    color: var(--black);
+    overflow-wrap: anywhere;
+}
+
+.course-fee {
+    flex: none;
+    font-weight: 700;
+    color: #059669;
+}
+
+.course-route,
+.course-meta {
+    margin: 6px 0;
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.course-route i {
+    color: var(--primary);
+}
+
+.course-lock {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #9a3412;
+}
+
+.course .notif-btn {
+    margin-top: 6px;
+}
+
+.course-steps {
+    list-style: none;
+    margin: 10px 0;
+    padding: 0;
+}
+
+.course-steps li {
+    position: relative;
+    padding: 8px 0 8px 12px;
+    border-left: 3px solid var(--gray-200);
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.course-steps li.now {
+    border-color: var(--primary);
+    color: var(--black);
+}
+
+.course-steps li.done {
+    border-color: var(--success);
+    text-decoration: line-through;
+}
+
+.course-steps li i {
+    width: 16px;
+    color: var(--primary);
+}
+
+.course-release {
+    margin-top: 6px;
+    border: none;
+    background: none;
+    color: var(--danger);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.course-review span {
+    color: #f59e0b;
+}
+
+.course-review {
+    font-size: 13px;
+    color: var(--gray-700);
+}
+
+.courier-levels {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    font-size: 13px;
+}
+
+.courier-levels summary {
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+.courier-levels p {
+    margin: 10px 0;
+    line-height: 1.6;
+    color: var(--gray-700);
+}
+
+.courier-levels table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.courier-levels th,
+.courier-levels td {
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--gray-100);
+    text-align: left;
+    vertical-align: top;
+}
+
+.courier-levels tr.me td {
+    background: #eff6ff;
+    font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    .courier-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

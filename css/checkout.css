@@ -832,3 +832,12 @@
     padding: 8px 0;
     font-size: 14px;
 }
+
+.co-mail-check {
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+}

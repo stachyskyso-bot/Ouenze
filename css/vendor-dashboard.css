@@ -1246,3 +1246,33 @@ a.share-native {
 .nav-badge[hidden] {
     display: none;
 }
+
+/* Point de retrait (livreurs) */
+.pickup-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 12px;
+}
+
+.pickup-line.ok {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.pickup-line button {
+    border: 1px solid currentColor;
+    background: #fff;
+    color: inherit;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}

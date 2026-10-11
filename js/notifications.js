@@ -22,6 +22,8 @@
         order_courier: { icon: 'fa-motorcycle', tone: 'info', group: 'orders' },
         order_in_transit: { icon: 'fa-route', tone: 'info', group: 'orders' },
         order_delivered: { icon: 'fa-box-open', tone: 'ok', group: 'orders' },
+        order_pickup: { icon: 'fa-motorcycle', tone: 'info', group: 'orders' },
+        delivery_offer: { icon: 'fa-motorcycle', tone: 'action', group: 'orders' },
         shop_review: { icon: 'fa-star', tone: 'star', group: 'reviews' },
         courier_review: { icon: 'fa-star', tone: 'star', group: 'reviews' }
     };
@@ -104,6 +106,11 @@
                 </div>`;
             }
             return '';
+        }
+        if (n.kind === 'delivery_offer') {
+            return n.order_status === 'accepted'
+                ? `<div class="notif-actions"><a class="notif-btn ok" href="delivery-dashboard.html" onclick="notifRead('${id}')"><i class="fas fa-motorcycle"></i> Voir la course</a></div>`
+                : '<span class="notif-status">Déjà prise par un livreur</span>';
         }
         if (n.kind === 'order_delivered' && n.order_id) {
             return `<div class="notif-actions"><button class="notif-btn primary" onclick="notifRate('${id}', '${order}')"><i class="fas fa-star"></i> Noter la boutique et le livreur</button></div>`;
