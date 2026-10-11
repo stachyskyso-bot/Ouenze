@@ -169,6 +169,7 @@
             <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
                 <button class="btn-sm btn-primary" onclick="createNewShop()"><i class="fas fa-plus"></i> Créer une boutique</button>
                 <button class="btn-sm btn-success" onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
+                <button class="btn-sm btn-outline" onclick="window.location.href='notifications.html'"><i class="fas fa-bell"></i> Notifications <span class="nav-badge notif-count" hidden></span></button>
             </div>
  
             <section id="commandes" class="vo-section">${ordersHtml()}</section>
@@ -833,6 +834,11 @@
             showDashboard();
             // Lien de l'email « Nouvelle commande » : vendor-dashboard.html#commandes
             if (location.hash === '#commandes') document.getElementById('commandes')?.scrollIntoView({ behavior: 'smooth' });
+            // Compteur de notifications non lues (migration 20261018 ; absente = pas de compteur)
+            window.supabase.rpc('notifications_unread').then(({ data, error }) => {
+                const n = error ? 0 : Number(data) || 0;
+                document.querySelectorAll('.notif-count').forEach(b => { b.textContent = n > 99 ? '99+' : String(n); b.hidden = !n; });
+            });
         } catch (e) {
             console.error('❌ vd.js:', e);
             setMessage('<p>Une erreur inattendue est survenue.</p><button class="btn-sm btn-primary" onclick="location.reload()">Réessayer</button>');

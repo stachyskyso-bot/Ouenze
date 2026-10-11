@@ -1227,3 +1227,22 @@ a.share-native {
 .vo-actions:empty {
     display: none;
 }
+
+/* Compteur du bouton Notifications */
+.nav-badge {
+    display: inline-block;
+    min-width: 18px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    border-radius: 10px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.nav-badge[hidden] {
+    display: none;
+}
