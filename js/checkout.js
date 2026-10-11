@@ -573,8 +573,10 @@
         // Les emails ne bloquent pas la commande : si l'envoi échoue, elle est quand même passée
         let mailed = true;
         let mailError = '';
+        let mailSent = [];
         try {
             const res = await window.supabase.functions.invoke('order-notify', { body: { action: 'placed', order_ids: data.orders.map(o => o.order_id) } });
+            mailSent = res.data?.sent || [];
             if (res.error) {
                 mailed = false;
                 try { mailError = (await res.error.context?.json())?.error || res.error.message || ''; } catch (e) { mailError = res.error.message || ''; }
@@ -588,8 +590,18 @@
             <ul class="co-done-list">${data.orders.map(o => `<li><strong>${esc(o.shop_name)}</strong> — ${esc(o.order_number)}<span>${fcfa(o.total)}</span></li>`).join('')}</ul>
             <p>Total : <strong>${fcfa(data.total)}</strong>. Chaque vendeur doit maintenant <strong>accepter</strong> sa commande${mailed ? ' : tu reçois un email à chaque étape' : ''}.</p>
             ${!mailed && test ? `<p class="co-test-badge">Emails non envoyés : ${esc(mailError || 'fonction order-notify injoignable')}</p>` : ''}
+            ${mailed && test ? `<p class="co-mail-check">${mailCheck(mailSent)}</p>` : ''}
             <a class="btn-submit" href="activities.html">Suivre mes commandes</a></div>`;
         window.scrollTo(0, 0);
+    }
+
+    // Mode test : ce que Brevo a accepté (si un email accepté n'arrive pas : spam, boîte pleine → journal Brevo)
+    function mailCheck(sent) {
+        const vendors = sent.filter(x => x.to === 'vendor').length;
+        const client = sent.some(x => x.to === 'client');
+        if (!vendors && !client) return '<i class="fas fa-info-circle"></i> Aucun email envoyé (commande déjà annoncée, ou fonction order-notify à redéployer).';
+        return `<i class="fas fa-paper-plane"></i> Brevo a accepté : email au vendeur ${vendors ? '✓' : '✗ (adresse du vendeur introuvable)'} · email à toi ${client ? '✓' : '✗'}.
+            Rien reçu ? Regarde les spams, puis Brevo → Transactional → Logs.`;
     }
 
     // ============ DÉMARRAGE ============
