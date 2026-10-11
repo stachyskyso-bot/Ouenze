@@ -16,8 +16,10 @@
     <button class="back-to-dashboard" onclick="window.location.href='vendor-dashboard.html'">
         <i class="fas fa-arrow-left"></i> Retour
     </button>
-    <h1 id="pageTitle">Création de boutique</h1>
-    <p>Personnalisez votre espace, gérez vos catégories et produits</p>
+    <div class="header-titles">
+        <h1 id="pageTitle">Création de boutique</h1>
+        <p>Paramètres à gauche, aperçu de ta boutique à droite</p>
+    </div>
 </div>
 
 <div class="container">
@@ -26,10 +28,13 @@
              PANNEAU DE CONFIGURATION
              ============================================================ -->
         <div class="designer-panel">
-            <h2 style="margin-bottom:16px;">Configuration</h2>
+            <nav class="section-nav" aria-label="Sections">
+                <a href="#sec-infos">Infos</a><a href="#sec-logo">Logo</a><a href="#sec-menu">Menu</a><a href="#sec-carousel">Bannière</a>
+                <a href="#sec-colors">Couleurs</a><a href="#sec-display">Disposition</a><a href="#sec-categories">Catégories</a><a href="#sec-products">Produits</a>
+            </nav>
             
             <!-- ===== INFORMATIONS ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-infos">
                 <h3><i class="fas fa-store"></i> Informations</h3>
                 <div class="form-group">
                     <label>Nom de la boutique *</label>
@@ -56,7 +61,7 @@
             </div>
             
             <!-- ===== LOGO ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-logo">
                 <h3><i class="fas fa-image"></i> Logo</h3>
                 <div class="image-upload" onclick="document.getElementById('logoUpload').click()">
                     <div id="logoPreview" class="image-preview"><i class="fas fa-cloud-upload-alt"></i></div>
@@ -66,7 +71,7 @@
             </div>
             
             <!-- ===== MENU ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-menu">
                 <h3><i class="fas fa-bars"></i> Menu</h3>
                 <div class="form-group">
                     <label>Position</label>
@@ -91,7 +96,7 @@
             </div>
             
             <!-- ===== CARROUSEL ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-carousel">
                 <h3><i class="fas fa-images"></i> Carrousel</h3>
                 <div id="carouselList" class="carousel-media-list"></div>
                 <div class="image-upload" onclick="document.getElementById('carouselMedia').click()" style="padding:8px;">
@@ -115,7 +120,7 @@
             </div>
             
             <!-- ===== COULEURS ===== -->
-            <div class="design-section">
+            <div class="design-section colors" id="sec-colors">
                 <h3><i class="fas fa-palette"></i> Couleurs</h3>
                 <div class="form-group">
                     <label>Couleur principale</label>
@@ -140,7 +145,7 @@
             </div>
             
             <!-- ===== AFFICHAGE PRODUITS ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-display">
                 <h3><i class="fas fa-cube"></i> Affichage produits</h3>
                 
                 <!-- CASE À COCHER BARRE DE RECHERCHE -->
@@ -173,7 +178,7 @@
             </div>
             
             <!-- ===== CATÉGORIES ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-categories">
                 <h3><i class="fas fa-tags"></i> Catégories</h3>
                 <div id="categoriesContainer"></div>
                 <button class="btn-secondary" style="width:100%; margin-top:10px;" onclick="window.addCategory()">
@@ -182,7 +187,7 @@
             </div>
             
             <!-- ===== PRODUITS ===== -->
-            <div class="design-section">
+            <div class="design-section" id="sec-products">
                 <h3><i class="fas fa-box"></i> Produits</h3>
                 <div id="productsContainer"></div>
                 <button class="btn-secondary" style="width:100%; margin-top:10px;" onclick="window.openAddProductModal()">
@@ -191,17 +196,25 @@
             </div>
             
             <!-- ===== BOUTONS ===== -->
-            <button class="btn-primary" id="publishBtn" onclick="window.publishShop()">Publier ma boutique</button>
-            <button class="btn-primary" id="updateBtn" style="display:none; background:var(--warning);" onclick="window.updateShop()">
-                Mettre à jour
-            </button>
+            <div class="publish-bar">
+                <button class="btn-primary" id="publishBtn" onclick="window.publishShop()"><i class="fas fa-rocket"></i> Publier ma boutique</button>
+                <button class="btn-primary" id="updateBtn" style="display:none;" onclick="window.updateShop()">
+                    <i class="fas fa-save"></i> Enregistrer les modifications
+                </button>
+            </div>
         </div>
         
         <!-- ============================================================
              APERÇU EN TEMPS RÉEL
              ============================================================ -->
         <div class="designer-preview">
-            <h3 style="margin-bottom:12px;">Aperçu en temps réel</h3>
+            <div class="preview-head">
+                <h3>Aperçu de ta boutique</h3>
+                <div class="device-toggle" role="group" aria-label="Taille de l'aperçu">
+                    <button type="button" class="active" onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===this));document.getElementById('livePreview').classList.remove('as-mobile')"><i class="fas fa-desktop"></i> Ordinateur</button>
+                    <button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===this));document.getElementById('livePreview').classList.add('as-mobile')"><i class="fas fa-mobile-alt"></i> Mobile</button>
+                </div>
+            </div>
             <div id="livePreview">
                 <div style="text-align:center;padding:40px;color:var(--gray-500);">
                     <i class="fas fa-eye" style="font-size:48px;margin-bottom:16px;"></i>
