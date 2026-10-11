@@ -2043,18 +2043,29 @@
             return;
         }
         const labels = { client: 'Client', vendeur: 'Vendeur', livreur: 'Livreur', admin: 'Admin' };
-        openModal(`
-            <h3 style="margin-bottom:20px;">Mon profil</h3>
-            <p><strong>Nom :</strong> ${escapeHtml(currentProfile?.full_name || '—')}</p>
-            <p><strong>Email :</strong> ${escapeHtml(currentUser.email)}</p>
-            <p><strong>Type :</strong> ${labels[currentUserType] || 'Client'}</p>
-            ${currentUserType === 'vendeur' ? `
-                <button class="btn-submit" style="margin-top:16px;" onclick="window.location.href='vendor-dashboard.html'">
-                    <i class="fas fa-store"></i> Mon tableau de bord
-                </button>` : ''}
-            <button class="btn-cancel" style="margin-top:10px;width:100%;" onclick="window.location.href='reset-password.html'">
-                <i class="fas fa-key"></i> Changer mon mot de passe
-            </button>`);
+        const name = currentProfile?.full_name || currentUser.email || 'Utilisateur';
+        const avatar = safeUrl(currentProfile?.avatar_url);
+        const row = (href, icon, label, extra = '') => `<a class="pf-row" href="${href}" ${extra}><i class="fas ${icon}"></i><span>${label}</span><i class="fas fa-chevron-right"></i></a>`;
+        const modal = openModal(`
+            <div class="pf-head">
+                <div class="pf-avatar">${avatar ? `<img src="${avatar}" alt="">` : escapeHtml(name.charAt(0).toUpperCase())}</div>
+                <h3>${escapeHtml(name)}</h3>
+                <small>${escapeHtml(currentUser.email)}</small>
+                <span class="pf-role">${labels[currentUserType] || 'Client'}</span>
+            </div>
+            ${currentUserType === 'vendeur' ? `<a class="btn-submit pf-main" href="vendor-dashboard.html"><i class="fas fa-store"></i> Mon espace vendeur</a>` : ''}
+            ${currentUserType === 'livreur' ? `<a class="btn-submit pf-main" href="delivery-dashboard.html"><i class="fas fa-motorcycle"></i> Mon espace livreur</a>` : ''}
+            <nav class="pf-list">
+                ${row('activities.html', 'fa-receipt', 'Mes commandes et activités')}
+                ${row('notifications.html', 'fa-bell', 'Notifications')}
+                ${row('portfolio.html', 'fa-wallet', 'Mon portefeuille')}
+                ${currentUserType === 'client' ? row('shop-designer.html', 'fa-store', 'Devenir vendeur') + row('delivery-register.html', 'fa-motorcycle', 'Devenir livreur') : ''}
+                ${row('reset-password.html', 'fa-key', 'Sécurité : changer mon mot de passe')}
+                ${row('help.html', 'fa-question-circle', 'Aide')}
+                ${row('privacy.html', 'fa-user-shield', 'Confidentialité')}
+                ${row('#', 'fa-sign-out-alt', 'Déconnexion', 'onclick="closeModal();logout();return false;"')}
+            </nav>`);
+        modal.classList.add('profile-modal');
     }
  
     const ORDER_LABELS = {
