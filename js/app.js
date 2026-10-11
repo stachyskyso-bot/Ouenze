@@ -448,6 +448,10 @@
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
+                    <a class="notif-bell" href="notifications.html" title="Notifications" aria-label="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="cart-count notif-count" hidden></span>
+                    </a>
                     <div class="cart-icon" onclick="showCart()">
                         <i class="fas fa-shopping-cart"></i>
                         <span class="cart-count">${cartTotalQty()}</span>
@@ -473,6 +477,41 @@
         const deliveryLink = document.getElementById('deliveryDashboardLink');
         if (deliveryLink) {
             deliveryLink.style.display = currentUserType === 'livreur' ? '' : 'none';
+        }
+
+        // Lien « Notifications » ajouté après « Commandes » dans le menu de chaque page
+        const nav = document.querySelector('.nav-links');
+        let notifLink = document.getElementById('notifNavLink');
+        if (nav && !notifLink) {
+            notifLink = document.createElement('a');
+            notifLink.id = 'notifNavLink';
+            notifLink.href = 'notifications.html';
+            notifLink.innerHTML = 'Notifications <span class="nav-badge notif-count" hidden></span>';
+            const after = [...nav.querySelectorAll('a')].find(a => a.textContent.trim() === 'Commandes');
+            if (after) after.after(notifLink); else nav.appendChild(notifLink);
+        }
+        if (notifLink) {
+            notifLink.style.display = currentUser ? '' : 'none';
+            if (/notifications\.html$/.test(location.pathname)) notifLink.classList.add('active');
+        }
+        refreshNotifCount();
+    }
+
+    // ============ NOTIFICATIONS : COMPTEUR ============
+    let notifTimer = null;
+    async function refreshNotifCount() {
+        const badges = document.querySelectorAll('.notif-count');
+        const show = n => badges.forEach(b => { b.textContent = n > 99 ? '99+' : String(n); b.hidden = !n; });
+        if (!currentUser || !window.supabase?.rpc) { show(0); return; }
+        try {
+            const { data, error } = await window.supabase.rpc('notifications_unread');
+            if (error) return; // migration 20261018 pas encore exécutée : pas de compteur
+            show(Number(data) || 0);
+        } catch (e) { /* réseau : on réessaiera */ }
+        if (!notifTimer) {
+            notifTimer = setInterval(refreshNotifCount, 60000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotifCount(); });
+            document.addEventListener('ouenze:notifications', refreshNotifCount);
         }
     }
  
@@ -1805,6 +1844,7 @@
         doSignUp,
         logout,
         openRateOrder,
+        refreshNotifCount,
         pickStar,
         submitRating,
         requestPasswordReset,
