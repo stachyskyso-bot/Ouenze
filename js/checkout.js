@@ -559,25 +559,35 @@
         if (error || !data?.orders?.length) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-lock"></i> Payer';
-            const missing = /function|Could not find|does not exist/i.test(error?.message || '');
+            // Fonction absente de la base = migration 20261017 pas encore exécutée.
+            // Sinon on affiche le vrai message de la base (stock, adresse, mode test…).
+            const msg = error?.message || '';
+            const missing = /place_order/.test(msg) && /Could not find|does not exist|schema cache/i.test(msg);
+            if (error) console.error('❌ place_order :', error);
             return setError(missing
-                ? 'Le paiement en ligne (pawaPay) est en cours d\'activation. Ta commande n\'a pas été passée et rien n\'a été débité : ton panier est conservé.'
-                : (error?.message || 'Commande impossible pour le moment. Ton panier est conservé.'));
+                ? 'La commande en ligne n\'est pas encore activée (base de données à mettre à jour). Rien n\'a été débité : ton panier est conservé.'
+                : (msg || 'Commande impossible pour le moment. Ton panier est conservé.'));
         }
         cart = [];
         saveCart();
         // Les emails ne bloquent pas la commande : si l'envoi échoue, elle est quand même passée
         let mailed = true;
+        let mailError = '';
         try {
             const res = await window.supabase.functions.invoke('order-notify', { body: { action: 'placed', order_ids: data.orders.map(o => o.order_id) } });
-            mailed = !res.error;
-        } catch (e) { mailed = false; }
+            if (res.error) {
+                mailed = false;
+                try { mailError = (await res.error.context?.json())?.error || res.error.message || ''; } catch (e) { mailError = res.error.message || ''; }
+                console.error('❌ order-notify :', mailError);
+            }
+        } catch (e) { mailed = false; mailError = e?.message || ''; }
         const test = data.mode !== 'live';
         box().innerHTML = `<div class="dl-status ok"><i class="fas fa-check-circle"></i>
             <h3>Commande envoyée${data.orders.length > 1 ? ` à ${data.orders.length} boutiques` : ''} !</h3>
             ${test ? '<p class="co-test-badge">Commande de TEST : rien n\'est débité, le vendeur ne doit rien expédier.</p>' : ''}
             <ul class="co-done-list">${data.orders.map(o => `<li><strong>${esc(o.shop_name)}</strong> — ${esc(o.order_number)}<span>${fcfa(o.total)}</span></li>`).join('')}</ul>
             <p>Total : <strong>${fcfa(data.total)}</strong>. Chaque vendeur doit maintenant <strong>accepter</strong> sa commande${mailed ? ' : tu reçois un email à chaque étape' : ''}.</p>
+            ${!mailed && test ? `<p class="co-test-badge">Emails non envoyés : ${esc(mailError || 'fonction order-notify injoignable')}</p>` : ''}
             <a class="btn-submit" href="activities.html">Suivre mes commandes</a></div>`;
         window.scrollTo(0, 0);
     }
