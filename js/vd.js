@@ -18,6 +18,7 @@
     let dashShops = [];
     let medalInfo = {};
     let vendorOrders = [];      // commandes reçues (vendor_orders)
+    let shopLocations = null;   // points de retrait (my_shop_locations)
     let ordersTab = 'todo';
     let pendingTransfers = {};   // shop_id → transfert en attente
  
@@ -146,6 +147,12 @@
             const { data: ord, error: oError } = await window.supabase.rpc('vendor_orders');
             if (!oError) vendorOrders = ord || [];
         } catch (e) { /* migration pas encore passée */ }
+        // Points de retrait (migration 20261019) ; absente = pas de bloc position
+        shopLocations = null;
+        try {
+            const { data: locs, error: lError } = await window.supabase.rpc('my_shop_locations');
+            if (!lError) shopLocations = Object.fromEntries((locs || []).map(l => [l.shop_id, l]));
+        } catch (e) { /* migration pas encore passée */ }
         console.log(`✅ vd.js : ${dashUser.email} — ${dashShops.length} boutique(s)`);
         return true;
     }
@@ -220,6 +227,7 @@
                         <div style="font-size:12px;color:var(--gray-500,#64748b);margin-top:4px;">
                             <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? ', ' + escapeHtml(shop.district) : ''}
                         </div>
+                        ${pickupHtml(shop)}
                     </div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
                         ${shop.is_verified ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:20px;">✓ Vérifiée</span>' : ''}
@@ -267,6 +275,29 @@
         </div>`;
     }
  
+    // Point de retrait : les livreurs proches de la boutique reçoivent les courses
+    function pickupHtml(shop) {
+        if (!shopLocations) return '';
+        const loc = shopLocations[shop.id];
+        const id = escapeHtml(shop.id);
+        return loc && loc.lat != null
+            ? `<div class="pickup-line ok"><i class="fas fa-check-circle"></i> Point de retrait enregistré
+                <button onclick="setPickup('${id}')">Mettre à jour</button></div>`
+            : `<div class="pickup-line"><i class="fas fa-exclamation-triangle"></i> Enregistre la position de ta boutique pour que les livreurs proches la trouvent.
+                <button onclick="setPickup('${id}')"><i class="fas fa-location-arrow"></i> Je suis à la boutique</button></div>`;
+    }
+
+    function setPickup(shopId) {
+        if (!navigator.geolocation) { alert('Ton appareil ne donne pas sa position.'); return; }
+        if (!confirm('Es-tu dans ta boutique en ce moment ? Sa position sera enregistrée comme point de retrait pour les livreurs.')) return;
+        navigator.geolocation.getCurrentPosition(async p => {
+            const { error } = await window.supabase.rpc('set_shop_location', { target_shop: shopId, new_lat: p.coords.latitude, new_lng: p.coords.longitude });
+            if (error) { alert(error.message || 'Position non enregistrée.'); return; }
+            shopLocations[shopId] = { lat: p.coords.latitude, lng: p.coords.longitude };
+            showDashboard();
+        }, () => alert('Autorise la localisation dans ton navigateur pour enregistrer la position.'), { enableHighAccuracy: true, timeout: 15000 });
+    }
+
     // Même rendu que l'aperçu du shop-designer, à partir du design enregistré
     function renderStorefront(shop, d, logo, products) {
         const productsStyle = d.layout === 'grid'
@@ -847,7 +878,7 @@
  
     Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink,
         openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop,
-        openListing, listingCalc, submitListing, voTab, voDecide });
+        openListing, listingCalc, submitListing, voTab, voDecide, setPickup });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

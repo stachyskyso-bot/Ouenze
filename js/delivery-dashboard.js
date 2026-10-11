@@ -1,440 +1,288 @@
-// ============ VARIABLES GLOBALES ============
-let currentUser = null;
-let deliveryRequests = [];
-let orders = [];
-let shops = [];
-let deliveries = [];
-let currentTab = 'available';
-let isOnline = true;
-let currentDeliveryUser = null;
+// ============================================================
+// DELIVERY-DASHBOARD.JS — Espace livreur (delivery-dashboard.html)
+//
+// Sources (Supabase, migration 20261019_couriers.sql) :
+//   • my_courier_profile()     → niveau, note, zone, plafond, gains, disponibilité
+//   • courier_set_presence()   → « Je suis disponible » + position GPS
+//   • available_deliveries()   → courses à prendre (et celles réservées aux niveaux supérieurs)
+//   • take_delivery()          → prendre une course (code de remise envoyé au client)
+//   • courier_step()           → colis récupéré · livrée (avec le code du client) · abandon
+//   • my_deliveries()          → mes courses en cours et terminées
+// Les règles (niveau, zone, plafond) sont vérifiées par la base : l'écran ne fait qu'afficher.
+// ============================================================
 
-// ============ FONCTIONS UTILITAIRES ============
-function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/[&<>]/g, m => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;'
-    }[m]));
-}
+(function () {
+    'use strict';
 
-function calculateDeliveryFee(shopId, totalAmount) {
-    const baseFee = 1500;
-    const percentageFee = totalAmount * 0.05;
-    return Math.max(baseFee, Math.min(percentageFee, 5000));
-}
-
-function getStatusText(status) {
-    const statusMap = {
-        accepted: 'Acceptée',
-        delivering: 'En livraison',
-        completed: 'Livrée',
-        pending: 'En attente'
+    // Copie des règles de courier_level() (SQL) pour expliquer comment monter de niveau
+    const LEVELS = [
+        { level: 1, name: 'Nouveau', need: 'Au départ', zone: '3 km', max: '30 000 FCFA' },
+        { level: 2, name: 'Confirmé', need: 'Score ≥ 5', zone: '5 km', max: '75 000 FCFA' },
+        { level: 3, name: 'Expert', need: 'Score ≥ 10', zone: '8 km', max: '150 000 FCFA' },
+        { level: 4, name: 'Élite', need: 'Score ≥ 15 et note ≥ 4', zone: '15 km', max: '400 000 FCFA' },
+        { level: 5, name: '5 étoiles', need: '30 livraisons et note ≥ 4,5', zone: 'Toute la ville (30 km)', max: 'Sans plafond' }
+    ];
+    const STATUS = {
+        courier_assigned: 'À récupérer', in_transit: 'En route vers le client', picked_up: 'En route vers le client',
+        delivered: 'Livrée', accepted: 'Rendue', cancelled: 'Annulée', refused: 'Refusée'
     };
-    return statusMap[status] || status;
-}
+    const state = { profile: null, available: [], mine: [], tab: 'available', busy: false, timer: null, geoTimer: null };
+    const app = () => document.getElementById('courierApp');
 
-// ============ GESTION DES DONNÉES ============
-function getAvailableDeliveries() {
-    // Commandes en attente de livraison
-    const pendingOrders = orders.filter(o => o.status === 'confirmée' && !o.deliveryId);
-    return pendingOrders.map(order => {
-        const shop = shops.find(s => s.id === order.items[0]?.shopId);
-        const deliveryFee = calculateDeliveryFee(shop?.id, order.total);
-        return { ...order, deliveryFee, shop };
-    });
-}
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fcfa = n => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} FCFA`;
+    const km = n => n == null ? '—' : `${Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km`;
+    const starsTxt = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+    const mapsLink = (lat, lng, text) => lat != null && lng != null
+        ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text || '')}`;
+    const rpc = (name, args) => window.supabase.rpc(name, args);
 
-function getMyDeliveries() {
-    return deliveries.filter(d => d.deliveryUserId === currentUser.email && d.status !== 'completed');
-}
-
-function getDeliveryHistory() {
-    return deliveries.filter(d => d.deliveryUserId === currentUser.email && d.status === 'completed');
-}
-
-// ============ ACTIONS DE LIVRAISON ============
-function acceptDelivery(orderId, fee) {
-    const order = orders.find(o => o.id === orderId);
-    if (!order) return;
-    
-    const newDelivery = {
-        id: Date.now(),
-        orderId: orderId,
-        deliveryUserId: currentUser.email,
-        deliveryUserName: currentUser.name,
-        fee: fee,
-        status: 'accepted',
-        date: new Date().toISOString(),
-        shopId: order.items[0]?.shopId,
-        customerName: order.userName,
-        customerPhone: order.deliveryInfo?.phone,
-        customerAddress: `${order.deliveryInfo?.quartier || ''}, ${order.deliveryInfo?.address || ''}`,
-        shopName: shops.find(s => s.id === order.items[0]?.shopId)?.name
-    };
-    
-    deliveries.push(newDelivery);
-    localStorage.setItem('ouenze_deliveries', JSON.stringify(deliveries));
-    
-    // Mettre à jour la commande
-    order.deliveryId = newDelivery.id;
-    order.deliveryStatus = 'accepted';
-    localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-    
-    // Notifications
-    console.log(`📧 Notification envoyée au client ${order.userName}: Un livreur a accepté votre livraison !`);
-    console.log(`📧 Notification envoyée au vendeur: Le livreur ${currentUser.name} a accepté la livraison`);
-    
-    alert(`✅ Livraison acceptée !\n\nClient: ${order.userName}\nTéléphone: ${order.deliveryInfo?.phone}\nAdresse: ${order.deliveryInfo?.quartier}, ${order.deliveryInfo?.address}\n\nUn email de confirmation a été envoyé.`);
-    
-    renderPage();
-}
-
-function updateDeliveryStatus(deliveryId, newStatus) {
-    const delivery = deliveries.find(d => d.id == deliveryId);
-    if (!delivery) return;
-    
-    delivery.status = newStatus;
-    
-    if (newStatus === 'completed') {
-        delivery.completedDate = new Date().toISOString();
-        
-        // Mettre à jour les gains du livreur
-        if (currentDeliveryUser) {
-            currentDeliveryUser.earnings = (currentDeliveryUser.earnings || 0) + delivery.fee;
-            currentDeliveryUser.deliveries = (currentDeliveryUser.deliveries || 0) + 1;
-            
-            const index = deliveryRequests.findIndex(d => d.email === currentUser.email);
-            if (index !== -1) {
-                deliveryRequests[index] = currentDeliveryUser;
-                localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
-            }
-        }
-        
-        // Mettre à jour la commande
-        const order = orders.find(o => o.id === delivery.orderId);
-        if (order) {
-            order.deliveryStatus = newStatus;
-            order.status = 'livrée';
-            localStorage.setItem('ouenze_orders', JSON.stringify(orders));
-        }
-        
-        // Ouvrir la modale de notation
-        openRatingModal(delivery.orderId);
-    }
-    
-    localStorage.setItem('ouenze_deliveries', JSON.stringify(deliveries));
-    renderPage();
-}
-
-function viewDeliveryDetails(deliveryId) {
-    const delivery = deliveries.find(d => d.id == deliveryId);
-    if (delivery) {
-        alert(`📦 Détails de la livraison\n\nCommande: #${delivery.orderId}\nClient: ${delivery.customerName}\nTéléphone: ${delivery.customerPhone}\nAdresse: ${delivery.customerAddress}\nBoutique: ${delivery.shopName}\nStatut: ${getStatusText(delivery.status)}\nGain: ${delivery.fee.toLocaleString()} FCFA`);
-    }
-}
-
-// ============ NOTATION ============
-function openRatingModal(orderId) {
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3>Noter le livreur</h3>
-                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-            </div>
-            <div class="form-group">
-                <label>Note (1 à 5 étoiles)</label>
-                <div class="rating-stars" id="ratingStars">
-                    <i class="far fa-star" data-value="1"></i>
-                    <i class="far fa-star" data-value="2"></i>
-                    <i class="far fa-star" data-value="3"></i>
-                    <i class="far fa-star" data-value="4"></i>
-                    <i class="far fa-star" data-value="5"></i>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Commentaire</label>
-                <textarea id="ratingComment" rows="3" placeholder="Votre avis sur le livreur..."></textarea>
-            </div>
-            <button class="btn-primary" onclick="window.submitDeliveryRating('${orderId}')">Envoyer ma note</button>
-            <button onclick="this.closest('.modal').remove()" style="margin-top:12px;background:none;border:none;cursor:pointer;width:100%;">Passer</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    
-    let selectedRating = 0;
-    const stars = modal.querySelectorAll('#ratingStars i');
-    stars.forEach(star => {
-        star.addEventListener('click', () => {
-            selectedRating = parseInt(star.dataset.value);
-            stars.forEach((s, idx) => {
-                if (idx < selectedRating) {
-                    s.className = 'fas fa-star active';
-                } else {
-                    s.className = 'far fa-star';
-                }
-            });
+    // ---------- Position ----------
+    function position() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) { reject(new Error('Ton appareil ne donne pas sa position.')); return; }
+            navigator.geolocation.getCurrentPosition(
+                p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+                () => reject(new Error('Autorise la localisation pour recevoir les courses proches de toi.')),
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
         });
-    });
-}
-
-function submitDeliveryRating(orderId) {
-    const comment = document.getElementById('ratingComment')?.value || '';
-    const selectedRating = document.querySelectorAll('#ratingStars i.active').length;
-    
-    if (selectedRating === 0) {
-        alert("Veuillez sélectionner une note");
-        return;
     }
-    
-    const delivery = deliveries.find(d => d.orderId === orderId);
-    if (delivery) {
-        delivery.rating = selectedRating;
-        delivery.comment = comment;
-        localStorage.setItem('ouenze_deliveries', JSON.stringify(deliveries));
-        
-        // Mettre à jour la note moyenne du livreur
-        const allDeliveries = deliveries.filter(d => d.deliveryUserId === currentUser.email && d.rating);
-        if (allDeliveries.length > 0) {
-            const avgRating = allDeliveries.reduce((s, d) => s + d.rating, 0) / allDeliveries.length;
-            if (currentDeliveryUser) {
-                currentDeliveryUser.rating = avgRating.toFixed(1);
-                const index = deliveryRequests.findIndex(d => d.email === currentUser.email);
-                if (index !== -1) {
-                    deliveryRequests[index] = currentDeliveryUser;
-                    localStorage.setItem('ouenze_delivery_requests', JSON.stringify(deliveryRequests));
-                }
-            }
+
+    async function goOnline() {
+        if (state.busy) return;
+        state.busy = true;
+        try {
+            const pos = await position();
+            const { error } = await rpc('courier_set_presence', { is_online: true, new_lat: pos.lat, new_lng: pos.lng });
+            if (error) throw error;
+            await refresh();
+        } catch (e) {
+            alert(e.message || 'Impossible de passer en disponible.');
+        } finally {
+            state.busy = false;
         }
     }
-    
-    alert("Merci pour votre avis !");
-    document.querySelector('.modal.active')?.remove();
-    renderPage();
-}
 
-// ============ STATUT ============
-function setStatus(online) {
-    isOnline = online;
-    renderPage();
-}
-
-// ============ DÉCONNEXION ============
-function logout() {
-    localStorage.removeItem('ouenze_current_user');
-    window.location.href = 'index.html';
-}
-
-// ============ AFFICHAGE ============
-function renderPage() {
-    const container = document.getElementById('appContainer');
-    if (!container) return;
-    
-    if (currentTab === 'available') {
-        const availableDeliveries = getAvailableDeliveries();
-        container.innerHTML = `
-            <div class="status-toggle">
-                <button class="status-btn ${isOnline ? 'active' : ''}" onclick="setStatus(true)">En ligne</button>
-                <button class="status-btn ${!isOnline ? 'active' : ''}" onclick="setStatus(false)">Hors ligne</button>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Gains totaux</h3>
-                    <div class="stat-value">${(currentDeliveryUser?.earnings || 0).toLocaleString()} FCFA</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Livraisons effectuées</h3>
-                    <div class="stat-value">${currentDeliveryUser?.deliveries || 0}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Note moyenne</h3>
-                    <div class="stat-value">${currentDeliveryUser?.rating || 0}/5</div>
-                </div>
-            </div>
-            <h3 class="section-title">📦 Livraisons disponibles (${isOnline ? availableDeliveries.length : 'hors ligne'})</h3>
-            <div class="orders-list">
-                ${isOnline && availableDeliveries.length ? availableDeliveries.map(order => `
-                    <div class="order-item">
-                        <div class="order-info">
-                            <h4>${escapeHtml(order.shop?.name || 'Boutique')}</h4>
-                            <p>📍 ${escapeHtml(order.shop?.quartier || 'Quartier')} → ${escapeHtml(order.deliveryInfo?.quartier || 'Livraison')}</p>
-                            <p>🛒 ${order.items.length} produit(s) - Total: ${order.total.toLocaleString()} FCFA</p>
-                            <div class="order-items">📦 ${order.items.map(i => i.productName).join(', ')}</div>
-                        </div>
-                        <div class="order-actions">
-                            <div class="delivery-fee">💰 ${order.deliveryFee.toLocaleString()} FCFA</div>
-                            <button class="btn-accept" onclick="acceptDelivery('${order.id}', ${order.deliveryFee})">Accepter</button>
-                        </div>
-                    </div>
-                `).join('') : `
-                    <div class="empty-state">
-                        <i class="fas fa-box-open"></i>
-                        <p>Aucune livraison disponible pour le moment</p>
-                    </div>
-                `}
-            </div>
-        `;
-    } else if (currentTab === 'active') {
-        const myDeliveries = getMyDeliveries();
-        container.innerHTML = `
-            <h3 class="section-title">🚚 Mes livraisons en cours</h3>
-            <div class="orders-list">
-                ${myDeliveries.length ? myDeliveries.map(delivery => {
-                    const order = orders.find(o => o.id === delivery.orderId);
-                    const shop = shops.find(s => s.id === order?.items[0]?.shopId);
-                    return `
-                        <div class="order-item">
-                            <div class="order-info">
-                                <h4>Commande #${delivery.orderId}</h4>
-                                <p>🏪 ${escapeHtml(shop?.name)} → 📍 ${escapeHtml(order?.deliveryInfo?.quartier)}</p>
-                                <p>👤 Client: ${escapeHtml(order?.userName)} - 📞 ${escapeHtml(order?.deliveryInfo?.phone)}</p>
-                                <p>📦 Produits: ${order?.items.map(i => i.productName).join(', ')}</p>
-                                <p>💰 Livraison: ${delivery.fee.toLocaleString()} FCFA</p>
-                                <div style="margin-top:8px;">
-                                    <span class="delivery-status status-${delivery.status === 'accepted' ? 'accepted' : delivery.status === 'delivering' ? 'delivering' : 'completed'}">
-                                        ${getStatusText(delivery.status)}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="order-actions">
-                                ${delivery.status === 'accepted' ? `
-                                    <button class="btn-accept" onclick="updateDeliveryStatus('${delivery.id}', 'delivering')">Démarrer livraison</button>
-                                ` : ''}
-                                ${delivery.status === 'delivering' ? `
-                                    <button class="btn-accept" onclick="updateDeliveryStatus('${delivery.id}', 'completed')">Marquer livrée</button>
-                                ` : ''}
-                                <button class="btn-accept btn-warning" style="margin-top:8px;" onclick="viewDeliveryDetails('${delivery.id}')">Détails</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('') : `
-                    <div class="empty-state">
-                        <i class="fas fa-truck"></i>
-                        <p>Aucune livraison en cours</p>
-                    </div>
-                `}
-            </div>
-        `;
-    } else if (currentTab === 'history') {
-        const history = getDeliveryHistory();
-        container.innerHTML = `
-            <h3 class="section-title">📋 Historique des livraisons</h3>
-            <div class="orders-list">
-                ${history.length ? history.map(delivery => {
-                    const order = orders.find(o => o.id === delivery.orderId);
-                    return `
-                        <div class="order-item">
-                            <div class="order-info">
-                                <h4>Commande #${delivery.orderId}</h4>
-                                <p>📅 ${new Date(delivery.completedDate || delivery.date).toLocaleDateString()}</p>
-                                <p>💰 Gain: ${delivery.fee.toLocaleString()} FCFA</p>
-                                ${delivery.rating ? `<p>⭐ Note reçue: ${delivery.rating}/5</p>` : ''}
-                                ${delivery.comment ? `<p>💬 Commentaire: "${escapeHtml(delivery.comment)}"</p>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('') : `
-                    <div class="empty-state">
-                        <i class="fas fa-history"></i>
-                        <p>Aucun historique de livraison</p>
-                    </div>
-                `}
-            </div>
-        `;
-    } else if (currentTab === 'profile') {
-        container.innerHTML = `
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Statut</h3>
-                    <div class="stat-value ${currentDeliveryUser?.status === 'approved' ? 'positive' : ''}">
-                        ${currentDeliveryUser?.status === 'approved' ? '✅ Actif' : currentDeliveryUser?.status === 'pending' ? '⏳ En attente' : '❌ Suspendu'}
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <h3>Livraisons</h3>
-                    <div class="stat-value">${currentDeliveryUser?.deliveries || 0}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Gains totaux</h3>
-                    <div class="stat-value">${(currentDeliveryUser?.earnings || 0).toLocaleString()} FCFA</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Note</h3>
-                    <div class="stat-value">${currentDeliveryUser?.rating || 0}/5</div>
-                </div>
-            </div>
-            <div class="profile-info">
-                <p><strong>👤 Nom:</strong> ${escapeHtml(currentDeliveryUser?.fullName)}</p>
-                <p><strong>📞 Téléphone:</strong> ${escapeHtml(currentDeliveryUser?.phone)}</p>
-                <p><strong>📍 Ville:</strong> ${escapeHtml(currentDeliveryUser?.city)}</p>
-                <p><strong>🏠 Quartier:</strong> ${escapeHtml(currentDeliveryUser?.quartier)}</p>
-                <p><strong>📧 Email:</strong> ${escapeHtml(currentDeliveryUser?.email)}</p>
-                <p><strong>📅 Inscription:</strong> ${currentDeliveryUser?.date ? new Date(currentDeliveryUser.date).toLocaleDateString() : 'Non renseignée'}</p>
-            </div>
-            <button class="btn-primary" style="margin-top:20px;" onclick="logout()">Se déconnecter</button>
-        `;
+    async function goOffline() {
+        await rpc('courier_set_presence', { is_online: false });
+        await refresh();
     }
-}
 
-// ============ NAVIGATION ============
-function setupNavigation() {
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            currentTab = tab.dataset.tab;
-            renderPage();
-        });
-    });
-}
+    // Garde la position à jour tant que le livreur est disponible (toutes les 5 min)
+    function keepPosition() {
+        clearInterval(state.geoTimer);
+        if (!state.profile?.online) return;
+        state.geoTimer = setInterval(async () => {
+            if (!state.profile?.online) return;
+            try {
+                const pos = await position();
+                await rpc('courier_set_presence', { is_online: true, new_lat: pos.lat, new_lng: pos.lng });
+            } catch (e) { /* on garde la dernière position */ }
+        }, 5 * 60 * 1000);
+    }
 
-// ============ INITIALISATION ============
-function init() {
-    // Récupérer les données
-    currentUser = JSON.parse(localStorage.getItem('ouenze_current_user') || 'null');
-    deliveryRequests = JSON.parse(localStorage.getItem('ouenze_delivery_requests') || '[]');
-    orders = JSON.parse(localStorage.getItem('ouenze_orders') || '[]');
-    shops = JSON.parse(localStorage.getItem('ouenze_shops') || '[]');
-    deliveries = JSON.parse(localStorage.getItem('ouenze_deliveries') || '[]');
-    
-    // Vérifier si l'utilisateur est un livreur validé
-    if (currentUser && currentUser.type === 'livreur') {
-        currentDeliveryUser = deliveryRequests.find(d => d.email === currentUser.email && d.status === 'approved');
-        
-        if (!currentDeliveryUser) {
-            alert("Votre compte livreur n'est pas encore activé. Veuillez attendre la validation.");
-            window.location.href = 'index.html';
+    // ---------- Données ----------
+    async function refresh() {
+        const { data: profile, error } = await rpc('my_courier_profile');
+        if (error) {
+            state.profile = { status: 'error', message: /my_courier_profile|Could not find|does not exist|schema cache/i.test(error.message || '')
+                ? "L'espace livreur arrive bientôt (base de données à mettre à jour)." : error.message };
+            render();
             return;
         }
-    } else {
-        // Rediriger si ce n'est pas un livreur
-        window.location.href = 'index.html';
-        return;
+        state.profile = profile;
+        if (profile.status === 'approved') {
+            const [a, m] = await Promise.all([rpc('available_deliveries'), rpc('my_deliveries')]);
+            state.available = a.data || [];
+            state.mine = m.data || [];
+        }
+        render();
+        keepPosition();
     }
-    
-    // Mettre à jour l'interface utilisateur
-    const userAvatar = document.getElementById('userAvatar');
-    const userName = document.getElementById('userName');
-    if (userAvatar) userAvatar.innerText = currentUser.name.charAt(0).toUpperCase();
-    if (userName) userName.innerText = currentUser.name;
-    
-    // Configurer la navigation
-    setupNavigation();
-    
-    // Afficher la page
-    renderPage();
-}
 
-// Exports globaux
-window.setStatus = setStatus;
-window.acceptDelivery = acceptDelivery;
-window.updateDeliveryStatus = updateDeliveryStatus;
-window.viewDeliveryDetails = viewDeliveryDetails;
-window.submitDeliveryRating = submitDeliveryRating;
-window.logout = logout;
+    // ---------- Affichage ----------
+    function gateHtml(p) {
+        const msg = {
+            none: ['fa-motorcycle', 'Deviens livreur Ouenze', 'Inscris-toi : un administrateur vérifie ton permis, ta pièce d\'identité et ton véhicule.', '<a class="btn-submit" href="delivery-register.html">Devenir livreur</a>'],
+            pending: ['fa-hourglass-half', 'Candidature en vérification', 'Un administrateur vérifie ton dossier. Tu recevras un email dès qu\'il est validé.', '<a class="notif-btn" href="delivery-register.html">Voir ma candidature</a>'],
+            rejected: ['fa-times-circle', 'Candidature refusée', 'Corrige ton dossier puis renvoie-le.', '<a class="btn-submit" href="delivery-register.html">Corriger mon dossier</a>'],
+            error: ['fa-tools', 'Espace livreur indisponible', p.message || '', '']
+        }[p.status] || ['fa-user-lock', 'Accès réservé', '', ''];
+        return `<div class="notif-empty courier-gate"><i class="fas ${msg[0]}"></i><h3>${esc(msg[1])}</h3><p>${esc(msg[2])}</p>${msg[3]}</div>`;
+    }
 
-// Démarrer l'application
-init();
+    function headerHtml(p) {
+        const lv = LEVELS.find(l => l.level === p.level);
+        const next = LEVELS.find(l => l.level === p.level + 1);
+        return `
+        <section class="courier-card level-${p.level}">
+            <div class="courier-id">
+                <div class="courier-badge" aria-label="Niveau ${p.level}">${p.level ? '★'.repeat(p.level) : '⛔'}</div>
+                <div>
+                    <small>Livreur ${esc(p.vehicle_type === 'voiture' ? 'en voiture' : 'à moto')} · ${esc(p.city || '')}</small>
+                    <h2>${esc(p.full_name || 'Livreur')}</h2>
+                    <strong class="courier-level">Niveau ${p.level} · ${esc(p.level_name)}</strong>
+                </div>
+            </div>
+            <div class="courier-stats">
+                <div><b>${p.deliveries}</b><span>livraisons</span></div>
+                <div><b>${p.reviews ? Number(p.rating).toLocaleString('fr-FR') + ' ★' : '—'}</b><span>${p.reviews} avis</span></div>
+                <div><b>${Number(p.score).toLocaleString('fr-FR')}</b><span>score</span></div>
+                <div><b>${fcfa(p.earned)}</b><span>gagnés</span></div>
+            </div>
+            <div class="courier-rights">
+                <span><i class="fas fa-bullseye"></i> Zone : <b>${p.level === 5 ? 'toute la ville' : p.radius_km + ' km autour de toi'}</b></span>
+                <span><i class="fas fa-box"></i> ${p.max_amount == null ? 'Commandes <b>sans plafond</b>' : `Commandes jusqu'à <b>${fcfa(p.max_amount)}</b>`}</span>
+            </div>
+            ${next ? `<p class="courier-next"><i class="fas fa-arrow-up"></i> Prochain niveau, <b>${esc(next.name)}</b> : ${esc(next.need)} → zone ${esc(next.zone)}, commandes jusqu'à ${esc(next.max)}.</p>` : (lv ? '<p class="courier-next"><i class="fas fa-crown"></i> Tu es au niveau maximum. Bravo !</p>' : '')}
+            <div class="courier-online ${p.online ? 'on' : ''}">
+                ${p.online
+                    ? `<span><i class="fas fa-circle"></i> Disponible : tu reçois les courses de ta zone</span><button class="notif-btn" onclick="courierOffline()">Faire une pause</button>`
+                    : `<span><i class="far fa-circle"></i> Hors ligne : tu ne reçois pas de courses</span><button class="notif-btn ok" onclick="courierOnline()"><i class="fas fa-location-arrow"></i> Je suis disponible</button>`}
+            </div>
+        </section>`;
+    }
+
+    function availableHtml() {
+        if (!state.profile.online) return '<div class="notif-empty"><i class="fas fa-power-off"></i><p>Passe en « disponible » pour voir les courses près de toi.</p></div>';
+        if (!state.available.length) return '<div class="notif-empty"><i class="fas fa-mug-hot"></i><p>Aucune course pour le moment. Cette page se met à jour toute seule.</p></div>';
+        return state.available.map(d => `
+            <article class="course ${d.allowed ? '' : 'locked'}">
+                <div class="course-top">
+                    <strong>${esc(d.shop_name)} → ${esc(d.dropoff_area || 'client')}</strong>
+                    <span class="course-fee">${fcfa(d.fee)}</span>
+                </div>
+                <p class="course-route"><i class="fas fa-store"></i> ${esc(d.pickup_area || '—')} · à ${km(d.to_pickup_km)} de toi${d.trip_km != null ? ` · trajet ${km(d.trip_km)}` : ''}</p>
+                <p class="course-meta">${d.items} article${d.items > 1 ? 's' : ''} · valeur ${fcfa(d.amount)}${d.is_test ? ' · <b>TEST</b>' : ''}</p>
+                ${d.allowed
+                    ? `<button class="notif-btn ok" onclick="courierTake('${esc(d.order_id)}')"><i class="fas fa-hand-paper"></i> Prendre la course</button>`
+                    : `<p class="course-lock"><i class="fas fa-lock"></i> ${esc(d.reason)}</p>`}
+            </article>`).join('');
+    }
+
+    function activeCard(d) {
+        const toShop = d.status === 'courier_assigned';
+        const items = (d.items || []).map(i => `${esc(i.name)}${i.variant ? ` (${esc(i.variant)})` : ''} × ${i.quantity}`).join(', ');
+        return `
+            <article class="course active">
+                <div class="course-top"><strong>${esc(d.order_number)}${d.is_test ? ' · TEST' : ''}</strong><span class="notif-status">${esc(STATUS[d.status] || d.status)}</span></div>
+                <ol class="course-steps">
+                    <li class="${toShop ? 'now' : 'done'}"><i class="fas fa-store"></i> <b>Récupérer</b> chez ${esc(d.shop_name)}<br><small>${esc(d.shop_address || '')}</small>
+                        ${toShop ? `<div class="notif-actions"><a class="notif-btn" target="_blank" rel="noopener" href="${mapsLink(d.shop_lat, d.shop_lng, d.shop_address)}"><i class="fas fa-directions"></i> Itinéraire</a>
+                        <button class="notif-btn ok" onclick="courierStep('${esc(d.order_id)}', 'pickup')"><i class="fas fa-box"></i> J'ai récupéré le colis</button></div>` : ''}</li>
+                    <li class="${toShop ? '' : 'now'}"><i class="fas fa-home"></i> <b>Livrer</b> à ${esc(d.client_name)} · ${esc(d.dropoff_area || '')}<br>
+                        <small>${d.landmark ? 'Repère : ' + esc(d.landmark) : ''}</small>
+                        ${toShop ? '' : `<div class="notif-actions"><a class="notif-btn" target="_blank" rel="noopener" href="${mapsLink(d.client_lat, d.client_lng, d.dropoff_area)}"><i class="fas fa-directions"></i> Itinéraire</a>
+                        ${d.client_phone ? `<a class="notif-btn" href="tel:${esc(String(d.client_phone).replace(/\s/g, ''))}"><i class="fas fa-phone"></i> Appeler</a>` : ''}
+                        <button class="notif-btn ok" onclick="courierDeliver('${esc(d.order_id)}')"><i class="fas fa-check"></i> Livrée : entrer le code</button></div>`}</li>
+                </ol>
+                <p class="course-meta">${items} · valeur ${fcfa(d.amount)} · ton gain <b>${fcfa(d.fee)}</b></p>
+                ${toShop ? `<button class="course-release" onclick="courierRelease('${esc(d.order_id)}')">Je ne peux plus faire cette course</button>` : ''}
+            </article>`;
+    }
+
+    function historyHtml(list) {
+        if (!list.length) return '<div class="notif-empty"><i class="fas fa-history"></i><p>Tes livraisons terminées apparaîtront ici, avec la note du client.</p></div>';
+        return list.map(d => `
+            <article class="course done">
+                <div class="course-top"><strong>${esc(d.order_number)}${d.is_test ? ' · TEST' : ''}</strong><span class="course-fee">${fcfa(d.fee)}</span></div>
+                <p class="course-meta">${esc(d.shop_name)} → ${esc(d.dropoff_area || '')} · ${new Date(d.updated_at).toLocaleDateString('fr-FR')}</p>
+                ${d.stars ? `<p class="course-review"><span>${starsTxt(d.stars)}</span>${d.review ? ' « ' + esc(d.review) + ' »' : ''}</p>` : '<p class="course-meta">Pas encore noté par le client.</p>'}
+            </article>`).join('');
+    }
+
+    function levelsHtml(current) {
+        return `<details class="courier-levels" ${state.levelsOpen ? 'open' : ''} ontoggle="courierLevels(this.open)">
+            <summary><i class="fas fa-info-circle"></i> Comment monter de niveau ?</summary>
+            <p><b>Score = livraisons × note ÷ 5.</b> La note compte 3 avis de départ à 3,5 ★ : il faut des livraisons <b>et</b> de bonnes étoiles.
+               Plus ton niveau monte, plus ta zone s'étend et plus tu peux livrer des commandes chères (téléphones, TV…).
+               Une note sous 2,5 ★ (après 5 avis) suspend le compte.</p>
+            <table><thead><tr><th>Niveau</th><th>Condition</th><th>Zone</th><th>Commandes</th></tr></thead>
+            <tbody>${LEVELS.map(l => `<tr class="${l.level === current ? 'me' : ''}"><td>${'★'.repeat(l.level)} ${esc(l.name)}</td><td>${esc(l.need)}</td><td>${esc(l.zone)}</td><td>${esc(l.max)}</td></tr>`).join('')}</tbody></table>
+        </details>`;
+    }
+
+    function render() {
+        const p = state.profile;
+        if (!p) return;
+        if (p.status !== 'approved') { app().innerHTML = gateHtml(p); return; }
+        const active = state.mine.filter(d => ['courier_assigned', 'in_transit', 'picked_up'].includes(d.status));
+        const done = state.mine.filter(d => d.status === 'delivered');
+        const allowed = state.available.filter(d => d.allowed).length;
+        const tabs = { available: `Courses dispo${allowed ? ` (${allowed})` : ''}`, active: `En cours${active.length ? ` (${active.length})` : ''}`, history: 'Historique' };
+        if (active.length && state.tab === 'available' && !state.tabChosen) state.tab = 'active';
+        app().innerHTML = `
+            ${headerHtml(p)}
+            <div class="notif-filters" role="tablist">${Object.entries(tabs).map(([k, label]) =>
+                `<button role="tab" aria-selected="${state.tab === k}" class="${state.tab === k ? 'active' : ''}" onclick="courierTab('${k}')">${label}</button>`).join('')}</div>
+            <div class="course-list">${state.tab === 'available' ? availableHtml() : state.tab === 'active'
+                ? (active.length ? active.map(activeCard).join('') : '<div class="notif-empty"><i class="fas fa-route"></i><p>Aucune course en cours.</p></div>')
+                : historyHtml(done)}</div>
+            ${levelsHtml(p.level)}`;
+    }
+
+    // ---------- Actions ----------
+    async function act(fn) {
+        if (state.busy) return;
+        state.busy = true;
+        try {
+            const { error } = await fn();
+            if (error) { alert(error.message || 'Action impossible.'); return; }
+            window.refreshNotifCount?.();
+        } finally {
+            state.busy = false;
+        }
+        await refresh();
+    }
+
+    function courierTake(orderId) {
+        const d = state.available.find(x => x.order_id === orderId);
+        if (!confirm(`Prendre cette course ?\n${d?.shop_name || ''} → ${d?.dropoff_area || ''}\nGain : ${fcfa(d?.fee)}\n\nVa d'abord récupérer le colis à la boutique.`)) return;
+        state.tab = 'active';
+        act(() => rpc('take_delivery', { target_order: orderId }));
+    }
+
+    function courierStep(orderId, step) {
+        if (step === 'pickup' && !confirm('Tu as bien le colis en main ? Le client va être prévenu que tu arrives.')) return;
+        act(() => rpc('courier_step', { target_order: orderId, step }));
+    }
+
+    function courierDeliver(orderId) {
+        const code = prompt('Demande au client son code de remise (4 chiffres), reçu dans ses notifications :');
+        if (code === null) return;
+        state.tab = 'history';
+        state.tabChosen = true;
+        act(() => rpc('courier_step', { target_order: orderId, step: 'delivered', client_code: code.trim() }));
+    }
+
+    function courierRelease(orderId) {
+        if (!confirm('Rendre cette course ? Elle sera proposée à un autre livreur.')) return;
+        act(() => rpc('courier_step', { target_order: orderId, step: 'release' }));
+    }
+
+    function courierTab(t) {
+        state.tab = t;
+        state.tabChosen = true;
+        render();
+    }
+
+    async function init() {
+        if (!window.supabase?.rpc) { app().innerHTML = '<div class="notif-empty"><p>Service indisponible. Recharge la page.</p></div>'; return; }
+        const { data } = await window.supabase.auth.getSession();
+        if (!data?.session?.user) {
+            window.supabase.auth.onAuthStateChange?.(e => { if (e === 'SIGNED_IN') location.reload(); });
+            app().innerHTML = `<div class="notif-empty"><i class="fas fa-user-lock"></i><h3>Connecte-toi à ton espace livreur</h3>
+                <button class="btn-submit" onclick="openLoginModal()">Se connecter</button></div>`;
+            return;
+        }
+        await refresh();
+        // Nouvelles courses : mise à jour toutes les 30 s quand la page est visible
+        state.timer = setInterval(() => { if (!document.hidden && !state.busy && state.profile?.status === 'approved') refresh(); }, 30000);
+    }
+
+    Object.assign(window, { courierLevels: open => { state.levelsOpen = open; }, courierOnline: goOnline, courierOffline: goOffline, courierTake, courierStep, courierDeliver, courierRelease, courierTab });
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
