@@ -594,7 +594,7 @@
                         <strong class="sf-logo">OUENZE</strong>
                         <p>Le marché du Congo, chez vous. Des boutiques de confiance, des livreurs notés et un paiement Mobile Money sécurisé.</p>
                     </div>
-                    <nav><h4>Acheter</h4><a href="index.html">Accueil</a><a href="index.html#categories">Catégories</a><a href="activities.html">Mes commandes</a><a href="tracking.html">Suivi livraison</a></nav>
+                    <nav><h4>Acheter</h4><a href="index.html">Accueil</a><a href="index.html#categories">Catégories</a><a href="autour.html">Boutiques autour de moi</a><a href="activities.html">Mes commandes</a><a href="tracking.html">Suivi livraison</a></nav>
                     <nav><h4>Vendre et livrer</h4><a href="vendor-register.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Investir</a></nav>
                     <nav><h4>Ouenze</h4><a href="help.html">Aide</a><a href="about.html">À propos</a><a href="privacy.html">Confidentialité</a></nav>
                 </div>
@@ -687,7 +687,8 @@
 
             <section class="home-section home-only" id="homeShops">
                 <div class="home-section-head"><h3>Boutiques en vedette</h3>
-                    <a href="#" onclick="document.getElementById('allShops')?.scrollIntoView({behavior:'smooth'});return false;">Voir tout <i class="fas fa-chevron-right"></i></a></div>
+                    <span class="home-head-links"><a href="autour.html"><i class="fas fa-map-marker-alt"></i> Autour de moi</a>
+                    <a href="#" onclick="document.getElementById('allShops')?.scrollIntoView({behavior:'smooth'});return false;">Voir tout <i class="fas fa-chevron-right"></i></a></span></div>
                 <div class="home-shops" id="featuredShops"><p class="search-hint">Chargement…</p></div>
             </section>
 
