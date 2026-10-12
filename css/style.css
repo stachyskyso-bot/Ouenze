@@ -2713,6 +2713,7 @@ body {
     line-height: 1.5;
     color: var(--gray-700);
     overflow-wrap: anywhere;
+    white-space: pre-line;
 }
 
 .notif-status {
