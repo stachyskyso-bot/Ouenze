@@ -588,3 +588,74 @@
 .dl-rating-rule i {
     color: #f59e0b;
 }
+
+/* ============ ADMIN : demandes vendeurs ============ */
+.adm-badge.suspended { background: #e2e8f0; color: #334155; }
+
+.av-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 6px;
+}
+
+.av-contact a {
+    flex: 1 1 140px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: auto;
+    margin: 0;
+    text-decoration: none;
+}
+
+.av-contact .av-wa {
+    background: #16a34a;
+}
+
+.av-desc {
+    margin: 10px 0;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.adm-mailtest {
+    margin-top: 16px;
+    font-size: 13px;
+}
+
+.adm-mailtest p {
+    margin: 6px 0 10px;
+    color: var(--gray-500);
+}
+
+.adm-mailtest pre {
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.dl-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 14px;
+    font-size: 13px;
+    color: var(--gray-700);
+}
+
+.dl-check input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}

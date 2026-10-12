@@ -24,6 +24,10 @@
         order_delivered: { icon: 'fa-box-open', tone: 'ok', group: 'orders' },
         order_pickup: { icon: 'fa-motorcycle', tone: 'info', group: 'orders' },
         delivery_offer: { icon: 'fa-motorcycle', tone: 'action', group: 'orders' },
+        vendor_application: { icon: 'fa-store', tone: 'action', group: 'orders' },
+        vendor_approved: { icon: 'fa-store', tone: 'ok', group: 'orders' },
+        vendor_rejected: { icon: 'fa-store', tone: 'ko', group: 'orders' },
+        vendor_suspended: { icon: 'fa-ban', tone: 'ko', group: 'orders' },
         shop_review: { icon: 'fa-star', tone: 'star', group: 'reviews' },
         courier_review: { icon: 'fa-star', tone: 'star', group: 'reviews' }
     };
@@ -106,6 +110,15 @@
                 </div>`;
             }
             return '';
+        }
+        if (n.kind === 'vendor_application') {
+            return `<div class="notif-actions"><a class="notif-btn ok" href="admin-vendors.html" onclick="notifRead('${id}')"><i class="fas fa-user-check"></i> Voir les demandes</a></div>`;
+        }
+        if (n.kind === 'vendor_approved') {
+            return `<div class="notif-actions"><a class="notif-btn ok" href="shop-designer.html" onclick="notifRead('${id}')"><i class="fas fa-store"></i> Créer ma boutique</a></div>`;
+        }
+        if (n.kind === 'vendor_rejected') {
+            return `<div class="notif-actions"><a class="notif-btn" href="vendor-register.html" onclick="notifRead('${id}')"><i class="fas fa-edit"></i> Compléter ma demande</a></div>`;
         }
         if (n.kind === 'delivery_offer') {
             return n.order_status === 'accepted'

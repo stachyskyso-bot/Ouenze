@@ -281,7 +281,9 @@
         const email = val('signupEmail').toLowerCase();
         const password = document.getElementById('signupPassword')?.value || '';
         const password2 = document.getElementById('signupPassword2')?.value || '';
-        const userType = document.querySelector('input[name="signupType"]:checked')?.value === 'vendeur' ? 'vendeur' : 'client';
+        // « Vendre » : le compte reste client ; la demande vendeur est validée par Ouenze (vendor-register.html)
+        const wantsToSell = document.querySelector('input[name="signupType"]:checked')?.value === 'vendeur';
+        const userType = 'client';
         const err = (msg, field) => showFormError('signupError', msg, field);
  
         // Robot : le champ invisible a été rempli → on fait comme si tout allait bien
@@ -314,6 +316,7 @@
                     data: {
                         full_name: fullName,
                         user_type: userType,
+                        wants_to_sell: wantsToSell,
                         ...loc.values,
                         profile_completed: true
                     }
@@ -354,8 +357,8 @@
                 return;
             }
  
-            if (userType === 'vendeur') {
-                window.location.href = 'shop-designer.html';
+            if (wantsToSell) {
+                window.location.href = 'vendor-register.html';
             } else {
                 await initApp();
             }
@@ -575,7 +578,7 @@
         const cta = navContainer?.querySelector('.nav-cta');
         if (cta) {
             const vendor = currentUserType === 'vendeur';
-            cta.href = vendor ? 'vendor-dashboard.html' : 'shop-designer.html';
+            cta.href = vendor ? 'vendor-dashboard.html' : 'vendor-register.html';
             cta.innerHTML = vendor ? '<i class="fas fa-store"></i> Ma boutique' : '<i class="fas fa-store"></i> Devenir vendeur';
             // Le bouton remplace le lien « Ma boutique » du menu (pas de doublon)
             const vendorLink = document.getElementById('vendorLink');
@@ -592,7 +595,7 @@
                         <p>Le marché du Congo, chez vous. Des boutiques de confiance, des livreurs notés et un paiement Mobile Money sécurisé.</p>
                     </div>
                     <nav><h4>Acheter</h4><a href="index.html">Accueil</a><a href="index.html#categories">Catégories</a><a href="activities.html">Mes commandes</a><a href="tracking.html">Suivi livraison</a></nav>
-                    <nav><h4>Vendre et livrer</h4><a href="shop-designer.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Investir</a></nav>
+                    <nav><h4>Vendre et livrer</h4><a href="vendor-register.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Investir</a></nav>
                     <nav><h4>Ouenze</h4><a href="help.html">Aide</a><a href="about.html">À propos</a><a href="privacy.html">Confidentialité</a></nav>
                 </div>
                 <div class="sf-bottom">© ${new Date().getFullYear()} Ouenze · Marketplace Congo-Brazzaville et RDC</div>`;
@@ -1884,7 +1887,7 @@
                     <label>Je veux *</label>
                     <div class="account-types">
                         <label><input type="radio" name="signupType" value="client" checked><span><i class="fas fa-shopping-bag"></i> Acheter</span></label>
-                        <label><input type="radio" name="signupType" value="vendeur"><span><i class="fas fa-store"></i> Vendre</span></label>
+                        <label><input type="radio" name="signupType" value="vendeur"><span><i class="fas fa-store"></i> Vendre <small>(sur demande)</small></span></label>
                     </div>
                     <p class="auth-note">Tu veux livrer ? <a href="delivery-register.html">Deviens livreur partenaire</a> (vérification du permis et du véhicule).</p>
                 </div>
@@ -1996,7 +1999,7 @@
                     <label>Je veux *</label>
                     <div class="account-types three">
                         <label><input type="radio" name="completeType" value="client" checked><span><i class="fas fa-shopping-bag"></i> Acheter</span></label>
-                        <label><input type="radio" name="completeType" value="vendeur"><span><i class="fas fa-store"></i> Vendre</span></label>
+                        <label><input type="radio" name="completeType" value="vendeur"><span><i class="fas fa-store"></i> Vendre <small>(sur demande)</small></span></label>
                         <label><input type="radio" name="completeType" value="livreur"><span><i class="fas fa-motorcycle"></i> Livrer</span></label>
                     </div>
                     <p class="auth-note">Vendre : tu crées ta boutique juste après. Livrer : ton permis et ton véhicule seront vérifiés.</p>
@@ -2015,8 +2018,8 @@
     async function completeProfile() {
         const fullName = (document.getElementById('completeName')?.value || '').trim();
         const choice = document.querySelector('input[name="completeType"]:checked')?.value || 'client';
-        // Un livreur reste « client » tant que son dossier (permis, véhicule) n'est pas validé
-        const userType = choice === 'vendeur' ? 'vendeur' : 'client';
+        // Vendeur et livreur restent « client » tant que Ouenze n'a pas validé leur demande
+        const userType = currentUserType === 'vendeur' ? 'vendeur' : 'client';
         if (fullName.length < 2) return showFormError('completeError', 'Indique ton nom complet.', 'completeName');
         const loc = readCountryFields('complete');
         if (loc.error) return showFormError('completeError', loc.error, loc.field);
@@ -2039,7 +2042,7 @@
             if (res.error) console.error('❌ Profil:', res.error);
             closeModal(true);
             if (choice === 'vendeur') {
-                window.location.href = 'shop-designer.html';
+                window.location.href = currentUserType === 'vendeur' ? 'vendor-dashboard.html' : 'vendor-register.html';
             } else if (choice === 'livreur') {
                 window.location.href = 'delivery-register.html';
             } else {
@@ -2075,13 +2078,22 @@
                 ${row('activities.html', 'fa-receipt', 'Mes commandes et activités')}
                 ${row('notifications.html', 'fa-bell', 'Notifications')}
                 ${row('portfolio.html', 'fa-wallet', 'Mon portefeuille')}
-                ${currentUserType === 'client' ? row('shop-designer.html', 'fa-store', 'Devenir vendeur') + row('delivery-register.html', 'fa-motorcycle', 'Devenir livreur') : ''}
+                ${currentUserType === 'client' ? row('vendor-register.html', 'fa-store', 'Devenir vendeur') + row('delivery-register.html', 'fa-motorcycle', 'Devenir livreur') : ''}
                 ${row('reset-password.html', 'fa-key', 'Sécurité : changer mon mot de passe')}
                 ${row('help.html', 'fa-question-circle', 'Aide')}
                 ${row('privacy.html', 'fa-user-shield', 'Confidentialité')}
                 ${row('#', 'fa-sign-out-alt', 'Déconnexion', 'onclick="closeModal();logout();return false;"')}
             </nav>`);
         modal.classList.add('profile-modal');
+        // Administration : liens vers les pages admin (sans dépendre des emails)
+        window.supabase.rpc('is_admin').then(({ data }) => {
+            const list = modal.querySelector('.pf-list');
+            if (!data || !list) return;
+            list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
+                ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
+                ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
+                ${row('admin-market.html', 'fa-landmark', 'Bourse')}</nav>`);
+        });
     }
  
     const ORDER_LABELS = {
