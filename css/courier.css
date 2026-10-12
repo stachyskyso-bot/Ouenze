@@ -256,3 +256,39 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* Carte de la course + contacts vendeur / client */
+.course-map {
+    height: 190px;
+    margin: 10px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    background: var(--gray-100, #f1f5f9);
+    z-index: 0;
+}
+
+.course-contacts {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.course-contact {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--gray-50, #f8fafc);
+    border: 1px solid var(--gray-200);
+    font-size: 13px;
+    color: var(--black);
+    overflow-wrap: anywhere;
+}
+
+.course-contact i.fas,
+.course-contact i.fab {
+    color: var(--primary);
+}
+
+.course-contact .notif-btn i {
+    color: inherit;
+}
