@@ -245,7 +245,37 @@
         return `<div class="dl-status pending"><i class="fas fa-hourglass-half"></i>
             <h3>Candidature en cours de vérification</h3>
             <p>Envoyée le ${new Date(a.created_at).toLocaleDateString('fr-FR')}. Notre équipe vérifie ton permis (${esc(a.license_number)}) et ton véhicule (${esc(a.plate_number)}) sous 24 à 48 h. Tu recevras un email à ${esc(a.email)}.</p>
+            ${remindHtml(a)}
             <button class="btn-submit btn-light" onclick="dlEdit()"><i class="fas fa-pen"></i> Modifier mon dossier</button></div>`;
+    }
+
+    // Relance : possible 24 h après l'envoi (ou la dernière relance) ; la base vérifie aussi
+    function remindHtml(a) {
+        const last = Math.max(Date.parse(a.reminded_at || 0) || 0, Date.parse(a.updated_at || a.created_at) || 0);
+        const next = last + 24 * 3600 * 1000;
+        const fmt = d => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return `<div class="dl-remind">
+            ${a.reminded_at ? `<small><i class="fas fa-bell"></i> Relance envoyée le ${fmt(a.reminded_at)}</small>` : ''}
+            ${Date.now() >= next
+                ? `<button class="btn-submit" id="remindBtn" onclick="dlRemind()"><i class="fas fa-bell"></i> Pas de réponse ? Relancer Ouenze</button>`
+                : `<small>Pas de réponse ? Tu pourras relancer Ouenze à partir du ${fmt(next)}.</small>`}
+        </div>`;
+    }
+
+    async function dlRemind() {
+        const btn = document.getElementById('remindBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Relance…'; }
+        const { data, error } = await window.supabase.rpc('remind_my_application', { kind: 'courier' });
+        if (error) {
+            alert(error.message || 'Relance impossible.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bell"></i> Pas de réponse ? Relancer Ouenze'; }
+            return;
+        }
+        application.reminded_at = data || new Date().toISOString();
+        render();
+        // Email à l'admin en plus de la notification sur le site (échec sans conséquence)
+        try { await window.supabase.functions.invoke('delivery-application', { body: { action: 'notify', application_id: application.id } }); } catch (e) { /* notification déjà envoyée */ }
+        alert('Relance envoyée ✅ L\'équipe Ouenze a été prévenue.');
     }
 
     // ============ PHOTOS ============
@@ -441,7 +471,8 @@
                 license_number: form.license, license_expiry: form.licenseExpiry, status: 'pending', ...paths
             };
             const query = application
-                ? window.supabase.from('delivery_applications').update(row).eq('id', application.id).select().single()
+                ? window.supabase.from('delivery_applications')
+                    .update({ ...row, reviewed_by: null, reviewed_at: null, review_note: null }).eq('id', application.id).select().single()
                 : window.supabase.from('delivery_applications').insert(row).select().single();
             const { data: saved, error } = await query;
             if (error) throw new Error(/relation .* does not exist|schema cache/i.test(error.message)
@@ -519,7 +550,7 @@
         }
     }
 
-    Object.assign(window, { dlSignUp, dlLogin, dlLogout, dlShowAccount, dlNext, dlBack, dlPickPhoto, dlCountryChange, dlSubmit, dlEdit });
+    Object.assign(window, { dlSignUp, dlLogin, dlLogout, dlShowAccount, dlNext, dlBack, dlPickPhoto, dlCountryChange, dlSubmit, dlEdit, dlRemind });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();

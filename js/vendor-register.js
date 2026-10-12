@@ -54,6 +54,7 @@
                 <p>Merci ${esc(a.full_name)} ! Ta demande pour <strong>${esc(a.business_name)}</strong> est en cours d'examen.</p>
                 ${contact}
                 <p class="dl-note">Dès que ton compte est validé, tu pourras créer ta boutique. Tu seras prévenu par notification et par email.</p>
+                ${remindHtml(a, 'vrRemind')}
                 <button class="btn-cancel" onclick="vrEdit()">Modifier ma demande</button></div>`;
         }
         if (a.status === 'approved') {
@@ -75,6 +76,35 @@
             ${a.review_note ? `<p><strong>Motif :</strong> ${esc(a.review_note)}</p>` : ''}
             <p>Tes boutiques ne sont plus visibles. Contacte Ouenze pour en parler.</p>
             <a class="btn-cancel" href="help.html" style="display:block;text-align:center;text-decoration:none;">Contacter Ouenze</a></div>`;
+    }
+
+    // Relance : possible 24 h après l'envoi (ou la dernière relance) ; la base vérifie aussi
+    function remindHtml(a, fn) {
+        const last = Math.max(Date.parse(a.reminded_at || 0) || 0, Date.parse(a.updated_at || a.created_at) || 0);
+        const next = last + 24 * 3600 * 1000;
+        const when = new Date(next).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return `<div class="dl-remind">
+            ${a.reminded_at ? `<small><i class="fas fa-bell"></i> Relance envoyée le ${new Date(a.reminded_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
+            ${Date.now() >= next
+                ? `<button class="btn-submit" id="remindBtn" onclick="${fn}()"><i class="fas fa-bell"></i> Pas de réponse ? Relancer Ouenze</button>`
+                : `<small>Pas de réponse ? Tu pourras relancer Ouenze à partir du ${when}.</small>`}
+        </div>`;
+    }
+
+    async function vrRemind() {
+        const btn = document.getElementById('remindBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Relance…'; }
+        const { data, error } = await window.supabase.rpc('remind_my_application', { kind: 'vendor' });
+        if (error) {
+            alert(error.message || 'Relance impossible.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bell"></i> Pas de réponse ? Relancer Ouenze'; }
+            return;
+        }
+        state.app.reminded_at = data || new Date().toISOString();
+        render();
+        // Email à l'admin en plus de la notification sur le site (échec sans conséquence)
+        try { await window.supabase.functions.invoke('vendor-application', { body: { action: 'notify', application_id: state.app.id } }); } catch (e) { /* notification déjà envoyée */ }
+        alert('Relance envoyée ✅ L\'équipe Ouenze a été prévenue.');
     }
 
     function formHtml() {
@@ -191,7 +221,7 @@
         render();
     }
 
-    Object.assign(window, { vrSubmit, vrEdit, vrCancelEdit });
+    Object.assign(window, { vrSubmit, vrEdit, vrCancelEdit, vrRemind });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
