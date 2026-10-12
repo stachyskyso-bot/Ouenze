@@ -1179,16 +1179,14 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .header-titles h1::before {
-    content: "\f53f";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
+    content: "";
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: var(--primary);
+    background: url("../favicon/logo-mark-192.webp") center / contain no-repeat;
     color: #fbbf24;
     font-size: 14px;
 }
