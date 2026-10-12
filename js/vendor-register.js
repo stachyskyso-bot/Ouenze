@@ -25,7 +25,11 @@
 
     function setError(msg, fieldId) {
         const el = document.getElementById('vrError');
-        if (el) el.textContent = msg || '';
+        if (el) {
+            el.textContent = msg || '';
+            el.style.display = msg ? 'block' : 'none';
+            if (msg) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
         if (fieldId) document.getElementById(fieldId)?.focus();
         return false;
     }
