@@ -222,7 +222,8 @@
                     <li class="${toShop ? '' : 'now'}"><i class="fas fa-home"></i> <b>Livrer</b> à ${esc(d.client_name)} · ${esc(d.dropoff_area || '')}<br>
                         <small>${d.landmark ? 'Repère : ' + esc(d.landmark) : ''}</small>
                         ${toShop ? '' : `<div class="notif-actions"><a class="notif-btn" target="_blank" rel="noopener" href="${mapsLink(d.client_lat, d.client_lng, d.dropoff_area)}"><i class="fas fa-directions"></i> Itinéraire</a>
-                        <button class="notif-btn ok" onclick="courierDeliver('${esc(d.order_id)}')"><i class="fas fa-check"></i> Livrée : entrer le code</button></div>`}</li>
+                        <button class="notif-btn ok" onclick="courierDeliver('${esc(d.order_id)}')"><i class="fas fa-check"></i> Livrée : entrer le code</button>
+                        <button class="notif-btn" onclick="courierSendCode('${esc(d.order_id)}')"><i class="fas fa-sms"></i> Renvoyer le code au client</button></div>`}</li>
                 </ol>
                 <p class="course-meta">${items} · valeur ${fcfa(d.amount)} · ton gain <b>${fcfa(d.fee)}</b></p>
                 ${toShop ? `<button class="course-release" onclick="courierRelease('${esc(d.order_id)}')">Je ne peux plus faire cette course</button>` : ''}
@@ -324,8 +325,34 @@
             text: `${d?.shop_name || ''} → ${d?.dropoff_area || ''}\nGain : ${fcfa(d?.fee)}\n\nVa d'abord récupérer le colis à la boutique.`,
             ok: 'Oui, je la prends' });
         if (!yes) return;
-        if (await act(() => rpc('take_delivery', { target_order: orderId }))) { state.tab = 'active'; state.tabChosen = true; render(); }
+        if (await act(() => rpc('take_delivery', { target_order: orderId }))) {
+            state.tab = 'active';
+            state.tabChosen = true;
+            render();
+            sendCode(orderId, true);
+        }
     }
+
+    // Code de remise envoyé au client par SMS / WhatsApp (Edge Function « delivery-code ») :
+    // le livreur déclenche l'envoi mais ne voit jamais le code.
+    async function sendCode(orderId, silent) {
+        let body = null, failed = false;
+        try {
+            const res = await window.supabase.functions.invoke('delivery-code', { body: { action: 'send', order_id: orderId } });
+            body = res.data || (await res.error?.context?.json?.().catch(() => null)) || null;
+            failed = !!res.error;
+        } catch (e) { failed = true; }
+        const sent = body?.sent || [];
+        const label = { sms: 'SMS', whatsapp: 'WhatsApp' };
+        if (!failed && sent.length) {
+            await say('Code envoyé au client ✅', `Le client a reçu son code par ${sent.map(c => label[c] || c).join(' et ')}. Il te le donnera quand il aura son colis.`);
+        } else if (!silent) {
+            await say('Code non envoyé', (body?.error || 'Envoi par SMS / WhatsApp indisponible pour le moment.')
+                + '\n\nLe client retrouve toujours son code dans ses notifications Ouenze.');
+        }
+    }
+
+    function courierSendCode(orderId) { sendCode(orderId, false); }
 
     async function courierStep(orderId, step) {
         if (step === 'pickup' && !(await dialog({ title: 'Colis récupéré ?', text: 'Tu as bien le colis en main ? Le client va être prévenu que tu arrives.', ok: 'Oui, je l\'ai' }))) return;
@@ -369,7 +396,7 @@
         state.timer = setInterval(() => { if (!document.hidden && !state.busy && state.profile?.status === 'approved') refresh(); }, 30000);
     }
 
-    Object.assign(window, { courierLevels: open => { state.levelsOpen = open; }, courierOnline: goOnline, courierOffline: goOffline, courierTake, courierStep, courierDeliver, courierRelease, courierTab });
+    Object.assign(window, { courierLevels: open => { state.levelsOpen = open; }, courierOnline: goOnline, courierOffline: goOffline, courierTake, courierStep, courierDeliver, courierRelease, courierTab, courierSendCode });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
