@@ -364,27 +364,44 @@
         </div>`;
     }
  
-    // Point de retrait : les livreurs proches de la boutique reçoivent les courses
+    // Point de retrait : placé sur la carte (point + quartier). Sans lui, pas de commande acceptée.
     function pickupHtml(shop) {
         if (!shopLocations) return '';
         const loc = shopLocations[shop.id];
         const id = escapeHtml(shop.id);
         return loc && loc.lat != null
-            ? `<div class="pickup-line ok"><i class="fas fa-check-circle"></i> Point de retrait enregistré
-                <button onclick="setPickup('${id}')">Mettre à jour</button></div>`
-            : `<div class="pickup-line"><i class="fas fa-exclamation-triangle"></i> Enregistre la position de ta boutique pour que les livreurs proches la trouvent.
-                <button onclick="setPickup('${id}')"><i class="fas fa-location-arrow"></i> Je suis à la boutique</button></div>`;
+            ? `<div class="pickup-line ok"><i class="fas fa-map-marker-alt"></i> Point de retrait : ${escapeHtml(loc.district || 'sur la carte')}
+                <button onclick="setPickup('${id}')">Modifier</button></div>`
+            : `<div class="pickup-line"><i class="fas fa-exclamation-triangle"></i> Place ta boutique sur la carte : sans point de retrait, tu ne peux pas accepter de commande.
+                <button onclick="setPickup('${id}')"><i class="fas fa-map-marked-alt"></i> Placer sur la carte</button></div>`;
     }
 
-    function setPickup(shopId) {
-        if (!navigator.geolocation) { alert('Ton appareil ne donne pas sa position.'); return; }
-        if (!confirm('Es-tu dans ta boutique en ce moment ? Sa position sera enregistrée comme point de retrait pour les livreurs.')) return;
-        navigator.geolocation.getCurrentPosition(async p => {
-            const { error } = await window.supabase.rpc('set_shop_location', { target_shop: shopId, new_lat: p.coords.latitude, new_lng: p.coords.longitude });
-            if (error) { alert(error.message || 'Position non enregistrée.'); return; }
-            shopLocations[shopId] = { lat: p.coords.latitude, lng: p.coords.longitude };
-            showDashboard();
-        }, () => alert('Autorise la localisation dans ton navigateur pour enregistrer la position.'), { enableHighAccuracy: true, timeout: 15000 });
+    // Ouvre la carte ; then() est appelé une fois la position enregistrée
+    function setPickup(shopId, then) {
+        if (!window.OuenzePlacePicker) { alert('Carte indisponible : recharge la page.'); return; }
+        const shop = dashShops.find(s => s.id === shopId) || {};
+        const loc = (shopLocations || {})[shopId] || {};
+        window.OuenzePlacePicker.open({
+            title: `Où se trouve ${shop.name || 'ta boutique'} ?`,
+            intro: 'Place le repère exactement sur ta boutique : c\'est là que le livreur viendra chercher les colis. Les clients verront aussi ta boutique sur la carte « Autour de moi ».',
+            lat: loc.lat != null ? Number(loc.lat) : null,
+            lng: loc.lng != null ? Number(loc.lng) : null,
+            district: loc.district || shop.district || '',
+            address: loc.address || shop.address || '',
+            saveLabel: 'Enregistrer le point de retrait',
+            onSave: async p => {
+                const { error } = await window.supabase.rpc('set_shop_place', {
+                    target_shop: shopId, new_lat: p.lat, new_lng: p.lng, new_district: p.district, new_address: p.address || null
+                });
+                if (error) return /set_shop_place|schema cache|does not exist/i.test(error.message || '')
+                    ? 'Base de données à mettre à jour (migration 20261022_delivery_map.sql).' : error.message;
+                shopLocations = shopLocations || {};
+                shopLocations[shopId] = { shop_id: shopId, lat: p.lat, lng: p.lng, district: p.district, address: p.address };
+                showDashboard();
+                if (typeof then === 'function') setTimeout(then, 50);
+                return null;
+            }
+        });
     }
 
     // Même rendu que l'aperçu du shop-designer, à partir du design enregistré
@@ -552,7 +569,7 @@
                     ${o.status === 'pending' ? `
                         <button class="btn-sm btn-success" onclick="voDecide('${id}', 'accept')"><i class="fas fa-check"></i> Accepter</button>
                         <button class="btn-sm btn-outline" onclick="voDecide('${id}', 'refuse')"><i class="fas fa-times"></i> Refuser</button>` : ''}
-                    ${o.status === 'accepted' && o.payment_status === 'test' ? `<button class="btn-sm btn-outline" onclick="voDecide('${id}', 'delivered')"><i class="fas fa-box"></i> Marquer comme livrée (test)</button>` : ''}
+                    ${o.status === 'accepted' ? '<p class="vo-client"><i class="fas fa-motorcycle"></i> En attente d\'un livreur : c\'est lui qui confirmera la livraison avec le code du client.</p>' : ''}
                 </div>
             </div>`;
     }
@@ -571,10 +588,22 @@
             reason = prompt('Pourquoi refuses-tu cette commande ? (le client verra le motif)', 'Produit en rupture de stock');
             if (reason === null) return;
         } else if (decision === 'accept') {
+            // Le livreur doit savoir où récupérer le colis : boutique placée sur la carte d'abord
+            const shopId = o.shop_id;
+            const loc = shopId && shopLocations ? shopLocations[shopId] : null;
+            if (shopLocations && shopId && !(loc && loc.lat != null)) {
+                alert('Avant d\'accepter, place ta boutique sur la carte : le livreur doit savoir où récupérer le colis.');
+                setPickup(shopId, () => voDecide(orderId, decision));
+                return;
+            }
             if (!confirm(`Accepter la commande ${o.order_number} ? Prépare les articles : un livreur va venir les récupérer.`)) return;
-        } else if (!confirm('Marquer cette commande de test comme livrée ? Elle apparaîtra dans ta comptabilité et le client pourra la noter.')) return;
+        } else return;
         const { error } = await window.supabase.rpc('vendor_order_decision', { target_order: orderId, decision, reason });
-        if (error) { alert(error.message || 'Action impossible.'); return; }
+        if (error) {
+            alert(error.message || 'Action impossible.');
+            if (/carte/i.test(error.message || '') && o.shop_id) setPickup(o.shop_id, () => voDecide(orderId, decision));
+            return;
+        }
         // Email au client (n'empêche pas la décision s'il échoue)
         try { await window.supabase.functions.invoke('order-notify', { body: { action: 'decision', order_id: orderId } }); } catch (e) { /* email non envoyé */ }
         const { data } = await window.supabase.rpc('vendor_orders');
