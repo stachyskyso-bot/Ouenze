@@ -1324,6 +1324,28 @@ function setupEventListeners() {
 }
 
 // ============ INITIALISATION ============
+// Renvoie true si le compte peut vendre ; sinon affiche le statut de sa demande vendeur
+async function canSell(userId) {
+    const [approved, admin] = await Promise.all([
+        window.supabase.rpc('is_approved_vendor', { target: userId }),
+        window.supabase.rpc('is_admin')
+    ]);
+    if (approved.error) return true;   // migration 20261020 pas encore exécutée : ancien comportement
+    if (approved.data || admin.data) return true;
+    const { data: app } = await window.supabase.from('vendor_applications').select('status, review_note').eq('user_id', userId).maybeSingle();
+    const msg = {
+        pending: ['fa-hourglass-half', 'Ta demande vendeur est en cours d\'examen', 'Ouenze va te contacter. Tu pourras créer ta boutique dès que ton compte vendeur sera validé.', 'Voir ma demande'],
+        rejected: ['fa-times-circle', 'Ta demande vendeur n\'a pas été retenue', app?.review_note ? 'Motif : ' + app.review_note : 'Tu peux la compléter et la renvoyer.', 'Compléter ma demande'],
+        suspended: ['fa-ban', 'Ton compte vendeur est suspendu', app?.review_note ? 'Motif : ' + app.review_note : 'Contacte Ouenze pour en parler.', 'Voir ma demande']
+    }[app?.status] || ['fa-store', 'Deviens vendeur Ouenze', 'Ouenze sélectionne ses vendeurs : envoie ta demande, notre équipe te contacte puis valide ton compte.', 'Faire ma demande'];
+    const box = document.querySelector('.container');
+    if (box) {
+        box.innerHTML = `<div class="sd-gate"><i class="fas ${msg[0]}"></i><h2>${escapeHtml(msg[1])}</h2><p>${escapeHtml(msg[2])}</p>
+            <a class="btn-primary" href="vendor-register.html">${escapeHtml(msg[3])}</a></div>`;
+    }
+    return false;
+}
+
 async function init() {
     console.log('🚀 Init shop designer...');
     
@@ -1337,6 +1359,9 @@ async function init() {
     currentUser = user;
     currentUserEmail = user.email;
     console.log('✅ Utilisateur:', user.email);
+
+    // Vendeurs validés par Ouenze uniquement (la base refuse aussi la création de boutique)
+    if (!(await canSell(user.id))) return;
     
     setupLogoUpload();
     setupCarouselUpload();
