@@ -253,6 +253,7 @@ function openAddProductModal(productId = null) {
     
     editingProductId = productId;
     
+    tempDefaultVersion = '';
     if (!productId) {
         tempVariants = [];
         tempVariantOptions = [];
@@ -261,6 +262,8 @@ function openAddProductModal(productId = null) {
         const product = products.find(p => String(p.id) === String(productId));
         if (product) {
             tempVariants = (product.variants || []).map(v => ({ ...v, values: { ...v.values }, photos: [...(v.photos || [])] }));
+            tempDefaultVersion = (product.variants || []).find(v => v.is_default)?.key
+                || (product.variants || []).find(v => Number(v.price) === Number(product.basePrice))?.key || '';
             tempVariantOptions = (product.variantOptions || []).map(o => ({ name: o.name, values: [...o.values] }));
             tempProductPhotos = [...(product.photos || [])];
         }
@@ -277,6 +280,7 @@ function renderProductForm() {
     if (!form) return;
     
     const food = product?.food || null;
+    const beauty = product?.beauty || null;
     const hasVariants = tempVariantOptions.length > 0;
 
     form.innerHTML = `
@@ -291,9 +295,14 @@ function renderProductForm() {
             </select>
         </div>
         <div class="form-row">
-            <div class="form-group">
-                <label id="basePriceLabel">${hasVariants ? 'Prix par défaut des versions (FCFA)' : 'Prix (FCFA) *'}</label>
+            <div class="form-group" id="basePriceGroup" style="${hasVariants ? 'display:none;' : ''}">
+                <label>Prix (FCFA) *</label>
                 <input type="number" id="productBasePrice" min="0" value="${product?.basePrice || ''}">
+            </div>
+            <div class="form-group" id="defaultVersionGroup" style="${hasVariants ? '' : 'display:none;'}">
+                <label>Prix affiché par défaut *</label>
+                <select id="defaultVersion" onchange="window.setDefaultVersion(this.value)"></select>
+                <small class="hint">C'est le prix d'une de tes versions : choisis laquelle le client voit en premier.</small>
             </div>
             <div class="form-group" id="productStockGroup" style="${hasVariants ? 'display:none;' : ''}">
                 <label>Stock</label>
@@ -397,12 +406,78 @@ function renderProductForm() {
             </div>
         </div>
 
+        <!-- ===== BEAUTÉ ET SOINS ===== -->
+        <div class="form-section">
+            <label class="toggle-line">
+                <input type="checkbox" id="isBeauty" ${beauty ? 'checked' : ''} onchange="window.toggleBeauty(this.checked)">
+                <span><strong>Beauté et soins</strong> — skin-care, cheveux, maquillage, parfum : type de peau, contenance, composition</span>
+            </label>
+            <div id="beautySection" style="${beauty ? '' : 'display:none;'}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Type de produit *</label>
+                        <select id="beautyKind" onchange="window.refreshBeautyTargets()">
+                            ${Object.entries(BEAUTY_KINDS).map(([k, b]) => `<option value="${k}" ${beauty?.kind === k ? 'selected' : ''}>${b.label}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Contenance *</label>
+                        <input type="text" id="beautyVolume" value="${escapeHtml(beauty?.volume || '')}" placeholder="Ex : 50 ml, 200 g, 30 ml">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="beautyTargetsLabel">Pour quel type de peau ?</label>
+                    <div class="chip-checks" id="beautyTargets"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Marque</label>
+                        <input type="text" id="beautyBrand" value="${escapeHtml(beauty?.brand || '')}" placeholder="Ex : CeraVe, Nivea, fait maison">
+                    </div>
+                    <div class="form-group">
+                        <label>Origine</label>
+                        <input type="text" id="beautyOrigin" value="${escapeHtml(beauty?.origin || '')}" placeholder="Ex : France, Congo, Côte d'Ivoire">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Composition / ingrédients clés</label>
+                    <textarea id="beautyIngredients" rows="2" placeholder="Ex : acide hyaluronique, niacinamide, beurre de karité">${escapeHtml(beauty?.ingredients || '')}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Mode d'emploi</label>
+                    <textarea id="beautyUsage" rows="2" placeholder="Ex : matin et soir sur peau propre, éviter le contour des yeux">${escapeHtml(beauty?.usage || '')}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Précautions</label>
+                    <input type="text" id="beautyPrecautions" value="${escapeHtml(beauty?.precautions || '')}" placeholder="Ex : sans hydroquinone, faire un test sur le poignet, ne pas exposer au soleil">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date de péremption</label>
+                        <input type="date" id="beautyExpiry" min="${todayIso()}" value="${escapeHtml(beauty?.expiry_date || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label>Après ouverture</label>
+                        <select id="beautyPao">
+                            <option value="">Non précisé</option>
+                            ${[3, 6, 12, 18, 24, 36].map(m => `<option value="${m}" ${Number(beauty?.pao_months) === m ? 'selected' : ''}>${m} mois</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <label class="toggle-line" style="margin-top:4px;">
+                    <input type="checkbox" id="beautyAuthentic" ${beauty?.authentic ? 'checked' : ''}>
+                    <span>Je garantis un produit original, scellé (pas de contrefaçon ni de produit reconditionné)</span>
+                </label>
+            </div>
+        </div>
+
         <button class="btn-primary" onclick="window.saveProduct()">${product ? 'Mettre à jour' : 'Ajouter'}</button>
     `;
 
     renderProductPhotos(tempProductPhotos);
     renderVariantOptions();
     renderVariantCombos();
+    renderBeautyTargets(beauty?.targets || []);
 
     const photoInput = document.getElementById('productPhotoInput');
     if (photoInput) photoInput.addEventListener('change', handleProductPhotoUpload);
@@ -411,13 +486,40 @@ function renderProductForm() {
 // ============ VARIANTES ============
 const MAX_VARIANT_OPTIONS = 3;
 const MAX_VARIANT_COMBOS = 100;
-const OPTION_SUGGESTIONS = ['Couleur', 'Taille', 'Pointure', 'Capacité', 'Modèle', 'Version', 'Saveur', 'Contenance'];
+const OPTION_SUGGESTIONS = ['Couleur', 'Taille', 'Pointure', 'Capacité', 'Modèle', 'Version', 'Saveur', 'Contenance', 'Teinte', 'Parfum', 'Type de peau'];
 
 function toggleVariants(on) {
     document.getElementById('variantsSection').style.display = on ? '' : 'none';
     document.getElementById('productStockGroup').style.display = on ? 'none' : '';
-    document.getElementById('basePriceLabel').innerText = on ? 'Prix par défaut des versions (FCFA)' : 'Prix (FCFA) *';
+    document.getElementById('basePriceGroup').style.display = on ? 'none' : '';
+    document.getElementById('defaultVersionGroup').style.display = on ? '' : 'none';
     if (on && tempVariantOptions.length === 0) addVariantOption();
+    renderDefaultVersion();
+}
+
+// Version affichée par défaut : son prix devient le prix du produit (toujours un des prix x, y, z)
+let tempDefaultVersion = '';
+
+function defaultVersion() {
+    const priced = tempVariants.filter(v => Number(v.price) > 0);
+    return priced.find(v => v.key === tempDefaultVersion)
+        || priced.slice().sort((a, b) => a.price - b.price)[0]
+        || null;
+}
+
+function renderDefaultVersion() {
+    const select = document.getElementById('defaultVersion');
+    if (!select) return;
+    const priced = tempVariants.filter(v => Number(v.price) > 0);
+    const current = defaultVersion();
+    select.innerHTML = priced.length
+        ? priced.map(v => `<option value="${escapeHtml(v.key)}" ${current && v.key === current.key ? 'selected' : ''}>${escapeHtml(v.key)} — ${Number(v.price).toLocaleString('fr-FR')} FCFA</option>`).join('')
+        : '<option value="">Saisis d\'abord le prix de tes versions</option>';
+    select.disabled = !priced.length;
+}
+
+function setDefaultVersion(key) {
+    tempDefaultVersion = key;
 }
 
 function addVariantOption() {
@@ -489,12 +591,12 @@ function renderVariantCombos() {
     }
 
     const previous = new Map(tempVariants.map(v => [v.key, v]));
-    const basePrice = parseFloat(document.getElementById('productBasePrice')?.value) || '';
     tempVariants = combos.map(values => {
         const key = comboKey(values);
         const old = previous.get(key);
-        return { key, values, price: old ? old.price : basePrice, stock: old ? old.stock : 0, photos: old?.photos ? [...old.photos] : [] };
+        return { key, values, price: old ? old.price : '', stock: old ? old.stock : 0, photos: old?.photos ? [...old.photos] : [] };
     });
+    renderDefaultVersion();
 
     if (tempVariants.length === 0) {
         container.innerHTML = '<p class="hint">Renseignez au moins une option et ses valeurs pour créer les versions.</p>';
@@ -504,7 +606,7 @@ function renderVariantCombos() {
     container.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <strong style="font-size:13px;">${tempVariants.length} version(s)</strong>
-            <button type="button" class="btn-sm" onclick="window.applyBasePriceToVariants()">Appliquer le prix par défaut à toutes</button>
+            <button type="button" class="btn-sm" onclick="window.applyBasePriceToVariants()">Même prix pour toutes</button>
         </div>
         <p class="hint">Chaque version doit avoir au moins une photo. Astuce : la photo d'une version est reprise automatiquement par les autres versions de même ${escapeHtml(photoOptionName() || 'option')} qui n'en ont pas encore.</p>
         <div class="variant-cards">
@@ -572,11 +674,14 @@ function removeVariantPhoto(idx, photoIdx) {
 function updateVariantField(idx, field, value) {
     if (!tempVariants[idx]) return;
     tempVariants[idx][field] = field === 'price' ? (parseFloat(value) || '') : (parseInt(value) || 0);
+    if (field === 'price') renderDefaultVersion();
 }
 
 function applyBasePriceToVariants() {
-    const base = parseFloat(document.getElementById('productBasePrice')?.value);
-    if (isNaN(base) || base <= 0) { alert("Saisissez d'abord un prix par défaut"); return; }
+    const answer = prompt('Prix (FCFA) à appliquer à toutes les versions :', '');
+    if (answer === null) return;
+    const base = parseFloat(String(answer).replace(/\s/g, ''));
+    if (isNaN(base) || base <= 0) { alert('Prix invalide'); return; }
     tempVariants.forEach(v => { v.price = base; });
     renderVariantCombos();
 }
@@ -584,6 +689,70 @@ function applyBasePriceToVariants() {
 // ============ ALIMENTAIRE ============
 function toggleFood(on) {
     document.getElementById('foodSection').style.display = on ? '' : 'none';
+    // Un produit est soit alimentaire, soit beauté
+    if (on && document.getElementById('isBeauty')?.checked) { document.getElementById('isBeauty').checked = false; toggleBeauty(false); }
+}
+
+// ============ BEAUTÉ ET SOINS ============
+const SKIN_TYPES = ['Tous types de peau', 'Peau sèche', 'Peau grasse', 'Peau mixte', 'Peau sensible', 'Peau à imperfections', 'Taches / hyperpigmentation', 'Peau mature'];
+const HAIR_TYPES = ['Tous types de cheveux', 'Crépus', 'Frisés', 'Bouclés', 'Lisses', 'Défrisés', 'Secs / cassants', 'Locks', 'Cuir chevelu sensible'];
+const BEAUTY_KINDS = {
+    visage: { label: 'Soin du visage (skin-care)', targets: SKIN_TYPES, title: 'Pour quel type de peau ?' },
+    corps: { label: 'Soin du corps', targets: SKIN_TYPES, title: 'Pour quel type de peau ?' },
+    cheveux: { label: 'Cheveux', targets: HAIR_TYPES, title: 'Pour quel type de cheveux ?' },
+    maquillage: { label: 'Maquillage', targets: ['Peau claire', 'Peau métisse', 'Peau mate', 'Peau foncée', 'Peau très foncée', 'Toutes carnations'], title: 'Pour quelle carnation ?' },
+    parfum: { label: 'Parfum', targets: ['Femme', 'Homme', 'Mixte'], title: 'Pour qui ?' },
+    hygiene: { label: 'Hygiène (savon, déodorant…)', targets: SKIN_TYPES, title: 'Pour quel type de peau ?' },
+    ongles: { label: 'Ongles', targets: ['Toutes'], title: 'Pour qui ?' },
+    autre: { label: 'Autre (accessoire, appareil…)', targets: [], title: '' }
+};
+
+function toggleBeauty(on) {
+    document.getElementById('beautySection').style.display = on ? '' : 'none';
+    if (on && document.getElementById('isFood')?.checked) { document.getElementById('isFood').checked = false; toggleFood(false); }
+}
+
+// Cases à cocher adaptées au type de produit (peau, cheveux, carnation…)
+function renderBeautyTargets(selected) {
+    const box = document.getElementById('beautyTargets');
+    if (!box) return;
+    const kind = BEAUTY_KINDS[document.getElementById('beautyKind')?.value] || BEAUTY_KINDS.visage;
+    const keep = Array.isArray(selected) ? selected
+        : Array.from(box.querySelectorAll('input:checked')).map(i => i.value);
+    document.getElementById('beautyTargetsLabel').textContent = kind.title;
+    document.getElementById('beautyTargetsLabel').style.display = kind.targets.length ? '' : 'none';
+    box.innerHTML = kind.targets.map(t => `<label class="chip-check"><input type="checkbox" value="${escapeHtml(t)}" ${keep.includes(t) ? 'checked' : ''}><span>${escapeHtml(t)}</span></label>`).join('');
+}
+
+// Lit et valide la section beauté. Renvoie { beauty } ou { error }.
+function readBeautyForm() {
+    if (!document.getElementById('isBeauty')?.checked) return { beauty: null };
+    const v = id => document.getElementById(id)?.value.trim() || '';
+    const kind = BEAUTY_KINDS[v('beautyKind')] ? v('beautyKind') : 'autre';
+    const beauty = {
+        kind,
+        targets: Array.from(document.querySelectorAll('#beautyTargets input:checked')).map(i => i.value),
+        volume: v('beautyVolume'),
+        brand: v('beautyBrand'),
+        origin: v('beautyOrigin'),
+        ingredients: v('beautyIngredients'),
+        usage: v('beautyUsage'),
+        precautions: v('beautyPrecautions'),
+        authentic: !!document.getElementById('beautyAuthentic')?.checked
+    };
+    // Contenance obligatoire, sauf si les versions sont déjà par contenance (30 ml, 50 ml…)
+    const volumeInVersions = document.getElementById('hasVariants')?.checked
+        && tempVariantOptions.some(o => /contenance|volume|taille|format/i.test(o.name) && o.values.length);
+    if (!beauty.volume && kind !== 'autre' && !volumeInVersions) return { error: 'Indique la contenance du produit de beauté (ex : 50 ml, 200 g).' };
+    if (BEAUTY_KINDS[kind].targets.length && !beauty.targets.length) return { error: `${BEAUTY_KINDS[kind].title} Coche au moins une case.` };
+    const expiry = v('beautyExpiry');
+    if (expiry) {
+        if (expiry < todayIso()) return { error: 'La date de péremption est déjà passée : ce produit ne peut pas être mis en vente.' };
+        beauty.expiry_date = expiry;
+    }
+    const pao = parseInt(v('beautyPao'));
+    if (pao) beauty.pao_months = pao;
+    return { beauty };
 }
 
 function toggleHomemade(homemade) {
@@ -684,24 +853,30 @@ function saveProduct() {
         if (missing.length) { alert(`Prix manquant pour : ${missing.slice(0, 3).map(v => v.key).join(', ')}${missing.length > 3 ? '…' : ''}`); return; }
         const noPhoto = tempVariants.filter(v => !v.photos?.length);
         if (noPhoto.length) { alert(`Ajoutez au moins une photo pour : ${noPhoto.slice(0, 3).map(v => v.key).join(', ')}${noPhoto.length > 3 ? '…' : ''}`); return; }
-        variants = tempVariants.map(v => ({ key: v.key, values: v.values, price: Number(v.price), stock: Number(v.stock) || 0, photos: v.photos }));
+        const def = defaultVersion();
+        variants = tempVariants.map(v => ({ key: v.key, values: v.values, price: Number(v.price), stock: Number(v.stock) || 0, photos: v.photos,
+            ...(def && v.key === def.key ? { is_default: true } : {}) }));
     } else if (isNaN(basePrice) || basePrice <= 0) {
         alert("Prix valide requis"); return;
     }
 
     const { food, error: foodError } = readFoodForm();
     if (foodError) { alert(foodError); return; }
+    const { beauty, error: beautyError } = readBeautyForm();
+    if (beautyError) { alert(beautyError); return; }
 
     const productData = {
         id: editingProductId || Date.now(),
         name, categoryId, description,
-        // Avec variantes : prix affiché = le moins cher, stock = somme des versions
-        basePrice: variants.length ? Math.min(...variants.map(v => v.price)) : basePrice,
+        // Avec variantes : prix = celui de la version par défaut (un des prix des versions), stock = somme des versions
+        basePrice: variants.length ? (variants.find(v => v.is_default) || variants[0]).price : basePrice,
         stock: variants.length ? variants.reduce((s, v) => s + v.stock, 0) : (stock || 0),
         photos: tempProductPhotos,
         variantOptions,
         variants,
-        food
+        food,
+        beauty,
+        hadBeauty: !!(editingProductId && products.find(x => String(x.id) === String(editingProductId))?.hadBeauty)
     };
     
     if (editingProductId) {
@@ -752,6 +927,7 @@ function renderProductsList() {
                     ${hasVariants ? ` | ${p.variants.length} version(s) : ${escapeHtml((p.variantOptions || []).map(o => o.name).join(', '))}` : ''}
                 </div>
                 ${p.food ? `<div class="food-badge">🍽️ ${escapeHtml(foodSummary(p.food))}</div>` : ''}
+                ${p.beauty ? `<div class="food-badge">💄 ${escapeHtml([BEAUTY_KINDS[p.beauty.kind]?.label, p.beauty.volume].filter(Boolean).join(' · '))}</div>` : ''}
                 ${productAllPhotos(p).length > 0 ? `
                     <div style="display:flex;gap:8px;margin-top:8px;">
                         ${productAllPhotos(p).slice(0, 6).map(photo => `
@@ -1086,6 +1262,7 @@ async function publishShopNow() {
                 .from('categories').insert(categoriesData).select('id, name');
             if (catError) {
                 console.error('❌ Catégories:', catError);
+                alert(`⚠️ La boutique "${name}" est créée, mais ses catégories n'ont pas pu être enregistrées.\n\nDétail : ${catError.message}\n\nOuvre « Gérer » → « Modifier » pour les ajouter de nouveau.`);
             } else {
                 // PostgREST renvoie les lignes dans l'ordre d'insertion
                 categories.forEach((cat, i) => {
@@ -1098,17 +1275,8 @@ async function publishShopNow() {
         // Produits
         if (products.length > 0) {
             const productsData = products.map(p => ({
-                shop_id: insertedShop.id,
-                category_id: categoryIdMap.get(String(p.categoryId)) || null,
-                name: p.name,
-                slug: generateSlug(p.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7),
-                description: p.description || '',
-                price: p.basePrice || p.price || 0,
-                stock: p.stock || 0,
-                product_type: p.food ? 'food' : 'standard',
-                photos: p.photos || [],
-                variants: { options: p.variantOptions || [], items: p.variants || [] },
-                food_info: p.food || null
+                ...productRow(p, insertedShop.id, categoryIdMap.get(String(p.categoryId))),
+                slug: generateSlug(p.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7)
             }));
 
             const { error: prodError } = await window.supabase
@@ -1160,9 +1328,103 @@ async function updateShopNow() {
         .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id);
     
     if (error) { alert(isDuplicateNameError(error) ? nameTakenMessage(name) : 'Erreur: ' + error.message); return; }
-    
+
+    // Catégories et produits : ajoutés, modifiés ou retirés depuis la création
+    const syncError = await syncCatalog(editingShopId);
+    if (syncError) {
+        alert(`⚠️ La boutique est mise à jour, mais pas ses catégories ou produits.\n\nDétail : ${syncError}`
+            + (/policy|permission|beauty_info|column/i.test(syncError) ? '\n\n(Migration SQL 20261023_products_beauty.sql à exécuter dans Supabase.)' : ''));
+        return;
+    }
+
     alert(`✅ Boutique mise à jour !`);
     window.location.href = 'vendor-dashboard.html';
+}
+
+const isUuid = v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v));
+
+// Ligne « products » à partir d'un produit du formulaire
+function productRow(p, shopId, categoryId) {
+    return {
+        shop_id: shopId,
+        category_id: categoryId || null,
+        name: p.name,
+        description: p.description || '',
+        price: p.basePrice || p.price || 0,
+        stock: p.stock || 0,
+        product_type: p.food ? 'food' : 'standard',
+        photos: p.photos || [],
+        variants: { options: p.variantOptions || [], items: p.variants || [] },
+        food_info: p.food || null,
+        // beauty_info n'est envoyé que s'il y a quelque chose à écrire (ou à effacer)
+        ...(p.beauty || p.hadBeauty ? { beauty_info: p.beauty || null } : {})
+    };
+}
+
+// Enregistre l'état du formulaire (catégories + produits) pour une boutique existante.
+// Renvoie un message d'erreur, ou null si tout est enregistré.
+async function syncCatalog(shopId) {
+    const db = window.supabase;
+    const [{ data: dbCats, error: e1 }, { data: dbProds, error: e2 }] = await Promise.all([
+        db.from('categories').select('id, name').eq('shop_id', shopId),
+        db.from('products').select('id').eq('shop_id', shopId)
+    ]);
+    if (e1 || e2) return (e1 || e2).message;
+
+    // 1. Catégories : nouvelles → insérées, renommées → mises à jour
+    const known = new Map((dbCats || []).map(c => [String(c.id), c]));
+    const catMap = new Map();
+    for (const cat of categories) {
+        const name = String(cat.name || '').trim() || 'Sans nom';
+        const existing = isUuid(cat.id) ? known.get(String(cat.id)) : null;
+        if (existing) {
+            if (existing.name !== name) {
+                const { error } = await db.from('categories').update({ name }).eq('id', existing.id).eq('shop_id', shopId);
+                if (error) return error.message;
+            }
+            catMap.set(String(cat.id), existing.id);
+        } else {
+            const { data, error } = await db.from('categories').insert({ shop_id: shopId, name }).select('id').single();
+            if (error) return error.message;
+            catMap.set(String(cat.id), data.id);
+            cat.id = data.id;
+        }
+    }
+
+    // 2. Produits : nouveaux → insérés, existants → mis à jour
+    const dbProdIds = new Set((dbProds || []).map(x => String(x.id)));
+    for (const prod of products) {
+        const row = productRow(prod, shopId, catMap.get(String(prod.categoryId)));
+        if (isUuid(prod.id) && dbProdIds.has(String(prod.id))) {
+            const { error } = await db.from('products').update(row).eq('id', prod.id).eq('shop_id', shopId);
+            if (error) return error.message;
+        } else {
+            row.slug = generateSlug(prod.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7);
+            const { data, error } = await db.from('products').insert(row).select('id').single();
+            if (error) return error.message;
+            prod.id = data.id;
+        }
+    }
+
+    // 3. Produits retirés : supprimés (ou masqués s'ils figurent dans d'anciennes commandes)
+    const keepProds = new Set(products.map(x => String(x.id)));
+    for (const id of dbProdIds) {
+        if (keepProds.has(id)) continue;
+        const { error } = await db.from('products').delete().eq('id', id).eq('shop_id', shopId);
+        if (error) {
+            const { error: e } = await db.from('products').update({ is_active: false, stock: 0 }).eq('id', id).eq('shop_id', shopId);
+            if (e) return error.message;
+        }
+    }
+
+    // 4. Catégories retirées
+    const keepCats = new Set([...catMap.values()].map(String));
+    for (const c of dbCats || []) {
+        if (keepCats.has(String(c.id))) continue;
+        const { error } = await db.from('categories').delete().eq('id', c.id).eq('shop_id', shopId);
+        if (error) return error.message;
+    }
+    return null;
 }
 
 // ============ CHARGEMENT ============
@@ -1199,7 +1461,9 @@ async function loadShopForEditing(shopId) {
         photos: p.photos || [],
         variantOptions: p.variants?.options || [],
         variants: p.variants?.items || [],
-        food: p.food_info || null
+        food: p.food_info || null,
+        beauty: p.beauty_info || null,
+        hadBeauty: !!p.beauty_info
     }));
     
     document.getElementById('pageTitle').innerText = `Modification : ${shop.name}`;
@@ -1404,6 +1668,9 @@ window.applyBasePriceToVariants = applyBasePriceToVariants;
 window.addVariantPhotos = addVariantPhotos;
 window.removeVariantPhoto = removeVariantPhoto;
 window.toggleFood = toggleFood;
+window.toggleBeauty = toggleBeauty;
+window.refreshBeautyTargets = () => renderBeautyTargets();
+window.setDefaultVersion = setDefaultVersion;
 window.toggleHomemade = toggleHomemade;
 window.updatePreview = updatePreview;
 // Un seul envoi à la fois : un double clic créait deux boutiques identiques

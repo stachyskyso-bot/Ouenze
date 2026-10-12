@@ -292,3 +292,55 @@
 .course-contact .notif-btn i {
     color: inherit;
 }
+
+/* Fenêtres dans la page (remplacent confirm/alert/prompt, bloqués par certains navigateurs intégrés) */
+.cd-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.cd-box {
+    width: 100%;
+    max-width: 400px;
+    background: #fff;
+    color: #1e293b;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.cd-box h3 { margin: 0 0 8px; font-size: 18px; }
+.cd-box p { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: #475569; }
+
+.cd-box input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 22px;
+    letter-spacing: 6px;
+    text-align: center;
+}
+
+.cd-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.cd-actions button {
+    border: none;
+    border-radius: 30px;
+    padding: 11px 18px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.cd-cancel { background: #f1f5f9; color: #334155; }
+.cd-ok { background: #1e40af; color: #fff; }
+.cd-ok.danger { background: #dc2626; }
