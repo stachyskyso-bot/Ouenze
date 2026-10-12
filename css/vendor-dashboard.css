@@ -1293,16 +1293,14 @@ a.share-native {
 }
 
 .logo h1::before {
-    content: "\f290";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
+    content: "";
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: var(--primary);
+    background: #1e3a8a url("../favicon/logo-mark-192.webp") center / cover no-repeat;
     color: #fbbf24;
     font-size: 15px;
 }

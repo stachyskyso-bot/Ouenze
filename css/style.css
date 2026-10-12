@@ -2878,16 +2878,14 @@ body {
 }
 
 .header .logo h1::before {
-    content: "\f290";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
+    content: "";
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: var(--primary);
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #1e3a8a url("../favicon/logo-mark-192.webp") center / cover no-repeat;
     color: var(--gold-soft);
     font-size: 16px;
 }
@@ -4587,16 +4585,14 @@ body {
 }
 
 .sf-logo::before {
-    content: "\f290";
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
+    content: "";
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 30px;
     height: 30px;
     border-radius: 9px;
-    background: var(--primary);
+    background: #1e3a8a url("../favicon/logo-mark-192.webp") center / cover no-repeat;
     color: var(--gold-soft);
     font-size: 14px;
 }
