@@ -161,12 +161,60 @@
             </article>`).join('');
     }
 
+    // Contacts du vendeur et du client (visibles tant que la course est en cours)
+    function contactHtml(role, icon, name, sub, phone, email) {
+        const tel = String(phone || '').replace(/[^\d+]/g, '');
+        const wa = tel.replace(/^\+/, '');
+        return `<div class="course-contact">
+                <div><i class="fas ${icon}"></i> <b>${esc(role)}</b> · ${esc(name || '—')}${sub ? `<br><small>${esc(sub)}</small>` : ''}
+                    <br><small>${phone ? esc(phone) : 'Téléphone non renseigné'}${email ? ' · ' + esc(email) : ''}</small></div>
+                <div class="notif-actions">
+                    ${tel ? `<a class="notif-btn" href="tel:${esc(tel)}"><i class="fas fa-phone"></i> Appeler</a>
+                    <a class="notif-btn" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+                    ${email ? `<a class="notif-btn" href="mailto:${esc(email)}"><i class="fas fa-envelope"></i> Email</a>` : ''}
+                </div>
+            </div>`;
+    }
+
+    // Carte : boutique (bleu) et client (vert)
+    function drawCourseMaps() {
+        (state.maps || []).forEach(m => m.remove());
+        state.maps = [];
+        if (!window.L) return;
+        document.querySelectorAll('.course-map[data-order]').forEach(div => {
+            const d = state.mine.find(x => String(x.order_id) === div.dataset.order);
+            if (!d) return;
+            const pts = [];
+            const map = L.map(div, { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO'
+            }).addTo(map);
+            const dot = (lat, lng, color, label) => {
+                if (lat == null || lng == null) return;
+                pts.push([Number(lat), Number(lng)]);
+                L.circleMarker([Number(lat), Number(lng)], { radius: 9, color: '#fff', weight: 3, fillColor: color, fillOpacity: 1 })
+                    .addTo(map).bindTooltip(label, { permanent: true, direction: 'top', offset: [0, -8] });
+            };
+            dot(d.shop_lat, d.shop_lng, '#1e40af', '🏪 ' + (d.shop_name || 'Boutique'));
+            dot(d.client_lat, d.client_lng, '#16a34a', '🏠 Client');
+            if (pts.length > 1) map.fitBounds(pts, { padding: [40, 40], maxZoom: 16 });
+            else if (pts.length) map.setView(pts[0], 15);
+            else { div.remove(); map.remove(); return; }
+            state.maps.push(map);
+        });
+    }
+
     function activeCard(d) {
         const toShop = d.status === 'courier_assigned';
         const items = (d.items || []).map(i => `${esc(i.name)}${i.variant ? ` (${esc(i.variant)})` : ''} × ${i.quantity}`).join(', ');
         return `
             <article class="course active">
-                <div class="course-top"><strong>${esc(d.order_number)}${d.is_test ? ' · TEST' : ''}</strong><span class="notif-status">${esc(STATUS[d.status] || d.status)}</span></div>
+                <div class="course-top"><strong>Commande ${esc(d.order_number)}${d.is_test ? ' · TEST' : ''}</strong><span class="notif-status">${esc(STATUS[d.status] || d.status)}</span></div>
+                <div class="course-map" data-order="${esc(d.order_id)}"></div>
+                <div class="course-contacts">
+                    ${contactHtml('Vendeur', 'fa-store', d.vendor_name, d.shop_name, d.vendor_phone, d.vendor_email)}
+                    ${contactHtml('Client', 'fa-user', d.client_name, null, d.client_phone, d.client_email)}
+                </div>
                 <ol class="course-steps">
                     <li class="${toShop ? 'now' : 'done'}"><i class="fas fa-store"></i> <b>Récupérer</b> chez ${esc(d.shop_name)}<br><small>${esc(d.shop_address || '')}</small>
                         ${toShop ? `<div class="notif-actions"><a class="notif-btn" target="_blank" rel="noopener" href="${mapsLink(d.shop_lat, d.shop_lng, d.shop_address)}"><i class="fas fa-directions"></i> Itinéraire</a>
@@ -174,7 +222,6 @@
                     <li class="${toShop ? '' : 'now'}"><i class="fas fa-home"></i> <b>Livrer</b> à ${esc(d.client_name)} · ${esc(d.dropoff_area || '')}<br>
                         <small>${d.landmark ? 'Repère : ' + esc(d.landmark) : ''}</small>
                         ${toShop ? '' : `<div class="notif-actions"><a class="notif-btn" target="_blank" rel="noopener" href="${mapsLink(d.client_lat, d.client_lng, d.dropoff_area)}"><i class="fas fa-directions"></i> Itinéraire</a>
-                        ${d.client_phone ? `<a class="notif-btn" href="tel:${esc(String(d.client_phone).replace(/\s/g, ''))}"><i class="fas fa-phone"></i> Appeler</a>` : ''}
                         <button class="notif-btn ok" onclick="courierDeliver('${esc(d.order_id)}')"><i class="fas fa-check"></i> Livrée : entrer le code</button></div>`}</li>
                 </ol>
                 <p class="course-meta">${items} · valeur ${fcfa(d.amount)} · ton gain <b>${fcfa(d.fee)}</b></p>
@@ -220,6 +267,7 @@
                 ? (active.length ? active.map(activeCard).join('') : '<div class="notif-empty"><i class="fas fa-route"></i><p>Aucune course en cours.</p></div>')
                 : historyHtml(done)}</div>
             ${levelsHtml(p.level)}`;
+        drawCourseMaps();
     }
 
     // ---------- Actions ----------

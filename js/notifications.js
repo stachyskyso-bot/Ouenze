@@ -24,6 +24,7 @@
         order_delivered: { icon: 'fa-box-open', tone: 'ok', group: 'orders' },
         order_pickup: { icon: 'fa-motorcycle', tone: 'info', group: 'orders' },
         delivery_offer: { icon: 'fa-motorcycle', tone: 'action', group: 'orders' },
+        delivery_assigned: { icon: 'fa-address-book', tone: 'info', group: 'orders' },
         vendor_application: { icon: 'fa-store', tone: 'action', group: 'orders' },
         courier_application: { icon: 'fa-motorcycle', tone: 'action', group: 'orders' },
         vendor_approved: { icon: 'fa-store', tone: 'ok', group: 'orders' },
@@ -105,10 +106,8 @@
                     <button class="notif-btn" onclick="notifDecide('${id}', '${order}', 'refuse')"><i class="fas fa-times"></i> Refuser</button>
                 </div>`;
             }
-            if (n.order_status === 'accepted' && n.payment_status === 'test') {
-                return `<div class="notif-actions">
-                    <button class="notif-btn" onclick="notifDecide('${id}', '${order}', 'delivered')"><i class="fas fa-box"></i> Marquer comme livrée (test)</button>
-                </div>`;
+            if (n.order_status === 'accepted') {
+                return '<span class="notif-status">En attente d\'un livreur : c\'est lui qui confirme la livraison avec le code du client.</span>';
             }
             return '';
         }
@@ -128,6 +127,9 @@
             return n.order_status === 'accepted'
                 ? `<div class="notif-actions"><a class="notif-btn ok" href="delivery-dashboard.html" onclick="notifRead('${id}')"><i class="fas fa-motorcycle"></i> Voir la course</a></div>`
                 : '<span class="notif-status">Déjà prise par un livreur</span>';
+        }
+        if (n.kind === 'delivery_assigned') {
+            return `<div class="notif-actions"><a class="notif-btn ok" href="delivery-dashboard.html" onclick="notifRead('${id}')"><i class="fas fa-motorcycle"></i> Ouvrir mes courses</a></div>`;
         }
         if (n.kind === 'order_delivered' && n.order_id) {
             return `<div class="notif-actions"><button class="notif-btn primary" onclick="notifRate('${id}', '${order}')"><i class="fas fa-star"></i> Noter la boutique et le livreur</button></div>`;
@@ -209,11 +211,19 @@
             if (reason === null) return;
         } else if (decision === 'accept') {
             if (!confirm(`Accepter la commande ${label} ? Prépare les articles : un livreur va venir les récupérer.`)) return;
-        } else if (!confirm('Marquer cette commande de test comme livrée ? Elle apparaîtra dans ta comptabilité et le client pourra la noter.')) return;
+        } else return;
         state.busy = true;
         try {
             const { error } = await window.supabase.rpc('vendor_order_decision', { target_order: orderId, decision, reason });
-            if (error) { alert(error.message || 'Action impossible.'); return; }
+            if (error) {
+                // Boutique pas encore placée sur la carte : on l'envoie au tableau de bord pour la placer
+                if (/carte/i.test(error.message || '')) {
+                    if (confirm(error.message + '\n\nOuvrir le tableau de bord pour placer ta boutique ?')) location.href = 'vendor-dashboard.html';
+                } else {
+                    alert(error.message || 'Action impossible.');
+                }
+                return;
+            }
             // Email au client : n'empêche pas la décision s'il échoue
             try {
                 const { error: mailError } = await window.supabase.functions.invoke('order-notify', { body: { action: 'decision', order_id: orderId } });

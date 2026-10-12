@@ -1,0 +1,149 @@
+/* ============================================================
+   PLACE-PICKER — fenêtre « placer sur la carte » (js/place-picker.js)
+   ============================================================ */
+.pp-open { overflow: hidden; }
+
+.pp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.pp-sheet {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    max-height: 94vh;
+    overflow-y: auto;
+    background: #fff;
+    color: #1e293b;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+@media (min-width: 700px) {
+    .pp-overlay { align-items: center; }
+    .pp-sheet { border-radius: 20px; padding: 24px; }
+}
+
+.pp-sheet h3 { margin: 0 36px 6px 0; font-size: 18px; }
+.pp-intro { margin: 0 0 12px; font-size: 13px; color: #64748b; line-height: 1.45; }
+
+.pp-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: #f1f5f9;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: #334155;
+}
+
+.pp-search { display: flex; gap: 8px; }
+
+.pp-search input,
+.pp-fields input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 11px 12px;
+    font-size: 15px;
+    font-family: inherit;
+    color: inherit;
+    background: #fff;
+}
+
+.pp-search input:focus,
+.pp-fields input:focus { outline: 2px solid #1e40af33; border-color: #1e40af; }
+
+.pp-search button {
+    flex-shrink: 0;
+    border: 1px solid #1e40af;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 12px;
+    padding: 0 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.pp-results { list-style: none; margin: 6px 0 0; padding: 0; }
+.pp-results li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 9px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.pp-results li:hover, .pp-results li:focus { background: #f1f5f9; outline: none; }
+.pp-results li i { color: #1e40af; margin-top: 3px; }
+.pp-results li span { display: flex; flex-direction: column; }
+.pp-results li small { color: #64748b; }
+.pp-results li.info { cursor: default; color: #64748b; font-size: 13px; }
+
+.pp-map {
+    height: 300px;
+    margin-top: 10px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    background: #e2e8f0;
+}
+
+.pp-nomap { padding: 20px; text-align: center; color: #64748b; }
+
+.pp-status {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 13px;
+}
+.pp-status.ok { background: #ecfdf5; color: #047857; }
+
+.pp-fields { display: grid; gap: 10px; margin-top: 12px; }
+.pp-fields label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: #334155; }
+
+.pp-error {
+    display: none;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 13px;
+}
+
+.pp-save {
+    width: 100%;
+    margin-top: 14px;
+    border: none;
+    border-radius: 30px;
+    padding: 14px;
+    background: #1e40af;
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+}
+.pp-save:disabled { opacity: 0.6; cursor: wait; }
