@@ -58,7 +58,7 @@
             if (error) throw error;
             await refresh();
         } catch (e) {
-            alert(e.message || 'Impossible de passer en disponible.');
+            say('Impossible de passer en disponible', e.message || 'Active ta localisation puis réessaie.');
         } finally {
             state.busy = false;
         }
@@ -270,42 +270,82 @@
         drawCourseMaps();
     }
 
+    // ---------- Fenêtres dans la page ----------
+    // Certains navigateurs intégrés (appli Google, Facebook…) bloquent confirm / alert / prompt
+    // sans rien afficher : on utilise donc nos propres fenêtres.
+    function dialog({ title, text = '', input = false, ok = 'OK', cancel = 'Annuler', danger = false }) {
+        return new Promise(resolve => {
+            document.getElementById('cdOverlay')?.remove();
+            const o = document.createElement('div');
+            o.id = 'cdOverlay';
+            o.className = 'cd-overlay';
+            o.innerHTML = `<div class="cd-box" role="dialog" aria-modal="true" aria-labelledby="cdTitle">
+                    <h3 id="cdTitle">${esc(title)}</h3>
+                    ${text ? `<p>${esc(text).replace(/\n/g, '<br>')}</p>` : ''}
+                    ${input ? '<input id="cdInput" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Code à 4 chiffres">' : ''}
+                    <div class="cd-actions">
+                        ${cancel ? `<button type="button" class="cd-cancel">${esc(cancel)}</button>` : ''}
+                        <button type="button" class="cd-ok ${danger ? 'danger' : ''}">${esc(ok)}</button>
+                    </div>
+                </div>`;
+            const close = v => { o.remove(); resolve(v); };
+            o.querySelector('.cd-ok').onclick = () => close(input ? o.querySelector('#cdInput').value.trim() : true);
+            o.querySelector('.cd-cancel')?.addEventListener('click', () => close(input ? null : false));
+            o.addEventListener('click', e => { if (e.target === o && cancel) close(input ? null : false); });
+            document.body.appendChild(o);
+            const field = o.querySelector('#cdInput');
+            if (field) {
+                field.addEventListener('keydown', e => { if (e.key === 'Enter') o.querySelector('.cd-ok').click(); });
+                setTimeout(() => field.focus(), 50);
+            }
+        });
+    }
+    const say = (title, text) => dialog({ title, text, cancel: null });
+
     // ---------- Actions ----------
+    // Renvoie true si l'action a réussi
     async function act(fn) {
-        if (state.busy) return;
+        if (state.busy) return false;
         state.busy = true;
         try {
             const { error } = await fn();
-            if (error) { alert(error.message || 'Action impossible.'); return; }
+            if (error) { await say('Action impossible', error.message || 'Réessaie dans un instant.'); return false; }
             window.refreshNotifCount?.();
         } finally {
             state.busy = false;
         }
         await refresh();
+        return true;
     }
 
-    function courierTake(orderId) {
+    async function courierTake(orderId) {
         const d = state.available.find(x => x.order_id === orderId);
-        if (!confirm(`Prendre cette course ?\n${d?.shop_name || ''} → ${d?.dropoff_area || ''}\nGain : ${fcfa(d?.fee)}\n\nVa d'abord récupérer le colis à la boutique.`)) return;
-        state.tab = 'active';
-        act(() => rpc('take_delivery', { target_order: orderId }));
+        const yes = await dialog({ title: 'Prendre cette course ?',
+            text: `${d?.shop_name || ''} → ${d?.dropoff_area || ''}\nGain : ${fcfa(d?.fee)}\n\nVa d'abord récupérer le colis à la boutique.`,
+            ok: 'Oui, je la prends' });
+        if (!yes) return;
+        if (await act(() => rpc('take_delivery', { target_order: orderId }))) { state.tab = 'active'; state.tabChosen = true; render(); }
     }
 
-    function courierStep(orderId, step) {
-        if (step === 'pickup' && !confirm('Tu as bien le colis en main ? Le client va être prévenu que tu arrives.')) return;
+    async function courierStep(orderId, step) {
+        if (step === 'pickup' && !(await dialog({ title: 'Colis récupéré ?', text: 'Tu as bien le colis en main ? Le client va être prévenu que tu arrives.', ok: 'Oui, je l\'ai' }))) return;
         act(() => rpc('courier_step', { target_order: orderId, step }));
     }
 
-    function courierDeliver(orderId) {
-        const code = prompt('Demande au client son code de remise (4 chiffres), reçu dans ses notifications :');
+    async function courierDeliver(orderId) {
+        const code = await dialog({ title: 'Code de remise', text: 'Demande au client son code à 4 chiffres (il l\'a reçu dans ses notifications), puis saisis-le ici.', input: true, ok: 'Valider la livraison' });
         if (code === null) return;
-        state.tab = 'history';
-        state.tabChosen = true;
-        act(() => rpc('courier_step', { target_order: orderId, step: 'delivered', client_code: code.trim() }));
+        if (!code) { await say('Code manquant', 'Saisis le code à 4 chiffres donné par le client.'); return; }
+        if (await act(() => rpc('courier_step', { target_order: orderId, step: 'delivered', client_code: code }))) {
+            state.tab = 'history';
+            state.tabChosen = true;
+            render();
+            await say('Livraison confirmée ✅', 'Merci ! La commande est marquée « livrée » et le client peut te noter.');
+        }
     }
 
-    function courierRelease(orderId) {
-        if (!confirm('Rendre cette course ? Elle sera proposée à un autre livreur.')) return;
+    async function courierRelease(orderId) {
+        if (!(await dialog({ title: 'Rendre cette course ?', text: 'Elle sera proposée à un autre livreur.', ok: 'Rendre la course', danger: true }))) return;
         act(() => rpc('courier_step', { target_order: orderId, step: 'release' }));
     }
 
