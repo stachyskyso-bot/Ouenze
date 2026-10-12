@@ -506,7 +506,7 @@
         { key: 'alimentaire', label: 'Alimentaire', emoji: '🍅', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
         { key: 'mode', label: 'Mode', emoji: '👗', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
         { key: 'maison', label: 'Maison', emoji: '🛋️', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
-        { key: 'beaute', label: 'Beauté', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité'] },
+        { key: 'beaute', label: 'Beauté et soins', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
         { key: 'electronique', label: 'Électronique', emoji: '🎧', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
         { key: 'sport', label: 'Sport', emoji: '🏋️', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
         { key: 'bebes', label: 'Bébés', emoji: '🧸', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
@@ -851,7 +851,10 @@
             const others = MARKET_CATEGORIES.flatMap(c => c.words);
             const words = cat.words.length ? cat.words : others;
             const filter = words.map(w => `name.ilike.%${cleanSearch(w)}%,description.ilike.%${cleanSearch(w)}%`).join(',');
-            let list = await fetchProducts(q => q.or(filter).limit(80));
+            // Beauté : aussi les produits remplis avec la fiche « Beauté et soins »
+            let list = key === 'beaute'
+                ? await fetchProducts(q => q.or(filter + ',beauty_info.not.is.null').limit(80)).catch(() => fetchProducts(q => q.or(filter).limit(80)))
+                : await fetchProducts(q => q.or(filter).limit(80));
             if (!cat.words.length) {
                 // « Autres » : ce qui ne correspond à aucune catégorie
                 const all = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(120));
@@ -1376,6 +1379,29 @@
             </div>`;
     }
  
+    const BEAUTY_LABELS = { visage: 'Soin du visage', corps: 'Soin du corps', cheveux: 'Cheveux', maquillage: 'Maquillage',
+        parfum: 'Parfum', hygiene: 'Hygiène', ongles: 'Ongles', autre: 'Beauté' };
+
+    function beautyInfoHtml(b) {
+        if (!b || typeof b !== 'object') return '';
+        const rows = [];
+        rows.push(['Type', BEAUTY_LABELS[b.kind] || 'Beauté']);
+        if (Array.isArray(b.targets) && b.targets.length) rows.push([b.kind === 'cheveux' ? 'Cheveux' : b.kind === 'maquillage' ? 'Carnation' : b.kind === 'parfum' ? 'Pour' : 'Type de peau', b.targets.join(', ')]);
+        if (b.volume) rows.push(['Contenance', b.volume]);
+        if (b.brand) rows.push(['Marque', b.brand]);
+        if (b.origin) rows.push(['Origine', b.origin]);
+        if (b.ingredients) rows.push(['Composition', b.ingredients]);
+        if (b.usage) rows.push(['Mode d\'emploi', b.usage]);
+        if (b.precautions) rows.push(['Précautions', b.precautions]);
+        if (b.expiry_date) { const [y, m, d] = String(b.expiry_date).split('-'); rows.push(['À utiliser avant', `${d}/${m}/${y}`]); }
+        if (b.pao_months) rows.push(['Après ouverture', `${Number(b.pao_months)} mois`]);
+        return `
+            <div class="pd-section">
+                <h4><i class="fas fa-spa"></i> Beauté et soins${b.authentic ? ' <span class="pd-verified"><i class="fas fa-check-circle"></i> Produit original garanti par le vendeur</span>' : ''}</h4>
+                <dl class="pd-food">${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>
+            </div>`;
+    }
+
     let detailProduct = null;      // produit affiché dans la fiche
     const detailShops = {};        // boutiques chargées pour la fiche (vendeur, note, médaille)
     let detailSelection = {};      // { Couleur: 'Noir', Capacité: '128 Go' }
@@ -1394,6 +1420,9 @@
         detailProduct = p;
         detailQty = 1;
         detailSelection = {};
+        // Version par défaut choisie par le vendeur : présélectionnée (son prix s'affiche)
+        const def = productVariants(p).find(v => v.is_default);
+        if (def && def.values) productOptions(p).forEach(o => { if (def.values[o.name]) detailSelection[o.name] = def.values[o.name]; });
         // Une seule valeur possible pour une option : sélection automatique
         productOptions(p).forEach(o => { if (o.values.length === 1) detailSelection[o.name] = o.values[0]; });
         const modal = openModal('<div id="productDetail"></div>');
@@ -1511,10 +1540,11 @@
                     </div>
                 </div>
             </div>
-            ${p.description || foodInfoHtml(p.food_info) ? `
+            ${p.description || foodInfoHtml(p.food_info) || beautyInfoHtml(p.beauty_info) ? `
                 <div class="pd-details">
                     ${p.description ? `<div class="pd-section"><h4>Description</h4><p class="pd-desc">${escapeHtml(p.description)}</p></div>` : ''}
                     ${foodInfoHtml(p.food_info)}
+                    ${beautyInfoHtml(p.beauty_info)}
                 </div>` : ''}
             ${similar.length ? `
                 <div class="pd-similar">
