@@ -1440,3 +1440,19 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 12px 26px;
     text-decoration: none;
 }
+
+/* Beauté et soins : cases à cocher en pastilles (type de peau, cheveux…) */
+.chip-checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip-check { position: relative; cursor: pointer; }
+.chip-check input { position: absolute; opacity: 0; pointer-events: none; }
+.chip-check span {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid var(--gray-300, #cbd5e1);
+    border-radius: 20px;
+    font-size: 13px;
+    background: #fff;
+    color: var(--gray-700, #334155);
+}
+.chip-check input:checked + span { border-color: var(--primary, #1e40af); background: #eff6ff; color: var(--primary, #1e40af); font-weight: 600; }
+.chip-check input:focus-visible + span { outline: 2px solid var(--primary, #1e40af); outline-offset: 2px; }
