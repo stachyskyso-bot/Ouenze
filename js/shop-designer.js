@@ -46,7 +46,7 @@ function formatNumber(v) {
 // pages plus légères pour les clients sur réseau mobile.
 function compressImage(file, maxSize = 1000, quality = 0.82) {
     return new Promise((resolve, reject) => {
-        if (!file.type.startsWith('image/')) { reject(new Error('Ce fichier n\'est pas une image')); return; }
+        if (!file.type.startsWith('image/') && !/\.(jpe?g|png|gif|webp|bmp|svg|heic|heif)$/i.test(file.name || '')) { reject(new Error('Ce fichier n\'est pas une image')); return; }
         const reader = new FileReader();
         reader.onerror = () => reject(reader.error);
         reader.onload = () => {
@@ -224,22 +224,97 @@ function renderCategories() {
 }
 
 // ============ LOGO ============
+// N'importe quel logo (PNG, JPG, WebP, SVG, GIF, photo de téléphone…) :
+// redimensionné à 512 px max, transparence conservée, poids réduit pour l'enregistrement.
+const LOGO_MAX = 512;
+
+function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error || new Error('Lecture impossible'));
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+    });
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Image illisible'));
+        img.src = src;
+    });
+}
+
+async function prepareLogo(file) {
+    const img = await loadImage(await fileToDataUrl(file));
+    // Un SVG sans taille déclarée est dessiné en 512 × 512
+    const w = img.naturalWidth || LOGO_MAX, h = img.naturalHeight || LOGO_MAX;
+    const scale = Math.min(1, LOGO_MAX / Math.max(w, h));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w * scale));
+    canvas.height = Math.max(1, Math.round(h * scale));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    // PNG garde la transparence ; s'il est trop lourd, WebP (transparence aussi), sinon JPEG
+    let out = canvas.toDataURL('image/png');
+    if (out.length > 350000) {
+        const webp = canvas.toDataURL('image/webp', 0.9);
+        out = webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', 0.88);
+    }
+    return out;
+}
+
+function showLogo(src) {
+    const preview = document.getElementById('logoPreview');
+    if (!preview) return;
+    preview.innerHTML = src
+        ? `<img src="${src}" alt="Logo" style="width:100%;height:100%;object-fit:contain;">`
+        : '<i class="fas fa-cloud-upload-alt"></i>';
+    const remove = document.getElementById('logoRemove');
+    if (remove) remove.style.display = src ? '' : 'none';
+}
+
+function removeLogo() {
+    tempLogo = null;
+    showLogo('');
+    debouncedUpdatePreview();
+}
+
 function setupLogoUpload() {
     const logoInput = document.getElementById('logoUpload');
-    if (logoInput) {
-        logoInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    tempLogo = ev.target.result;
-                    const preview = document.getElementById('logoPreview');
-                    if (preview) {
-                        preview.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;">`;
-                    }
-                    debouncedUpdatePreview();
-                };
-                reader.readAsDataURL(e.target.files[0]);
-            }
+    if (!logoInput) return;
+    logoInput.addEventListener('change', async e => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';   // permet de choisir à nouveau le même fichier
+        if (!file) return;
+        const preview = document.getElementById('logoPreview');
+        if (preview) preview.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        try {
+            tempLogo = await prepareLogo(file);
+            showLogo(tempLogo);
+            debouncedUpdatePreview();
+        } catch (err) {
+            console.error('❌ Logo :', err);
+            showLogo(tempLogo || '');
+            alert(/heic|heif/i.test(file.type + file.name)
+                ? 'Format HEIC (iPhone) non lu par ce navigateur. Fais une capture d\'écran du logo, ou choisis-le en JPG / PNG.'
+                : 'Cette image n\'a pas pu être lue. Essaie avec un fichier PNG ou JPG.');
+        }
+    });
+    // Glisser-déposer sur ordinateur
+    const zone = document.querySelector('.image-upload');
+    if (zone) {
+        zone.addEventListener('dragover', ev => { ev.preventDefault(); zone.classList.add('drag'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+        zone.addEventListener('drop', ev => {
+            ev.preventDefault();
+            zone.classList.remove('drag');
+            const f = ev.dataTransfer?.files?.[0];
+            if (!f) return;
+            const dt = new DataTransfer();
+            dt.items.add(f);
+            logoInput.files = dt.files;
+            logoInput.dispatchEvent(new Event('change'));
         });
     }
 }
@@ -1439,7 +1514,7 @@ async function loadShopForEditing(shopId) {
     
     if (shop.logo_url) {
         tempLogo = shop.logo_url;
-        document.getElementById('logoPreview').innerHTML = `<img src="${shop.logo_url}" style="width:100%;height:100%;object-fit:contain;">`;
+        showLogo(shop.logo_url);
     }
     
     const { data: cats } = await window.supabase.from('categories').select('*').eq('shop_id', shopId);
@@ -1647,6 +1722,7 @@ window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 window.closeProductModal = closeProductModal;
 window.saveProduct = saveProduct;
+window.removeLogo = removeLogo;
 window.updateProductField = updateProductField;
 window.removeProductPhoto = removeProductPhoto;
 window.toggleVariants = toggleVariants;
