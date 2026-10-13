@@ -1456,3 +1456,12 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .chip-check input:checked + span { border-color: var(--primary, #1e40af); background: #eff6ff; color: var(--primary, #1e40af); font-weight: 600; }
 .chip-check input:focus-visible + span { outline: 2px solid var(--primary, #1e40af); outline-offset: 2px; }
+
+.beauty-versions {
+    margin: 4px 0 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #eff6ff;
+    border: 1px dashed var(--primary, #1e40af);
+}
+.beauty-versions .hint { margin: 0 0 8px; }
