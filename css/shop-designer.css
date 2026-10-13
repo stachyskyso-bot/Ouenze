@@ -1480,3 +1480,5 @@ input[type="range"]::-webkit-slider-thumb {
 .beauty-authentic { margin-top: 14px; }
 .beauty-more { margin-top: 12px; border-top: 1px solid var(--gray-200, #e2e8f0); padding-top: 10px; }
 .beauty-more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary, #1e40af); margin-bottom: 10px; }
+.beauty-sheet { margin-top: 14px; border-top: 1px solid var(--gray-200, #e2e8f0); padding-top: 4px; }
+.beauty-step small { font-weight: 400; color: var(--gray-500, #64748b); }

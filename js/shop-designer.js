@@ -410,7 +410,7 @@ function renderProductForm() {
         <div class="form-section">
             <label class="toggle-line">
                 <input type="checkbox" id="isBeauty" ${beauty ? 'checked' : ''} onchange="window.toggleBeauty(this.checked)">
-                <span><strong>💄 Produit de beauté</strong></span>
+                <span><strong>💄 Produit de beauté</strong> — soin, maquillage, parfum, cheveux…</span>
             </label>
             <div id="beautySection" style="${beauty ? '' : 'display:none;'}">
                 <p class="beauty-step">1. Quel produit ?</p>
@@ -433,39 +433,28 @@ function renderProductForm() {
                     <span>Produit original et scellé (pas de contrefaçon)</span>
                 </label>
 
-                <details class="beauty-more" ${beauty && (beauty.brand || beauty.ingredients || beauty.usage || beauty.expiry_date) ? 'open' : ''}>
-                    <summary>Plus de détails (facultatif)</summary>
+                <div class="beauty-sheet">
+                    <p class="beauty-step">4. Fiche produit <small>(facultatif, comme sur les sites de cosmétiques)</small></p>
                     <div class="form-row">
+                        <div class="form-group">
+                            <label>Marque</label>
+                            <input type="text" id="beautyBrand" value="${escapeHtml(beauty?.brand || '')}" placeholder="Ex : Nivea, fait maison">
+                        </div>
                         <div class="form-group">
                             <label>Contenance</label>
                             <input type="text" id="beautyVolume" value="${escapeHtml(beauty?.volume || '')}" placeholder="Ex : 50 ml">
                         </div>
-                        <div class="form-group">
-                            <label>Marque</label>
-                            <input type="text" id="beautyBrand" value="${escapeHtml(beauty?.brand || '')}" placeholder="Ex : Nivea">
-                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Ingrédients principaux</label>
-                        <input type="text" id="beautyIngredients" value="${escapeHtml(beauty?.ingredients || '')}" placeholder="Ex : beurre de karité, aloe vera">
+                        <label>Ingrédients</label>
+                        <textarea id="beautyIngredients" rows="2" placeholder="Ex : beurre de karité, huile de coco, aloe vera">${escapeHtml(beauty?.ingredients || '')}</textarea>
                     </div>
                     <div class="form-group">
-                        <label>Conseil d'utilisation</label>
-                        <input type="text" id="beautyUsage" value="${escapeHtml(beauty?.usage || '')}" placeholder="Ex : matin et soir sur peau propre">
+                        <label>Conseils d'utilisation</label>
+                        <textarea id="beautyUsage" rows="2" placeholder="Ex : appliquer matin et soir sur peau propre">${escapeHtml(beauty?.usage || '')}</textarea>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>À utiliser avant</label>
-                            <input type="date" id="beautyExpiry" min="${todayIso()}" value="${escapeHtml(beauty?.expiry_date || '')}">
-                        </div>
-                        <div class="form-group">
-                            <label>Origine</label>
-                            <input type="text" id="beautyOrigin" value="${escapeHtml(beauty?.origin || '')}" placeholder="Ex : Congo">
-                        </div>
-                    </div>
-                    <input type="hidden" id="beautyPrecautions" value="${escapeHtml(beauty?.precautions || '')}">
-                    <input type="hidden" id="beautyPao" value="${escapeHtml(beauty?.pao_months || '')}">
-                </details>
+                    <p class="hint">Le reste (date, origine, précautions…) peut aller dans la <strong>Description</strong> en haut.</p>
+                </div>
             </div>
         </div>
 
@@ -475,6 +464,7 @@ function renderProductForm() {
     renderProductPhotos(tempProductPhotos);
     renderVariantOptions();
     renderVariantCombos();
+    tempBeautyKeep = beauty || {};   // anciens champs (date, origine…) conservés tels quels
     renderBeautyTargets(beauty?.targets || []);
     renderBeautyVersionsHint();
 
@@ -707,6 +697,8 @@ const BEAUTY_KINDS = {
     autre:      { emoji: '✨', short: 'Autre',      label: 'Beauté',          targets: [], title: '', option: 'Modèle', examples: 'Ex : Modèle A, Modèle B' }
 };
 
+let tempBeautyKeep = {};
+
 function selectBeautyKind(k) {
     if (!BEAUTY_KINDS[k]) return;
     document.getElementById('beautyKind').value = k;
@@ -770,20 +762,15 @@ function readBeautyForm() {
         targets: Array.from(document.querySelectorAll('#beautyTargets input:checked')).map(i => i.value),
         volume: v('beautyVolume'),
         brand: v('beautyBrand'),
-        origin: v('beautyOrigin'),
+        origin: v('beautyOrigin') || tempBeautyKeep.origin || '',
         ingredients: v('beautyIngredients'),
         usage: v('beautyUsage'),
-        precautions: v('beautyPrecautions'),
+        precautions: tempBeautyKeep.precautions || '',
         authentic: !!document.getElementById('beautyAuthentic')?.checked
     };
     // Simple : rien d'obligatoire à part le type (les détails sont facultatifs)
-    const expiry = v('beautyExpiry');
-    if (expiry) {
-        if (expiry < todayIso()) return { error: 'La date de péremption est déjà passée : ce produit ne peut pas être mis en vente.' };
-        beauty.expiry_date = expiry;
-    }
-    const pao = parseInt(v('beautyPao'));
-    if (pao) beauty.pao_months = pao;
+    if (tempBeautyKeep.expiry_date) beauty.expiry_date = tempBeautyKeep.expiry_date;
+    if (tempBeautyKeep.pao_months) beauty.pao_months = tempBeautyKeep.pao_months;
     return { beauty };
 }
 
