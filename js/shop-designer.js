@@ -421,13 +421,17 @@ function renderProductForm() {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Contenance *</label>
+                        <label>Contenance</label>
                         <input type="text" id="beautyVolume" value="${escapeHtml(beauty?.volume || '')}" placeholder="Ex : 50 ml, 200 g, 30 ml">
                     </div>
                 </div>
                 <div class="form-group">
                     <label id="beautyTargetsLabel">Pour quel type de peau ?</label>
                     <div class="chip-checks" id="beautyTargets"></div>
+                </div>
+                <div class="beauty-versions">
+                    <p class="hint">Plusieurs teintes, contenances ou parfums ? Crée une version pour chacun : chaque version a <strong>sa photo, son prix et son stock</strong>.</p>
+                    <button type="button" class="btn-sm" id="beautyVersionsBtn" onclick="window.beautyVersions()"></button>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -478,6 +482,7 @@ function renderProductForm() {
     renderVariantOptions();
     renderVariantCombos();
     renderBeautyTargets(beauty?.targets || []);
+    renderBeautyVersionsHint();
 
     const photoInput = document.getElementById('productPhotoInput');
     if (photoInput) photoInput.addEventListener('change', handleProductPhotoUpload);
@@ -700,12 +705,42 @@ const BEAUTY_KINDS = {
     visage: { label: 'Soin du visage (skin-care)', targets: SKIN_TYPES, title: 'Pour quel type de peau ?' },
     corps: { label: 'Soin du corps', targets: SKIN_TYPES, title: 'Pour quel type de peau ?' },
     cheveux: { label: 'Cheveux', targets: HAIR_TYPES, title: 'Pour quel type de cheveux ?' },
-    maquillage: { label: 'Maquillage', targets: ['Peau claire', 'Peau métisse', 'Peau mate', 'Peau foncée', 'Peau très foncée', 'Toutes carnations'], title: 'Pour quelle carnation ?' },
-    parfum: { label: 'Parfum', targets: ['Femme', 'Homme', 'Mixte'], title: 'Pour qui ?' },
-    hygiene: { label: 'Hygiène (savon, déodorant…)', targets: SKIN_TYPES, title: 'Pour quel type de peau ?' },
-    ongles: { label: 'Ongles', targets: ['Toutes'], title: 'Pour qui ?' },
-    autre: { label: 'Autre (accessoire, appareil…)', targets: [], title: '' }
+    maquillage: { label: 'Maquillage teint et yeux (fond de teint, poudre, mascara…)', targets: ['Peau claire', 'Peau métisse', 'Peau mate', 'Peau foncée', 'Peau très foncée', 'Toutes carnations'], title: 'Pour quelle carnation ?', option: 'Teinte', examples: 'Ex : Ivoire, Caramel, Ébène' },
+    levres: { label: 'Lèvres (rouge à lèvres, gloss, baume)', targets: ['Mat', 'Satiné', 'Brillant', 'Nude', 'Longue tenue', 'Hydratant', 'Teinté'], title: 'Quel fini ?', option: 'Teinte', examples: 'Ex : Rouge passion, Nude, Bordeaux, Rose' },
+    parfum: { label: 'Parfum', targets: ['Femme', 'Homme', 'Mixte'], title: 'Pour qui ?', option: 'Contenance', examples: 'Ex : 30 ml, 50 ml, 100 ml' },
+    hygiene: { label: 'Hygiène (savon, déodorant…)', targets: SKIN_TYPES, title: 'Pour quel type de peau ?', option: 'Parfum', examples: 'Ex : Coco, Karité, Sans parfum' },
+    ongles: { label: 'Ongles (vernis, faux ongles…)', targets: ['Toutes'], title: 'Pour qui ?', option: 'Couleur', examples: 'Ex : Rouge, Nude, Noir, Pailleté' },
+    autre: { label: 'Autre (accessoire, appareil…)', targets: [], title: '', option: 'Modèle', examples: 'Ex : Modèle A, Modèle B' }
 };
+// Soins : versions par contenance par défaut
+['visage', 'corps', 'cheveux'].forEach(k => { BEAUTY_KINDS[k].option = 'Contenance'; BEAUTY_KINDS[k].examples = 'Ex : 50 ml, 100 ml, 200 ml'; });
+
+// Une version par teinte / contenance… : chacune a sa photo, son prix et son stock
+function beautyVersions() {
+    const kind = BEAUTY_KINDS[document.getElementById('beautyKind')?.value] || BEAUTY_KINDS.visage;
+    const box = document.getElementById('hasVariants');
+    if (box && !box.checked) { box.checked = true; toggleVariants(true); }
+    const empty = tempVariantOptions.find(o => !o.values.length);
+    if (!tempVariantOptions.some(o => o.name === kind.option)) {
+        if (empty) empty.name = kind.option;
+        else if (tempVariantOptions.length < MAX_VARIANT_OPTIONS) tempVariantOptions.push({ name: kind.option, values: [] });
+    }
+    renderVariantOptions();
+    renderVariantCombos();
+    const idx = tempVariantOptions.findIndex(o => o.name === kind.option);
+    const input = document.querySelectorAll('.variant-option-row')[idx]?.querySelectorAll('input')[1];
+    if (input) {
+        input.placeholder = `${kind.examples} (séparées par des virgules)`;
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input.focus({ preventScroll: true });
+    }
+}
+
+function renderBeautyVersionsHint() {
+    const kind = BEAUTY_KINDS[document.getElementById('beautyKind')?.value] || BEAUTY_KINDS.visage;
+    const btn = document.getElementById('beautyVersionsBtn');
+    if (btn) btn.innerHTML = `<i class="fas fa-layer-group"></i> Une photo et un prix par ${kind.option.toLowerCase()}`;
+}
 
 function toggleBeauty(on) {
     document.getElementById('beautySection').style.display = on ? '' : 'none';
@@ -743,7 +778,9 @@ function readBeautyForm() {
     // Contenance obligatoire, sauf si les versions sont déjà par contenance (30 ml, 50 ml…)
     const volumeInVersions = document.getElementById('hasVariants')?.checked
         && tempVariantOptions.some(o => /contenance|volume|taille|format/i.test(o.name) && o.values.length);
-    if (!beauty.volume && kind !== 'autre' && !volumeInVersions) return { error: 'Indique la contenance du produit de beauté (ex : 50 ml, 200 g).' };
+    // Lèvres, ongles, maquillage : la contenance est facultative (un tube, un flacon)
+    const volumeOptional = ['levres', 'ongles', 'maquillage'].includes(kind);
+    if (!beauty.volume && kind !== 'autre' && !volumeInVersions && !volumeOptional) return { error: 'Indique la contenance du produit de beauté (ex : 50 ml, 200 g).' };
     if (BEAUTY_KINDS[kind].targets.length && !beauty.targets.length) return { error: `${BEAUTY_KINDS[kind].title} Coche au moins une case.` };
     const expiry = v('beautyExpiry');
     if (expiry) {
@@ -1669,7 +1706,8 @@ window.addVariantPhotos = addVariantPhotos;
 window.removeVariantPhoto = removeVariantPhoto;
 window.toggleFood = toggleFood;
 window.toggleBeauty = toggleBeauty;
-window.refreshBeautyTargets = () => renderBeautyTargets();
+window.refreshBeautyTargets = () => { renderBeautyTargets(); renderBeautyVersionsHint(); };
+window.beautyVersions = beautyVersions;
 window.setDefaultVersion = setDefaultVersion;
 window.toggleHomemade = toggleHomemade;
 window.updatePreview = updatePreview;

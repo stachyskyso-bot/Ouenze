@@ -506,7 +506,7 @@
         { key: 'alimentaire', label: 'Alimentaire', emoji: '🍅', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
         { key: 'mode', label: 'Mode', emoji: '👗', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
         { key: 'maison', label: 'Maison', emoji: '🛋️', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
-        { key: 'beaute', label: 'Beauté et soins', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
+        { key: 'beaute', label: 'Beauté et soins', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'gloss', 'baume à lèvres', 'lipstick', 'crayon', 'eyeliner', 'fard', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
         { key: 'electronique', label: 'Électronique', emoji: '🎧', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
         { key: 'sport', label: 'Sport', emoji: '🏋️', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
         { key: 'bebes', label: 'Bébés', emoji: '🧸', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
@@ -1380,13 +1380,13 @@
     }
  
     const BEAUTY_LABELS = { visage: 'Soin du visage', corps: 'Soin du corps', cheveux: 'Cheveux', maquillage: 'Maquillage',
-        parfum: 'Parfum', hygiene: 'Hygiène', ongles: 'Ongles', autre: 'Beauté' };
+        levres: 'Lèvres', parfum: 'Parfum', hygiene: 'Hygiène', ongles: 'Ongles', autre: 'Beauté' };
 
     function beautyInfoHtml(b) {
         if (!b || typeof b !== 'object') return '';
         const rows = [];
         rows.push(['Type', BEAUTY_LABELS[b.kind] || 'Beauté']);
-        if (Array.isArray(b.targets) && b.targets.length) rows.push([b.kind === 'cheveux' ? 'Cheveux' : b.kind === 'maquillage' ? 'Carnation' : b.kind === 'parfum' ? 'Pour' : 'Type de peau', b.targets.join(', ')]);
+        if (Array.isArray(b.targets) && b.targets.length) rows.push([b.kind === 'cheveux' ? 'Cheveux' : b.kind === 'maquillage' ? 'Carnation' : b.kind === 'levres' ? 'Fini' : ['parfum', 'ongles'].includes(b.kind) ? 'Pour' : 'Type de peau', b.targets.join(', ')]);
         if (b.volume) rows.push(['Contenance', b.volume]);
         if (b.brand) rows.push(['Marque', b.brand]);
         if (b.origin) rows.push(['Origine', b.origin]);
