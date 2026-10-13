@@ -1382,23 +1382,34 @@
     const BEAUTY_LABELS = { visage: 'Soin du visage', corps: 'Soin du corps', cheveux: 'Cheveux', maquillage: 'Maquillage',
         levres: 'Lèvres', parfum: 'Parfum', hygiene: 'Hygiène', ongles: 'Ongles', autre: 'Beauté' };
 
-    function beautyInfoHtml(b) {
-        if (!b || typeof b !== 'object') return '';
-        const rows = [];
-        rows.push(['Type', BEAUTY_LABELS[b.kind] || 'Beauté']);
-        if (Array.isArray(b.targets) && b.targets.length) rows.push([b.kind === 'cheveux' ? 'Cheveux' : b.kind === 'maquillage' ? 'Carnation' : b.kind === 'levres' ? 'Fini' : ['parfum', 'ongles'].includes(b.kind) ? 'Pour' : 'Type de peau', b.targets.join(', ')]);
-        if (b.volume) rows.push(['Contenance', b.volume]);
-        if (b.brand) rows.push(['Marque', b.brand]);
-        if (b.origin) rows.push(['Origine', b.origin]);
-        if (b.ingredients) rows.push(['Composition', b.ingredients]);
-        if (b.usage) rows.push(['Mode d\'emploi', b.usage]);
-        if (b.precautions) rows.push(['Précautions', b.precautions]);
-        if (b.expiry_date) { const [y, m, d] = String(b.expiry_date).split('-'); rows.push(['À utiliser avant', `${d}/${m}/${y}`]); }
-        if (b.pao_months) rows.push(['Après ouverture', `${Number(b.pao_months)} mois`]);
-        return `
-            <div class="pd-section">
-                <h4><i class="fas fa-spa"></i> Beauté et soins${b.authentic ? ' <span class="pd-verified"><i class="fas fa-check-circle"></i> Produit original garanti par le vendeur</span>' : ''}</h4>
-                <dl class="pd-food">${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>
+    // Beauté, présentation « site de cosmétiques » : étiquettes sous le prix, sections dépliables
+    function beautyTagsHtml(b, p) {
+        if (!b) return '';
+        // Contenance proposée en versions (30 ml, 50 ml…) : pas d'étiquette fixe qui contredirait le choix
+        const volumeInVersions = productOptions(p).some(o => /contenance|volume|format/i.test(o.name));
+        const state = b.condition === 'opened' ? 'Ouvert / testé' : (b.condition === 'new' || b.authentic) ? 'Neuf, scellé' : '';
+        const tags = [BEAUTY_LABELS[b.kind] || 'Beauté', state, volumeInVersions ? '' : b.volume, ...(Array.isArray(b.targets) ? b.targets : [])].filter(Boolean);
+        return `<div class="pd-tags">${tags.map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div>`;
+    }
+
+    function beautySectionsHtml(p, b) {
+        const sec = (title, icon, html, open) => html ? `
+            <details class="pd-acc" ${open ? 'open' : ''}>
+                <summary><i class="fas ${icon}"></i> ${title}</summary>
+                <div class="pd-acc-body">${html}</div>
+            </details>` : '';
+        const text = t => `<p class="pd-desc">${escapeHtml(t)}</p>`;
+        const extra = [];
+        if (b.origin) extra.push(['Origine', b.origin]);
+        if (b.expiry_date) { const [y, m, d] = String(b.expiry_date).split('-'); extra.push(['À utiliser avant', `${d}/${m}/${y}`]); }
+        if (b.pao_months) extra.push(['Après ouverture', `${Number(b.pao_months)} mois`]);
+        if (b.precautions) extra.push(['Précautions', b.precautions]);
+        const desc = (p.description ? text(p.description) : '')
+            + (extra.length ? `<dl class="pd-food">${extra.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>` : '');
+        return `<div class="pd-details pd-beauty">
+                ${sec('Description', 'fa-align-left', desc, true)}
+                ${sec('Ingrédients', 'fa-leaf', b.ingredients ? text(b.ingredients) : '')}
+                ${sec('Conseils d\'utilisation', 'fa-hand-sparkles', b.usage ? text(b.usage) : '')}
             </div>`;
     }
 
@@ -1438,6 +1449,7 @@
         const options = productOptions(p);
         const variant = selectedVariant();
         const complete = !options.length || !!variant;
+        const beauty = p.beauty_info && typeof p.beauty_info === 'object' ? p.beauty_info : null;
  
         // Photos : celles de la version choisie d'abord
         const variantPhotos = (variant?.photos || []).map(safeUrl).filter(Boolean);
@@ -1486,10 +1498,12 @@
                         </div>` : ''}
                 </div>
                 <div class="pd-info">
+                    ${beauty?.brand ? `<div class="pd-brand">${escapeHtml(beauty.brand)}</div>` : ''}
                     <h3 class="pd-name">${escapeHtml(p.name)}</h3>
                     <div class="pd-price" style="color:${d.primary};">
                         ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
                     </div>
+                    ${beautyTagsHtml(beauty, p)}
                     ${shop && shop.total_ratings ? `<div class="pd-rating"><span class="pd-stars">${generateStars(rating)}</span>
                         <b>${rating.toLocaleString('fr-FR')}</b> <small>· ${shop.total_ratings} avis sur la boutique</small></div>` : ''}
 
@@ -1540,11 +1554,10 @@
                     </div>
                 </div>
             </div>
-            ${p.description || foodInfoHtml(p.food_info) || beautyInfoHtml(p.beauty_info) ? `
+            ${beauty ? beautySectionsHtml(p, beauty) : p.description || foodInfoHtml(p.food_info) ? `
                 <div class="pd-details">
                     ${p.description ? `<div class="pd-section"><h4>Description</h4><p class="pd-desc">${escapeHtml(p.description)}</p></div>` : ''}
                     ${foodInfoHtml(p.food_info)}
-                    ${beautyInfoHtml(p.beauty_info)}
                 </div>` : ''}
             ${similar.length ? `
                 <div class="pd-similar">

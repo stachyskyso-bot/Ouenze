@@ -4816,3 +4816,19 @@ body {
 .around-dist { font-size: 14px; color: var(--primary); }
 
 .home-head-links { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Fiche beauté : marque, étiquettes et sections dépliables (style site de cosmétiques) */
+.pd-brand { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px; }
+.pd-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.pd-tags span { padding: 4px 10px; border-radius: 20px; background: var(--gray-100, #f1f5f9); color: var(--gray-700); font-size: 12px; font-weight: 600; }
+.pd-tags span:first-child { background: #fdf2f8; color: #be185d; }
+.pd-beauty { padding-top: 0; }
+.pd-acc { border-bottom: 1px solid var(--gray-200); }
+.pd-acc:last-child { border-bottom: none; }
+.pd-acc summary { display: flex; align-items: center; gap: 10px; padding: 14px 4px; font-weight: 700; font-size: 15px; cursor: pointer; list-style: none; }
+.pd-acc summary::-webkit-details-marker { display: none; }
+.pd-acc summary::after { content: '+'; margin-left: auto; font-size: 20px; font-weight: 400; color: var(--gray-500); }
+.pd-acc[open] summary::after { content: '−'; }
+.pd-acc summary i { width: 18px; color: var(--primary); }
+.pd-acc-body { padding: 0 4px 14px 32px; }
+.pd-acc-body .pd-desc { margin: 0; }
