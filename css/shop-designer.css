@@ -1482,8 +1482,3 @@ input[type="range"]::-webkit-slider-thumb {
 .beauty-more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary, #1e40af); margin-bottom: 10px; }
 .beauty-sheet { margin-top: 14px; border-top: 1px solid var(--gray-200, #e2e8f0); padding-top: 4px; }
 .beauty-step small { font-weight: 400; color: var(--gray-500, #64748b); }
-
-/* Champ fichier caché mais utilisable (iPhone : pas de display:none) */
-.visually-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
-.image-upload { cursor: pointer; }
-.image-upload.drag { outline: 2px dashed var(--primary, #1e40af); outline-offset: 4px; }

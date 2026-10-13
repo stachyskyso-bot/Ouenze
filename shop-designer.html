@@ -63,13 +63,11 @@
             <!-- ===== LOGO ===== -->
             <div class="design-section" id="sec-logo">
                 <h3><i class="fas fa-image"></i> Logo</h3>
-                <label class="image-upload" for="logoUpload">
+                <div class="image-upload" onclick="document.getElementById('logoUpload').click()">
                     <div id="logoPreview" class="image-preview"><i class="fas fa-cloud-upload-alt"></i></div>
                     <div>Charger un logo</div>
-                    <small style="color:var(--gray-500);">PNG, JPG, WebP, SVG ou photo · fond transparent conservé</small>
-                </label>
-                <input type="file" id="logoUpload" accept="image/*,.svg" class="visually-hidden-input">
-                <button type="button" id="logoRemove" class="btn-secondary" style="display:none;width:100%;margin-top:8px;" onclick="window.removeLogo()">Retirer le logo</button>
+                </div>
+                <input type="file" id="logoUpload" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,image/*" style="display:none;">
             </div>
             
             <!-- ===== MENU ===== -->
