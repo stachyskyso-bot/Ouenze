@@ -406,55 +406,39 @@ function renderProductForm() {
             </div>
         </div>
 
-        <!-- ===== BEAUTÉ ET SOINS ===== -->
+        <!-- ===== BEAUTÉ : caractéristiques seulement ===== -->
         <div class="form-section">
             <label class="toggle-line">
                 <input type="checkbox" id="isBeauty" ${beauty ? 'checked' : ''} onchange="window.toggleBeauty(this.checked)">
-                <span><strong>💄 Produit de beauté</strong> — soin, maquillage, parfum, cheveux…</span>
+                <span><strong>💄 Produit de beauté</strong></span>
             </label>
             <div id="beautySection" style="${beauty ? '' : 'display:none;'}">
-                <p class="beauty-step">1. Quel produit ?</p>
+                <p class="beauty-step">Type</p>
                 <input type="hidden" id="beautyKind" value="${escapeHtml(beauty?.kind && BEAUTY_KINDS[beauty.kind] ? beauty.kind : 'visage')}">
                 <div class="beauty-kinds" id="beautyKinds">
                     ${Object.entries(BEAUTY_KINDS).map(([k, b]) => `<button type="button" class="beauty-kind ${(beauty?.kind || 'visage') === k ? 'active' : ''}" data-kind="${k}" onclick="window.selectBeautyKind('${k}')"><span>${b.emoji}</span>${b.short}</button>`).join('')}
                 </div>
 
-                <p class="beauty-step" id="beautyTargetsLabel">2. Pour qui ?</p>
-                <div class="chip-checks" id="beautyTargets"></div>
+                <div class="form-row" style="margin-top:12px;">
+                    <div class="form-group">
+                        <label>Marque</label>
+                        <input type="text" id="beautyBrand" list="beautyBrands" value="${escapeHtml(beauty?.brand || '')}" placeholder="Ex : Nivea">
+                        <datalist id="beautyBrands">${BEAUTY_BRANDS.map(x => `<option value="${escapeHtml(x)}">`).join('')}</datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>État</label>
+                        <select id="beautyCondition">
+                            <option value="new" ${beauty?.condition !== 'opened' ? 'selected' : ''}>Neuf, scellé</option>
+                            <option value="opened" ${beauty?.condition === 'opened' ? 'selected' : ''}>Ouvert / testé</option>
+                        </select>
+                    </div>
+                </div>
 
-                <p class="beauty-step">3. Plusieurs teintes ou contenances ?</p>
                 <div class="beauty-versions">
                     <button type="button" class="btn-sm" id="beautyVersionsBtn" onclick="window.beautyVersions()"></button>
-                    <p class="hint">Chacune aura sa photo, son prix et son stock.</p>
+                    <span class="hint">une photo et un prix chacune</span>
                 </div>
-
-                <label class="toggle-line beauty-authentic">
-                    <input type="checkbox" id="beautyAuthentic" ${beauty?.authentic ? 'checked' : ''}>
-                    <span>Produit original et scellé (pas de contrefaçon)</span>
-                </label>
-
-                <div class="beauty-sheet">
-                    <p class="beauty-step">4. Fiche produit <small>(facultatif, comme sur les sites de cosmétiques)</small></p>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Marque</label>
-                            <input type="text" id="beautyBrand" value="${escapeHtml(beauty?.brand || '')}" placeholder="Ex : Nivea, fait maison">
-                        </div>
-                        <div class="form-group">
-                            <label>Contenance</label>
-                            <input type="text" id="beautyVolume" value="${escapeHtml(beauty?.volume || '')}" placeholder="Ex : 50 ml">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Ingrédients</label>
-                        <textarea id="beautyIngredients" rows="2" placeholder="Ex : beurre de karité, huile de coco, aloe vera">${escapeHtml(beauty?.ingredients || '')}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Conseils d'utilisation</label>
-                        <textarea id="beautyUsage" rows="2" placeholder="Ex : appliquer matin et soir sur peau propre">${escapeHtml(beauty?.usage || '')}</textarea>
-                    </div>
-                    <p class="hint">Le reste (date, origine, précautions…) peut aller dans la <strong>Description</strong> en haut.</p>
-                </div>
+                <p class="hint" style="margin-top:10px;">Ingrédients, conseils, contenance… : écris-les dans la <strong>Description</strong>.</p>
             </div>
         </div>
 
@@ -465,7 +449,6 @@ function renderProductForm() {
     renderVariantOptions();
     renderVariantCombos();
     tempBeautyKeep = beauty || {};   // anciens champs (date, origine…) conservés tels quels
-    renderBeautyTargets(beauty?.targets || []);
     renderBeautyVersionsHint();
 
     const photoInput = document.getElementById('productPhotoInput');
@@ -698,12 +681,13 @@ const BEAUTY_KINDS = {
 };
 
 let tempBeautyKeep = {};
+const BEAUTY_BRANDS = ['Nivea', 'Dove', 'Vaseline', 'Garnier', "L'Oréal", 'Maybelline', 'Fenty Beauty', 'Black Opal', 'Iman', 'Sleek', 'Fair & White',
+    'Carotone', 'Movate', 'Cantu', 'Shea Moisture', 'Dark and Lovely', 'ORS', 'Palmer\'s', 'CeraVe', 'The Ordinary', 'Nars', 'MAC', 'Dior', 'Chanel', 'Fait maison'];
 
 function selectBeautyKind(k) {
     if (!BEAUTY_KINDS[k]) return;
     document.getElementById('beautyKind').value = k;
     document.querySelectorAll('#beautyKinds .beauty-kind').forEach(b => b.classList.toggle('active', b.dataset.kind === k));
-    renderBeautyTargets([]);
     renderBeautyVersionsHint();
 }
 
@@ -756,22 +740,10 @@ function renderBeautyTargets(selected) {
 function readBeautyForm() {
     if (!document.getElementById('isBeauty')?.checked) return { beauty: null };
     const v = id => document.getElementById(id)?.value.trim() || '';
-    const kind = BEAUTY_KINDS[v('beautyKind')] ? v('beautyKind') : 'autre';
-    const beauty = {
-        kind,
-        targets: Array.from(document.querySelectorAll('#beautyTargets input:checked')).map(i => i.value),
-        volume: v('beautyVolume'),
-        brand: v('beautyBrand'),
-        origin: v('beautyOrigin') || tempBeautyKeep.origin || '',
-        ingredients: v('beautyIngredients'),
-        usage: v('beautyUsage'),
-        precautions: tempBeautyKeep.precautions || '',
-        authentic: !!document.getElementById('beautyAuthentic')?.checked
-    };
-    // Simple : rien d'obligatoire à part le type (les détails sont facultatifs)
-    if (tempBeautyKeep.expiry_date) beauty.expiry_date = tempBeautyKeep.expiry_date;
-    if (tempBeautyKeep.pao_months) beauty.pao_months = tempBeautyKeep.pao_months;
-    return { beauty };
+    const condition = v('beautyCondition') === 'opened' ? 'opened' : 'new';
+    // Anciennes infos (ingrédients, conseils…) conservées telles quelles, plus saisies ici
+    return { beauty: { ...tempBeautyKeep, kind: BEAUTY_KINDS[v('beautyKind')] ? v('beautyKind') : 'autre',
+        brand: v('beautyBrand'), condition, authentic: condition === 'new' } };
 }
 
 function toggleHomemade(homemade) {

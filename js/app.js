@@ -1387,7 +1387,8 @@
         if (!b) return '';
         // Contenance proposée en versions (30 ml, 50 ml…) : pas d'étiquette fixe qui contredirait le choix
         const volumeInVersions = productOptions(p).some(o => /contenance|volume|format/i.test(o.name));
-        const tags = [BEAUTY_LABELS[b.kind] || 'Beauté', volumeInVersions ? '' : b.volume, ...(Array.isArray(b.targets) ? b.targets : [])].filter(Boolean);
+        const state = b.condition === 'opened' ? 'Ouvert / testé' : (b.condition === 'new' || b.authentic) ? 'Neuf, scellé' : '';
+        const tags = [BEAUTY_LABELS[b.kind] || 'Beauté', state, volumeInVersions ? '' : b.volume, ...(Array.isArray(b.targets) ? b.targets : [])].filter(Boolean);
         return `<div class="pd-tags">${tags.map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div>`;
     }
 
@@ -1409,7 +1410,6 @@
                 ${sec('Description', 'fa-align-left', desc, true)}
                 ${sec('Ingrédients', 'fa-leaf', b.ingredients ? text(b.ingredients) : '')}
                 ${sec('Conseils d\'utilisation', 'fa-hand-sparkles', b.usage ? text(b.usage) : '')}
-                ${sec('Garantie', 'fa-shield-alt', b.authentic ? text('Produit original et scellé, garanti par le vendeur. Ni contrefaçon, ni produit reconditionné.') : '')}
             </div>`;
     }
 
