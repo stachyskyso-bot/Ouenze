@@ -195,8 +195,8 @@
                 L.circleMarker([Number(lat), Number(lng)], { radius: 9, color: '#fff', weight: 3, fillColor: color, fillOpacity: 1 })
                     .addTo(map).bindTooltip(label, { permanent: true, direction: 'top', offset: [0, -8] });
             };
-            dot(d.shop_lat, d.shop_lng, '#1e40af', '🏪 ' + (d.shop_name || 'Boutique'));
-            dot(d.client_lat, d.client_lng, '#16a34a', '🏠 Client');
+            dot(d.shop_lat, d.shop_lng, '#1e40af', (d.shop_name || 'Boutique'));
+            dot(d.client_lat, d.client_lng, '#16a34a', 'Client');
             if (pts.length > 1) map.fitBounds(pts, { padding: [40, 40], maxZoom: 16 });
             else if (pts.length) map.setView(pts[0], 15);
             else { div.remove(); map.remove(); return; }
@@ -345,7 +345,7 @@
         const sent = body?.sent || [];
         const label = { sms: 'SMS', whatsapp: 'WhatsApp' };
         if (!failed && sent.length) {
-            await say('Code envoyé au client ✅', `Le client a reçu son code par ${sent.map(c => label[c] || c).join(' et ')}. Il te le donnera quand il aura son colis.`);
+            await say('Code envoyé au client', `Le client a reçu son code par ${sent.map(c => label[c] || c).join(' et ')}. Il te le donnera quand il aura son colis.`);
         } else if (!silent) {
             await say('Code non envoyé', (body?.error || 'Envoi par SMS / WhatsApp indisponible pour le moment.')
                 + '\n\nLe client retrouve toujours son code dans ses notifications Ouenze.');
@@ -367,7 +367,7 @@
             state.tab = 'history';
             state.tabChosen = true;
             render();
-            await say('Livraison confirmée ✅', 'Merci ! La commande est marquée « livrée » et le client peut te noter.');
+            await say('Livraison confirmée', 'Merci ! La commande est marquée « livrée » et le client peut te noter.');
         }
     }
 

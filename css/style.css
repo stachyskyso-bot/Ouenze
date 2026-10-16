@@ -4832,3 +4832,11 @@ body {
 .pd-acc summary i { width: 18px; color: var(--primary); }
 .pd-acc-body { padding: 0 4px 14px 32px; }
 .pd-acc-body .pd-desc { margin: 0; }
+
+/* Icônes à la place des emojis : sobres, couleur Ouenze */
+.home-cat-emoji, .cats-tile span { color: var(--primary); }
+.home-cat-emoji { font-size: 24px; }
+.cats-tile span { font-size: 32px; }
+.cat-chips button i { margin-right: 4px; color: var(--primary); }
+.cat-chips button.active i { color: inherit; }
+.page-title i { color: var(--primary); margin-right: 4px; }

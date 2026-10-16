@@ -238,7 +238,7 @@
         const a = application;
         if (a.status === 'approved') {
             return `<div class="dl-status ok"><i class="fas fa-check-circle"></i>
-                <h3>Ton compte livreur est validé 🎉</h3>
+                <h3>Ton compte livreur est validé</h3>
                 <p>Tu peux accepter des livraisons depuis ton espace livreur.</p>
                 <a class="btn-submit" href="delivery-dashboard.html">Ouvrir mon espace livreur</a></div>`;
         }
@@ -275,7 +275,7 @@
         render();
         // Email à l'admin en plus de la notification sur le site (échec sans conséquence)
         try { await window.supabase.functions.invoke('delivery-application', { body: { action: 'notify', application_id: application.id } }); } catch (e) { /* notification déjà envoyée */ }
-        alert('Relance envoyée ✅ L\'équipe Ouenze a été prévenue.');
+        alert('Relance envoyée. L\'équipe Ouenze a été prévenue.');
     }
 
     // ============ PHOTOS ============
@@ -483,7 +483,7 @@
             const { error: fnError } = await window.supabase.functions.invoke('delivery-application', { body: { action: 'notify', application_id: saved.id } });
             if (fnError) console.warn('⚠️ Email admin non envoyé :', fnError);
             box().innerHTML = `<div class="dl-status ok"><i class="fas fa-check-circle"></i>
-                <h3>Candidature envoyée ✅</h3>
+                <h3>Candidature envoyée</h3>
                 <p>Merci ${esc(form.fullName)} ! Notre équipe vérifie ton permis et ton véhicule sous 24 à 48 h. Tu recevras un email à <strong>${esc(user.email)}</strong>.</p>
                 <a class="btn-submit" href="index.html">Retour à l'accueil</a></div>`;
             window.scrollTo(0, 0);

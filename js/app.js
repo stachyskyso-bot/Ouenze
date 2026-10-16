@@ -503,15 +503,15 @@
     const CITIES = ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Nkayi', 'Ouesso', 'Kinshasa', 'Lubumbashi'];
     // Catégories du marché : recherche par mots-clés dans les produits (les catégories des boutiques sont libres)
     const MARKET_CATEGORIES = [
-        { key: 'alimentaire', label: 'Alimentaire', emoji: '🍅', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
-        { key: 'mode', label: 'Mode', emoji: '👗', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
-        { key: 'maison', label: 'Maison', emoji: '🛋️', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
-        { key: 'beaute', label: 'Beauté et soins', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'gloss', 'baume à lèvres', 'lipstick', 'crayon', 'eyeliner', 'fard', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
-        { key: 'electronique', label: 'Électronique', emoji: '🎧', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
-        { key: 'sport', label: 'Sport', emoji: '🏋️', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
-        { key: 'bebes', label: 'Bébés', emoji: '🧸', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
-        { key: 'auto', label: 'Auto', emoji: '🚗', words: ['pneu', 'voiture', 'moto', 'batterie', 'huile moteur', 'pièce auto'] },
-        { key: 'autres', label: 'Autres', emoji: '📦', words: [] }
+        { key: 'alimentaire', label: 'Alimentaire', emoji: '<i class="fas fa-carrot"></i>', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
+        { key: 'mode', label: 'Mode', emoji: '<i class="fas fa-tshirt"></i>', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
+        { key: 'maison', label: 'Maison', emoji: '<i class="fas fa-couch"></i>', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
+        { key: 'beaute', label: 'Beauté et soins', emoji: '<i class="fas fa-spa"></i>', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'gloss', 'baume à lèvres', 'lipstick', 'crayon', 'eyeliner', 'fard', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
+        { key: 'electronique', label: 'Électronique', emoji: '<i class="fas fa-headphones"></i>', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
+        { key: 'sport', label: 'Sport', emoji: '<i class="fas fa-dumbbell"></i>', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
+        { key: 'bebes', label: 'Bébés', emoji: '<i class="fas fa-baby"></i>', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
+        { key: 'auto', label: 'Auto', emoji: '<i class="fas fa-car"></i>', words: ['pneu', 'voiture', 'moto', 'batterie', 'huile moteur', 'pièce auto'] },
+        { key: 'autres', label: 'Autres', emoji: '<i class="fas fa-box"></i>', words: [] }
     ];
 
     function currentCity() {
@@ -1152,7 +1152,7 @@
                     <div style="background:linear-gradient(135deg,${d.primary},${d.primary}aa);padding:24px;color:${d.headerText};">
                         <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
                             <div style="width:80px;height:80px;flex-shrink:0;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:32px;">
-                                ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">` : '🏪'}
+                                ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="color:#1e40af"></i>'}
                             </div>
                             <div style="min-width:0;">
                                 <h2 style="font-size:24px;margin:0;">${escapeHtml(shop.name)}</h2>

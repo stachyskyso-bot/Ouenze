@@ -410,7 +410,7 @@ function renderProductForm() {
         <div class="form-section">
             <label class="toggle-line">
                 <input type="checkbox" id="isBeauty" ${beauty ? 'checked' : ''} onchange="window.toggleBeauty(this.checked)">
-                <span><strong>💄 Produit de beauté</strong></span>
+                <span><strong><i class="fas fa-spa" style="color:var(--primary,#1e40af)"></i> Produit de beauté</strong></span>
             </label>
             <div id="beautySection" style="${beauty ? '' : 'display:none;'}">
                 <p class="beauty-step">Type</p>
@@ -669,15 +669,15 @@ function toggleFood(on) {
 const SKIN_TYPES = ['Toutes les peaux', 'Peau sèche', 'Peau grasse', 'Peau sensible', 'Peau à taches'];
 const HAIR_TYPES = ['Tous les cheveux', 'Crépus', 'Frisés / bouclés', 'Lisses', 'Locks'];
 const BEAUTY_KINDS = {
-    visage:     { emoji: '💆', short: 'Visage',     label: 'Soin du visage',  targets: SKIN_TYPES, title: '2. Pour quelle peau ?', option: 'Contenance', examples: 'Ex : 50 ml, 100 ml' },
-    corps:      { emoji: '🧴', short: 'Corps',      label: 'Soin du corps',   targets: SKIN_TYPES, title: '2. Pour quelle peau ?', option: 'Contenance', examples: 'Ex : 200 ml, 400 ml' },
-    cheveux:    { emoji: '💇', short: 'Cheveux',    label: 'Cheveux',         targets: HAIR_TYPES, title: '2. Pour quels cheveux ?', option: 'Contenance', examples: 'Ex : 250 ml, 500 ml' },
-    maquillage: { emoji: '🎨', short: 'Maquillage', label: 'Maquillage',      targets: ['Peau claire', 'Peau mate', 'Peau foncée', 'Toutes'], title: '2. Pour quelle carnation ?', option: 'Teinte', examples: 'Ex : Caramel, Ébène' },
-    levres:     { emoji: '💋', short: 'Lèvres',     label: 'Lèvres',          targets: ['Mat', 'Brillant', 'Longue tenue'], title: '2. Quel fini ?', option: 'Teinte', examples: 'Ex : Rouge, Nude, Bordeaux' },
-    parfum:     { emoji: '🌸', short: 'Parfum',     label: 'Parfum',          targets: ['Femme', 'Homme', 'Mixte'], title: '2. Pour qui ?', option: 'Contenance', examples: 'Ex : 30 ml, 50 ml, 100 ml' },
-    hygiene:    { emoji: '🧼', short: 'Hygiène',    label: 'Hygiène',         targets: ['Femme', 'Homme', 'Enfant', 'Tous'], title: '2. Pour qui ?', option: 'Parfum', examples: 'Ex : Coco, Karité' },
-    ongles:     { emoji: '💅', short: 'Ongles',     label: 'Ongles',          targets: [], title: '', option: 'Couleur', examples: 'Ex : Rouge, Nude, Noir' },
-    autre:      { emoji: '✨', short: 'Autre',      label: 'Beauté',          targets: [], title: '', option: 'Modèle', examples: 'Ex : Modèle A, Modèle B' }
+    visage:     { emoji: '<i class="fas fa-spa"></i>', short: 'Visage',     label: 'Soin du visage',  targets: SKIN_TYPES, title: '2. Pour quelle peau ?', option: 'Contenance', examples: 'Ex : 50 ml, 100 ml' },
+    corps:      { emoji: '<i class="fas fa-pump-soap"></i>', short: 'Corps',      label: 'Soin du corps',   targets: SKIN_TYPES, title: '2. Pour quelle peau ?', option: 'Contenance', examples: 'Ex : 200 ml, 400 ml' },
+    cheveux:    { emoji: '<i class="fas fa-cut"></i>', short: 'Cheveux',    label: 'Cheveux',         targets: HAIR_TYPES, title: '2. Pour quels cheveux ?', option: 'Contenance', examples: 'Ex : 250 ml, 500 ml' },
+    maquillage: { emoji: '<i class="fas fa-palette"></i>', short: 'Maquillage', label: 'Maquillage',      targets: ['Peau claire', 'Peau mate', 'Peau foncée', 'Toutes'], title: '2. Pour quelle carnation ?', option: 'Teinte', examples: 'Ex : Caramel, Ébène' },
+    levres:     { emoji: '<i class="fas fa-kiss-beam"></i>', short: 'Lèvres',     label: 'Lèvres',          targets: ['Mat', 'Brillant', 'Longue tenue'], title: '2. Quel fini ?', option: 'Teinte', examples: 'Ex : Rouge, Nude, Bordeaux' },
+    parfum:     { emoji: '<i class="fas fa-spray-can"></i>', short: 'Parfum',     label: 'Parfum',          targets: ['Femme', 'Homme', 'Mixte'], title: '2. Pour qui ?', option: 'Contenance', examples: 'Ex : 30 ml, 50 ml, 100 ml' },
+    hygiene:    { emoji: '<i class="fas fa-soap"></i>', short: 'Hygiène',    label: 'Hygiène',         targets: ['Femme', 'Homme', 'Enfant', 'Tous'], title: '2. Pour qui ?', option: 'Parfum', examples: 'Ex : Coco, Karité' },
+    ongles:     { emoji: '<i class="fas fa-hand-sparkles"></i>', short: 'Ongles',     label: 'Ongles',          targets: [], title: '', option: 'Couleur', examples: 'Ex : Rouge, Nude, Noir' },
+    autre:      { emoji: '<i class="fas fa-star"></i>', short: 'Autre',      label: 'Beauté',          targets: [], title: '', option: 'Modèle', examples: 'Ex : Modèle A, Modèle B' }
 };
 
 let tempBeautyKeep = {};
@@ -917,8 +917,8 @@ function renderProductsList() {
                     Catégorie: ${escapeHtml(category?.name || 'Sans catégorie')} | ${productAllPhotos(p).length} photo(s)
                     ${hasVariants ? ` | ${p.variants.length} version(s) : ${escapeHtml((p.variantOptions || []).map(o => o.name).join(', '))}` : ''}
                 </div>
-                ${p.food ? `<div class="food-badge">🍽️ ${escapeHtml(foodSummary(p.food))}</div>` : ''}
-                ${p.beauty ? `<div class="food-badge">💄 ${escapeHtml([BEAUTY_KINDS[p.beauty.kind]?.label, p.beauty.volume].filter(Boolean).join(' · '))}</div>` : ''}
+                ${p.food ? `<div class="food-badge"><i class="fas fa-utensils"></i> ${escapeHtml(foodSummary(p.food))}</div>` : ''}
+                ${p.beauty ? `<div class="food-badge"><i class="fas fa-spa"></i> ${escapeHtml([BEAUTY_KINDS[p.beauty.kind]?.label, p.beauty.volume].filter(Boolean).join(' · '))}</div>` : ''}
                 ${productAllPhotos(p).length > 0 ? `
                     <div style="display:flex;gap:8px;margin-top:8px;">
                         ${productAllPhotos(p).slice(0, 6).map(photo => `
@@ -1285,7 +1285,7 @@ async function publishShopNow() {
             console.log('✅ Produits créés:', productsData.length);
         }
         
-        alert(`✅ Boutique "${name}" créée avec succès !`);
+        alert(`Boutique "${name}" créée avec succès !`);
         window.location.href = 'vendor-dashboard.html';
         
     } catch (error) {
@@ -1328,7 +1328,7 @@ async function updateShopNow() {
         return;
     }
 
-    alert(`✅ Boutique mise à jour !`);
+    alert(`Boutique mise à jour !`);
     window.location.href = 'vendor-dashboard.html';
 }
 

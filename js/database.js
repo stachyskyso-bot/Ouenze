@@ -256,22 +256,22 @@ console.log('   - getCurrentUser:', typeof getCurrentUser);
 window.OuenzeMedals = (function () {
     const TIERS = [
         {
-            id: 'standard', name: 'Standard', emoji: '⚪', rank: 0, commission: 0.22,
+            id: 'standard', name: 'Standard', emoji: '<i class="fas fa-store" style="color:#64748b"></i>', rank: 0, commission: 0.22,
             minRating: 0, minOrders: 0, verified: false,
             perks: ['Fonctionnement normal de la boutique', 'Commission Ouenze 22 %']
         },
         {
-            id: 'bronze', name: 'Bronze', emoji: '🥉', rank: 1, commission: 0.2175,
+            id: 'bronze', name: 'Bronze', emoji: '<i class="fas fa-medal" style="color:#b45309"></i>', rank: 1, commission: 0.2175,
             minRating: 3.5, minOrders: 10, verified: false,
             perks: ['Badge Bronze visible', 'Commission réduite à 21,75 %', 'Statistiques de base', 'Peut apparaître dans les sélections Ouenze']
         },
         {
-            id: 'silver', name: 'Argent', emoji: '🥈', rank: 2, commission: 0.215,
+            id: 'silver', name: 'Argent', emoji: '<i class="fas fa-medal" style="color:#94a3b8"></i>', rank: 2, commission: 0.215,
             minRating: 4, minOrders: 50, verified: false,
             perks: ['Tout Bronze', 'Commission réduite à 21,5 %', 'Meilleure visibilité dans les résultats', 'Statistiques avancées', 'Mises en avant occasionnelles']
         },
         {
-            id: 'gold', name: 'Or', emoji: '🥇', rank: 3, commission: 0.21,
+            id: 'gold', name: 'Or', emoji: '<i class="fas fa-medal" style="color:#d4a017"></i>', rank: 3, commission: 0.21,
             minRating: 4.5, minOrders: 150, verified: true,
             perks: ['Tout Argent', 'Commission réduite à 21 %', 'Priorité dans le classement et la recherche', 'Badge premium très visible', 'Mises en avant gratuites', 'Accès prioritaire aux nouvelles fonctions', 'Support vendeur prioritaire']
         }

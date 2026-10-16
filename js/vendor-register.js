@@ -54,7 +54,7 @@
         const contact = `<p>Notre équipe va te contacter au <strong>${esc(a.phone)}</strong>${a.whatsapp ? ` (WhatsApp ${esc(a.whatsapp)})` : ''}.</p>`;
         if (a.status === 'pending') {
             return `<div class="dl-status"><i class="fas fa-hourglass-half" style="color:var(--warning);"></i>
-                <h3>Demande envoyée ✅</h3>
+                <h3>Demande envoyée</h3>
                 <p>Merci ${esc(a.full_name)} ! Ta demande pour <strong>${esc(a.business_name)}</strong> est en cours d'examen.</p>
                 ${contact}
                 <p class="dl-note">Dès que ton compte est validé, tu pourras créer ta boutique. Tu seras prévenu par notification et par email.</p>
@@ -63,7 +63,7 @@
         }
         if (a.status === 'approved') {
             return `<div class="dl-status ok"><i class="fas fa-check-circle"></i>
-                <h3>Tu es vendeur Ouenze 🎉</h3>
+                <h3>Tu es vendeur Ouenze</h3>
                 <p>Ta demande est validée. Crée ta boutique, ajoute tes produits et reçois tes premières commandes.</p>
                 <a class="btn-submit" href="shop-designer.html"><i class="fas fa-store"></i> Créer ma boutique</a>
                 <a class="btn-cancel" href="vendor-dashboard.html" style="display:block;text-align:center;text-decoration:none;">Mon espace vendeur</a></div>`;
@@ -108,7 +108,7 @@
         render();
         // Email à l'admin en plus de la notification sur le site (échec sans conséquence)
         try { await window.supabase.functions.invoke('vendor-application', { body: { action: 'notify', application_id: state.app.id } }); } catch (e) { /* notification déjà envoyée */ }
-        alert('Relance envoyée ✅ L\'équipe Ouenze a été prévenue.');
+        alert('Relance envoyée. L\'équipe Ouenze a été prévenue.');
     }
 
     function formHtml() {

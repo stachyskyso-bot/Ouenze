@@ -106,9 +106,9 @@
         layers.toShop = L.polyline(routeToShop, { color: '#94a3b8', weight: 4, dashArray: '6 8' }).addTo(map);
         layers.toClient = L.polyline(routeToClient, { color: '#1e40af', weight: 5, opacity: 0.85 }).addTo(map);
         layers.done = L.polyline([], { color: '#16a34a', weight: 6 }).addTo(map);
-        L.marker(shop, { icon: icon('🏪', 'shop') }).addTo(map).bindTooltip(esc(s.shop.name));
-        L.marker(client, { icon: icon('🏠', 'home') }).addTo(map).bindTooltip('Toi');
-        layers.courier = L.marker(start, { icon: icon('🛵', 'courier'), zIndexOffset: 1000 }).addTo(map);
+        L.marker(shop, { icon: icon('<i class="fas fa-store"></i>', 'shop') }).addTo(map).bindTooltip(esc(s.shop.name));
+        L.marker(client, { icon: icon('<i class="fas fa-home"></i>', 'home') }).addTo(map).bindTooltip('Toi');
+        layers.courier = L.marker(start, { icon: icon('<i class="fas fa-motorcycle"></i>', 'courier'), zIndexOffset: 1000 }).addTo(map);
         map.fitBounds(L.latLngBounds([...routeToShop, ...routeToClient]), { padding: [30, 30] });
         setTimeout(() => map && map.invalidateSize(), 150);
     }
@@ -235,7 +235,7 @@
         s.status = 'delivered'; s.times.delivered = t(); updatePanel(s);
         box().insertAdjacentHTML('beforeend', `
             <div class="trk-done">
-                <p>Commande livrée ✅ Tu pourras ensuite noter la boutique et le livreur.</p>
+                <p>Commande livrée. Tu pourras ensuite noter la boutique et le livreur.</p>
                 <button class="btn-submit" onclick="location.reload()"><i class="fas fa-redo"></i> Revoir l'animation</button>
             </div>`);
     }
@@ -253,7 +253,7 @@
         if (order.status === 'delivered' && order.id && window.openRateOrder) {
             box().insertAdjacentHTML('beforeend', `
                 <div class="trk-done">
-                    <p>Commande livrée ✅ Comment s'est passé ton achat ?</p>
+                    <p>Commande livrée. Comment s'est passé ton achat ?</p>
                     <button class="btn-submit" onclick="openRateOrder('${String(order.id).replace(/[^a-zA-Z0-9-]/g, '')}')"><i class="fas fa-star"></i> Noter la boutique et le livreur</button>
                 </div>`);
         }
