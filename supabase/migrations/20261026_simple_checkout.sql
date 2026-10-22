@@ -3,8 +3,8 @@
 -- À exécuter une fois dans Supabase → SQL Editor. Sans danger si relancé.
 -- Prérequis : 20261017 (commandes), 20261019 (livreurs), 20261022 (carte vendeur).
 --
--- • Adresse = ville + quartier (+ repère facultatif). Le centre d'appel Ouenze appelle le
---   client pour confirmer l'adresse (call_center_orders / confirm_order_address).
+-- • Adresse = ville + quartier (+ repère facultatif). Ouenze reçoit par email le nom, le
+--   numéro et l'adresse du client à chaque commande (Edge Function order-notify, ADMIN_EMAIL).
 -- • Paiement : « mobile_money_cod ». Le client ne paie rien à la commande ; quand le livreur
 --   a saisi le code de remise, le client reçoit la demande Mobile Money (CinetPay) et tape
 --   son code secret. payment_status : 'test' (mode test) · 'cod' (à payer) · 'paid'.
@@ -107,7 +107,7 @@ begin
                     'country_code', left(delivery->>'country_code', 2), 'country', left(delivery->>'country', 60),
                     'city', left(delivery->>'city', 60), 'district', left(delivery->>'district', 60),
                     'street', left(delivery->>'street', 100), 'landmark', left(delivery->>'landmark', 300),
-                    'phone', left(delivery->>'phone', 30), 'address_confirmed', false,
+                    'phone', left(delivery->>'phone', 30),
                     'payment_operator', left(payment->>'operator', 40), 'payment_phone', left(payment->>'phone', 30),
                     'group', grp),
                 1)
@@ -137,58 +137,5 @@ begin
         execute replace(def, $q$('test', 'paid')$q$, $q$('test', 'paid', 'cod')$q$);
     end if;
 end $$;
-
--- ---------- Centre d'appel : commandes dont l'adresse reste à confirmer ----------
-create or replace function public.call_center_orders()
-returns table (order_id uuid, order_number text, status text, payment_status text, created_at timestamptz,
-               client_name text, phone text, city text, district text, street text, landmark text,
-               address_confirmed boolean, call_note text, shop_name text, total numeric)
-language sql
-stable
-security definer
-set search_path = public
-as $$
-    select o.id, o.order_number, o.status, o.payment_status, o.created_at,
-           coalesce(nullif(btrim(u.raw_user_meta_data->>'full_name'), ''), 'Client'),
-           o.delivery_info->>'phone', o.delivery_info->>'city', o.delivery_info->>'district',
-           o.delivery_info->>'street', o.delivery_info->>'landmark',
-           coalesce((o.delivery_info->>'address_confirmed')::boolean, false), o.delivery_info->>'call_note',
-           (select s.name::text from public.order_items oi join public.shops s on s.id = oi.shop_id where oi.order_id = o.id limit 1),
-           o.total
-      from public.orders o
-      left join auth.users u on u.id = o.client_id
-     where public.is_admin()
-       and o.status not in ('delivered', 'refused', 'cancelled')
-     order by coalesce((o.delivery_info->>'address_confirmed')::boolean, false), o.created_at
-     limit 200;
-$$;
-revoke all on function public.call_center_orders() from public, anon;
-grant execute on function public.call_center_orders() to authenticated;
-
--- L'agent confirme (ou corrige) l'adresse après avoir appelé le client
-create or replace function public.confirm_order_address(target_order uuid, new_district text default null,
-    new_street text default null, new_landmark text default null, note text default null)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-    if not public.is_admin() then raise exception 'Réservé à l''équipe Ouenze' using errcode = '42501'; end if;
-    update public.orders
-       set delivery_info = delivery_info
-           || jsonb_strip_nulls(jsonb_build_object(
-                'district', nullif(left(btrim(coalesce(new_district, '')), 60), ''),
-                'street', nullif(left(btrim(coalesce(new_street, '')), 100), ''),
-                'landmark', nullif(left(btrim(coalesce(new_landmark, '')), 300), ''),
-                'call_note', nullif(left(btrim(coalesce(note, '')), 300), '')))
-           || jsonb_build_object('address_confirmed', true, 'address_confirmed_at', now()),
-           updated_at = now()
-     where id = target_order;
-    if not found then raise exception 'Commande introuvable'; end if;
-end;
-$$;
-revoke all on function public.confirm_order_address(uuid, text, text, text, text) from public, anon;
-grant execute on function public.confirm_order_address(uuid, text, text, text, text) to authenticated;
 
 notify pgrst, 'reload schema';

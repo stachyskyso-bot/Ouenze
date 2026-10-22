@@ -672,7 +672,7 @@
 
             <section class="home-trust home-only">
                 <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
-                <div><i class="fas fa-shield-alt"></i><span><b>Paiement sécurisé</b><small>Mobile Money, PayPal</small></span></div>
+                <div><i class="fas fa-shield-alt"></i><span><b>Paiement à la livraison</b><small>Mobile Money</small></span></div>
                 <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">7j/7</a></small></span></div>
                 <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
             </section>

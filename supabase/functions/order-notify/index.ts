@@ -4,13 +4,14 @@
 // action "placed"   (client, juste après place_order) : { order_ids: [...] }
 //                   → au VENDEUR de chaque commande : « Nouvelle commande à accepter »
 //                   → au CLIENT : récapitulatif de sa commande
+//                   → à OUENZE (ADMIN_EMAIL) : nom, numéro et adresse du client, pour l'appeler
 // action "decision" (vendeur, après vendor_order_decision) : { order_id }
 //                   → au CLIENT : commande acceptée, refusée (avec le motif) ou livrée
 //
 // Chaque email n'est envoyé qu'une fois par commande et par événement
 // (trace dans orders.delivery_info.notified).
 //
-// Secrets (déjà utilisés par delivery-application) : BREVO_API_KEY, SENDER_EMAIL, SITE_URL
+// Secrets (déjà utilisés par delivery-application) : BREVO_API_KEY, SENDER_EMAIL, SITE_URL, ADMIN_EMAIL
 // SUPABASE_URL, SUPABASE_ANON_KEY et SUPABASE_SERVICE_ROLE_KEY sont fournis par Supabase.
 // ============================================================
 
@@ -146,6 +147,32 @@ Deno.serve(async req => {
                 }
                 await markNotified(o, 'placed');
             }
+            // Email à Ouenze : de quoi appeler le client et confirmer son adresse
+            const adminEmail = Deno.env.get('ADMIN_EMAIL');
+            if (adminEmail) {
+                const d = fresh[0].delivery_info || {};
+                const meta = user.user_metadata || {};
+                const name = meta.full_name || meta.name || 'Client';
+                const phone = d.phone || meta.phone || (user.phone ? '+' + user.phone : '');
+                const tel = String(phone).replace(/\D/g, '');
+                const total = fresh.reduce((s, o) => s + Number(o.total), 0);
+                const test = fresh.some(o => o.payment_status === 'test');
+                const line = (label, value) => value ? `<tr><td style="padding:6px;color:#64748b;width:38%;">${label}</td><td style="padding:6px;font-weight:bold;">${esc(value)}</td></tr>` : '';
+                await sendEmail(adminEmail, `${test ? '[TEST] ' : ''}📞 Nouvelle commande : ${name} · ${phone}`, layout(
+                    'Nouvelle commande : appeler le client',
+                    `<table style="width:100%;border-collapse:collapse;font-size:15px;margin-bottom:12px;">
+                        ${line('Client', name)}${line('Téléphone', phone)}${line('Ville', d.city)}${line('Quartier', d.district)}
+                        ${line('Rue', d.street)}${line('Repère', d.landmark)}
+                        ${line('Mobile Money', [d.payment_operator, d.payment_phone].filter(Boolean).join(' · '))}
+                        ${line('Commandes', fresh.map(o => `${o.order_number} (${shopOf(o).name || ''})`).join(', '))}
+                        ${line('Total à payer à la livraison', fcfa(total))}
+                    </table>
+                    ${tel ? `<p style="text-align:center;margin:18px 0 6px;">
+                        <a href="tel:+${tel}" style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:30px;margin:4px;">Appeler</a>
+                        <a href="https://wa.me/${tel}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:30px;margin:4px;">WhatsApp</a></p>` : ''}`, test));
+                sent.push({ to: 'admin' });
+            }
+
             const clientEmail = user.email;
             if (clientEmail) {
                 const test = fresh.some(o => o.payment_status === 'test');
