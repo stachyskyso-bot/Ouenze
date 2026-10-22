@@ -676,20 +676,3 @@
 .dl-remind .btn-submit {
     margin: 0;
 }
-
-/* ---------- Centre d'appel (admin-calls.html) ---------- */
-.ac-order { margin-bottom: 12px; }
-.ac-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ac-meta { display: block; color: var(--gray-500); margin: 4px 0 10px; }
-.ac-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.ac-actions a { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; width: auto; }
-.ac-warn { color: var(--danger); font-size: 13px; }
-.ac-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.ac-fields label { font-size: 12px; color: var(--gray-600, #475569); display: flex; flex-direction: column; gap: 4px; }
-.ac-fields input { padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
-.ac-fields .ac-wide { grid-column: 1 / -1; }
-.ac-confirm { width: 100%; }
-.ac-msg { margin-top: 8px; font-size: 13px; }
-.ac-msg.ok { color: var(--success); }
-.ac-msg.err { color: var(--danger); }
-@media (max-width: 520px) { .ac-fields { grid-template-columns: 1fr; } }

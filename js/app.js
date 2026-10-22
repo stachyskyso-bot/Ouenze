@@ -2348,7 +2348,6 @@
             const list = modal.querySelector('.pf-list');
             if (!data || !list) return;
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
-                ${row('admin-calls.html', 'fa-headset', 'Centre d\'appel (adresses à confirmer)')}
                 ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
                 ${row('admin-market.html', 'fa-landmark', 'Bourse')}</nav>`);
