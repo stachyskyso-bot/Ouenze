@@ -905,3 +905,10 @@ body.invest-body {
         border-top: 1px solid var(--gray-200);
     }
 }
+
+/* Investir en pause */
+.inv-soon { text-align: center; padding: 40px 20px; }
+.inv-soon i { font-size: 40px; color: var(--primary, #1e40af); margin-bottom: 12px; }
+.inv-soon h3 { margin: 0 0 8px; font-size: 20px; }
+.inv-soon p { max-width: 420px; margin: 0 auto 18px; color: var(--gray-500, #64748b); line-height: 1.5; }
+.inv-soon .btn-primary { display: inline-block; padding: 12px 22px; border-radius: 30px; background: var(--primary, #1e40af); color: #fff; text-decoration: none; font-weight: 700; }

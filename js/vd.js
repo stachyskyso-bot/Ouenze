@@ -668,6 +668,9 @@
     }
 
     async function openListing(shopId) {
+        // Bourse en pause (invest-common.js : OPEN = false)
+        openSheet('<h3>Entrer en bourse</h3><p class="share-sub">L\'entrée en bourse ouvre très bientôt. Merci de patienter : nous vous préviendrons dès l\'ouverture.</p>');
+        return;
         const shop = dashShops.find(s => String(s.id) === String(shopId));
         if (!shop) return;
         openSheet('<h3>Entrer en bourse</h3><p class="share-sub">Vérification de ta boutique…</p>');
