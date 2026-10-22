@@ -107,7 +107,7 @@
         const { data } = await window.supabase.auth.getSession();
         if (!data?.session) {
             message(`<i class="fas fa-lock"></i><h3>Espace administrateur</h3><p>Connecte-toi avec ton compte administrateur.</p>
-                <button class="btn-submit" onclick="openLoginModal()">Se connecter</button>`);
+                <button class="btn-submit" onclick="openEmailLoginModal()">Se connecter</button>`);
             window.supabase.auth.onAuthStateChange(event => { if (event === 'SIGNED_IN') location.reload(); });
             return;
         }

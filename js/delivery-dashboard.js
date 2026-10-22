@@ -388,7 +388,7 @@
         if (!data?.session?.user) {
             window.supabase.auth.onAuthStateChange?.(e => { if (e === 'SIGNED_IN') location.reload(); });
             app().innerHTML = `<div class="notif-empty"><i class="fas fa-user-lock"></i><h3>Connecte-toi à ton espace livreur</h3>
-                <button class="btn-submit" onclick="openLoginModal()">Se connecter</button></div>`;
+                <button class="btn-submit" onclick="openEmailLoginModal()">Se connecter</button></div>`;
             return;
         }
         await refresh();

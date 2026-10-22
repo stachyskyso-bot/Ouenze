@@ -4840,3 +4840,34 @@ body {
 .cat-chips button i { margin-right: 4px; color: var(--primary); }
 .cat-chips button.active i { color: inherit; }
 .page-title i { color: var(--primary); margin-right: 4px; }
+
+/* ---------- Connexion par numéro + code SMS : gros caractères, gros boutons ---------- */
+.phone-auth { text-align: center; }
+.phone-auth h3 { font-size: 22px; margin: 6px 0 4px; }
+.phone-auth .auth-sub { font-size: 15px; color: var(--gray-700); }
+.phone-auth form { text-align: left; }
+.phone-auth label { font-size: 15px; font-weight: 600; }
+.phone-auth select { font-size: 17px; padding: 12px; }
+.phone-auth-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #dbeafe; color: var(--primary); font-size: 24px;
+}
+.phone-auth-icon.ok { background: #dcfce7; color: var(--success); }
+.phone-field.big .phone-prefix { font-size: 18px; padding: 0 14px; }
+.form-group .phone-field.big input { font-size: 20px; padding: 14px 12px; letter-spacing: 0.5px; }
+.btn-submit.big { font-size: 18px; padding: 15px; border-radius: 14px; }
+.code-input {
+    display: block; width: 100%; margin: 4px 0 14px;
+    font-size: 32px; font-weight: 700; letter-spacing: 12px; text-align: center;
+    padding: 14px 8px; border: 2px solid var(--gray-200); border-radius: 14px;
+}
+.code-input:focus { border-color: var(--primary); outline: none; }
+.phone-auth-links { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.phone-auth-links button {
+    background: none; border: none; padding: 8px 0; font: inherit; font-size: 15px;
+    color: var(--primary); font-weight: 600; cursor: pointer;
+}
+.phone-auth-links button:disabled { color: var(--gray-500); }
+.phone-auth-alt { margin-top: 18px; font-size: 13px; color: var(--gray-500); }
+.phone-auth-alt a { color: var(--primary); font-weight: 600; }

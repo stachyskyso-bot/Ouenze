@@ -46,8 +46,8 @@
         return `<div class="dl-status"><i class="fas fa-user-lock" style="color:var(--primary);"></i>
             <h3>Connecte-toi pour faire ta demande</h3>
             <p>Crée un compte gratuit ou connecte-toi : ta demande sera liée à ton compte.</p>
-            <button class="btn-submit" onclick="openLoginModal()">Se connecter</button>
-            <p class="dl-switch">Pas encore de compte ? <a href="#" onclick="openRegisterModal();return false;">Créer un compte</a></p></div>`;
+            <button class="btn-submit" onclick="openEmailLoginModal()">Se connecter</button>
+            <p class="dl-switch">Pas encore de compte ? <a href="#" onclick="openEmailRegisterModal();return false;">Créer un compte</a></p></div>`;
     }
 
     function statusHtml(a) {
