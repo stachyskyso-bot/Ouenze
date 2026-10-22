@@ -92,7 +92,7 @@
             el.style.display = 'block';
             return;
         }
-        status('fa-check-circle', 'ok', 'Boutique transférée 🎉', 'La boutique est maintenant sur ton compte. Tu peux la gérer depuis ton tableau de bord vendeur.',
+        status('fa-check-circle', 'ok', 'Boutique transférée', 'La boutique est maintenant sur ton compte. Tu peux la gérer depuis ton tableau de bord vendeur.',
             `<a class="btn-submit" href="vendor-dashboard.html">Ouvrir mon tableau de bord</a>`);
         return data;
     }

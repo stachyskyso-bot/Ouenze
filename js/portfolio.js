@@ -145,6 +145,7 @@
             box().innerHTML = '<div class="inv-empty"><p>Service indisponible. Recharge la page.</p></div>';
             return;
         }
+        if (!I.OPEN) { box().innerHTML = I.comingSoon(); return; }
         state.user = await I.currentUser();
         if (!state.user) { box().innerHTML = I.loginBox('Connecte-toi pour voir ton portefeuille'); return; }
         await load();

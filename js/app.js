@@ -329,7 +329,7 @@
                 done();
                 if (/already registered|already exists/i.test(msg)) {
                     alert('Un compte existe déjà avec cet email.\n\nConnecte-toi, ou utilise « Mot de passe oublié » si tu ne t\'en souviens plus.');
-                    openLoginModal();
+                    openEmailLoginModal();
                     const loginEmail = document.getElementById('loginEmail');
                     if (loginEmail) loginEmail.value = email;
                 } else if (/valid email|invalid.*email/i.test(msg)) {
@@ -503,15 +503,15 @@
     const CITIES = ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Nkayi', 'Ouesso', 'Kinshasa', 'Lubumbashi'];
     // Catégories du marché : recherche par mots-clés dans les produits (les catégories des boutiques sont libres)
     const MARKET_CATEGORIES = [
-        { key: 'alimentaire', label: 'Alimentaire', emoji: '🍅', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
-        { key: 'mode', label: 'Mode', emoji: '👗', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
-        { key: 'maison', label: 'Maison', emoji: '🛋️', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
-        { key: 'beaute', label: 'Beauté et soins', emoji: '💄', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'gloss', 'baume à lèvres', 'lipstick', 'crayon', 'eyeliner', 'fard', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
-        { key: 'electronique', label: 'Électronique', emoji: '🎧', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
-        { key: 'sport', label: 'Sport', emoji: '🏋️', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
-        { key: 'bebes', label: 'Bébés', emoji: '🧸', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
-        { key: 'auto', label: 'Auto', emoji: '🚗', words: ['pneu', 'voiture', 'moto', 'batterie', 'huile moteur', 'pièce auto'] },
-        { key: 'autres', label: 'Autres', emoji: '📦', words: [] }
+        { key: 'alimentaire', label: 'Alimentaire', emoji: '<i class="fas fa-carrot"></i>', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
+        { key: 'mode', label: 'Mode', emoji: '<i class="fas fa-tshirt"></i>', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
+        { key: 'maison', label: 'Maison', emoji: '<i class="fas fa-couch"></i>', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
+        { key: 'beaute', label: 'Beauté et soins', emoji: '<i class="fas fa-spa"></i>', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'gloss', 'baume à lèvres', 'lipstick', 'crayon', 'eyeliner', 'fard', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
+        { key: 'electronique', label: 'Électronique', emoji: '<i class="fas fa-headphones"></i>', words: ['téléphone', 'iphone', 'samsung', 'tecno', 'infinix', 'tv', 'télé', 'ordinateur', 'laptop', 'écouteur', 'casque', 'chargeur', 'playstation', 'console', 'tablette'] },
+        { key: 'sport', label: 'Sport', emoji: '<i class="fas fa-dumbbell"></i>', words: ['ballon', 'maillot', 'sport', 'haltère', 'vélo', 'football', 'basket-ball'] },
+        { key: 'bebes', label: 'Bébés', emoji: '<i class="fas fa-baby"></i>', words: ['bébé', 'couche', 'biberon', 'poussette', 'jouet', 'enfant'] },
+        { key: 'auto', label: 'Auto', emoji: '<i class="fas fa-car"></i>', words: ['pneu', 'voiture', 'moto', 'batterie', 'huile moteur', 'pièce auto'] },
+        { key: 'autres', label: 'Autres', emoji: '<i class="fas fa-box"></i>', words: [] }
     ];
 
     function currentCity() {
@@ -672,7 +672,7 @@
 
             <section class="home-trust home-only">
                 <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
-                <div><i class="fas fa-shield-alt"></i><span><b>Paiement sécurisé</b><small>Mobile Money, PayPal</small></span></div>
+                <div><i class="fas fa-shield-alt"></i><span><b>Paiement à la livraison</b><small>Mobile Money</small></span></div>
                 <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">7j/7</a></small></span></div>
                 <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
             </section>
@@ -1152,7 +1152,7 @@
                     <div style="background:linear-gradient(135deg,${d.primary},${d.primary}aa);padding:24px;color:${d.headerText};">
                         <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
                             <div style="width:80px;height:80px;flex-shrink:0;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:32px;">
-                                ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">` : '🏪'}
+                                ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="color:#1e40af"></i>'}
                             </div>
                             <div style="min-width:0;">
                                 <h2 style="font-size:24px;margin:0;">${escapeHtml(shop.name)}</h2>
@@ -1780,9 +1780,10 @@
         return modal;
     }
  
-    function openLoginModal() {
+    function openEmailLoginModal() {
         const modal = openModal(`
-            <h3 style="margin-bottom:16px;">Connexion</h3>
+            <h3 style="margin-bottom:6px;">Connexion avec email</h3>
+            <p class="auth-sub">Pour les vendeurs, les livreurs et l'équipe Ouenze.</p>
             ${socialButtonsHtml('Continuer')}
             <div class="form-group">
                 <label>Email</label>
@@ -1802,8 +1803,11 @@
                 <i class="fas fa-sign-in-alt"></i> Se connecter
             </button>
             <div style="text-align:center;margin-top:16px;font-size:13px;">
-                <a href="#" onclick="event.preventDefault();openRegisterModal();" style="color:var(--primary);cursor:pointer;">
-                    Créer un compte
+                <a href="#" onclick="event.preventDefault();openEmailRegisterModal();" style="color:var(--primary);cursor:pointer;">
+                    Créer un compte avec email
+                </a>
+                · <a href="#" onclick="event.preventDefault();openLoginModal();" style="color:var(--primary);cursor:pointer;">
+                    Connexion avec mon numéro
                 </a>
             </div>`);
  
@@ -1814,6 +1818,215 @@
         modal.querySelector('#loginEmail').focus();
     }
  
+    // ============ CONNEXION PAR NUMÉRO + CODE SMS (clients) ============
+    // Pas d'email ni de mot de passe : le client tape son numéro, reçoit un code par SMS
+    // et le recopie. Le compte est créé automatiquement à la première connexion.
+    // Supabase → Authentication → Phone activé + hook « Send SMS » vers l'Edge Function sms-hook.
+    let phoneLogin = { cc: 'CG', phone: '', e164: '', sentAt: 0 };
+
+    function phoneE164(formatted) {
+        return '+' + String(formatted || '').replace(/\D/g, '');
+    }
+
+    function openLoginModal() {
+        const cc = phoneLogin.cc;
+        const modal = openModal(`
+            <div class="phone-auth">
+                <span class="phone-auth-icon"><i class="fas fa-mobile-alt"></i></span>
+                <h3>Connexion</h3>
+                <p class="auth-sub">Tape ton numéro de téléphone. Tu vas recevoir un code par SMS.</p>
+                <form onsubmit="event.preventDefault();phoneSendCode();" novalidate>
+                    <div class="form-group">
+                        <label for="plCountry">Pays</label>
+                        <select id="plCountry" onchange="phoneCountry()">
+                            ${Object.entries(COUNTRIES).map(([code, c]) =>
+                                `<option value="${code}" ${code === cc ? 'selected' : ''}>${c.name} (+${c.dial})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="plPhone">Ton numéro</label>
+                        <div class="phone-field big">
+                            <span class="phone-prefix" id="plDial">+${COUNTRIES[cc].dial}</span>
+                            <input type="tel" id="plPhone" inputmode="tel" autocomplete="tel-national"
+                                   placeholder="${COUNTRIES[cc].example}" value="${escapeHtml(phoneLogin.phone)}">
+                        </div>
+                    </div>
+                    <div class="form-error" id="plError" role="alert"></div>
+                    <button type="submit" class="btn-submit big" id="plSend"><i class="fas fa-sms"></i> Recevoir mon code</button>
+                </form>
+                <p class="phone-auth-alt">Vendeur, livreur ou équipe Ouenze ?
+                    <a href="#" onclick="event.preventDefault();openEmailLoginModal();">Connexion avec email</a></p>
+            </div>`);
+        modal.classList.add('auth-modal');
+        modal.querySelector('#plPhone').focus();
+    }
+
+    // Un client n'a pas besoin d'un formulaire d'inscription : le code SMS crée le compte
+    function openRegisterModal() { openLoginModal(); }
+
+    function phoneCountry() {
+        const cc = document.getElementById('plCountry').value;
+        document.getElementById('plDial').textContent = '+' + COUNTRIES[cc].dial;
+        document.getElementById('plPhone').placeholder = COUNTRIES[cc].example;
+    }
+
+    function phoneAuthError(error) {
+        const msg = error?.message || '';
+        if (/rate limit|too many|security purposes|seconds/i.test(msg)) return 'Trop de demandes. Attends une minute puis réessaie.';
+        if (/expired|invalid|token/i.test(msg)) return 'Code incorrect ou expiré. Vérifie le SMS ou demande un nouveau code.';
+        if (/provider|unsupported phone|phone.*disabled|signups not allowed/i.test(msg)) return 'La connexion par SMS n\'est pas encore activée. Réessaie plus tard.';
+        if (/hook|sms/i.test(msg)) return 'Le SMS n\'a pas pu partir. Réessaie dans un instant.';
+        if (/database error/i.test(msg)) return 'Création du compte impossible pour le moment. Réessaie plus tard.';
+        return 'Une erreur est survenue : ' + msg;
+    }
+
+    async function phoneSendCode(resend) {
+        if (!resend) {
+            const cc = document.getElementById('plCountry')?.value || 'CG';
+            const raw = document.getElementById('plPhone')?.value || '';
+            const phone = normalizePhone(raw, cc);
+            if (!phone) return showFormError('plError', `Numéro invalide. Exemple : ${COUNTRIES[cc].example}`, 'plPhone');
+            phoneLogin = { cc, phone: raw.trim(), formatted: phone, e164: phoneE164(phone), sentAt: 0 };
+        }
+        const btn = document.getElementById(resend ? 'plResend' : 'plSend');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi…'; }
+        const { error } = await window.supabase.auth.signInWithOtp({
+            phone: phoneLogin.e164,
+            options: { data: { phone: phoneLogin.formatted, country_code: phoneLogin.cc, country: COUNTRIES[phoneLogin.cc].name, user_type: 'client' } }
+        });
+        if (error) {
+            console.error('❌ Code SMS:', error.message);
+            if (resend) {
+                if (btn) { btn.disabled = false; btn.textContent = 'Renvoyer le code'; }
+                return showFormError('pcError', phoneAuthError(error));
+            }
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sms"></i> Recevoir mon code'; }
+            return showFormError('plError', phoneAuthError(error));
+        }
+        phoneLogin.sentAt = Date.now();
+        openPhoneCodeModal();
+    }
+
+    function openPhoneCodeModal() {
+        const modal = openModal(`
+            <div class="phone-auth">
+                <span class="phone-auth-icon"><i class="fas fa-comment-dots"></i></span>
+                <h3>Tape le code reçu</h3>
+                <p class="auth-sub">Code envoyé par SMS au <strong>${escapeHtml(phoneLogin.formatted)}</strong></p>
+                <form onsubmit="event.preventDefault();phoneVerify();" novalidate>
+                    <input type="text" id="pcCode" class="code-input" inputmode="numeric" autocomplete="one-time-code"
+                           maxlength="6" placeholder="••••••" aria-label="Code reçu par SMS"
+                           oninput="this.value=this.value.replace(/\\D/g,'');if(this.value.length===6)phoneVerify();">
+                    <div class="form-error" id="pcError" role="alert"></div>
+                    <button type="submit" class="btn-submit big" id="pcVerify"><i class="fas fa-check"></i> Valider</button>
+                </form>
+                <div class="phone-auth-links">
+                    <button type="button" id="plResend" onclick="phoneResend()">Renvoyer le code</button>
+                    <button type="button" onclick="openLoginModal()">Changer de numéro</button>
+                </div>
+            </div>`);
+        modal.classList.add('auth-modal');
+        modal.querySelector('#pcCode').focus();
+    }
+
+    function phoneResend() {
+        const wait = 60 - Math.floor((Date.now() - phoneLogin.sentAt) / 1000);
+        if (wait > 0) return showFormError('pcError', `Patiente encore ${wait} secondes avant de redemander un code.`);
+        showFormError('pcError', '');
+        phoneSendCode(true);
+    }
+
+    let phoneVerifying = false;
+    async function phoneVerify() {
+        if (phoneVerifying) return;
+        const token = (document.getElementById('pcCode')?.value || '').replace(/\D/g, '');
+        if (token.length !== 6) return showFormError('pcError', 'Le code a 6 chiffres.', 'pcCode');
+        phoneVerifying = true;
+        const btn = document.getElementById('pcVerify');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification…'; }
+        const { data, error } = await window.supabase.auth.verifyOtp({ phone: phoneLogin.e164, token, type: 'sms' });
+        phoneVerifying = false;
+        if (error || !data?.user) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Valider'; }
+            return showFormError('pcError', phoneAuthError(error || { message: 'invalid' }), 'pcCode');
+        }
+        currentUser = data.user;
+        currentProfile = await fetchProfile(currentUser.id);
+        currentUserType = currentProfile?.user_type || 'client';
+        closeModal(true);
+        updateHeaderUI();
+        await loadUserData();
+        if (needsProfileCompletion(currentUser)) { openCompleteProfileModal(); return; }
+        afterPhoneLogin();
+    }
+
+    function afterPhoneLogin() {
+        if (currentUserType === 'vendeur') window.location.href = 'vendor-dashboard.html';
+        else if (currentUserType === 'livreur') window.location.href = 'delivery-dashboard.html';
+        else if (document.getElementById('appContainer')) showHomePage();
+        else window.location.reload();
+    }
+
+    // Première connexion par SMS : seulement le nom et la ville (le numéro est déjà connu)
+    function openPhoneProfileModal() {
+        if (document.querySelector('.modal[data-locked]')) return;
+        const meta = currentUser?.user_metadata || {};
+        const cc = COUNTRIES[meta.country_code] ? meta.country_code : 'CG';
+        const modal = openModal(`
+            <div class="phone-auth">
+                <span class="phone-auth-icon ok"><i class="fas fa-check"></i></span>
+                <h3>Bienvenue sur Ouenze</h3>
+                <p class="auth-sub">Dernière étape : comment tu t'appelles ?</p>
+                <form onsubmit="event.preventDefault();savePhoneProfile();" novalidate>
+                    <div class="form-group">
+                        <label for="ppName">Ton nom</label>
+                        <input type="text" id="ppName" maxlength="60" autocomplete="name" placeholder="Ex : Grâce Mabiala" value="${escapeHtml(meta.full_name || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label for="ppCity">Ta ville</label>
+                        <select id="ppCity">${COUNTRIES[cc].cities.map(c => `<option ${c === meta.city ? 'selected' : ''}>${c}</option>`).join('')}</select>
+                    </div>
+                    <label class="terms-line">
+                        <input type="checkbox" id="ppTerms" checked>
+                        <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                    </label>
+                    <div class="form-error" id="ppError" role="alert"></div>
+                    <button type="submit" class="btn-submit big" id="ppSubmit">C'est parti</button>
+                </form>
+            </div>`, { locked: true });
+        modal.classList.add('auth-modal');
+        modal.querySelector('#ppName').focus();
+    }
+
+    async function savePhoneProfile() {
+        const fullName = (document.getElementById('ppName')?.value || '').trim().replace(/\s+/g, ' ');
+        const city = document.getElementById('ppCity')?.value || '';
+        if (fullName.length < 2 || !/[A-Za-zÀ-ÿ]/.test(fullName)) return showFormError('ppError', 'Indique ton nom.', 'ppName');
+        if (!document.getElementById('ppTerms')?.checked) return showFormError('ppError', 'Merci d\'accepter les conditions d\'utilisation.');
+        const meta = currentUser?.user_metadata || {};
+        const cc = COUNTRIES[meta.country_code] ? meta.country_code : 'CG';
+        const phone = meta.phone || phoneLogin.formatted || currentUser?.phone || '';
+        const btn = document.getElementById('ppSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Enregistrement…';
+        const values = { full_name: fullName, user_type: 'client', phone, city, country: COUNTRIES[cc].name, country_code: cc, profile_completed: true };
+        const { data, error } = await window.supabase.auth.updateUser({ data: values });
+        if (error) {
+            btn.disabled = false;
+            btn.textContent = 'C\'est parti';
+            return showFormError('ppError', 'Enregistrement impossible : ' + error.message);
+        }
+        if (data?.user) currentUser = data.user;
+        let res = await window.supabase.from('profiles')
+            .update({ full_name: fullName, phone, city, country: values.country }).eq('id', currentUser.id);
+        if (res.error) res = await window.supabase.from('profiles').update({ full_name: fullName }).eq('id', currentUser.id);
+        if (res.error) console.error('❌ Profil:', res.error);
+        currentProfile = await fetchProfile(currentUser.id);
+        closeModal(true);
+        updateHeaderUI();
+        afterPhoneLogin();
+    }
+
     function socialButtonsHtml(label) {
         return `
             <div class="social-auth">
@@ -1912,7 +2125,7 @@
         meter.querySelector('span').textContent = pw ? labels[score] : '8 caractères minimum, avec lettres et chiffres';
     }
  
-    function openRegisterModal() {
+    function openEmailRegisterModal() {
         const modal = openModal(`
             <h3 style="margin-bottom:6px;">Créer un compte</h3>
             <p class="auth-sub">Ouenze, la marketplace du Congo-Brazzaville et de la RDC.</p>
@@ -1957,7 +2170,7 @@
                 <button type="submit" class="btn-submit" id="signupSubmit">Créer mon compte</button>
             </form>
             <div style="text-align:center;margin-top:12px;font-size:13px;">
-                <a href="#" onclick="event.preventDefault();openLoginModal();" style="color:var(--primary);cursor:pointer;">
+                <a href="#" onclick="event.preventDefault();openEmailLoginModal();" style="color:var(--primary);cursor:pointer;">
                     Déjà un compte ? Se connecter
                 </a>
             </div>`);
@@ -2026,6 +2239,7 @@
  
     function openCompleteProfileModal() {
         if (document.querySelector('.modal[data-locked]')) return;
+        if (currentUser?.app_metadata?.provider === 'phone') return openPhoneProfileModal();
         const meta = currentUser?.user_metadata || {};
         const modal = openModal(`
             <div class="complete-head">
@@ -2355,6 +2569,13 @@
         showMyOrders,
         openLoginModal,
         openRegisterModal,
+        openEmailLoginModal,
+        openEmailRegisterModal,
+        phoneCountry,
+        phoneSendCode,
+        phoneResend,
+        phoneVerify,
+        savePhoneProfile,
         signInWithProvider,
         completeProfile,
         onCountryChange,

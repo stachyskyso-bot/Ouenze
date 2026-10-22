@@ -1473,7 +1473,8 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--gray-700, #334155);
     cursor: pointer;
 }
-.beauty-kind span { font-size: 22px; line-height: 1; }
+.beauty-kind span { font-size: 20px; line-height: 1; color: var(--gray-500, #64748b); }
+.beauty-kind.active span { color: var(--primary, #1e40af); }
 .beauty-kind.active { border-color: var(--primary, #1e40af); background: #eff6ff; color: var(--primary, #1e40af); box-shadow: 0 0 0 1px var(--primary, #1e40af) inset; }
 .beauty-versions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .beauty-versions .hint { margin: 0; }

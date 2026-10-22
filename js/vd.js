@@ -189,7 +189,7 @@
 
                 <div class="vd-main" id="vdTop">
                     <div class="vd-hello">
-                        <div><small>Bonjour ${escapeHtml(name)} 👋</small><h1>Tableau de bord</h1></div>
+                        <div><small>Bonjour ${escapeHtml(name)}</small><h1>Tableau de bord</h1></div>
                         ${best ? `<span class="vd-medal medal-${best.tier.id}">${best.tier.emoji} Vendeur ${escapeHtml(best.tier.name)}</span>` : ''}
                     </div>
 
@@ -240,7 +240,7 @@
     // Médaille d'une boutique (base, sinon règles locales)
     function medalTier(shop) {
         const M = window.OuenzeMedals;
-        if (!M) return { id: 'standard', name: 'Standard', emoji: '⚪', rank: 0 };
+        if (!M) return { id: 'standard', name: 'Standard', emoji: '<i class="fas fa-store" style="color:#64748b"></i>', rank: 0 };
         const info = medalInfo[shop.id];
         const t = info ? M.get(info.medal) : M.compute(Number(shop.rating) || 0, Number(shop.real_sales_count) || 0, !!shop.is_verified);
         return { ...t, rank: ['standard', 'bronze', 'silver', 'gold'].indexOf(t.id) };
@@ -668,6 +668,9 @@
     }
 
     async function openListing(shopId) {
+        // Bourse en pause (invest-common.js : OPEN = false)
+        openSheet('<h3>Entrer en bourse</h3><p class="share-sub">L\'entrée en bourse ouvre très bientôt. Merci de patienter : nous vous préviendrons dès l\'ouverture.</p>');
+        return;
         const shop = dashShops.find(s => String(s.id) === String(shopId));
         if (!shop) return;
         openSheet('<h3>Entrer en bourse</h3><p class="share-sub">Vérification de ta boutique…</p>');
@@ -743,7 +746,7 @@
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer ma demande';
             return sheetError(error.message || 'Envoi impossible, réessaie.');
         }
-        openSheet(`<h3>Demande envoyée ✅</h3>
+        openSheet(`<h3>Demande envoyée</h3>
             <p class="share-sub">L'équipe Ouenze va te contacter pour vérifier ta boutique sur place. Dès validation, elle apparaîtra sur la page Investir.</p>
             <a class="share-native" href="activities.html"><i class="fas fa-history"></i> Suivre dans Mes activités</a>`);
     }
@@ -811,11 +814,11 @@
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer le lien de confirmation';
             return sheetError(error);
         }
-        const label = v => v === true ? '✅ envoyé' : v === 'échec' ? '⚠️ échec' : '— non configuré';
+        const label = v => v === true ? 'envoyé' : v === 'échec' ? 'échec' : 'non configuré';
         const waText = encodeURIComponent(`Bonjour, voici le lien pour reprendre ma boutique « ${shop.name} » sur Ouenze (valable 72 h) : ${data.link}`);
         const waNumber = phone ? phone.replace(/\D/g, '') : '';
         openSheet(`
-            <h3>Lien envoyé ✅</h3>
+            <h3>Lien envoyé</h3>
             <p class="share-sub">${escapeHtml(email)} a 72 h pour confirmer. Tu seras prévenu par email.</p>
             <dl class="channel-list">
                 <dt>Email</dt><dd>${label(data.channels?.email)}</dd>
@@ -871,7 +874,7 @@
     }
  
     function shareMessage(shop) {
-        return `Découvrez ma boutique « ${shop.name} » sur Ouenze 🛍️`;
+        return `Découvrez ma boutique « ${shop.name} » sur Ouenze`;
     }
  
     function openShareShop(shopId) {
@@ -962,8 +965,8 @@
         const tip = document.getElementById('shareTip');
         if (tip) {
             tip.textContent = !ok ? 'Copie impossible : sélectionnez le lien ci-dessus et copiez-le.'
-                : network ? `Lien copié ✅ Collez-le dans ${network} (story, message ou bio).`
-                : 'Lien copié ✅';
+                : network ? `Lien copié. Collez-le dans ${network} (story, message ou bio).`
+                : 'Lien copié';
             tip.classList.toggle('ok', ok);
         }
     }

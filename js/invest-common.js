@@ -6,6 +6,18 @@
 window.OuenzeInvest = (function () {
     'use strict';
 
+    // Investir est en pause : passer à true pour rouvrir la bourse
+    const OPEN = false;
+
+    function comingSoon() {
+        return `<div class="inv-empty inv-soon">
+            <i class="fas fa-hourglass-half"></i>
+            <h3>Bientôt disponible</h3>
+            <p>L'investissement dans les boutiques Ouenze ouvre très bientôt. Merci de patienter : nous vous préviendrons dès l'ouverture.</p>
+            <a class="btn-primary" href="index.html">Retour aux boutiques</a>
+        </div>`;
+    }
+
     const SHARES_PER_COMPANY = 10000;   // une boutique = 10 000 parts (voir migration 20261014)
     const MIGRATION_FILE = 'supabase/migrations/20261014_stock_market.sql';
 
@@ -103,5 +115,6 @@ window.OuenzeInvest = (function () {
     const money = v => Math.round(v).toLocaleString('fr-FR') + ' FCFA';
     const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#f97316', '#14b8a6', '#64748b', '#eab308'];
 
-    return { SHARES_PER_COMPANY, esc, fcfa, num, pct, frDate, monthLabel, stars, logoHtml, isMissing, migrationWarning, loginBox, currentUser, chart, money, PALETTE };
+    return {
+        OPEN, comingSoon, SHARES_PER_COMPANY, esc, fcfa, num, pct, frDate, monthLabel, stars, logoHtml, isMissing, migrationWarning, loginBox, currentUser, chart, money, PALETTE };
 })();

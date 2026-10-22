@@ -218,6 +218,7 @@
             box().innerHTML = '<div class="inv-empty"><p>Service indisponible. Recharge la page.</p></div>';
             return;
         }
+        if (!I.OPEN) { box().innerHTML = I.comingSoon(); return; }
         state.user = await I.currentUser();
         await load();
         render();

@@ -114,7 +114,7 @@
 
     async function init() {
         const { data } = await window.supabase.auth.getSession();
-        if (!data?.session) { message('<h3>Connecte-toi</h3><p>Page réservée à l\'équipe Ouenze.</p><button class="btn-submit" onclick="openLoginModal()">Se connecter</button>'); return; }
+        if (!data?.session) { message('<h3>Connecte-toi</h3><p>Page réservée à l\'équipe Ouenze.</p><button class="btn-submit" onclick="openEmailLoginModal()">Se connecter</button>'); return; }
         const { data: admin } = await window.supabase.rpc('is_admin');
         if (!admin) { message('<h3>Accès refusé</h3><p>Page réservée à l\'équipe Ouenze.</p>'); return; }
         try {

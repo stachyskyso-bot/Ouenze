@@ -603,8 +603,10 @@
     border: 3px solid #ffffff;
 }
 
-.trk-pin.shop { border-color: #f59e0b; }
-.trk-pin.home { border-color: #16a34a; }
+.trk-pin { font-size: 17px; }
+.trk-pin.shop { border-color: #f59e0b; color: #b45309; }
+.trk-pin.home { border-color: #16a34a; color: #16a34a; }
+.trk-pin.courier { color: #1e40af; }
 .trk-pin.courier {
     border-color: #1e40af;
     animation: trkPulse 1.6s ease-in-out infinite;
