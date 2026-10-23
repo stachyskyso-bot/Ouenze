@@ -14,6 +14,26 @@
     'use strict';
 
     const DELIVERY_RATE = 0.10;              // frais de livraison : 10 % du sous-total
+    // Moyens de paiement proposés sous le numéro
+    const PAYMENTS = {
+        CG: [
+            { id: 'MTN_CG', method: 'mobile_money_cod', name: 'MTN Mobile Money', hint: 'numéros en 06', logo: 'MTN', color: '#ffcc00', text: '#000', prefix: '06' },
+            { id: 'AIRTEL_CG', method: 'mobile_money_cod', name: 'Airtel Money', hint: 'numéros en 05', logo: 'airtel', color: '#e40000', text: '#fff', prefix: '05' }
+        ],
+        CD: [
+            { id: 'MPESA_CD', method: 'mobile_money_cod', name: 'M-Pesa', hint: 'Vodacom', logo: 'M-Pesa', color: '#e60000', text: '#fff', prefix: '' },
+            { id: 'ORANGE_CD', method: 'mobile_money_cod', name: 'Orange Money', hint: '', logo: 'Orange', color: '#ff7900', text: '#000', prefix: '' },
+            { id: 'AIRTEL_CD', method: 'mobile_money_cod', name: 'Airtel Money', hint: '', logo: 'airtel', color: '#e40000', text: '#fff', prefix: '' }
+        ],
+        ALL: [
+            { id: 'CARD', method: 'card', name: 'Carte bancaire', hint: 'Visa, Mastercard, carte prépayée', logo: 'VISA', color: '#1a1f71', text: '#fff' },
+            { id: 'PAYPAL', method: 'paypal', name: 'PayPal', hint: '', logo: 'PayPal', color: '#003087', text: '#fff' }
+        ]
+    };
+    const payment = { choice: '', picked: false };
+    const payOptions = () => [...(PAYMENTS[delivery.countryCode] || []), ...PAYMENTS.ALL];
+    const payChoice = () => payOptions().find(o => o.id === payment.choice) || null;
+
     let step = 1;
     let user = null;
     let cart = [];
@@ -124,6 +144,7 @@
         el.innerHTML = `<div class="co-layout ${step > 1 ? 'with-aside' : ''}">
             <div class="co-main">${stepper() + [cartHtml, phoneHtml][step - 1]() + actionBarHtml()}</div>
             ${step > 1 ? asideHtml() : ''}</div>`;
+        document.getElementById('coPhone')?.addEventListener('input', guessOperator);
         window.scrollTo(0, 0);
     }
 
@@ -195,6 +216,16 @@
                     <input type="tel" id="coPhone" inputmode="tel" autocomplete="tel-national" placeholder="${C.example}" value="${esc(nationalPart(delivery.phone))}">
                 </div>
             </div>
+            <p class="co-label">Comment veux-tu payer ? *</p>
+            <div class="co-operators co-pay-grid">
+                ${payOptions().map(o => `
+                    <label class="co-operator ${payment.choice === o.id ? 'selected' : ''}">
+                        <input type="radio" name="coPayment" value="${o.id}" ${payment.choice === o.id ? 'checked' : ''} onchange="coPayment('${o.id}')">
+                        <span class="co-op-logo" style="background:${o.color};color:${o.text};">${o.logo.startsWith('<') ? o.logo : esc(o.logo)}</span>
+                        <span class="co-op-text"><b>${esc(o.name)}</b>${o.hint ? `<small>${esc(o.hint)}</small>` : ''}</span>
+                    </label>`).join('')}
+            </div>
+            <p class="co-pay-note" id="coPayNote">${payNote()}</p>
             <div class="co-summary">
                 <div class="co-summary-row">
                     <i class="fas fa-shopping-bag"></i>
@@ -208,7 +239,7 @@
                 <ol>
                     <li><b>1</b><p>Ouenze t'<strong>appelle</strong> pour savoir où te livrer.</p></li>
                     <li><b>2</b><p>Le livreur t'apporte ton colis. Tu lui donnes ton <strong>code de remise</strong>, reçu par SMS.</p></li>
-                    <li><b>3</b><p>Tu paies par <strong>Mobile Money</strong> à la livraison. Rien à payer maintenant.</p></li>
+                    <li><b>3</b><p>Tu paies avec le <strong>moyen choisi</strong>. Rien à payer maintenant.</p></li>
                 </ol>
             </div>
             <label class="terms-line">
@@ -216,6 +247,36 @@
                 <span>J'accepte les conditions de vente et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
             </label>
             <div class="form-error" id="coError" role="alert"></div>`;
+    }
+
+    function payNote() {
+        const o = payChoice();
+        if (!o) return '';
+        if (o.method === 'mobile_money_cod') return `<i class="fas fa-mobile-alt"></i> À la livraison, tu reçois la demande de paiement ${esc(o.name)} sur ton téléphone : tape ton code secret, c'est payé.`;
+        return `<i class="fas fa-lock"></i> Ouenze t'envoie un lien de paiement ${esc(o.name)} sécurisé quand il t'appelle. Tu paies avant la livraison, en toute sécurité.`;
+    }
+
+    // Réseau deviné d'après le numéro (Congo : 06 = MTN, 05 = Airtel), tant que le client n'a rien choisi
+    function guessOperator() {
+        if (payment.picked) return;
+        const raw = String(document.getElementById('coPhone')?.value || delivery.phone || '').replace(/\D/g, '').replace(/^242/, '');
+        const op = (PAYMENTS[delivery.countryCode] || []).find(o => o.prefix && raw.startsWith(o.prefix));
+        if (!op || op.id === payment.choice) return;
+        payment.choice = op.id;
+        document.querySelectorAll('input[name="coPayment"]').forEach(r => {
+            r.checked = r.value === op.id;
+            r.closest('.co-operator')?.classList.toggle('selected', r.checked);
+        });
+        const note = document.getElementById('coPayNote');
+        if (note) note.innerHTML = payNote();
+    }
+
+    function coPayment(id) {
+        payment.choice = id;
+        payment.picked = true;
+        document.querySelectorAll('input[name="coPayment"]').forEach(r => r.closest('.co-operator')?.classList.toggle('selected', r.value === id));
+        const note = document.getElementById('coPayNote');
+        if (note) note.innerHTML = payNote();
     }
 
     // ============ SAISIE ============
@@ -238,6 +299,7 @@
         rememberPhone();
         delivery.countryCode = cc;
         if (!F().COUNTRIES[cc].cities.includes(delivery.city)) delivery.city = '';
+        if (!payOptions().some(o => o.id === payment.choice)) { payment.choice = ''; payment.picked = false; }
         render();
     }
 
@@ -245,6 +307,7 @@
         if (!cart.length) return;
         step = 2;
         render();
+        guessOperator();
     }
 
     function coBack() {
@@ -255,6 +318,7 @@
 
     function coGo(n) {
         if (step === 2) rememberPhone();
+        if (n === 2) return coNext();
         step = n;
         render();
     }
@@ -276,7 +340,7 @@
                 country_code: delivery.countryCode, country: F().COUNTRIES[delivery.countryCode].name,
                 city: delivery.city || null, phone: delivery.phone
             },
-            payment: { method: 'mobile_money_cod', phone: delivery.phone }
+            payment: { method: payChoice()?.method || 'mobile_money_cod', operator: payment.choice, phone: delivery.phone }
         };
     }
 
@@ -285,6 +349,7 @@
     // Mode test : commande sans paiement réservée aux admins, marquée TEST partout.
     async function coSubmit() {
         if (!readPhone()) return;
+        if (!payChoice()) return setError('Choisis comment tu veux payer.');
         if (!document.getElementById('coTerms')?.checked) return setError('Coche « J\'accepte les conditions de vente » pour commander.', 'coTerms');
         const btn = document.getElementById('coPay');
         btn.disabled = true;
@@ -324,7 +389,7 @@
             <h3>Commande envoyée${data.orders.length > 1 ? ` à ${data.orders.length} boutiques` : ''} !</h3>
             ${test ? '<p class="co-test-badge">Commande de TEST : rien n\'est débité, le vendeur ne doit rien expédier.</p>' : ''}
             <ul class="co-done-list">${data.orders.map(o => `<li><strong>${esc(o.shop_name)}</strong> — ${esc(o.order_number)}<span>${fcfa(o.total)}</span></li>`).join('')}</ul>
-            <p>Total à payer à la livraison : <strong>${fcfa(data.total)}</strong>.</p>
+            <p>Total à payer : <strong>${fcfa(data.total)}</strong> · ${esc(payChoice()?.name || '')}</p>
             <p><strong>Ouenze va t'appeler au ${esc(delivery.phone)}</strong> pour savoir où te livrer. Garde ton téléphone près de toi.</p>
             ${!mailed && test ? `<p class="co-test-badge">Emails non envoyés : ${esc(mailError || 'fonction order-notify injoignable')}</p>` : ''}
             ${mailed && test ? `<p class="co-mail-check">${mailCheck(mailSent)}</p>` : ''}
@@ -368,7 +433,7 @@
         render();
     }
 
-    Object.assign(window, { coNext, coBack, coGo, coQty, coRemove, coCountry, coSubmit });
+    Object.assign(window, { coNext, coBack, coGo, coQty, coRemove, coCountry, coPayment, coSubmit });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
