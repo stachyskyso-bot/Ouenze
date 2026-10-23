@@ -163,9 +163,9 @@ Deno.serve(async req => {
                     `<table style="width:100%;border-collapse:collapse;font-size:15px;margin-bottom:12px;">
                         ${line('Client', name)}${line('Téléphone', phone)}${line('Ville', d.city)}${line('Quartier', d.district)}
                         ${line('Rue', d.street)}${line('Repère', d.landmark)}
-                        ${line('Mobile Money', [d.payment_operator, d.payment_phone].filter(Boolean).join(' · '))}
+                        ${line('Paiement', [({ MTN_CG: 'MTN Mobile Money', AIRTEL_CG: 'Airtel Money', MPESA_CD: 'M-Pesa', ORANGE_CD: 'Orange Money', AIRTEL_CD: 'Airtel Money', CARD: 'Carte bancaire (envoyer le lien de paiement)', PAYPAL: 'PayPal (envoyer le lien de paiement)' })[d.payment_operator] || d.payment_operator, d.payment_phone].filter(Boolean).join(' · '))}
                         ${line('Commandes', fresh.map(o => `${o.order_number} (${shopOf(o).name || ''})`).join(', '))}
-                        ${line('Total à payer à la livraison', fcfa(total))}
+                        ${line('Total à payer', fcfa(total))}
                     </table>
                     ${tel ? `<p style="text-align:center;margin:18px 0 6px;">
                         <a href="tel:+${tel}" style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:30px;margin:4px;">Appeler</a>

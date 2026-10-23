@@ -227,6 +227,7 @@
                 </ol>
                 <p class="course-meta">${items} · valeur ${fcfa(d.amount)} · ton gain <b>${fcfa(d.fee)}</b></p>
                 ${toShop ? `<button class="course-release" onclick="courierRelease('${esc(d.order_id)}')">Je ne peux plus faire cette course</button>` : ''}
+                <button class="course-release" onclick="openReport('vendor', '${esc(d.order_id)}')"><i class="fas fa-flag"></i> Signaler le vendeur</button>
             </article>`;
     }
 
@@ -237,6 +238,7 @@
                 <div class="course-top"><strong>${esc(d.order_number)}${d.is_test ? ' · TEST' : ''}</strong><span class="course-fee">${fcfa(d.fee)}</span></div>
                 <p class="course-meta">${esc(d.shop_name)} → ${esc(d.dropoff_area || '')} · ${new Date(d.updated_at).toLocaleDateString('fr-FR')}</p>
                 ${d.stars ? `<p class="course-review"><span>${starsTxt(d.stars)}</span>${d.review ? ' « ' + esc(d.review) + ' »' : ''}</p>` : '<p class="course-meta">Pas encore noté par le client.</p>'}
+                <button class="course-release" onclick="openReport('vendor', '${esc(d.order_id)}')"><i class="fas fa-flag"></i> Signaler le vendeur</button>
             </article>`).join('');
     }
 

@@ -14,7 +14,7 @@
 
     const I = window.OuenzeInvest;
     const { esc, fcfa, num } = I;
-    const FILTERS = { all: 'Tout', buy: 'Achats', sale: 'Ventes', invest: 'Investissements', other: 'Bourse & livraison' };
+    const FILTERS = { all: 'Tout', buy: 'Achats', sale: 'Ventes', invest: 'Investissements', other: I.OPEN ? 'Bourse & livraison' : 'Livraison' };
     const state = { user: null, items: [], filter: 'all', missing: false };
     const box = () => document.getElementById('activitiesContainer');
 
@@ -43,6 +43,8 @@
                 amount: total, sign: -1, counts: !cancelled, status,
                 rateOrder: o.status === 'delivered' ? o.id : null,
                 cancelOrder: o.status === 'pending' ? o.id : null,
+                reportOrder: ['pending', 'awaiting_payment', 'cancelled'].includes(o.status) ? null : o.id,
+                hasCourier: !!o.deliverer_id,
                 link: o.status === 'delivered' || cancelled ? null : `tracking.html?order=${encodeURIComponent(o.id)}`
             };
         });
@@ -113,6 +115,7 @@
                 <span class="inv-badge ${i.status[1]}">${esc(i.status[0])}</span>
                 ${i.rateOrder ? `<button class="inv-link-btn" onclick="openRateOrder('${esc(i.rateOrder)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
                 ${i.cancelOrder ? `<button class="inv-link-btn" onclick="actCancel('${esc(i.cancelOrder)}')">Annuler</button>` : ''}
+                ${i.reportOrder ? `<button class="inv-link-btn" onclick="openOrderReport('${esc(i.reportOrder)}', ${i.hasCourier})"><i class="fas fa-flag"></i> Signaler</button>` : ''}
             </div>
         </li>`;
     }
@@ -122,7 +125,7 @@
         if (!items.length) {
             box().innerHTML = `${state.missing ? I.migrationWarning() : ''}
                 <div class="inv-empty"><i class="fas fa-history"></i><h3>Aucune activité pour l'instant</h3>
-                <p>Tes commandes, tes ventes, tes investissements et ta candidature livreur apparaîtront ici.</p>
+                <p>Tes commandes, tes ventes et ta candidature livreur apparaîtront ici.</p>
                 <a class="btn-submit" href="index.html">Découvrir les boutiques</a></div>`;
             return;
         }
@@ -140,7 +143,7 @@
             <div class="inv-kpis">
                 <div class="inv-kpi blue"><span>Dépensé en achats</span><strong>${fcfa(s.spent)}</strong><small>commandes non annulées</small></div>
                 <div class="inv-kpi green"><span>Ventes livrées</span><strong>${fcfa(s.sold)}</strong><small>ma boutique</small></div>
-                <div class="inv-kpi"><span>Investi en parts</span><strong>${fcfa(s.invested)}</strong><small>parts payées</small></div>
+                ${I.OPEN ? `<div class="inv-kpi"><span>Investi en parts</span><strong>${fcfa(s.invested)}</strong><small>parts payées</small></div>` : ''}
                 <div class="inv-kpi orange"><span>Ce mois-ci</span><strong>${num(s.thisMonth)}</strong><small>activité${s.thisMonth > 1 ? 's' : ''}</small></div>
             </div>
             <div class="inv-box"><h3>Mes 6 derniers mois</h3><div class="inv-chart"><canvas id="actMonths"></canvas></div></div>
@@ -178,7 +181,7 @@
                 datasets: [
                     { label: 'Achats', data: keys.map(k => rows[k].buy), backgroundColor: '#3b82f6', borderRadius: 4 },
                     { label: 'Ventes', data: keys.map(k => rows[k].sale), backgroundColor: '#22c55e', borderRadius: 4 },
-                    { label: 'Investissements', data: keys.map(k => rows[k].invest), backgroundColor: '#8b5cf6', borderRadius: 4 }
+                    ...(I.OPEN ? [{ label: 'Investissements', data: keys.map(k => rows[k].invest), backgroundColor: '#8b5cf6', borderRadius: 4 }] : [])
                 ]
             },
             options: {
@@ -215,12 +218,12 @@
             sb.from('delivery_applications').select('status, vehicle_type, created_at, reviewed_at').eq('user_id', uid)
         ]);
         [orders, sales, shares, listings, courier].forEach((r, n) => { if (r.error) console.warn('⚠️ Activités, source', n, ':', r.error.message); });
-        state.missing = I.isMissing(shares.error);
+        state.missing = I.OPEN && I.isMissing(shares.error);
         state.items = [
             ...fromOrders(orders.data || []),
             ...fromSales(sales.data || []),
-            ...fromShares(shares.data || []),
-            ...fromListings(listings.data || []),
+            ...(I.OPEN ? fromShares(shares.data || []) : []),
+            ...(I.OPEN ? fromListings(listings.data || []) : []),
             ...fromCourier(courier.data || [])
         ].filter(i => i.date).sort((a, b) => new Date(b.date) - new Date(a.date));
     }
@@ -230,7 +233,7 @@
             box().innerHTML = '<div class="inv-empty"><p>Service indisponible. Recharge la page.</p></div>';
             return;
         }
-        if (!I.OPEN) { box().innerHTML = I.comingSoon(); return; }
+        // Investir en pause : la page garde les commandes, les ventes et la candidature livreur
         state.user = await I.currentUser();
         if (!state.user) { box().innerHTML = I.loginBox('Connecte-toi pour voir tes activités'); return; }
         await load();
