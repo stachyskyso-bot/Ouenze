@@ -676,3 +676,15 @@
 .dl-remind .btn-submit {
     margin: 0;
 }
+
+/* ---------- Signalements (admin-reports.html) ---------- */
+.rp-item { margin-bottom: 12px; }
+.rp-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rp-reason { margin: 8px 0 6px; font-size: 14px; }
+.rp-details { margin: 6px 0; padding: 8px 12px; background: #f8fafc; border-left: 3px solid var(--danger); border-radius: 6px; font-size: 14px; }
+.rp-meta { font-size: 13px; color: var(--gray-500); margin: 4px 0; }
+.rp-count { color: var(--danger); }
+.rp-note { width: 100%; margin: 8px 0; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 14px; box-sizing: border-box; }
+.rp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rp-actions > * { width: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.rp-msg { color: var(--danger); font-size: 13px; }

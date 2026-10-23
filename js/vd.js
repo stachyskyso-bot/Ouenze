@@ -570,6 +570,7 @@
                         <button class="btn-sm btn-success" onclick="voDecide('${id}', 'accept')"><i class="fas fa-check"></i> Accepter</button>
                         <button class="btn-sm btn-outline" onclick="voDecide('${id}', 'refuse')"><i class="fas fa-times"></i> Refuser</button>` : ''}
                     ${o.status === 'accepted' ? '<p class="vo-client"><i class="fas fa-motorcycle"></i> En attente d\'un livreur : c\'est lui qui confirmera la livraison avec le code du client.</p>' : ''}
+                    ${['courier_assigned', 'picked_up', 'in_transit', 'delivered'].includes(o.status) ? `<button class="btn-sm btn-outline" onclick="openReport('courier', '${id}')"><i class="fas fa-flag"></i> Signaler le livreur</button>` : ''}
                 </div>
             </div>`;
     }

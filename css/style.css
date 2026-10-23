@@ -4871,3 +4871,8 @@ body {
 .phone-auth-links button:disabled { color: var(--gray-500); }
 .phone-auth-alt { margin-top: 18px; font-size: 13px; color: var(--gray-500); }
 .phone-auth-alt a { color: var(--primary); font-weight: 600; }
+
+/* Lien « Signaler cette boutique » (page boutique) */
+.report-link { text-align: center; margin: 18px 0 6px; }
+.report-link button { background: none; border: none; color: var(--gray-500); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
+.report-link button:hover { color: var(--danger); }

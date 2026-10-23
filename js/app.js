@@ -1250,7 +1250,9 @@
                         <div id="shopProductsGrid"></div>
                     </div>
                 </div>
-                <section class="shop-reviews" id="shopReviews" aria-label="Avis clients"></section>`;
+                <section class="shop-reviews" id="shopReviews" aria-label="Avis clients"></section>
+                <p class="report-link"><button type="button" onclick="openReport('vendor', null, '${escapeHtml(shop.id)}', '${escapeHtml(String(shop.name || '').replace(/'/g, ' '))}')">
+                    <i class="fas fa-flag"></i> Signaler cette boutique</button></p>`;
             loadShopReviews(shop);
             currentShopCategoryFilter = '';
             renderShopProducts(currentShopProducts);
@@ -2393,6 +2395,7 @@
             if (!data || !list) return;
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
                 ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
+                ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
                 ${row('admin-market.html', 'fa-landmark', 'Bourse')}</nav>`);
         });
