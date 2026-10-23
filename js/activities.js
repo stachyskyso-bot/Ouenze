@@ -45,6 +45,7 @@
                 cancelOrder: o.status === 'pending' ? o.id : null,
                 reportOrder: ['pending', 'awaiting_payment', 'cancelled'].includes(o.status) ? null : o.id,
                 hasCourier: !!o.deliverer_id,
+                codeOrder: ['courier_assigned', 'picked_up', 'in_transit'].includes(o.status) ? o.id : null,
                 link: o.status === 'delivered' || cancelled ? null : `tracking.html?order=${encodeURIComponent(o.id)}`
             };
         });
@@ -115,6 +116,7 @@
                 <span class="inv-badge ${i.status[1]}">${esc(i.status[0])}</span>
                 ${i.rateOrder ? `<button class="inv-link-btn" onclick="openRateOrder('${esc(i.rateOrder)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
                 ${i.cancelOrder ? `<button class="inv-link-btn" onclick="actCancel('${esc(i.cancelOrder)}')">Annuler</button>` : ''}
+                ${i.codeOrder ? `<button class="inv-link-btn" onclick="actResendCode('${esc(i.codeOrder)}', this)"><i class="fas fa-sms"></i> Renvoyer mon code</button>` : ''}
                 ${i.reportOrder ? `<button class="inv-link-btn" onclick="openOrderReport('${esc(i.reportOrder)}', ${i.hasCourier})"><i class="fas fa-flag"></i> Signaler</button>` : ''}
             </div>
         </li>`;
@@ -201,6 +203,27 @@
         render();
     }
 
+    // Code de remise renvoyé par SMS au client (Edge Function « delivery-code », 3 envois max)
+    async function actResendCode(orderId, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi…';
+        let text = '';
+        try {
+            const res = await window.supabase.functions.invoke('delivery-code', { body: { action: 'send', order_id: orderId } });
+            if (res.error) {
+                try { text = (await res.error.context?.json())?.error || ''; } catch (e) { /* réponse illisible */ }
+                text = text || 'Envoi impossible pour le moment.';
+            } else {
+                const left = res.data?.remaining;
+                text = `Code envoyé par SMS${left != null ? ` (encore ${left} envoi${left > 1 ? 's' : ''} possible${left > 1 ? 's' : ''})` : ''}.`;
+            }
+        } catch (e) { text = 'Envoi impossible pour le moment.'; }
+        const note = document.createElement('small');
+        note.className = 'inv-code-note';
+        note.textContent = text + ' Ton code est aussi dans tes notifications.';
+        btn.replaceWith(note);
+    }
+
     function actFilter(f) {
         state.filter = FILTERS[f] ? f : 'all';
         render();
@@ -242,6 +265,7 @@
 
     window.actFilter = actFilter;
     window.actCancel = actCancel;
+    window.actResendCode = actResendCode;
     window.OuenzeActivities = { fromOrders, fromSales, fromShares, summary, lastMonths };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
