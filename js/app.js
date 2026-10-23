@@ -521,14 +521,46 @@
     function setCity(city) {
         try { city ? localStorage.setItem('ouenze_city', city) : localStorage.removeItem('ouenze_city'); } catch (e) { /* stockage bloqué */ }
         document.querySelectorAll('.city-pick-label').forEach(el => { el.textContent = city || 'Toutes les villes'; });
-        if (document.getElementById('shopsGrid')) { renderShops(document.getElementById('searchInput')?.value); renderFeaturedShops(); }
+        // Ville choisie : on n'affiche plus que ses boutiques et ses produits
+        if (document.getElementById('appContainer')) {
+            const search = document.getElementById('searchInput');
+            if (search) search.value = '';
+            showHomePage();
+        }
+    }
+
+    // Une boutique est-elle dans la ville choisie ? (toutes les villes : oui)
+    function inCurrentCity(shop) {
+        const city = currentCity().toLowerCase();
+        return !city || (shop?.city || 'Brazzaville').toLowerCase() === city;
+    }
+
+    // Boutiques connues (chargées une fois) pour filtrer les produits par ville
+    async function ensureShops() {
+        if (shopsCache.length) return;
+        const { data } = await window.supabase.from('shops').select('*, products(count)');
+        if (data && !shopsCache.length) shopsCache = data;
+    }
+
+    // Boutiques de la ville choisie (null = toutes les villes)
+    async function cityShopIds() {
+        if (!currentCity()) return null;
+        await ensureShops();
+        const ids = shopsCache.filter(inCurrentCity).map(s => s.id);
+        return ids.length ? ids : ['00000000-0000-0000-0000-000000000000'];
+    }
+
+    // Requête produits limitée à ces boutiques (synchrone : une requête Supabase est « thenable »,
+    // la renvoyer depuis une fonction async la lancerait)
+    function cityScope(query, ids) {
+        return ids ? query.in('shop_id', ids) : query;
     }
 
     function openCityPicker() {
         const now = currentCity();
         openModal(`
             <h3 style="margin-bottom:6px;">Ta ville</h3>
-            <p class="auth-sub">Les boutiques de ta ville passent en premier.</p>
+            <p class="auth-sub">Tu ne verras que les boutiques et les produits de cette ville.</p>
             <div class="city-list">
                 ${['', ...CITIES].map(c => `<button type="button" class="${c === now ? 'active' : ''}" onclick="setCity('${c}');closeModal()">
                     <i class="fas fa-map-marker-alt"></i> ${c || 'Toutes les villes'}</button>`).join('')}
@@ -740,11 +772,10 @@
         const box = document.getElementById('featuredShops');
         if (!box) return;
         const city = currentCity().toLowerCase();
-        const list = shopsCache.filter(s => s.is_active !== false && !s.archived_at)
-            .sort((a, b) => ((city && (b.city || '').toLowerCase() === city) - (city && (a.city || '').toLowerCase() === city))
-                || (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)))
+        const list = shopsCache.filter(s => s.is_active !== false && !s.archived_at && inCurrentCity(s))
+            .sort((a, b) => (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)))
             .slice(0, 8);
-        if (!list.length) { box.innerHTML = '<p class="search-hint">Les premières boutiques arrivent bientôt.</p>'; return; }
+        if (!list.length) { box.innerHTML = `<p class="search-hint">${city ? `Pas encore de boutique à ${escapeHtml(currentCity())} : elles arrivent bientôt.` : 'Les premières boutiques arrivent bientôt.'}</p>`; return; }
         box.innerHTML = list.map(shop => {
             const level = getShopLevel(shop);
             const logo = safeUrl(shop.logo_url);
@@ -781,8 +812,9 @@
     }
 
     async function fetchProducts(build) {
-        let { data, error } = await build(window.supabase.from('products').select('*, shops(name)'));
-        if (error) ({ data, error } = await build(window.supabase.from('products').select('*')));
+        const ids = await cityShopIds();
+        let { data, error } = await build(cityScope(window.supabase.from('products').select('*, shops(name)'), ids));
+        if (error) ({ data, error } = await build(cityScope(window.supabase.from('products').select('*'), ids)));
         if (error) throw error;
         (data || []).forEach(p => { productsCache[p.id] = p; });
         return (data || []).filter(p => p.is_active !== false);
@@ -964,7 +996,7 @@
             b.classList.toggle('active', b.dataset.sort === currentSort));
  
         grid.style.display = currentSearchType === 'product' ? 'none' : '';
-        let list = shopsCache.slice();
+        let list = shopsCache.filter(inCurrentCity);
         const q = (filterText || '').toLowerCase().trim();
         if (q) {
             list = list.filter(s =>
@@ -981,14 +1013,13 @@
         };
         const city = currentCity().toLowerCase();
         const sorter = sorters[currentSort] || sorters.rating;
-        // La ville choisie passe en premier
-        list.sort((a, b) => (city ? ((b.city || '').toLowerCase() === city) - ((a.city || '').toLowerCase() === city) : 0) || sorter(a, b));
+        list.sort(sorter);
  
         if (list.length === 0) {
             grid.innerHTML = `
                 <div style="text-align:center;padding:60px;color:var(--gray-500);">
                     <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
-                    <p>Aucune boutique trouvée</p>
+                    <p>${city && !q ? `Pas encore de boutique à ${escapeHtml(currentCity())}` : 'Aucune boutique trouvée'}</p>
                 </div>`;
             return;
         }
@@ -1057,13 +1088,14 @@
  
         const seq = ++searchSeq;
         box.innerHTML = '<p class="search-hint">Recherche de produits…</p>';
-        let { data, error } = await window.supabase
-            .from('products').select('*, shops(name)')
+        const ids = await cityShopIds();
+        let { data, error } = await cityScope(window.supabase
+            .from('products').select('*, shops(name)'), ids)
             .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40);
         if (error) {
             // Sans relation déclarée products → shops : on cherche sans le nom de boutique
-            ({ data, error } = await window.supabase
-                .from('products').select('*')
+            ({ data, error } = await cityScope(window.supabase
+                .from('products').select('*'), ids)
                 .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40));
         }
         if (seq !== searchSeq) return;  // une recherche plus récente a été lancée
