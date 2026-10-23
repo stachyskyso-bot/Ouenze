@@ -2408,10 +2408,18 @@
             </nav>`);
         modal.classList.add('profile-modal');
         // Administration : liens vers les pages admin (sans dépendre des emails)
-        window.supabase.rpc('is_admin').then(({ data }) => {
+        // Espace équipe : agents et admins (my_team_role, migration 20261030 ; sinon is_admin)
+        window.supabase.rpc('my_team_role').then(async ({ data: role, error }) => {
+            if (error) role = (await window.supabase.rpc('is_admin')).data ? 'admin' : null;
             const list = modal.querySelector('.pf-list');
-            if (!data || !list) return;
+            if (!role || !list) return;
+            if (role === 'agent') {
+                list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Équipe Ouenze</div>
+                    ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes à appeler')}</nav>`);
+                return;
+            }
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
+                ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes et équipe')}
                 ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}

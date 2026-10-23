@@ -169,7 +169,8 @@ Deno.serve(async req => {
                     </table>
                     ${tel ? `<p style="text-align:center;margin:18px 0 6px;">
                         <a href="tel:+${tel}" style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:30px;margin:4px;">Appeler</a>
-                        <a href="https://wa.me/${tel}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:30px;margin:4px;">WhatsApp</a></p>` : ''}`, test));
+                        <a href="https://wa.me/${tel}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:30px;margin:4px;">WhatsApp</a></p>` : ''}
+                    ${button(`${siteUrl}/equipe.html`, 'Après l\'appel : Espace équipe')}`, test));
                 sent.push({ to: 'admin' });
             }
 
