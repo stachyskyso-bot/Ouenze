@@ -2420,6 +2420,7 @@
             }
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
                 ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes et équipe')}
+                ${row('trade.html', 'fa-chart-line', 'Ouenze Trade (simulation)')}
                 ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}

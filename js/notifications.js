@@ -33,6 +33,7 @@
         team_new_order: { icon: 'fa-headset', tone: 'action', group: 'orders' },
         team_added: { icon: 'fa-headset', tone: 'ok', group: 'orders' },
         report: { icon: 'fa-flag', tone: 'ko', group: 'orders' },
+        trade: { icon: 'fa-chart-line', tone: 'info', group: 'orders' },
         shop_review: { icon: 'fa-star', tone: 'star', group: 'reviews' },
         courier_review: { icon: 'fa-star', tone: 'star', group: 'reviews' }
     };
@@ -116,6 +117,9 @@
         }
         if (n.kind === 'team_new_order' || n.kind === 'team_added') {
             return `<div class="notif-actions"><a class="notif-btn ok" href="equipe.html" onclick="notifRead('${id}')"><i class="fas fa-headset"></i> Ouvrir l'Espace équipe</a></div>`;
+        }
+        if (n.kind === 'trade') {
+            return `<div class="notif-actions"><a class="notif-btn ok" href="trade.html" onclick="notifRead('${id}')"><i class="fas fa-chart-line"></i> Ouvrir Ouenze Trade</a></div>`;
         }
         if (n.kind === 'report') {
             return `<div class="notif-actions"><a class="notif-btn ok" href="admin-reports.html" onclick="notifRead('${id}')"><i class="fas fa-flag"></i> Voir les signalements</a></div>`;
