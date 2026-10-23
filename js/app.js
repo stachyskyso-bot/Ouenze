@@ -1722,8 +1722,26 @@
             });
         }
         saveCart();
-        showToast(`${p.name}${variantKey ? ` (${variantKey})` : ''} ajouté au panier`);
+        // Après la fiche produit (qui se ferme), on demande la suite : valider ou continuer
+        const label = `${p.name}${variantKey ? ` (${variantKey})` : ''}`;
+        setTimeout(() => openCartChoice(label), 0);
         return true;
+    }
+
+    // « Ajouté au panier » : valider le panier tout de suite ou continuer ses achats
+    function openCartChoice(label) {
+        const count = cartTotalQty();
+        const total = cart.reduce((s, i) => s + (Number(i.price) || 0) * i.quantity, 0);
+        const modal = openModal(`
+            <div class="cart-choice">
+                <span class="cart-choice-icon"><i class="fas fa-check"></i></span>
+                <h3>Ajouté au panier</h3>
+                <p class="auth-sub">${escapeHtml(label)}</p>
+                <p class="cart-choice-sum">${count} article${count > 1 ? 's' : ''} · <strong>${Math.round(total).toLocaleString('fr-FR')} FCFA</strong></p>
+                <a class="btn-submit big" href="checkout.html"><i class="fas fa-check-circle"></i> Valider mon panier</a>
+                <button type="button" class="btn-cancel big" onclick="closeModal()"><i class="fas fa-shopping-bag"></i> Continuer mes achats</button>
+            </div>`);
+        modal.classList.add('auth-modal');
     }
  
     function showToast(message) {
