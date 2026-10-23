@@ -541,6 +541,15 @@
         return false;
     }
 
+    // Onglet « Boutiques » : liste de toutes les boutiques de l'accueil
+    function goShops() {
+        const list = document.getElementById('allShops');
+        if (list) list.scrollIntoView({ behavior: 'smooth' });
+        else if (document.getElementById('appContainer')) showHomePage().then(() => document.getElementById('allShops')?.scrollIntoView());
+        else window.location.href = 'index.html#boutiques';
+        return false;
+    }
+
     // Menu complet (mobile) : tous les liens de la barre de navigation et du menu déroulant
     function openSiteMenu() {
         const links = [...document.querySelectorAll('.nav-links a, .dropdown-content a')]
@@ -610,8 +619,8 @@
             bar.innerHTML = `
                 <a href="index.html" class="${here === 'index.html' ? 'active' : ''}"><i class="fas fa-home"></i><span>Accueil</span></a>
                 <a href="#" onclick="return goCategories()"><i class="fas fa-th-large"></i><span>Catégories</span></a>
-                <a href="#" onclick="showCart();return false;"><i class="fas fa-shopping-cart"></i><b class="cart-count">${cartTotalQty()}</b><span>Panier</span></a>
                 <a href="activities.html" class="${here === 'activities.html' ? 'active' : ''}"><i class="fas fa-receipt"></i><span>Commandes</span></a>
+                <a href="#" onclick="return goShops()"><i class="fas fa-store"></i><span>Boutiques</span></a>
                 <a href="#" onclick="openSiteMenu();return false;"><i class="fas fa-ellipsis-h"></i><span>Menu</span></a>`;
             document.body.appendChild(bar);
             document.body.classList.add('has-tabbar');
@@ -720,6 +729,9 @@
         if (hash === '#categories' || hash.startsWith('#cat=')) {
             history.replaceState(null, '', location.pathname + location.search);
             if (hash === '#categories') showCategories(); else showCategory(hash.slice(5));
+        } else if (hash === '#boutiques') {
+            history.replaceState(null, '', location.pathname + location.search);
+            document.getElementById('allShops')?.scrollIntoView();
         }
     }
 
@@ -2552,6 +2564,7 @@
         setCity,
         openCityPicker,
         goCategories,
+        goShops,
         openSiteMenu,
         showCategory,
         clearCategory,
