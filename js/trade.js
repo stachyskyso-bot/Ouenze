@@ -1,5 +1,6 @@
 // ============================================================
-// TRADE.JS — Ouenze Trade, en SIMULATION (trade.html)
+// TRADE.JS — Ouenze Trade, en SIMULATION (trade.html) : proposer une opération (vendeur),
+// déclarer dépenses et ventes, outils de l'équipe. La vitrine des participants est invest.html.
 //
 // Une opération commerciale précise de 45 jours, financée par des participants et par
 // l'apport du vendeur. Les fournisseurs sont payés directement par Ouenze ; les autres
@@ -489,8 +490,14 @@
         ]);
         state.role = role.error ? null : role.data;
         state.shops = shops.data || [];
-        const id = new URLSearchParams(location.search).get('op');
-        if (id) trOpen(id); else trTab(state.role === 'admin' ? 'review' : 'open');
+        const params = new URLSearchParams(location.search);
+        const id = params.get('op');
+        if (id) trOpen(id);
+        else if (params.get('new') && state.shops.length) {
+            await trTab('new');
+            const shop = params.get('shop');
+            if (shop && document.getElementById('trShop')) document.getElementById('trShop').value = shop;
+        } else trTab(state.role === 'admin' ? 'review' : state.shops.length ? 'mine' : 'open');
     }
 
     Object.assign(window, {

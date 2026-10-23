@@ -1,25 +1,42 @@
 // ============================================================
-// INVEST-COMMON.JS — outils partagés par Investir, Mes activités et Mon portefeuille
+// INVEST-COMMON.JS — outils partagés par Trade (invest.html), Mes activités et Mon portefeuille
 // Chargé après app.js et Chart.js, avant le script de la page.
 // ============================================================
 
 window.OuenzeInvest = (function () {
     'use strict';
 
-    // Investir est en pause : passer à true pour rouvrir la bourse
+    // Ancienne bourse (parts de boutiques) : fermée. Trade la remplace.
     const OPEN = false;
 
     function comingSoon() {
         return `<div class="inv-empty inv-soon">
             <i class="fas fa-hourglass-half"></i>
             <h3>Bientôt disponible</h3>
-            <p>L'investissement dans les boutiques Ouenze ouvre très bientôt. Merci de patienter : nous vous préviendrons dès l'ouverture.</p>
+            <p>Ouenze Trade ouvre très bientôt : tu pourras participer aux opérations commerciales des boutiques. Merci de patienter, nous te préviendrons dès l'ouverture.</p>
             <a class="btn-primary" href="index.html">Retour aux boutiques</a>
         </div>`;
     }
 
+    // Trade est en SIMULATION : visible par l'équipe Ouenze, et par les testeurs
+    // qui ouvrent une fois invest.html?simulation=1 (mémorisé pour la session).
+    async function tradeAccess() {
+        try {
+            if (new URLSearchParams(location.search).get('simulation') === '1') sessionStorage.setItem('ouenze_trade_sim', '1');
+            if (sessionStorage.getItem('ouenze_trade_sim') === '1') return true;
+        } catch (e) { /* stockage bloqué */ }
+        try {
+            const { data } = await window.supabase.rpc('my_team_role');
+            return !!data;
+        } catch (e) { return false; }
+    }
+
+    function simulationBanner() {
+        return '<p class="inv-sim"><i class="fas fa-flask"></i> <strong>Simulation</strong> : aucun argent réel n\'est demandé, versé ni retiré.</p>';
+    }
+
     const SHARES_PER_COMPANY = 10000;   // une boutique = 10 000 parts (voir migration 20261014)
-    const MIGRATION_FILE = 'supabase/migrations/20261014_stock_market.sql';
+    const MIGRATION_FILE = 'supabase/migrations/20261031_trade_simulation.sql';
 
     function esc(s) {
         return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -70,7 +87,7 @@ window.OuenzeInvest = (function () {
     }
 
     function migrationWarning() {
-        return `<div class="inv-warning"><i class="fas fa-database"></i> La bourse n'est pas encore activée dans la base de données : exécute <code>${MIGRATION_FILE}</code> dans Supabase → SQL Editor.</div>`;
+        return `<div class="inv-warning"><i class="fas fa-database"></i> Trade n'est pas encore activé dans la base de données : exécute <code>${MIGRATION_FILE}</code> dans Supabase → SQL Editor.</div>`;
     }
 
     function loginBox(title) {
@@ -116,5 +133,5 @@ window.OuenzeInvest = (function () {
     const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#f97316', '#14b8a6', '#64748b', '#eab308'];
 
     return {
-        OPEN, comingSoon, SHARES_PER_COMPANY, esc, fcfa, num, pct, frDate, monthLabel, stars, logoHtml, isMissing, migrationWarning, loginBox, currentUser, chart, money, PALETTE };
+        OPEN, comingSoon, tradeAccess, simulationBanner, SHARES_PER_COMPANY, esc, fcfa, num, pct, frDate, monthLabel, stars, logoHtml, isMissing, migrationWarning, loginBox, currentUser, chart, money, PALETTE };
 })();

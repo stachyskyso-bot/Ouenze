@@ -150,8 +150,9 @@ revoke all on function public.trade_log(uuid, text, text, numeric, text, text) f
 -- ---------- Liste ----------
 -- scope : 'open' (collecte + en cours + terminées) · 'mine' (mes opérations de vendeur) ·
 --         'invested' (où je participe) · 'review' (équipe : tout)
+drop function if exists public.trade_list(text);
 create or replace function public.trade_list(scope text default 'open')
-returns table (id uuid, title text, shop_name text, status text, goal_amount numeric, vendor_contribution numeric,
+returns table (id uuid, title text, shop_id uuid, shop_name text, shop_logo text, shop_city text, description text, status text, goal_amount numeric, vendor_contribution numeric,
                expected_revenue numeric, duration_days integer, collect_ends_at timestamptz, started_at timestamptz,
                ends_at timestamptz, created_at timestamptz, figures jsonb, my_pledge numeric, is_owner boolean)
 language sql
@@ -159,7 +160,7 @@ stable
 security definer
 set search_path = public
 as $$
-    select o.id, o.title, s.name::text, o.status, o.goal_amount, o.vendor_contribution, o.expected_revenue,
+    select o.id, o.title, s.id, s.name::text, s.logo_url::text, s.city::text, o.description, o.status, o.goal_amount, o.vendor_contribution, o.expected_revenue,
            o.duration_days, o.collect_ends_at, o.started_at, o.ends_at, o.created_at, public.trade_figures(o.id),
            (select sum(p.amount) from public.trade_pledges p
              where p.operation_id = o.id and p.investor_id = auth.uid() and p.status in ('active', 'released')),
