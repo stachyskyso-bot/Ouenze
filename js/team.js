@@ -310,6 +310,11 @@
             return;
         }
         state.role = role;
+        // Lien « Équipe et réglages » du tableau de bord admin
+        try {
+            if (role === 'admin' && sessionStorage.getItem('tmTab') === 'team') state.tab = 'team';
+            sessionStorage.removeItem('tmTab');
+        } catch (e) { /* stockage bloqué */ }
         await refresh();
         render();
         state.timer = setInterval(() => { if (!document.hidden && !document.querySelector('.tm-dialog')) refresh(); }, 60000);

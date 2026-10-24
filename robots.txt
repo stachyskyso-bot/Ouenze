@@ -7,3 +7,4 @@ Disallow: /vendor-dashboard.html
 Disallow: /delivery-dashboard.html
 Disallow: /shop-designer.html
 Disallow: /reset-password.html
+Disallow: /admin.html
