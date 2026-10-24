@@ -20,7 +20,7 @@ async function signUp(email, password, userData) {
         password: password,
         options: {
             data: userData,
-            emailRedirectTo: 'https://ouenze.netlify.app/'
+            emailRedirectTo: window.location.origin + '/'
         }
     });
     if (error) throw error;
