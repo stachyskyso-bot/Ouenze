@@ -637,7 +637,7 @@
                     </div>
                     <nav><h4>Acheter</h4><a href="index.html">Accueil</a><a href="index.html#categories">Catégories</a><a href="autour.html">Boutiques autour de moi</a><a href="activities.html">Mes commandes</a><a href="tracking.html">Suivi livraison</a></nav>
                     <nav><h4>Vendre et livrer</h4><a href="vendor-register.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Trade</a></nav>
-                    <nav><h4>Ouenze</h4><a href="help.html">Aide</a><a href="about.html">À propos</a><a href="privacy.html">Confidentialité</a></nav>
+                    <nav><h4>Ouenze</h4><a href="help.html">Aide</a><a href="about.html">À propos</a><a href="conditions.html">Conditions générales</a><a href="privacy.html">Confidentialité</a></nav>
                 </div>
                 <div class="sf-bottom">© ${new Date().getFullYear()} Ouenze · Marketplace Congo-Brazzaville et RDC</div>`;
         }
@@ -2052,7 +2052,7 @@
                     </div>
                     <label class="terms-line">
                         <input type="checkbox" id="ppTerms" checked>
-                        <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                        <span>J'accepte les <a href="conditions.html" target="_blank">conditions générales</a> et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
                     </label>
                     <div class="form-error" id="ppError" role="alert"></div>
                     <button type="submit" class="btn-submit big" id="ppSubmit">C'est parti</button>
@@ -2228,7 +2228,7 @@
                 <input type="text" id="signupWebsite" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true">
                 <label class="terms-line">
                     <input type="checkbox" id="signupTerms">
-                    <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                    <span>J'accepte les <a href="conditions.html" target="_blank">conditions générales</a> et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
                 </label>
                 <div class="form-error" id="signupError" role="alert"></div>
                 <button type="submit" class="btn-submit" id="signupSubmit">Créer mon compte</button>
@@ -2328,7 +2328,7 @@
                 </div>
                 <label class="terms-line">
                     <input type="checkbox" id="completeTerms">
-                    <span>J'accepte les conditions d'utilisation et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                    <span>J'accepte les <a href="conditions.html" target="_blank">conditions générales</a> et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
                 </label>
                 <div class="form-error" id="completeError" role="alert"></div>
                 <button type="submit" class="btn-submit" id="completeSubmit">Terminer mon inscription</button>
@@ -2403,6 +2403,7 @@
                 ${currentUserType === 'client' ? row('vendor-register.html', 'fa-store', 'Devenir vendeur') + row('delivery-register.html', 'fa-motorcycle', 'Devenir livreur') : ''}
                 ${row('reset-password.html', 'fa-key', 'Sécurité : changer mon mot de passe')}
                 ${row('help.html', 'fa-question-circle', 'Aide')}
+                ${row('conditions.html', 'fa-file-contract', 'Conditions générales')}
                 ${row('privacy.html', 'fa-user-shield', 'Confidentialité')}
                 ${row('#', 'fa-sign-out-alt', 'Déconnexion', 'onclick="closeModal();logout();return false;"')}
             </nav>`);

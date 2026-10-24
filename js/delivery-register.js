@@ -224,7 +224,7 @@
                 <figure>${photoSrc(p) ? `<img src="${photoSrc(p)}" alt="">` : ''}<figcaption>${p.label}</figcaption></figure>`).join('')}</div>
             <label class="terms-line">
                 <input type="checkbox" id="dlTerms">
-                <span>Je certifie que ces informations sont exactes, que mon permis est valide et que mon véhicule est assuré. J'accepte les <a href="privacy.html" target="_blank">conditions d'utilisation</a>.</span>
+                <span>Je certifie que ces informations sont exactes, que mon permis est valide et que mon véhicule est assuré. J'accepte les <a href="conditions.html" target="_blank">conditions générales</a>.</span>
             </label>
             <div class="form-error" id="dlError" role="alert"></div>
             <div class="dl-actions">

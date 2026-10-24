@@ -244,7 +244,7 @@
             </div>
             <label class="terms-line">
                 <input type="checkbox" id="coTerms" checked>
-                <span>J'accepte les conditions de vente et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
+                <span>J'accepte les <a href="conditions.html" target="_blank">conditions générales</a> et la <a href="privacy.html" target="_blank">politique de confidentialité</a>.</span>
             </label>
             <div class="form-error" id="coError" role="alert"></div>`;
     }
@@ -350,7 +350,7 @@
     async function coSubmit() {
         if (!readPhone()) return;
         if (!payChoice()) return setError('Choisis comment tu veux payer.');
-        if (!document.getElementById('coTerms')?.checked) return setError('Coche « J\'accepte les conditions de vente » pour commander.', 'coTerms');
+        if (!document.getElementById('coTerms')?.checked) return setError('Coche « J\'accepte les conditions générales » pour commander.', 'coTerms');
         const btn = document.getElementById('coPay');
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi…';
