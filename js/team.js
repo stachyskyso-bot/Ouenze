@@ -99,6 +99,7 @@
             <div class="tm-actions">
                 <button class="btn-submit" onclick="tmConfirm('${id}')"><i class="fas fa-check"></i> ${o.confirmed ? 'Mettre à jour' : 'Adresse confirmée'}</button>
                 <button class="btn-cancel" onclick="tmNote('${id}')"><i class="fas fa-phone-slash"></i> Injoignable / note</button>
+                ${o.payment_status === 'cod' && o.payment_method !== 'paypal' ? `<button class="btn-cancel" onclick="tmPayLink('${id}')"><i class="fas fa-link"></i> Lien de paiement</button>` : ''}
                 ${o.payment_status !== 'paid' && o.payment_status !== 'test' ? `<button class="btn-cancel" onclick="tmPaid('${id}')"><i class="fas fa-wallet"></i> Payée</button>` : ''}
                 <button class="btn-cancel tm-danger-text" onclick="tmCancel('${id}')"><i class="fas fa-ban"></i> Annuler</button>
             </div>`}
@@ -184,6 +185,19 @@
         if (error) return flash(id, error.message, false);
         flash(id, 'Commande marquée payée.', true);
         setTimeout(async () => { await loadOrders(); render(); }, 900);
+    }
+
+    // Envoie au client le lien de paiement (carte pendant l'appel, ou Mobile Money) par SMS
+    async function tmPayLink(id) {
+        const res = await window.supabase.functions.invoke('payment', { body: { action: 'create', order_id: id, send_sms: true } });
+        if (res.error || !res.data?.link) {
+            let text = '';
+            try { text = (await res.error?.context?.json())?.error || ''; } catch (e) { /* réponse illisible */ }
+            return flash(id, text || 'Lien de paiement impossible pour le moment.', false);
+        }
+        const d = res.data;
+        try { await navigator.clipboard?.writeText(d.link); } catch (e) { /* copie refusée */ }
+        flash(id, `${d.sms === 'sent' ? 'Lien envoyé par SMS au client.' : 'SMS non envoyé : lien copié, envoie-le par WhatsApp.'} ${d.link}${d.simulation ? ' (simulation)' : ''}`, true);
     }
 
     async function tmCancel(id) {
@@ -280,7 +294,7 @@
         state.timer = setInterval(() => { if (!document.hidden && !document.querySelector('.tm-dialog')) refresh(); }, 60000);
     }
 
-    Object.assign(window, { tmTab, tmSearch, tmConfirm, tmNote, tmPaid, tmCancel, tmHistory, tmAdd, tmRemove });
+    Object.assign(window, { tmTab, tmSearch, tmConfirm, tmNote, tmPaid, tmPayLink, tmCancel, tmHistory, tmAdd, tmRemove });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();

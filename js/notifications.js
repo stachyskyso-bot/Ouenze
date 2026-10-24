@@ -34,6 +34,7 @@
         team_added: { icon: 'fa-headset', tone: 'ok', group: 'orders' },
         report: { icon: 'fa-flag', tone: 'ko', group: 'orders' },
         trade: { icon: 'fa-chart-line', tone: 'info', group: 'orders' },
+        order_paid: { icon: 'fa-wallet', tone: 'ok', group: 'orders' },
         shop_review: { icon: 'fa-star', tone: 'star', group: 'reviews' },
         courier_review: { icon: 'fa-star', tone: 'star', group: 'reviews' }
     };

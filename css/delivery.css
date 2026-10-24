@@ -743,3 +743,17 @@
 .tm-dialog-actions button { width: auto; }
 .tm-danger { background: var(--danger) !important; }
 @media (max-width: 520px) { .tm-fields { grid-template-columns: 1fr; } }
+
+/* ---------- Page de paiement (paiement.html) ---------- */
+.pay-page { max-width: 480px; }
+.pay-card { text-align: center; }
+.pay-head { padding: 6px 0 14px; }
+.pay-amount { display: block; font-size: 34px; font-weight: 800; color: var(--primary); }
+.pay-head small { color: var(--gray-500); font-size: 14px; }
+.pay-steps { text-align: left; font-size: 15px; line-height: 1.5; padding-left: 22px; margin: 6px 0 16px; }
+.pay-card .btn-submit.big { display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.pay-help { font-size: 13px; color: var(--gray-500); margin: 12px 0 0; }
+.pay-alert { font-size: 14px; background: #fee2e2; color: #991b1b; border-radius: 12px; padding: 10px 12px; text-align: left; }
+.pay-alert.sim { background: #fef3c7; color: #92400e; }
+.pay-wait { font-size: 13px; color: var(--gray-500); }
+.pay-msg { color: var(--danger); font-size: 13px; }

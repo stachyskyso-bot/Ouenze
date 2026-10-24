@@ -370,7 +370,29 @@
             state.tabChosen = true;
             render();
             await say('Livraison confirmée', 'Merci ! La commande est marquée « livrée » et le client peut te noter.');
+            await askPayment(orderId);
         }
+    }
+
+    // Après le code : la demande de paiement Mobile Money part au client (SMS + Mes commandes)
+    async function askPayment(orderId) {
+        let res;
+        try { res = await window.supabase.functions.invoke('payment', { body: { action: 'create', order_id: orderId, send_sms: true } }); }
+        catch (e) { return; }
+        if (res.error) {
+            let msg = '';
+            try { msg = (await res.error.context?.json())?.error || ''; } catch (e) { /* réponse illisible */ }
+            // Déjà payée, carte/PayPal, RDC… : rien à faire ici, l'équipe s'en occupe
+            if (/déjà payée|test|PayPal|RDC|annulée/i.test(msg)) return;
+            await say('Paiement', `La demande de paiement n'a pas pu partir : ${msg || 'réessaie plus tard'}. Le client peut payer depuis « Mes commandes ».`);
+            return;
+        }
+        const d = res.data || {};
+        const sent = d.sms === 'sent';
+        await say(d.simulation ? 'Paiement (simulation)' : 'Paiement demandé au client',
+            `${sent ? 'Le client a reçu le lien de paiement par SMS.' : 'Le client peut payer depuis « Mes commandes ».'} `
+            + `Montant : ${fcfa(d.amount)}. Il choisit son réseau puis tape son code secret Mobile Money sur son téléphone.`
+            + (d.simulation ? ' (Mode simulation : aucun argent réel.)' : ''));
     }
 
     async function courierRelease(orderId) {
