@@ -80,7 +80,7 @@
                 <a href="admin-reports.html"><i class="fas fa-flag"></i> Signalements</a>
                 <a href="trade.html"><i class="fas fa-chart-line"></i> Trade</a>
                 <a href="equipe.html" onclick="sessionStorage.setItem('tmTab','team')"><i class="fas fa-sliders-h"></i> Équipe et réglages</a>
-                <a href="index.html"><i class="fas fa-eye"></i> Voir le site</a>
+                <a href="index.html?site=1"><i class="fas fa-eye"></i> Voir le site</a>
             </div>
             <p class="ah-foot">Mis à jour à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · actualisation automatique chaque minute.</p>`;
     }
@@ -105,7 +105,9 @@
             window.supabase.auth.onAuthStateChange(event => { if (event === 'SIGNED_IN') location.reload(); });
             return;
         }
-        const { data: role } = await window.supabase.rpc('my_team_role');
+        const role = window.ouenzeTeamRole
+            ? await window.ouenzeTeamRole()
+            : (await window.supabase.rpc('my_team_role')).data;
         if (role === 'agent') { location.replace('equipe.html'); return; }
         if (role !== 'admin') {
             message(`<i class="fas fa-ban"></i><h3>Accès réservé</h3><p>Ce compte n'est pas administrateur.</p>

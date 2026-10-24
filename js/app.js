@@ -185,6 +185,34 @@
     }
     const ratePercent = () => (deliveryRate * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 
+    // Rôle d'équipe : 'admin', 'agent' ou null.
+    // my_team_role (migration 20261030) ; si elle n'est pas encore installée, is_admin.
+    async function teamRole() {
+        if (!window.supabase?.rpc) return null;
+        try {
+            const { data, error } = await window.supabase.rpc('my_team_role');
+            if (!error) return data || null;
+            const { data: isAdmin } = await window.supabase.rpc('is_admin');
+            return isAdmin ? 'admin' : null;
+        } catch (e) { return null; }
+    }
+    window.ouenzeTeamRole = teamRole;
+
+    // Page d'accueil : l'équipe arrive sur son interface. « Voir le site » (index.html?site=1)
+    // permet ensuite de parcourir la boutique normalement pendant toute la session.
+    async function sendTeamToTheirSpace() {
+        const params = new URLSearchParams(window.location.search);
+        try {
+            if (params.get('site') === '1') { sessionStorage.setItem('ouenzeSiteView', '1'); return false; }
+            if (sessionStorage.getItem('ouenzeSiteView') === '1') return false;
+        } catch (e) { return false; }
+        if (params.get('shop') || params.get('q')) return false;
+        const role = await teamRole();
+        if (role === 'admin') { window.location.replace('admin.html'); return true; }
+        if (role === 'agent') { window.location.replace('equipe.html'); return true; }
+        return false;
+    }
+
     async function initApp() {
         console.log('🚀 Initialisation...');
         loadDeliveryRate();
@@ -208,6 +236,16 @@
             console.error('❌ Erreur init:', error);
         }
  
+        // Favoris et goûts (js/foryou.js) : les cœurs se mettent à jour partout
+        if (F()) {
+            F().onFavChange(syncFavButtons);
+            F().init(currentUser).then(() => {
+                syncFavButtons();
+                // Favoris du compte arrivés après l'affichage : on recalcule la sélection
+                if (currentUser && homeFeed && document.getElementById('forYou')) renderHomeFeed();
+            });
+        }
+
         // Toujours appelé : c'est ce qui affiche Connexion/Inscription
         updateHeaderUI();
         updateCartCount();
@@ -216,6 +254,7 @@
         // Lien direct vers une boutique : index.html?shop=<id> (bouton « Voir en ligne »)
         // Pages de contenu (À propos, Aide…) : seulement l'en-tête, pas de vitrine
         if (!document.getElementById('appContainer')) return;
+        if (currentUser && await sendTeamToTheirSpace()) return;
  
         const params = new URLSearchParams(window.location.search);
         const shopParam = params.get('shop');
@@ -264,6 +303,7 @@
             }
  
             currentUser = data.user;
+            F()?.init(currentUser).then(syncFavButtons);
             currentProfile = await fetchProfile(currentUser.id);
             currentUserType = currentProfile?.user_type || 'client';
  
@@ -273,7 +313,7 @@
 
             // Équipe Ouenze : directement sur son interface (admin → tableau de bord, agent → commandes)
             try {
-                const { data: role } = await window.supabase.rpc('my_team_role');
+                const role = await teamRole();
                 if (role === 'admin') { window.location.href = 'admin.html'; return; }
                 if (role === 'agent') { window.location.href = 'equipe.html'; return; }
             } catch (e) { /* fonction absente : comportement habituel */ }
@@ -451,7 +491,13 @@
     function updateHeaderUI() {
         const container = document.getElementById('headerActions');
         if (container) {
-            const cartIcon = `
+            const n = F() ? F().favIds('product').length + F().favIds('shop').length : 0;
+            const favIcon = `
+                    <a class="hdr-icon" href="index.html#favoris" onclick="return goFavorites()" aria-label="Favoris">
+                        <span class="hdr-icon-glyph"><i class="fas fa-heart"></i><span class="cart-count fav-count" ${n ? '' : 'hidden'}>${n > 99 ? '99+' : n}</span></span>
+                        <span class="hdr-icon-label">Favoris</span>
+                    </a>`;
+            const cartIcon = favIcon + `
                     <button type="button" class="hdr-icon" onclick="showCart()" aria-label="Panier">
                         <span class="hdr-icon-glyph"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cartTotalQty()}</span></span>
                         <span class="hdr-icon-label">Panier</span>
@@ -634,6 +680,15 @@
             const cta = document.createElement('a');
             cta.className = 'nav-cta';
             navContainer.appendChild(cta);
+            const links = navContainer.querySelector('.nav-links');
+            if (links && !links.querySelector('.nav-fav')) {
+                const fav = document.createElement('a');
+                fav.href = 'index.html#favoris';
+                fav.className = 'nav-fav';
+                fav.setAttribute('onclick', 'return goFavorites()');
+                fav.innerHTML = '<i class="fas fa-heart"></i> Favoris';
+                links.insertBefore(fav, links.children[2] || null);
+            }
         }
         const cta = navContainer?.querySelector('.nav-cta');
         if (cta) {
@@ -697,64 +752,307 @@
     }
  
     // ============ PAGE D'ACCUEIL ============
+    // Sélection « Pour toi » (js/foryou.js), tendances, nouveautés, vus récemment, favoris,
+    // bannière animée avec les produits choisis pour la personne.
+    const F = () => window.Ouenze4U || null;
+    let heroTimer = null;
+    let homeFeed = null;        // { list, trend } : catalogue léger de l'accueil
+    let discoverList = [];      // suite de la sélection, affichée 12 par 12
+    let discoverShown = 0;
+
+    // Catégorie du marché d'un produit, d'après les mots de son nom et de sa description
+    function catOf(p) {
+        const text = `${p?.name || ''} ${p?.description || ''}`.toLowerCase();
+        const hit = MARKET_CATEGORIES.find(c => c.words.some(w => text.includes(w)));
+        return hit ? hit.key : 'autres';
+    }
+    function catLabel(key) { return MARKET_CATEGORIES.find(c => c.key === key)?.label || ''; }
+
+    // ---------- Favoris ----------
+    function favBtn(kind, id, cls = '') {
+        const on = !!F()?.isFav(kind, id);
+        const safe = escapeHtml(id);
+        return `<button type="button" class="fav-btn ${cls} ${on ? 'on' : ''}" data-fav="${kind}:${safe}" aria-pressed="${on}"
+            aria-label="${on ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+            onclick="event.stopPropagation();toggleFavorite('${kind}','${safe}')"><i class="${on ? 'fas' : 'far'} fa-heart"></i></button>`;
+    }
+
+    function syncFavButtons() {
+        const f = F();
+        if (!f) return;
+        document.querySelectorAll('.fav-btn[data-fav]').forEach(b => {
+            const [kind, id] = b.dataset.fav.split(':');
+            const on = f.isFav(kind, id);
+            b.classList.toggle('on', on);
+            b.setAttribute('aria-pressed', String(on));
+            b.setAttribute('aria-label', on ? 'Retirer des favoris' : 'Ajouter aux favoris');
+            const i = b.querySelector('i');
+            if (i) i.className = `${on ? 'fas' : 'far'} fa-heart`;
+        });
+        const n = f.favIds('product').length + f.favIds('shop').length;
+        document.querySelectorAll('.fav-count').forEach(el => { el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
+    }
+
+    async function toggleFavorite(kind, id) {
+        const f = F();
+        if (!f) return;
+        const now = await f.toggleFav(kind, id);
+        if (now) {
+            const p = productsCache[id];
+            if (kind === 'product') f.track('fav_product', { id, cat: p ? catOf(p) : null, shop: p?.shop_id });
+            else f.track('fav_shop', { id });
+            document.querySelectorAll(`.fav-btn[data-fav="${kind}:${CSS.escape ? CSS.escape(id) : id}"]`).forEach(b => {
+                b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+            });
+        }
+        let hint = '';
+        try {
+            if (now && !currentUser && !sessionStorage.getItem('ouenzeFavHint')) {
+                sessionStorage.setItem('ouenzeFavHint', '1');
+                hint = ' Connecte-toi pour les retrouver sur tous tes appareils.';
+            }
+        } catch (e) { /* stockage bloqué */ }
+        showToast((now ? 'Ajouté à tes favoris.' : 'Retiré de tes favoris.') + hint);
+    }
+
+    function goFavorites() {
+        if (document.getElementById('appContainer')) { showFavorites(); return false; }
+        window.location.href = 'index.html#favoris';
+        return false;
+    }
+
+    async function showFavorites(tab) {
+        const container = document.getElementById('appContainer');
+        if (!container) { window.location.href = 'index.html#favoris'; return false; }
+        const f = F();
+        const kind = tab === 'shop' ? 'shop' : 'product';
+        setTab(-1);
+        clearInterval(carouselTimer);
+        clearInterval(heroTimer);
+        container.classList.remove('is-searching');
+        const nP = f ? f.favIds('product').length : 0, nS = f ? f.favIds('shop').length : 0;
+        container.innerHTML = `
+            <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <span>Mes favoris</span></nav>
+            <h2 class="page-title"><i class="fas fa-heart" style="color:#ef4444"></i> Mes favoris</h2>
+            <div class="fav-tabs">
+                <button type="button" class="${kind === 'product' ? 'active' : ''}" onclick="showFavorites('product')">Produits <small>${nP}</small></button>
+                <button type="button" class="${kind === 'shop' ? 'active' : ''}" onclick="showFavorites('shop')">Boutiques <small>${nS}</small></button>
+            </div>
+            ${currentUser ? '' : '<p class="fav-note"><i class="fas fa-info-circle"></i> Tes favoris sont gardés sur ce téléphone. <a href="#" onclick="openLoginModal();return false;">Connecte-toi</a> pour les retrouver partout.</p>'}
+            <div id="favList" class="${kind === 'shop' ? 'home-shops' : 'home-products'}"><p class="search-hint">Chargement…</p></div>`;
+        window.scrollTo(0, 0);
+        const box = document.getElementById('favList');
+        const ids = f ? f.favIds(kind) : [];
+        if (!ids.length) {
+            box.className = '';
+            box.innerHTML = `<div class="fav-empty"><i class="far fa-heart"></i>
+                <h3>${kind === 'shop' ? 'Aucune boutique en favori' : 'Aucun produit en favori'}</h3>
+                <p>Touche le cœur sur ${kind === 'shop' ? 'une boutique' : 'un produit'} pour le retrouver ici.</p>
+                <button type="button" class="home-hero-btn" onclick="resetToHome()">Découvrir Ouenze <i class="fas fa-arrow-right"></i></button></div>`;
+            return false;
+        }
+        try {
+            if (kind === 'product') {
+                const missing = ids.filter(id => !productsCache[id] || productsCache[id]._light).slice(0, 60);
+                if (missing.length) {
+                    let { data, error } = await window.supabase.from('products').select('*, shops(name)').in('id', missing);
+                    if (error) ({ data } = await window.supabase.from('products').select('*').in('id', missing));
+                    (data || []).forEach(p => { productsCache[p.id] = p; });
+                }
+                const list = ids.map(id => productsCache[id]).filter(p => p && p.is_active !== false);
+                box.innerHTML = list.length ? list.map((p, i) => homeProductCard(p, i)).join('')
+                    : '<p class="search-hint">Ces produits ne sont plus en vente.</p>';
+            } else {
+                const missing = ids.filter(id => !shopsCache.find(s => s.id === id));
+                let extra = [];
+                if (missing.length) {
+                    const { data } = await window.supabase.from('shops')
+                        .select('id, name, logo_url, city, district, rating, total_ratings, total_sales, is_verified, is_active, archived_at').in('id', missing);
+                    extra = data || [];
+                }
+                const all = [...shopsCache, ...extra];
+                const list = ids.map(id => all.find(s => s.id === id)).filter(s => s && !s.archived_at);
+                box.innerHTML = list.length ? list.map(featShopCard).join('') : '<p class="search-hint">Ces boutiques ne sont plus ouvertes.</p>';
+            }
+            watchCovers(box);
+            revealIn(container);
+        } catch (e) {
+            console.error('❌ Favoris:', e);
+            box.innerHTML = '<p class="search-hint">Favoris indisponibles pour le moment.</p>';
+        }
+        return false;
+    }
+
+    // ---------- Animations à l'apparition ----------
+    let revealObserver = null;
+    function revealIn(root) {
+        const items = (root || document).querySelectorAll('.reveal:not(.in)');
+        if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('in')); return; }
+        if (!revealObserver) {
+            revealObserver = new IntersectionObserver(entries => entries.forEach(e => {
+                if (e.isIntersecting) { e.target.classList.add('in'); revealObserver.unobserve(e.target); }
+            }), { rootMargin: '0px 0px -40px 0px', threshold: 0.05 });
+        }
+        items.forEach(el => revealObserver.observe(el));
+        // Sécurité : rien ne doit rester caché si le navigateur ne signale pas le défilement
+        setTimeout(() => items.forEach(el => el.classList.add('in')), 4000);
+    }
+
+    // ---------- Photos : chargées seulement quand la carte arrive à l'écran ----------
+    const coverQueue = new Set();
+    let coverTimer = null, coverObserver = null;
+    function watchCovers(root) {
+        const imgs = (root || document).querySelectorAll('img[data-cover]:not([src])');
+        if (!imgs.length) return;
+        if (!('IntersectionObserver' in window)) { imgs.forEach(img => coverQueue.add(img.dataset.cover)); flushCoversSoon(); return; }
+        if (!coverObserver) {
+            coverObserver = new IntersectionObserver(entries => entries.forEach(e => {
+                if (!e.isIntersecting) return;
+                coverObserver.unobserve(e.target);
+                coverQueue.add(e.target.dataset.cover);
+                flushCoversSoon();
+            }), { rootMargin: '300px 300px' });
+        }
+        imgs.forEach(img => coverObserver.observe(img));
+    }
+    function flushCoversSoon() { clearTimeout(coverTimer); coverTimer = setTimeout(flushCovers, 40); }
+    function setCover(id, src) {
+        document.querySelectorAll(`img[data-cover="${id}"]`).forEach(img => {
+            img.onload = () => img.classList.add('loaded');
+            img.src = src;
+        });
+    }
+    async function flushCovers() {
+        const ids = [...coverQueue].slice(0, 30);
+        ids.forEach(id => coverQueue.delete(id));
+        if (!ids.length) return;
+        const todo = [];
+        ids.forEach(id => {
+            const p = productsCache[id];
+            const known = p && (p._light ? p.photos?.[0] : productPhotos(p)[0]);
+            if (known) setCover(id, safeUrl(known)); else todo.push(id);
+        });
+        if (todo.length) {
+            try {
+                const { data, error } = await window.supabase.rpc('product_covers', { ids: todo });
+                if (!error) (data || []).forEach(r => {
+                    const src = safeUrl(r.cover);
+                    if (!src) return;
+                    const p = productsCache[r.id];
+                    if (p && p._light) p.photos = [src];
+                    setCover(r.id, src);
+                });
+            } catch (e) { /* réseau : la carte garde son fond */ }
+        }
+        if (coverQueue.size) flushCoversSoon();
+    }
+
+    // Produit complet (versions, toutes les photos) : chargé à l'ouverture de la fiche ou à l'ajout au panier
+    async function ensureFullProduct(id) {
+        const p = productsCache[id];
+        if (p && !p._light) return p;
+        let { data, error } = await window.supabase.from('products').select('*, shops(name)').eq('id', id).maybeSingle();
+        if (error) ({ data, error } = await window.supabase.from('products').select('*').eq('id', id).maybeSingle());
+        if (data) { productsCache[id] = data; return data; }
+        return null;
+    }
+
+    function quickAdd(id) {
+        const p = productsCache[id];
+        if (p && p._light) {
+            ensureFullProduct(id).then(full => { if (full) addToCart(id); else showToast('Produit indisponible.'); });
+            return false;
+        }
+        return addToCart(id);
+    }
+
     async function showHomePage() {
         const container = document.getElementById('appContainer');
         if (!container) return;
         setTab(0);
         clearInterval(carouselTimer);
+        clearInterval(heroTimer);
         const side = (cls, title, text, icon, action) => `
             <button type="button" class="home-side ${cls}" onclick="${action}">
                 <span><strong>${title}</strong><small>${text}</small></span>
                 <i class="fas ${icon}"></i>
             </button>`;
+        const row = (id, icon, title, sub, extra = '') => `
+            <section class="home-section home-only reveal" id="${id}Section" hidden>
+                <div class="home-section-head"><h3><i class="fas ${icon}"></i> ${title}</h3>
+                    <span class="home-head-links">${extra}
+                    <button type="button" class="row-nav" onclick="scrollRow('${id}',-1)" aria-label="Précédent"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" class="row-nav" onclick="scrollRow('${id}',1)" aria-label="Suivant"><i class="fas fa-chevron-right"></i></button></span></div>
+                ${sub ? `<p class="home-section-sub" id="${id}Sub">${sub}</p>` : ''}
+                <div class="h-row" id="${id}"></div>
+            </section>`;
 
         container.innerHTML = `
             <section class="home-hero-row home-only">
-                <div class="home-hero">
-                    <div class="home-hero-text">
-                        <h2>Le marché du Congo,<br><em>chez vous.</em></h2>
-                        <p>Produits locaux · Boutiques de confiance<br>Livraison rapide · Paiement sécurisé</p>
-                        <a href="#homeProducts" class="home-hero-btn" onclick="document.getElementById('homeProducts')?.scrollIntoView({behavior:'smooth'});return false;">
-                            Commander maintenant <i class="fas fa-arrow-right"></i></a>
+                <div class="home-hero" id="homeHero">
+                    <div class="hero-slide active">
+                        <div class="home-hero-text">
+                            <h2>Le marché du Congo,<br><em>chez vous.</em></h2>
+                            <p>Produits locaux · Boutiques de confiance<br>Livraison rapide · Paiement sécurisé</p>
+                            <a href="#forYouSection" class="home-hero-btn" onclick="document.getElementById('forYouSection')?.scrollIntoView({behavior:'smooth'});return false;">
+                                Commander maintenant <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="home-hero-art" aria-hidden="true">
+                            <span class="art-bubble b1"><i class="fas fa-shopping-basket"></i></span>
+                            <span class="art-bubble b2"><i class="fas fa-motorcycle"></i></span>
+                            <span class="art-bubble b3"><i class="fas fa-store"></i></span>
+                        </div>
                     </div>
-                    <div class="home-hero-art" id="homeHeroArt" aria-hidden="true">
-                        <span class="art-bubble b1"><i class="fas fa-shopping-basket"></i></span>
-                        <span class="art-bubble b2"><i class="fas fa-motorcycle"></i></span>
-                        <span class="art-bubble b3"><i class="fas fa-store"></i></span>
-                    </div>
+                    <div class="hero-dots" id="heroDots" hidden></div>
                 </div>
                 <div class="home-sides">
                     ${side('s-blue', 'Livraison rapide', 'Des livreurs notés, près de chez toi', 'fa-shipping-fast', "location.href='delivery-register.html'")}
                     ${side('s-gold', 'Boutiques vérifiées', 'Médailles Or, Argent, Bronze', 'fa-shield-alt', "document.getElementById('homeShops')?.scrollIntoView({behavior:'smooth'})")}
-                    ${side('s-green', 'Produits frais et locaux', 'Du Congo, pour le Congo', 'fa-carrot', "showCategory('alimentaire')")}
+                    ${side('s-green', 'Tes favoris', 'Tout ce que tu as aimé', 'fa-heart', 'showFavorites()')}
                 </div>
             </section>
 
-            <section class="home-trust home-only">
+            <section class="home-trust home-only reveal">
                 <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
                 <div><i class="fas fa-shield-alt"></i><span><b>Paiement à la livraison</b><small>Mobile Money</small></span></div>
                 <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">Aide et contact</a></small></span></div>
                 <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
             </section>
 
-            <section class="home-section home-only" id="homeCategories">
+            <section class="home-section home-only fy-section" id="forYouSection">
+                <div class="home-section-head"><h3><span class="fy-spark"><i class="fas fa-magic"></i></span> Pour toi</h3>
+                    <span class="home-head-links">
+                    <button type="button" class="row-nav" onclick="scrollRow('forYou',-1)" aria-label="Précédent"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" class="row-nav" onclick="scrollRow('forYou',1)" aria-label="Suivant"><i class="fas fa-chevron-right"></i></button></span></div>
+                <p class="home-section-sub" id="forYouSub">Une sélection rien que pour toi</p>
+                <div class="h-row" id="forYou">${'<div class="sk-card"></div>'.repeat(6)}</div>
+            </section>
+
+            <section class="home-section home-only reveal" id="homeCategories">
                 <div class="home-section-head"><h3>Catégories populaires</h3></div>
                 <div class="home-cats">
-                    ${MARKET_CATEGORIES.map(c => `<button type="button" class="home-cat" onclick="showCategory('${c.key}')">
+                    ${MARKET_CATEGORIES.map((c, i) => `<button type="button" class="home-cat" style="--i:${i}" onclick="showCategory('${c.key}')">
                         <span class="home-cat-emoji">${c.emoji}</span><span>${c.label}</span></button>`).join('')}
                 </div>
             </section>
 
-            <section class="home-section home-only" id="homeShops">
+            ${row('trending', 'fa-fire', 'Tendances', 'Les plus commandés en ce moment')}
+
+            <section class="home-section home-only reveal" id="homeShops">
                 <div class="home-section-head"><h3>Boutiques en vedette</h3>
                     <span class="home-head-links"><a href="autour.html"><i class="fas fa-map-marker-alt"></i> Autour de moi</a>
                     <a href="#" onclick="document.getElementById('allShops')?.scrollIntoView({behavior:'smooth'});return false;">Voir tout <i class="fas fa-chevron-right"></i></a></span></div>
-                <div class="home-shops" id="featuredShops"><p class="search-hint">Chargement…</p></div>
+                <div class="home-shops" id="featuredShops">${'<div class="sk-card sk-shop"></div>'.repeat(4)}</div>
             </section>
 
-            <section class="home-section home-only" id="homeProducts">
-                <div class="home-section-head"><h3>Produits en vedette</h3></div>
-                <div class="home-products" id="featuredProducts"><p class="search-hint">Chargement…</p></div>
+            ${row('newest', 'fa-bolt', 'Nouveautés', 'Tout juste arrivés sur Ouenze')}
+            ${row('favRow', 'fa-heart', 'Tes coups de cœur', '', '<a href="#" onclick="return goFavorites()">Tout voir <i class="fas fa-chevron-right"></i></a>')}
+            ${row('recent', 'fa-history', 'Vus récemment', '')}
+
+            <section class="home-section home-only reveal" id="homeProducts">
+                <div class="home-section-head"><h3><i class="fas fa-compass"></i> Découvre aussi</h3></div>
+                <div class="home-products" id="featuredProducts">${'<div class="sk-card"></div>'.repeat(6)}</div>
+                <div class="discover-more"><button type="button" id="discoverMore" class="discover-btn" onclick="showMoreDiscover()" hidden>Voir plus de produits <i class="fas fa-chevron-down"></i></button></div>
             </section>
 
             <div id="productResults"></div>
@@ -773,9 +1071,11 @@
                 </div>
             </section>`;
 
-        loadFeaturedProducts();
-        await loadShops();
-        // Lien depuis une autre page : index.html#categories ou #cat=<clé> (traité une seule fois)
+        revealIn(container);
+        const shopsReady = loadShops();
+        loadHomeFeed(shopsReady);
+        await shopsReady;
+        // Lien depuis une autre page : index.html#categories, #cat=<clé>, #boutiques ou #favoris (traité une seule fois)
         const hash = location.hash;
         if (hash === '#categories' || hash.startsWith('#cat=')) {
             history.replaceState(null, '', location.pathname + location.search);
@@ -783,48 +1083,278 @@
         } else if (hash === '#boutiques') {
             history.replaceState(null, '', location.pathname + location.search);
             document.getElementById('allShops')?.scrollIntoView();
+        } else if (hash === '#favoris') {
+            history.replaceState(null, '', location.pathname + location.search);
+            showFavorites();
         }
     }
 
+    function scrollRow(id, dir) {
+        const el = document.getElementById(id);
+        if (el) el.scrollBy({ left: dir * Math.max(240, el.clientWidth * 0.8), behavior: 'smooth' });
+    }
+
+    // Catalogue léger (product_feed, migration 20261106) ; sinon les 24 derniers produits complets
+    async function loadFeed() {
+        const city = currentCity() || null;
+        const safe = pr => Promise.resolve(pr).then(r => r, e => ({ error: e }));
+        const [feed, trendRes] = await Promise.all([
+            safe(window.supabase.rpc('product_feed', { city, lim: 240 })),
+            safe(window.supabase.rpc('trending_products', { city }))
+        ]);
+        const trend = new Map(((!trendRes.error && Array.isArray(trendRes.data)) ? trendRes.data : [])
+            .map(r => [r.product_id, Number(r.orders) || 0]));
+        if (!feed.error && Array.isArray(feed.data)) {
+            const list = feed.data.map(r => {
+                const old = productsCache[r.id];
+                if (old && !old._light) return old;
+                const p = {
+                    id: r.id, shop_id: r.shop_id, name: r.name, description: r.description || '',
+                    price: Number(r.price) || 0, stock: r.stock, created_at: r.created_at, is_active: true,
+                    shops: { name: r.shop_name }, photos: old?.photos || [],
+                    _light: true, _max: Number(r.max_price) || 0, _versions: Number(r.versions) || 0,
+                    _out: !!r.out_of_stock, _hasPhoto: !!r.has_photo
+                };
+                productsCache[r.id] = p;
+                return p;
+            });
+            return { list, trend };
+        }
+        const list = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(24));
+        return { list, trend };
+    }
+
+    function rankContext(trend) {
+        return {
+            trend,
+            catOf,
+            priceOf: p => (p._light ? p.price : minPrice(p)),
+            hasPhoto: p => (p._light ? p._hasPhoto : productPhotos(p).length > 0),
+            inStock: p => (p._light ? !p._out : !(productStock(p) <= 0 && Number(p.stock) !== 0)),
+            shopScore: p => {
+                const s = shopsCache.find(x => x.id === p.shop_id);
+                if (!s) return 0;
+                return Math.min(1, (getShopLevel(s).rank || 0) / 3) * 0.5 + Math.min(5, Number(s.rating) || 0) / 10;
+            }
+        };
+    }
+
+    function reasonLabel(r) {
+        if (!r) return '';
+        if (r.startsWith('cat:')) { const l = catLabel(r.slice(4)); return l ? `Tu aimes ${l}` : ''; }
+        return r;
+    }
+
+    function fillRow(id, list, opts = {}) {
+        const box = document.getElementById(id);
+        const section = document.getElementById(id + 'Section');
+        if (!box) return;
+        if (section) section.hidden = list.length < (opts.min || 1);
+        box.innerHTML = list.map((p, i) => homeProductCard(p, i, opts.reasons?.[i] || '', opts.rank ? i + 1 : 0)).join('');
+        watchCovers(box);
+    }
+
+    async function loadHomeFeed(shopsReady) {
+        const box = document.getElementById('forYou');
+        if (!box) return;
+        try {
+            const [feed] = await Promise.all([loadFeed(), Promise.resolve(shopsReady).catch(() => null)]);
+            if (!document.getElementById('forYou')) return;   // l'utilisateur a changé de page
+            homeFeed = feed;
+            renderHomeFeed();
+        } catch (e) {
+            console.error('❌ Accueil:', e);
+            box.innerHTML = '<p class="search-hint">Produits indisponibles pour le moment.</p>';
+            const grid = document.getElementById('featuredProducts');
+            if (grid) grid.innerHTML = '';
+        }
+    }
+
+    function renderHomeFeed() {
+        const { list, trend } = homeFeed || { list: [], trend: new Map() };
+        const f = F();
+        const forYouBox = document.getElementById('forYou');
+        if (!forYouBox) return;
+        if (!list.length) {
+            forYouBox.innerHTML = `<p class="search-hint">${currentCity() ? `Pas encore de produit à ${escapeHtml(currentCity())} : ils arrivent bientôt.` : 'Les premiers produits arrivent bientôt.'}</p>`;
+            document.getElementById('featuredProducts').innerHTML = '';
+            document.getElementById('homeProducts').hidden = true;
+            return;
+        }
+        const ctx = rankContext(trend);
+        const ranked = f ? f.rank(list, ctx) : list.map(p => ({ p, reason: '' }));
+
+        // Pour toi : les 12 premiers
+        const top = ranked.slice(0, 12);
+        fillRow('forYou', top.map(r => r.p), { reasons: top.map(r => reasonLabel(r.reason)) });
+        const cats = f ? f.topCategories(2).map(catLabel).filter(Boolean) : [];
+        const sub = document.getElementById('forYouSub');
+        if (sub) sub.textContent = cats.length
+            ? `Choisis d'après ce que tu aimes : ${cats.join(', ')}`
+            : 'Une sélection pour découvrir Ouenze. Plus tu explores, plus elle te ressemble.';
+        if (f) f.track('impression', { ids: top.slice(0, 8).map(r => r.p.id) });
+
+        // Tendances : commandés sur 30 jours
+        const hot = list.filter(p => trend.get(p.id)).sort((a, b) => trend.get(b.id) - trend.get(a.id)).slice(0, 10);
+        fillRow('trending', hot, { min: 3, rank: true });
+
+        // Nouveautés (hors ce qui est déjà en tête de « Pour toi »)
+        const shown = new Set(top.slice(0, 6).map(r => r.p.id));
+        const fresh = [...list].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+            .filter(p => !shown.has(p.id) && ctx.hasPhoto(p)).slice(0, 10);
+        fillRow('newest', fresh, { min: 3 });
+
+        // Coups de cœur et vus récemment
+        const favs = f ? f.favIds('product').map(id => productsCache[id]).filter(Boolean).slice(0, 12) : [];
+        fillRow('favRow', favs, { min: 1 });
+        const seen = f ? f.recent().map(id => productsCache[id]).filter(Boolean).slice(0, 12) : [];
+        fillRow('recent', seen, { min: 2 });
+
+        // Découvre aussi : la suite du classement, 12 par 12
+        discoverList = ranked.slice(12).map(r => r.p);
+        discoverShown = 0;
+        const grid = document.getElementById('featuredProducts');
+        if (grid) grid.innerHTML = '';
+        document.getElementById('homeProducts').hidden = !discoverList.length;
+        showMoreDiscover();
+
+        renderHeroSlides(ranked.filter(r => ctx.hasPhoto(r.p)).slice(0, 3));
+        revealIn(document.getElementById('appContainer'));
+    }
+
+    function showMoreDiscover() {
+        const grid = document.getElementById('featuredProducts');
+        const btn = document.getElementById('discoverMore');
+        if (!grid) return;
+        const next = discoverList.slice(discoverShown, discoverShown + 12);
+        grid.insertAdjacentHTML('beforeend', next.map((p, i) => homeProductCard(p, i)).join(''));
+        discoverShown += next.length;
+        if (btn) btn.hidden = discoverShown >= discoverList.length;
+        watchCovers(grid);
+    }
+
+    // ---------- Bannière : message Ouenze puis les produits choisis pour la personne ----------
+    function renderHeroSlides(picks) {
+        const hero = document.getElementById('homeHero');
+        const dots = document.getElementById('heroDots');
+        if (!hero || !dots) return;
+        hero.querySelectorAll('.hero-spot').forEach(el => el.remove());
+        clearInterval(heroTimer);
+        if (!picks.length) { dots.hidden = true; return; }
+        dots.insertAdjacentHTML('beforebegin', picks.map(({ p, reason }) => {
+            const id = escapeHtml(p.id);
+            const photo = p._light ? safeUrl(p.photos?.[0] || '') : productPhotos(p)[0];
+            const label = reasonLabel(reason) || 'Choisi pour toi';
+            return `<div class="hero-slide hero-spot" aria-hidden="true">
+                <div class="home-hero-text">
+                    <span class="hero-kicker"><i class="fas fa-magic"></i> ${escapeHtml(label)}</span>
+                    <h2 class="hero-spot-name">${escapeHtml(p.name)}</h2>
+                    <p>${escapeHtml(p.shops?.name || '')}${p.shops?.name ? ' · ' : ''}<b>${cardPrice(p)}</b></p>
+                    <button type="button" class="home-hero-btn" onclick="openProductDetail('${id}')">Voir le produit <i class="fas fa-arrow-right"></i></button>
+                </div>
+                <div class="hero-spot-img" onclick="openProductDetail('${id}')">
+                    <img ${photo ? `src="${photo}"` : `data-cover="${id}"`} alt="">
+                    ${favBtn('product', p.id, 'on-hero')}
+                </div>
+            </div>`;
+        }).join(''));
+        const slides = [...hero.querySelectorAll('.hero-slide')];
+        dots.innerHTML = slides.map((_, i) => `<button type="button" class="${i === 0 ? 'active' : ''}" aria-label="Diapositive ${i + 1}" onclick="goHero(${i})"></button>`).join('');
+        dots.hidden = false;
+        watchCovers(hero);
+        startHeroTimer();
+        if (!hero.dataset.swipe) {
+            hero.dataset.swipe = '1';
+            let x0 = null;
+            hero.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+            hero.addEventListener('touchend', e => {
+                if (x0 === null) return;
+                const dx = e.changedTouches[0].clientX - x0;
+                x0 = null;
+                if (Math.abs(dx) > 40) goHero(heroIndex() + (dx < 0 ? 1 : -1));
+            }, { passive: true });
+            hero.addEventListener('mouseenter', () => clearInterval(heroTimer));
+            hero.addEventListener('mouseleave', startHeroTimer);
+        }
+    }
+
+    function heroIndex() {
+        const slides = [...document.querySelectorAll('#homeHero .hero-slide')];
+        return Math.max(0, slides.findIndex(s => s.classList.contains('active')));
+    }
+
+    function goHero(i) {
+        const slides = [...document.querySelectorAll('#homeHero .hero-slide')];
+        if (!slides.length) return;
+        const n = ((i % slides.length) + slides.length) % slides.length;
+        slides.forEach((s, k) => { s.classList.toggle('active', k === n); s.setAttribute('aria-hidden', String(k !== n)); });
+        document.querySelectorAll('#heroDots button').forEach((b, k) => b.classList.toggle('active', k === n));
+        startHeroTimer();
+    }
+
+    function startHeroTimer() {
+        clearInterval(heroTimer);
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+        heroTimer = setInterval(() => {
+            if (!document.getElementById('homeHero')) { clearInterval(heroTimer); return; }
+            if (!document.hidden) goHero(heroIndex() + 1);
+        }, 5500);
+    }
+
     // Boutiques en vedette : médaille, puis note (la ville choisie d'abord)
+    function featShopCard(shop) {
+        const level = getShopLevel(shop);
+        const logo = safeUrl(shop.logo_url);
+        return `<div class="feat-shop" role="button" tabindex="0" onclick="viewShopDetail('${escapeHtml(shop.id)}')" onkeydown="if(event.key==='Enter')viewShopDetail('${escapeHtml(shop.id)}')">
+            <span class="feat-shop-cover">${logo ? `<img src="${logo}" alt="" loading="lazy">` : '<i class="fas fa-store"></i>'}
+                <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span>
+                ${favBtn('shop', shop.id)}</span>
+            <span class="feat-shop-body">
+                <strong>${escapeHtml(shop.name)}</strong>
+                <span class="feat-shop-rate"><i class="fas fa-star"></i> ${Number(shop.rating || 0).toLocaleString('fr-FR')} <small>(${shop.total_ratings || 0})</small></span>
+                <small><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? ', ' + escapeHtml(shop.district) : ''}</small>
+            </span>
+        </div>`;
+    }
+
     function renderFeaturedShops() {
         const box = document.getElementById('featuredShops');
         if (!box) return;
         const city = currentCity().toLowerCase();
-        const list = shopsCache.filter(s => s.is_active !== false && !s.archived_at && inCurrentCity(s))
-            .sort((a, b) => (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)))
+        const favS = new Set(F()?.favIds('shop') || []);
+        const list = shopsCache.filter(s => s.is_active !== false && !s.archived_at && !s.suspended_at && inCurrentCity(s))
+            .sort((a, b) => (favS.has(b.id) - favS.has(a.id)) || (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)))
             .slice(0, 8);
         if (!list.length) { box.innerHTML = `<p class="search-hint">${city ? `Pas encore de boutique à ${escapeHtml(currentCity())} : elles arrivent bientôt.` : 'Les premières boutiques arrivent bientôt.'}</p>`; return; }
-        box.innerHTML = list.map(shop => {
-            const level = getShopLevel(shop);
-            const logo = safeUrl(shop.logo_url);
-            return `<button type="button" class="feat-shop" onclick="viewShopDetail('${escapeHtml(shop.id)}')">
-                <span class="feat-shop-cover">${logo ? `<img src="${logo}" alt="" loading="lazy">` : '<i class="fas fa-store"></i>'}
-                    <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span></span>
-                <span class="feat-shop-body">
-                    <strong>${escapeHtml(shop.name)}</strong>
-                    <span class="feat-shop-rate"><i class="fas fa-star"></i> ${Number(shop.rating || 0).toLocaleString('fr-FR')} <small>(${shop.total_ratings || 0})</small></span>
-                    <small><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? ', ' + escapeHtml(shop.district) : ''}</small>
-                </span>
-            </button>`;
-        }).join('');
+        box.innerHTML = list.map(featShopCard).join('');
     }
 
-    function homeProductCard(p) {
-        const photo = productPhotos(p)[0] || '';
+    function cardPrice(p) {
+        if (!p._light) return productPriceLabel(p);
+        return `${p._max > p.price ? 'dès ' : ''}${formatPrice(p.price)} FCFA`;
+    }
+
+    // Carte produit : photo (chargée à l'arrivée à l'écran), cœur, prix, boutique, bouton
+    function homeProductCard(p, i = 0, reason = '', rankNo = 0) {
+        const light = !!p._light;
+        const photo = light ? safeUrl(p.photos?.[0] || '') : productPhotos(p)[0] || '';
         const id = escapeHtml(p.id);
-        const versions = productVariants(p).length;
+        const versions = light ? p._versions : productVariants(p).length;
         const shop = p.shops?.name || shopsCache.find(s => s.id === p.shop_id)?.name || '';
-        const out = productStock(p) <= 0 && Number(p.stock) !== 0;
-        return `<div class="home-product" role="button" tabindex="0" onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
-            <div class="home-product-img">${photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy">` : '<i class="fas fa-image"></i>'}
-                ${versions > 1 ? `<span class="product-card-tag">${versions} versions</span>` : ''}</div>
+        const out = light ? p._out : productStock(p) <= 0 && Number(p.stock) !== 0;
+        const img = photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy" class="loaded">`
+            : (light && p._hasPhoto ? `<img data-cover="${id}" alt="${escapeHtml(p.name)}">` : '<i class="fas fa-image"></i>');
+        return `<div class="home-product" style="--i:${Math.min(i, 11)}" role="button" tabindex="0" onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
+            <div class="home-product-img">${img}
+                ${rankNo ? `<span class="trend-rank">#${rankNo}</span>` : ''}
+                ${reason ? `<span class="fy-reason">${escapeHtml(reason)}</span>` : versions > 1 ? `<span class="product-card-tag">${versions} versions</span>` : ''}
+                ${favBtn('product', p.id)}</div>
             <div class="home-product-body">
                 <div class="home-product-name">${escapeHtml(p.name)}</div>
-                <div class="home-product-price">${productPriceLabel(p)}</div>
+                <div class="home-product-price">${cardPrice(p)}</div>
                 ${shop ? `<div class="home-product-shop"><i class="fas fa-store"></i> ${escapeHtml(shop)}</div>` : ''}
                 <button type="button" class="home-product-btn" ${out ? 'disabled' : ''}
-                    onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `addToCart('${id}')`}">
+                    onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `quickAdd('${id}')`}">
                     <i class="fas fa-cart-plus"></i> ${out ? 'Épuisé' : versions ? 'Choisir' : 'Ajouter'}</button>
             </div>
         </div>`;
@@ -837,26 +1367,6 @@
         if (error) throw error;
         (data || []).forEach(p => { productsCache[p.id] = p; });
         return (data || []).filter(p => p.is_active !== false);
-    }
-
-    async function loadFeaturedProducts() {
-        const box = document.getElementById('featuredProducts');
-        if (!box) return;
-        try {
-            const list = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(18));
-            box.innerHTML = list.length ? list.slice(0, 12).map(homeProductCard).join('')
-                : '<p class="search-hint">Les premiers produits arrivent bientôt.</p>';
-            // Bannière : les vraies photos des produits du moment
-            const photos = list.map(p => productPhotos(p)[0]).filter(Boolean).slice(0, 3);
-            const art = document.getElementById('homeHeroArt');
-            if (art && photos.length) {
-                art.innerHTML = photos.map((src, i) => `<img class="art-photo p${i + 1}" src="${src}" alt="">`).join('')
-                    + '<span class="art-bubble b2"><i class="fas fa-motorcycle"></i></span>';
-            }
-        } catch (e) {
-            console.error('❌ Produits en vedette:', e);
-            box.innerHTML = '<p class="search-hint">Produits indisponibles pour le moment.</p>';
-        }
     }
 
     // ============ CATÉGORIES ============
@@ -893,6 +1403,7 @@
         clearInterval(carouselTimer);
         container.classList.remove('is-searching');
         Object.assign(catView, { key, list: [], maxPrice: 0, inStock: false, sort: 'new' });
+        F()?.track('category', { cat: key });
         container.innerHTML = `
             <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <a href="#" onclick="return showCategories()">Catégories</a> › <span>${cat.label}</span></nav>
             <div class="cat-chips">${MARKET_CATEGORIES.map(c => `<button type="button" class="${c.key === key ? 'active' : ''}" onclick="showCategory('${c.key}')">${c.emoji} ${c.label}</button>`).join('')}</div>
@@ -1048,6 +1559,7 @@
             const logo = safeUrl(shop.logo_url);
             return `
                 <div class="shop-card" onclick="viewShopDetail('${escapeHtml(shop.id)}')">
+                    ${favBtn('shop', shop.id, 'on-card')}
                     <div class="shop-logo-area">
                         <div class="shop-logo-img">
                             ${logo
@@ -1107,6 +1619,8 @@
  
         const seq = ++searchSeq;
         box.innerHTML = '<p class="search-hint">Recherche de produits…</p>';
+        const ql = q.toLowerCase();
+        F()?.track('search', { q, cats: MARKET_CATEGORIES.filter(c => c.words.some(w => w.includes(ql) || ql.includes(w))).map(c => c.key) });
         const ids = await cityShopIds();
         let { data, error } = await cityScope(window.supabase
             .from('products').select('*, shops(name)'), ids)
@@ -1144,6 +1658,7 @@
                          onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
                         <div class="product-card-img">
                             ${photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy">` : '<i class="fas fa-image"></i>'}
+                            ${favBtn('product', p.id)}
                         </div>
                         <div class="product-card-body">
                             <div class="product-card-name">${escapeHtml(p.name)}</div>
@@ -1203,6 +1718,7 @@
                 .slice(0, 6);
             const d = currentShopDesign;
             currentShopName = shop.name || '';
+            F()?.track('view_shop', { id: shop.id });
             (products || []).forEach(p => { p.shop_name = shop.name; });
  
             const logo = safeUrl(shop.logo_url);
@@ -1218,7 +1734,7 @@
                                 ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="color:#1e40af"></i>'}
                             </div>
                             <div style="min-width:0;">
-                                <h2 style="font-size:24px;margin:0;">${escapeHtml(shop.name)}</h2>
+                                <h2 style="font-size:24px;margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${escapeHtml(shop.name)} ${favBtn('shop', shop.id, 'in-title')}</h2>
                                 ${shop.description ? `<p style="opacity:.9;margin:4px 0;">${escapeHtml(shop.description)}</p>` : ''}
                                 <p style="font-size:13px;opacity:.9;margin:2px 0;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}${shop.district ? ', ' + escapeHtml(shop.district) : ''}</p>
                                 <p style="font-size:13px;opacity:.9;margin:2px 0;">⭐ ${Number(shop.rating || 0)}/5 (${shop.total_ratings || 0} avis)</p>
@@ -1377,6 +1893,7 @@
                     ${photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy">`
                             : '<i class="fas fa-image"></i>'}
                     ${versions.length ? `<span class="product-card-tag">${versions.length} versions</span>` : ''}
+                    ${favBtn('product', p.id)}
                 </div>
                 <div class="product-card-body">
                     <div class="product-card-name" style="color:${d.productText};">${escapeHtml(p.name)}</div>
@@ -1493,6 +2010,15 @@
     function openProductDetail(productId) {
         const p = productsCache[productId];
         if (!p) return;
+        // Carte de l'accueil (catalogue léger) : on charge d'abord le produit complet
+        if (p._light) {
+            ensureFullProduct(productId).then(full => {
+                if (full && !full._light) openProductDetail(productId);
+                else showToast('Produit indisponible pour le moment.');
+            });
+            return;
+        }
+        F()?.track('view_product', { id: p.id, cat: catOf(p), shop: p.shop_id, price: minPrice(p) });
         detailProduct = p;
         detailQty = 1;
         detailSelection = {};
@@ -1564,7 +2090,7 @@
                 </div>
                 <div class="pd-info">
                     ${beauty?.brand ? `<div class="pd-brand">${escapeHtml(beauty.brand)}</div>` : ''}
-                    <h3 class="pd-name">${escapeHtml(p.name)}</h3>
+                    <div class="pd-name-row"><h3 class="pd-name">${escapeHtml(p.name)}</h3>${favBtn('product', p.id, 'in-title')}</div>
                     <div class="pd-price" style="color:${d.primary};">
                         ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
                     </div>
@@ -1628,12 +2154,15 @@
                 <div class="pd-similar">
                     <h4>Aussi chez ${escapeHtml(shop?.name || 'ce vendeur')}</h4>
                     <div class="pd-similar-list">${similar.map(x => {
-                        const ph = productPhotos(x)[0];
+                        const ph = x._light ? safeUrl(x.photos?.[0] || '') : productPhotos(x)[0];
+                        const img = ph ? `<img src="${ph}" alt="" loading="lazy">`
+                            : x._light && x._hasPhoto ? `<img data-cover="${escapeHtml(x.id)}" alt="">` : '<i class="fas fa-image"></i>';
                         return `<button type="button" class="pd-similar-item" onclick="openProductDetail('${escapeHtml(x.id)}')">
-                            <span>${ph ? `<img src="${ph}" alt="" loading="lazy">` : '<i class="fas fa-image"></i>'}</span>
-                            <strong>${escapeHtml(x.name)}</strong><b>${productPriceLabel(x)}</b></button>`;
+                            <span>${img}</span>
+                            <strong>${escapeHtml(x.name)}</strong><b>${cardPrice(x)}</b></button>`;
                     }).join('')}</div>
                 </div>` : ''}`;
+        watchCovers(box);
     }
  
     function showProductPhoto(src) {
@@ -1704,6 +2233,11 @@
             alert('Produit introuvable');
             return false;
         }
+        if (p._light) {
+            ensureFullProduct(productId).then(full => { if (full) addToCart(productId, variantKey, quantity); });
+            return false;
+        }
+        F()?.track('cart', { id: p.id, cat: catOf(p), shop: p.shop_id });
  
         // Produit à versions : il faut en choisir une dans la fiche
         const variants = productVariants(p);
@@ -2033,6 +2567,7 @@
             return showFormError('pcError', phoneAuthError(error || { message: 'invalid' }), 'pcCode');
         }
         currentUser = data.user;
+        F()?.init(currentUser).then(syncFavButtons);
         currentProfile = await fetchProfile(currentUser.id);
         currentUserType = currentProfile?.user_type || 'client';
         closeModal(true);
@@ -2691,7 +3226,14 @@
         changeDetailQty,
         addDetailToCart,
         changeCartQty,
-        removeCartItem
+        removeCartItem,
+        toggleFavorite,
+        showFavorites,
+        goFavorites,
+        scrollRow,
+        goHero,
+        showMoreDiscover,
+        quickAdd
     });
  
     // ============ DÉMARRAGE ============
