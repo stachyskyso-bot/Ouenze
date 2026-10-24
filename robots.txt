@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin-
+Disallow: /equipe.html
+Disallow: /trade.html
+Disallow: /paiement.html
+Disallow: /vendor-dashboard.html
+Disallow: /delivery-dashboard.html
+Disallow: /shop-designer.html
+Disallow: /reset-password.html
