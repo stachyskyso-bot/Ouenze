@@ -87,9 +87,10 @@
             </div>
             ${needsLink && !finished ? '<p class="tm-hint"><i class="fas fa-link"></i> Envoie le lien de paiement au client pendant l\'appel.</p>' : ''}
             <div class="tm-call">
-                ${tel ? `<a class="btn-submit" href="tel:+${tel}"><i class="fas fa-phone"></i> ${esc(o.phone)}</a>
-                <a class="btn-cancel" href="https://wa.me/${tel}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '<span class="tm-hint">Pas de numéro</span>'}
+                ${tel ? `<a class="btn-submit tm-wa" href="https://wa.me/${tel}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp ${esc(o.phone)}</a>
+                <a class="btn-cancel" href="tel:+${tel}"><i class="fas fa-phone"></i> Appel normal</a>` : '<span class="tm-hint">Pas de numéro</span>'}
             </div>
+            ${tel ? '<p class="tm-hint tm-wa-hint">WhatsApp ouvre la discussion : appuie sur l\'icône d\'appel en haut. Si le client n\'a pas WhatsApp, utilise l\'appel normal.</p>' : ''}
             ${finished ? `<p class="tm-hint">${esc(o.city || '')}${o.district ? ', ' + esc(o.district) : ''}</p>` : `
             <div class="tm-fields">
                 <label>Quartier *<input id="tmD-${id}" maxlength="60" value="${esc(o.district || '')}" placeholder="Ex : Moungali"></label>

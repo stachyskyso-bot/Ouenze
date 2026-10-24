@@ -757,3 +757,5 @@
 .pay-alert.sim { background: #fef3c7; color: #92400e; }
 .pay-wait { font-size: 13px; color: var(--gray-500); }
 .pay-msg { color: var(--danger); font-size: 13px; }
+.tm-call .tm-wa { background: #16a34a; }
+.tm-wa-hint { margin-top: -4px; font-size: 12px; }
