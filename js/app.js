@@ -2441,7 +2441,8 @@
                 ${row('admin.html', 'fa-tachometer-alt', 'Tableau de bord admin')}
                 ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes et équipe')}
                 ${row('trade.html', 'fa-chart-line', 'Ouenze Trade : gérer les opérations (simulation)')}
-                ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
+                ${row('admin-shops.html', 'fa-store', 'Boutiques : suspendre, supprimer, activité')}
+                ${row('admin-vendors.html', 'fa-user-tie', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
 </nav>`);

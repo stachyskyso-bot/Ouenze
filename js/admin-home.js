@@ -69,7 +69,8 @@
             <h3 class="ah-h">Raccourcis</h3>
             <div class="ah-links">
                 <a href="equipe.html"><i class="fas fa-headset"></i> Espace équipe</a>
-                <a href="admin-vendors.html"><i class="fas fa-store"></i> Vendeurs</a>
+                <a href="admin-shops.html"><i class="fas fa-store"></i> Boutiques</a>
+                <a href="admin-vendors.html"><i class="fas fa-user-tie"></i> Demandes vendeurs</a>
                 <a href="admin-deliverers.html"><i class="fas fa-motorcycle"></i> Livreurs</a>
                 <a href="admin-reports.html"><i class="fas fa-flag"></i> Signalements</a>
                 <a href="trade.html"><i class="fas fa-chart-line"></i> Trade</a>

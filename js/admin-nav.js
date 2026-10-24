@@ -15,7 +15,8 @@
     const LINKS = [
         { href: 'admin.html', icon: 'fa-tachometer-alt', label: 'Tableau de bord', admin: true },
         { href: 'equipe.html', icon: 'fa-headset', label: 'Commandes', count: 'to_call' },
-        { href: 'admin-vendors.html', icon: 'fa-store', label: 'Vendeurs', admin: true, count: 'vendor_apps' },
+        { href: 'admin-shops.html', icon: 'fa-store', label: 'Boutiques', admin: true },
+        { href: 'admin-vendors.html', icon: 'fa-user-tie', label: 'Vendeurs', admin: true, count: 'vendor_apps' },
         { href: 'admin-deliverers.html', icon: 'fa-motorcycle', label: 'Livreurs', admin: true, count: 'courier_apps' },
         { href: 'admin-reports.html', icon: 'fa-flag', label: 'Signalements', admin: true, count: 'reports' },
         { href: 'trade.html', icon: 'fa-chart-line', label: 'Trade', admin: true, count: 'trade_total' },

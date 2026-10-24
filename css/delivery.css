@@ -759,3 +759,38 @@
 .pay-msg { color: var(--danger); font-size: 13px; }
 .tm-call .tm-wa { background: #16a34a; }
 .tm-wa-hint { margin-top: -4px; font-size: 12px; }
+
+/* ---------- Boutiques (admin-shops.html) ---------- */
+.as-row { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; border: 1px solid transparent; margin-bottom: 10px; }
+.as-row:hover { border-color: #c7d2fe; }
+.as-row-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.as-row-head strong { font-size: 16px; }
+.as-row > small, .as-sub { display: block; color: var(--gray-500); font-size: 12px; margin: 3px 0 8px; }
+.as-row-nums { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: #475569; }
+.as-warn { color: #b91c1c !important; }
+.as-warn-btn { color: #b45309 !important; }
+.as-back { margin-bottom: 10px; }
+.as-alert { background: #fef2f2; color: #991b1b; border-radius: 10px; padding: 8px 12px; font-size: 13px; margin: 8px 0; }
+.as-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.as-actions > * { width: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.as-h { margin: 0 0 8px; font-size: 15px; }
+.as-line { font-size: 14px; margin: 4px 0; }
+.as-call { width: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; margin-top: 6px; }
+.as-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 6px; }
+.as-kpis > div { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 1px 3px rgba(15, 23, 42, .08); }
+.as-kpis > div.in { border-top: 3px solid #16a34a; }
+.as-kpis > div.out { border-top: 3px solid #dc2626; }
+.as-kpis span { display: block; font-size: 12px; color: #64748b; }
+.as-kpis b { display: block; font-size: 19px; margin: 3px 0; }
+.as-kpis small { font-size: 11px; color: #64748b; line-height: 1.5; }
+.as-note { font-size: 12px; color: var(--gray-500); margin: 0 0 12px; }
+.as-list { list-style: none; margin: 0; padding: 0; }
+.as-list li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #f1f5f9; font-size: 14px; }
+.as-list small { display: block; font-size: 12px; color: #64748b; }
+.as-right { text-align: right; white-space: nowrap; font-weight: 700; }
+.as-in { color: #16a34a; }
+.as-out { color: #b91c1c; }
+.as-empty { font-size: 13px; color: var(--gray-500); margin: 0; }
+@media (max-width: 520px) { .as-kpis { grid-template-columns: 1fr; } }
+.as-back { background: none; border: none; padding: 0 0 12px; color: var(--primary); font: inherit; font-weight: 600; cursor: pointer; }
+.as-call.btn-submit { background: #16a34a; }

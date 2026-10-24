@@ -128,7 +128,7 @@
         }
  
         dashUser = data.user;
-        dashShops = (Array.isArray(data.shops) ? data.shops : []).filter(s => !s.archived_at && s.is_active !== false);
+        dashShops = (Array.isArray(data.shops) ? data.shops : []).filter(s => !s.archived_at);
         pendingTransfers = {};
         try {
             const { data: transfers, error: tError } = await window.supabase
@@ -323,7 +323,8 @@
                     </div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
                         ${shop.is_verified ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:20px;">✓ Vérifiée</span>' : ''}
-                        ${shop.is_active === false ? '<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Désactivée</span>' : ''}
+                        ${shop.suspended_at ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Suspendue par Ouenze${shop.suspended_reason ? ' : ' + escapeHtml(shop.suspended_reason) : ''}</span>`
+                            : shop.is_active === false ? '<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Désactivée</span>' : ''}
                     </div>
                 </div>
  
