@@ -84,8 +84,8 @@
     async function mkReview(id, decision) {
         const l = listings.find(x => x.offering_id === id);
         const labels = { open: `Ouvrir « ${l?.shop_name} » aux investisseurs ? Confirme que la boutique a été vérifiée sur place.`, rejected: `Refuser la demande de « ${l?.shop_name} » ?`, closed: `Clôturer l'offre de « ${l?.shop_name} » ? Les réservations non payées seront annulées.` };
-        if (!confirm(labels[decision])) return;
-        const note = decision === 'open' ? null : prompt('Note (motif, visible par l\'équipe) :', '') ?? null;
+        if (!(await uiConfirm(labels[decision]))) return;
+        const note = decision === 'open' ? null : (await uiPrompt('Note (motif, visible par l\'équipe) :', '')) ?? null;
         const { error } = await window.supabase.rpc('review_listing', { offering: id, decision, note });
         if (error) { alert(error.message); return; }
         await load();
@@ -94,7 +94,7 @@
 
     async function mkConfirm(id) {
         const o = orders.find(x => x.order_id === id);
-        const ref = prompt(`Paiement de ${fcfa(o?.amount)} reçu de ${o?.investor_email} ?\nRéférence de la transaction Mobile Money :`, '');
+        const ref = await uiPrompt(`Paiement de ${fcfa(o?.amount)} reçu de ${o?.investor_email} ?\nRéférence de la transaction Mobile Money :`, '');
         if (ref === null) return;
         if (!ref.trim()) { alert('La référence de paiement est obligatoire.'); return; }
         const { error } = await window.supabase.rpc('confirm_share_payment', { share_order: id, reference: ref.trim() });

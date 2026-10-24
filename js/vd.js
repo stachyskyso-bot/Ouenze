@@ -586,7 +586,7 @@
         if (!o) return;
         let reason = null;
         if (decision === 'refuse') {
-            reason = prompt('Pourquoi refuses-tu cette commande ? (le client verra le motif)', 'Produit en rupture de stock');
+            reason = await uiPrompt('Pourquoi refuses-tu cette commande ? (le client verra le motif)', 'Produit en rupture de stock');
             if (reason === null) return;
         } else if (decision === 'accept') {
             // Le livreur doit savoir où récupérer le colis : boutique placée sur la carte d'abord
@@ -597,7 +597,7 @@
                 setPickup(shopId, () => voDecide(orderId, decision));
                 return;
             }
-            if (!confirm(`Accepter la commande ${o.order_number} ? Prépare les articles : un livreur va venir les récupérer.`)) return;
+            if (!(await uiConfirm(`Accepter la commande ${o.order_number} ? Prépare les articles : un livreur va venir les récupérer.`, 'Accepter'))) return;
         } else return;
         const { error } = await window.supabase.rpc('vendor_order_decision', { target_order: orderId, decision, reason });
         if (error) {
@@ -804,7 +804,7 @@
         if (phone === null) return sheetError(cc === 'CD' ? 'Numéro invalide. Exemple : +243 81 234 5678' : 'Numéro invalide. Exemple : +242 06 555 25 62');
         const price = priceRaw === '' ? null : Number(priceRaw);
         if (price !== null && (!Number.isFinite(price) || price < 0)) return sheetError('Prix invalide.');
-        if (!confirm(`Envoyer à ${email} le lien pour reprendre « ${shop.name} » ?`)) return;
+        if (!(await uiConfirm(`Envoyer à ${email} le lien pour reprendre « ${shop.name} » ?`, 'Envoyer'))) return;
  
         const btn = document.getElementById('trSubmit');
         btn.disabled = true;
@@ -832,7 +832,7 @@
     }
  
     async function cancelTransfer(transferId) {
-        if (!confirm('Annuler ce transfert ? Le lien envoyé ne fonctionnera plus.')) return;
+        if (!(await uiConfirm('Annuler ce transfert ? Le lien envoyé ne fonctionnera plus.', 'Annuler le transfert', true))) return;
         const { error } = await invokeTransfer({ action: 'cancel', transfer_id: transferId });
         if (error) { alert(error); return; }
         location.reload();

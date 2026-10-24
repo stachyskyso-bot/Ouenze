@@ -106,9 +106,9 @@
     async function avDecide(id, decision) {
         let note = null;
         if (decision === 'approved') {
-            if (!confirm('Valider ce vendeur ? Il pourra créer sa boutique et vendre sur Ouenze.')) return;
+            if (!(await uiConfirm('Valider ce vendeur ? Il pourra créer sa boutique et vendre sur Ouenze.', 'Valider'))) return;
         } else {
-            note = prompt(decision === 'rejected' ? 'Motif du refus (envoyé au demandeur) :' : 'Motif de la suspension (envoyé au vendeur) :', '');
+            note = await uiPrompt(decision === 'rejected' ? 'Motif du refus (envoyé au demandeur) :' : 'Motif de la suspension (envoyé au vendeur) :', '');
             if (note === null) return;
             note = note.trim().slice(0, 300) || null;
         }

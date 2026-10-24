@@ -15,7 +15,7 @@
     'use strict';
 
     const STEPS = [
-        { key: 'paid', icon: 'fa-wallet', label: 'Paiement confirmé', text: 'Ton argent est bloqué en sécurité jusqu\'à la livraison.' },
+        { key: 'paid', icon: 'fa-receipt', label: 'Commande envoyée', text: 'Ouenze t\'appelle pour confirmer ton adresse. Tu paies à la livraison.' },
         { key: 'accepted', icon: 'fa-store', label: 'Acceptée par le vendeur', text: 'Le vendeur prépare ta commande.' },
         { key: 'courier_assigned', icon: 'fa-motorcycle', label: 'Livreur trouvé', text: 'Un livreur proche se rend à la boutique.' },
         { key: 'picked_up', icon: 'fa-box', label: 'Colis récupéré', text: 'Le livreur a ta commande.' },

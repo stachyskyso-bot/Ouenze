@@ -1483,3 +1483,14 @@ input[type="range"]::-webkit-slider-thumb {
 .beauty-more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary, #1e40af); margin-bottom: 10px; }
 .beauty-sheet { margin-top: 14px; border-top: 1px solid var(--gray-200, #e2e8f0); padding-top: 4px; }
 .beauty-step small { font-weight: 400; color: var(--gray-500, #64748b); }
+
+/* Fenêtres intégrées à la page (remplacent alert / confirm / prompt) */
+.sd-dialog { position: fixed; inset: 0; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 6000; }
+.sd-dialog-card { background: #fff; color: #1e293b; border-radius: 16px; padding: 20px; width: 100%; max-width: 420px; box-shadow: 0 20px 50px rgba(0, 0, 0, .25); }
+.sd-dialog-card p { margin: 0 0 14px; font-size: 15px; line-height: 1.45; white-space: pre-line; }
+.sd-dialog-input { width: 100%; box-sizing: border-box; padding: 11px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 16px; margin-bottom: 14px; }
+.sd-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.sd-dialog-actions button { border: none; border-radius: 10px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; background: #f1f5f9; color: #1e293b; }
+.sd-dialog-actions button[data-v="1"] { background: #1e40af; color: #fff; }
+.sd-dialog-actions button.danger { background: #dc2626; }
+.sd-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 24px; font-size: 14px; z-index: 6001; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }

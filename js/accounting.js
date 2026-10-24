@@ -532,7 +532,7 @@
 
     async function accDelete(id) {
         const op = state.entries.find(e => e.id === id);
-        if (!op || !confirm(`Supprimer cette opération de ${fcfa(op.amount)} ?`)) return;
+        if (!op || !(await uiConfirm(`Supprimer cette opération de ${fcfa(op.amount)} ?`, 'Supprimer', true))) return;
         const { error } = await window.supabase.from('vendor_entries').delete().eq('id', id);
         if (error) { alert('Suppression impossible : ' + error.message); return; }
         state.entries = state.entries.filter(e => e.id !== id);

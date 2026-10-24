@@ -121,10 +121,10 @@
     async function admDecide(id, decision) {
         let note = null;
         if (decision === 'rejected') {
-            note = prompt('Motif du refus (envoyé au livreur) :', 'Photo du permis illisible');
+            note = await uiPrompt('Motif du refus (envoyé au livreur) :', 'Photo du permis illisible');
             if (note === null) return;
             note = note.trim().slice(0, 300) || null;
-        } else if (!confirm('Valider ce livreur ? Son compte pourra accepter des livraisons.')) {
+        } else if (!(await uiConfirm('Valider ce livreur ? Son compte pourra accepter des livraisons.', 'Valider'))) {
             return;
         }
         ['admApprove', 'admReject'].forEach(b => { const el = document.getElementById(b); if (el) el.disabled = true; });

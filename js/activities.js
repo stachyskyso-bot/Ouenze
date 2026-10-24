@@ -46,6 +46,9 @@
                 reportOrder: ['pending', 'awaiting_payment', 'cancelled'].includes(o.status) ? null : o.id,
                 hasCourier: !!o.deliverer_id,
                 codeOrder: ['courier_assigned', 'picked_up', 'in_transit'].includes(o.status) ? o.id : null,
+                // Payer : Mobile Money après la livraison, carte dès que la commande est en cours
+                payOrder: o.payment_status === 'cod' && !cancelled
+                    && (o.status === 'delivered' || o.payment_method === 'card') ? o.id : null,
                 link: o.status === 'delivered' || cancelled ? null : `tracking.html?order=${encodeURIComponent(o.id)}`
             };
         });
@@ -116,6 +119,7 @@
                 <span class="inv-badge ${i.status[1]}">${esc(i.status[0])}</span>
                 ${i.rateOrder ? `<button class="inv-link-btn" onclick="openRateOrder('${esc(i.rateOrder)}')"><i class="fas fa-star"></i> Noter</button>` : ''}
                 ${i.cancelOrder ? `<button class="inv-link-btn" onclick="actCancel('${esc(i.cancelOrder)}')">Annuler</button>` : ''}
+                ${i.payOrder ? `<button class="inv-link-btn inv-pay-btn" onclick="actPay('${esc(i.payOrder)}', this)"><i class="fas fa-wallet"></i> Payer</button>` : ''}
                 ${i.codeOrder ? `<button class="inv-link-btn" onclick="actResendCode('${esc(i.codeOrder)}', this)"><i class="fas fa-sms"></i> Renvoyer mon code</button>` : ''}
                 ${i.reportOrder ? `<button class="inv-link-btn" onclick="openOrderReport('${esc(i.reportOrder)}', ${i.hasCourier})"><i class="fas fa-flag"></i> Signaler</button>` : ''}
             </div>
@@ -196,7 +200,7 @@
     }
 
     async function actCancel(orderId) {
-        if (!confirm('Annuler cette commande ? Le vendeur ne l\'a pas encore acceptée.')) return;
+        if (!(await uiConfirm('Annuler cette commande ? Le vendeur ne l\'a pas encore acceptée.', 'Annuler la commande', true))) return;
         const { error } = await window.supabase.rpc('cancel_my_order', { target_order: orderId });
         if (error) { alert(error.message || 'Annulation impossible.'); return; }
         await load();
@@ -222,6 +226,23 @@
         note.className = 'inv-code-note';
         note.textContent = text + ' Ton code est aussi dans tes notifications.';
         btn.replaceWith(note);
+    }
+
+    // Ouvre la page de paiement (CinetPay, ou simulation tant que les clés ne sont pas en place)
+    async function actPay(orderId, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const res = await window.supabase.functions.invoke('payment', { body: { action: 'create', order_id: orderId } });
+        if (res.error || !res.data?.link) {
+            let text = '';
+            try { text = (await res.error?.context?.json())?.error || ''; } catch (e) { /* réponse illisible */ }
+            const note = document.createElement('small');
+            note.className = 'inv-code-note';
+            note.textContent = text || 'Paiement indisponible pour le moment.';
+            btn.replaceWith(note);
+            return;
+        }
+        location.href = res.data.link;
     }
 
     function actFilter(f) {
@@ -266,6 +287,7 @@
     window.actFilter = actFilter;
     window.actCancel = actCancel;
     window.actResendCode = actResendCode;
+    window.actPay = actPay;
     window.OuenzeActivities = { fromOrders, fromSales, fromShares, summary, lastMonths };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

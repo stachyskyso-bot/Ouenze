@@ -42,30 +42,86 @@ function formatNumber(v) {
     return Number(v || 0).toLocaleString('fr-FR');
 }
 
+// ============ FENÊTRES DANS LA PAGE ============
+// alert / confirm / prompt du navigateur sont bloqués sans rien dire dans certaines applis
+// (appli Google, Facebook…) : on les remplace par des fenêtres dessinées dans la page.
+function sdDialog({ text, input = false, value = '', ok = 'OK', cancel = null, danger = false }) {
+    return new Promise(resolve => {
+        const ov = document.createElement('div');
+        ov.className = 'sd-dialog';
+        ov.innerHTML = `<div class="sd-dialog-card" role="dialog" aria-modal="true">
+            <p></p>${input ? '<input type="text" class="sd-dialog-input">' : ''}
+            <div class="sd-dialog-actions">${cancel ? `<button type="button" data-v="0">${cancel}</button>` : ''}
+                <button type="button" data-v="1" class="${danger ? 'danger' : ''}">${ok}</button></div></div>`;
+        ov.querySelector('p').textContent = text;   // texte brut : pas d'injection HTML
+        const field = ov.querySelector('.sd-dialog-input');
+        if (field) field.value = value;
+        const done = v => { ov.remove(); resolve(v); };
+        ov.addEventListener('click', e => {
+            const b = e.target.closest('button[data-v]');
+            if (!b) return;
+            if (b.dataset.v === '0') return done(input ? null : false);
+            done(input ? field.value : true);
+        });
+        field?.addEventListener('keydown', e => { if (e.key === 'Enter') done(field.value); });
+        document.body.appendChild(ov);
+        (field || ov.querySelector('button[data-v="1"]')).focus();
+    });
+}
+const uiAlert = text => sdDialog({ text: String(text) });
+const uiConfirm = (text, ok = 'Oui', danger = false) => sdDialog({ text, ok, cancel: 'Annuler', danger });
+const uiPrompt = (text, value = '') => sdDialog({ text, input: true, value, ok: 'Valider', cancel: 'Annuler' });
+// Tous les messages de la page passent par la fenêtre intégrée
+window.alert = msg => { uiAlert(msg); };
+
+// Petit message en bas de l'écran (chargement d'une photo…)
+function sdToast(text, ms = 0) {
+    let t = document.getElementById('sdToast');
+    if (!text) { t?.remove(); return; }
+    if (!t) { t = document.createElement('div'); t.id = 'sdToast'; t.className = 'sd-toast'; document.body.appendChild(t); }
+    t.textContent = text;
+    clearTimeout(sdToast.timer);
+    if (ms) sdToast.timer = setTimeout(() => t.remove(), ms);
+}
+
 // Réduit une photo (souvent 3–5 Mo sur smartphone) à 1000 px max en JPEG :
 // pages plus légères pour les clients sur réseau mobile.
+const IMAGE_NAME = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i;
+// Type inconnu (fréquent avec les photos venant d'une galerie ou de WhatsApp) : on essaie de la lire
+function looksLikeImage(file) {
+    const type = file.type || '';
+    return type.startsWith('image/') || !type || type === 'application/octet-stream' || IMAGE_NAME.test(file.name || '');
+}
+function imageErrorText(file) {
+    return /\.(heic|heif)$/i.test(file.name || '') || /hei[cf]/i.test(file.type || '')
+        ? `« ${file.name} » est au format HEIC, que le navigateur ne sait pas lire. Fais une capture d'écran de la photo, ou règle l'appareil photo sur JPEG.`
+        : `Impossible de lire « ${file.name || 'cette image'} ». Essaie une autre photo (JPEG ou PNG).`;
+}
 function compressImage(file, maxSize = 1000, quality = 0.82) {
     return new Promise((resolve, reject) => {
-        if (!file.type.startsWith('image/')) { reject(new Error('Ce fichier n\'est pas une image')); return; }
-        const reader = new FileReader();
-        reader.onerror = () => reject(reader.error);
-        reader.onload = () => {
-            const img = new Image();
-            img.onerror = () => reject(new Error('Image illisible'));
-            img.onload = () => {
+        if (!looksLikeImage(file)) { reject(new Error('Ce fichier n\'est pas une image')); return; }
+        // Lien temporaire vers le fichier : le navigateur reconnaît l'image même sans type annoncé
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image illisible')); };
+        img.onload = () => {
+            try {
                 const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
                 const canvas = document.createElement('canvas');
-                canvas.width = Math.round(img.width * scale);
-                canvas.height = Math.round(img.height * scale);
+                canvas.width = Math.max(1, Math.round(img.width * scale));
+                canvas.height = Math.max(1, Math.round(img.height * scale));
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = '#ffffff';  // fond blanc pour les PNG transparents
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.src = reader.result;
+            } catch (e) {
+                reject(e);
+            } finally {
+                URL.revokeObjectURL(url);
+            }
         };
-        reader.readAsDataURL(file);
+        img.src = url;
     });
 }
 
@@ -120,11 +176,13 @@ function setupCarouselUpload() {
             const files = Array.from(e.target.files).slice(0, MAX_CAROUSEL_MEDIA - carouselMedia.length);
             e.target.value = '';
             if (!files.length) { alert(`Maximum ${MAX_CAROUSEL_MEDIA} images ou vidéos dans le carrousel`); return; }
+            sdToast('Chargement…');
             for (const file of files) {
-                if (file.type.startsWith('image/')) {
+                if (looksLikeImage(file)) {
                     // Bannière : 1600 px de large suffisent, même sur grand écran
                     const src = await compressImage(file, 1600, 0.8).catch(() => null);
                     if (src) carouselMedia.push({ type: 'image', src });
+                    else alert(imageErrorText(file));
                 } else if (file.type.startsWith('video/')) {
                     if (file.size > MAX_CAROUSEL_VIDEO_BYTES) {
                         alert(`La vidéo « ${file.name} » est trop lourde (${(file.size / 1048576).toFixed(1)} Mo). Maximum 2 Mo : raccourcissez-la ou utilisez une image.`);
@@ -141,6 +199,7 @@ function setupCarouselUpload() {
                     alert(`« ${file.name} » n'est ni une image ni une vidéo`);
                 }
             }
+            sdToast('');
             renderCarouselList();
             debouncedUpdatePreview();
         });
@@ -177,8 +236,8 @@ function renderCarouselList() {
 }
 
 // ============ CATÉGORIES ============
-function addCategory() {
-    const name = prompt("Nom de la catégorie :");
+async function addCategory() {
+    const name = await uiPrompt("Nom de la catégorie :");
     if (name && name.trim()) {
         categories.push({ id: Date.now(), name: name.trim() });
         renderCategories();
@@ -192,8 +251,8 @@ function updateCategoryName(catId, newName) {
     debouncedUpdatePreview();
 }
 
-function removeCategory(id) {
-    if (confirm("Supprimer cette catégorie ?")) {
+async function removeCategory(id) {
+    if (await uiConfirm("Supprimer cette catégorie ?", 'Supprimer', true)) {
         if (products.some(p => String(p.categoryId) === String(id))) {
             alert("Supprimez d'abord les produits de cette catégorie");
             return;
@@ -229,7 +288,10 @@ function setupLogoUpload() {
     if (logoInput) {
         logoInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                e.target.value = '';   // choisir à nouveau le même fichier relance bien le chargement
                 const reader = new FileReader();
+                reader.onerror = () => alert(imageErrorText(file));
                 reader.onload = ev => {
                     tempLogo = ev.target.result;
                     const preview = document.getElementById('logoPreview');
@@ -238,7 +300,7 @@ function setupLogoUpload() {
                     }
                     debouncedUpdatePreview();
                 };
-                reader.readAsDataURL(e.target.files[0]);
+                reader.readAsDataURL(file);
             }
         });
     }
@@ -622,8 +684,11 @@ async function addVariantPhotos(idx, input) {
     if (!variant) return;
     const files = Array.from(input.files || []).slice(0, MAX_VARIANT_PHOTOS - variant.photos.length);
     input.value = '';
+    if (!files.length) { alert(`Maximum ${MAX_VARIANT_PHOTOS} photos par version`); return; }
+    sdToast('Chargement de la photo…');
     const photos = (await Promise.all(files.map(f => compressImage(f).catch(() => null)))).filter(Boolean);
-    if (!photos.length) { alert("Impossible de lire cette image"); return; }
+    sdToast('');
+    if (!photos.length) { alert(imageErrorText(files[0])); return; }
     variant.photos.push(...photos);
     
     // Même couleur (ou même valeur de l'option visuelle) sans photo : on reprend celle-ci
@@ -649,8 +714,8 @@ function updateVariantField(idx, field, value) {
     if (field === 'price') renderDefaultVersion();
 }
 
-function applyBasePriceToVariants() {
-    const answer = prompt('Prix (FCFA) à appliquer à toutes les versions :', '');
+async function applyBasePriceToVariants() {
+    const answer = await uiPrompt('Prix (FCFA) à appliquer à toutes les versions :', '');
     if (answer === null) return;
     const base = parseFloat(String(answer).replace(/\s/g, ''));
     if (isNaN(base) || base <= 0) { alert('Prix invalide'); return; }
@@ -806,12 +871,19 @@ function renderProductPhotos(photos) {
 }
 
 function handleProductPhotoUpload(e) {
-    const files = Array.from(e.target.files);
-    if (tempProductPhotos.length + files.length > 5) { alert("Maximum 5 photos"); return; }
-    e.target.value = '';
-    Promise.all(files.map(f => compressImage(f).catch(() => null))).then(results => {
-        results.filter(Boolean).forEach(src => tempProductPhotos.push(src));
+    const picked = Array.from(e.target.files || []);
+    e.target.value = '';   // choisir à nouveau la même photo relance bien le chargement
+    const room = 5 - tempProductPhotos.length;
+    if (room <= 0) { alert('Maximum 5 photos par produit : retire une photo pour en ajouter une autre.'); return; }
+    const files = picked.slice(0, room);
+    if (picked.length > room) alert(`Maximum 5 photos par produit : ${room} photo${room > 1 ? 's' : ''} ajoutée${room > 1 ? 's' : ''} sur ${picked.length}.`);
+    sdToast(files.length > 1 ? 'Chargement des photos…' : 'Chargement de la photo…');
+    Promise.all(files.map(f => compressImage(f).then(src => ({ src }), () => ({ file: f })))).then(results => {
+        sdToast('');
+        results.forEach(r => { if (r.src) tempProductPhotos.push(r.src); });
         renderProductPhotos(tempProductPhotos);
+        const failed = results.find(r => r.file);
+        if (failed) alert(imageErrorText(failed.file));
     });
 }
 
@@ -946,8 +1018,8 @@ function updateProductField(productId, field, value) {
 
 function editProduct(id) { openAddProductModal(id); }
 
-function deleteProduct(id) {
-    if (confirm("Supprimer ce produit ?")) {
+async function deleteProduct(id) {
+    if (await uiConfirm("Supprimer ce produit ?", 'Supprimer', true)) {
         products = products.filter(p => String(p.id) !== String(id));
         renderProductsList();
         renderCategories();
@@ -1204,7 +1276,7 @@ async function publishShopNow() {
             existingShops.map(s => `• ${s.name}`).join('\n') +
             `\n\nVoulez-vous créer une NOUVELLE boutique "${name}" ?`;
         
-        if (!confirm(confirmMsg)) {
+        if (!(await uiConfirm(confirmMsg, 'Créer une nouvelle boutique'))) {
             return;
         }
     }
@@ -1285,7 +1357,7 @@ async function publishShopNow() {
             console.log('✅ Produits créés:', productsData.length);
         }
         
-        alert(`Boutique "${name}" créée avec succès !`);
+        await uiAlert(`Boutique "${name}" créée avec succès !`);
         window.location.href = 'vendor-dashboard.html';
         
     } catch (error) {
@@ -1328,7 +1400,7 @@ async function updateShopNow() {
         return;
     }
 
-    alert(`Boutique mise à jour !`);
+    await uiAlert(`Boutique mise à jour !`);
     window.location.href = 'vendor-dashboard.html';
 }
 

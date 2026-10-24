@@ -34,6 +34,7 @@
         team_added: { icon: 'fa-headset', tone: 'ok', group: 'orders' },
         report: { icon: 'fa-flag', tone: 'ko', group: 'orders' },
         trade: { icon: 'fa-chart-line', tone: 'info', group: 'orders' },
+        order_paid: { icon: 'fa-wallet', tone: 'ok', group: 'orders' },
         shop_review: { icon: 'fa-star', tone: 'star', group: 'reviews' },
         courier_review: { icon: 'fa-star', tone: 'star', group: 'reviews' }
     };
@@ -220,10 +221,10 @@
         const label = o?.order_number || 'cette commande';
         let reason = null;
         if (decision === 'refuse') {
-            reason = prompt('Pourquoi refuses-tu cette commande ? (le client verra le motif)', 'Produit en rupture de stock');
+            reason = await uiPrompt('Pourquoi refuses-tu cette commande ? (le client verra le motif)', 'Produit en rupture de stock');
             if (reason === null) return;
         } else if (decision === 'accept') {
-            if (!confirm(`Accepter la commande ${label} ? Prépare les articles : un livreur va venir les récupérer.`)) return;
+            if (!(await uiConfirm(`Accepter la commande ${label} ? Prépare les articles : un livreur va venir les récupérer.`, 'Accepter'))) return;
         } else return;
         state.busy = true;
         try {
@@ -231,7 +232,7 @@
             if (error) {
                 // Boutique pas encore placée sur la carte : on l'envoie au tableau de bord pour la placer
                 if (/carte/i.test(error.message || '')) {
-                    if (confirm(error.message + '\n\nOuvrir le tableau de bord pour placer ta boutique ?')) location.href = 'vendor-dashboard.html';
+                    if (await uiConfirm(error.message + '\n\nOuvrir le tableau de bord pour placer ta boutique ?', 'Ouvrir')) location.href = 'vendor-dashboard.html';
                 } else {
                     alert(error.message || 'Action impossible.');
                 }
