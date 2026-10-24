@@ -1,196 +1,228 @@
 // ============================================================
-// INVEST.JS — Le marché : boutiques entrées en bourse et réservation de parts
+// INVEST.JS — Ouenze Trade (invest.html), même interface que l'ancienne page Investir
 //
-// Données : market_offerings() (public) et reserve_shares() (connecté).
-// Une boutique = 10 000 parts ; le vendeur en met 1 à 49 % en vente après
-// vérification par Ouenze. Les parts réservées deviennent les tiennes une fois
-// le paiement confirmé (paiement Mobile Money en ligne : bientôt).
+// Le concept change : on ne vend plus de parts de boutique. On participe à une
+// OPÉRATION commerciale précise de 45 jours, proposée par un vendeur qui apporte
+// aussi une partie des fonds. Ouenze paie directement les fournisseurs et vérifie
+// chaque dépense et chaque vente (justificatifs). Résultat : gain ou perte.
+//
+// SIMULATION : aucun argent réel. Les règles de répartition des gains et des pertes,
+// le fonds de garantie et la garde des fonds ne sont pas codés (en cours de validation).
+// Données : trade_list / trade_detail / trade_pledge (migration 20261031).
+// Proposer une opération et outils de l'équipe : trade.html.
 // ============================================================
 
 (function () {
     'use strict';
 
     const I = window.OuenzeInvest;
-    const { esc, fcfa, num, pct, stars, logoHtml } = I;
-    const state = { user: null, offers: [], missing: false, search: '', sort: 'valuation' };
+    const { esc, fcfa, num, pct, logoHtml } = I;
+    const STATUS = {
+        submitted: ['En vérification', 'wait'], collecting: ['Collecte ouverte', ''], running: ['En cours', ''],
+        closed: ['Terminée', 'ok'], failed: ['En échec', 'ko'], cancelled: ['Annulée', 'ko'], rejected: ['Refusée', 'ko']
+    };
+    const KIND = { vendor_contribution: 'Apport du vendeur', supplier_payment: 'Fournisseur payé par Ouenze', expense: 'Dépense', sale: 'Vente', note: 'Étape' };
+    const state = { user: null, role: null, hasShop: false, ops: [], missing: false, search: '', sort: 'ending' };
     const box = () => document.getElementById('investContainer');
-
-    function soldPart(o) {
-        return o.total_shares - o.remaining_shares;
-    }
+    const n = v => Number(v) || 0;
+    const daysLeft = d => Math.max(0, Math.ceil((new Date(d) - Date.now()) / 86400000));
 
     function sorted(list) {
         const q = state.search.trim().toLowerCase();
+        const left = o => n(o.goal_amount) - n(o.figures?.pledged);
         const by = {
-            valuation: (a, b) => b.valuation - a.valuation,
-            price: (a, b) => a.price_per_share - b.price_per_share,
-            rating: (a, b) => b.rating - a.rating,
-            remaining: (a, b) => b.remaining_shares / b.total_shares - a.remaining_shares / a.total_shares
+            ending: (a, b) => (a.status === 'collecting' ? 0 : 1) - (b.status === 'collecting' ? 0 : 1)
+                || new Date(a.collect_ends_at || a.ends_at || 0) - new Date(b.collect_ends_at || b.ends_at || 0),
+            remaining: (a, b) => left(b) - left(a),
+            contribution: (a, b) => n(b.vendor_contribution) / (n(b.vendor_contribution) + n(b.goal_amount)) - n(a.vendor_contribution) / (n(a.vendor_contribution) + n(a.goal_amount)),
+            recent: (a, b) => new Date(b.created_at) - new Date(a.created_at)
         }[state.sort];
-        return list.filter(o => !q || `${o.shop_name} ${o.shop_city || ''}`.toLowerCase().includes(q)).sort(by);
+        return list.filter(o => !q || `${o.title} ${o.shop_name} ${o.shop_city || ''}`.toLowerCase().includes(q)).sort(by);
     }
 
     function render() {
-        const list = sorted(state.offers);
+        const list = sorted(state.ops);
         box().innerHTML = `
             ${state.missing ? I.migrationWarning() : ''}
+            ${I.simulationBanner()}
             <section class="inv-hero">
-                <h2>Investis dans les boutiques du Congo</h2>
-                <p>Achète des parts de boutiques sérieuses, vérifiées sur place par l'équipe Ouenze, et deviens copropriétaire de leur réussite.</p>
+                <h2>Participe aux opérations des boutiques</h2>
+                <p>Finance une opération commerciale précise de 45 jours, vérifiée par Ouenze : un achat de marchandises pour les revendre. Tu n'achètes pas de part de la boutique.</p>
                 <div class="inv-steps">
-                    <div><b>1</b>Choisis une boutique : note ≥ 3,5 ★ et au moins 75 commandes livrées.</div>
-                    <div><b>2</b>Réserve tes parts. Une boutique = ${num(I.SHARES_PER_COMPANY)} parts ; le vendeur en garde au moins 51 %.</div>
-                    <div><b>3</b>Paie par Mobile Money : les parts apparaissent dans ton portefeuille.</div>
+                    <div><b>1</b>Le vendeur présente son opération (achats, fournisseurs, ventes prévues) et apporte lui-même une partie des fonds.</div>
+                    <div><b>2</b>Ouenze paie directement les fournisseurs et vérifie chaque dépense et chaque vente sur justificatif.</div>
+                    <div><b>3</b>Au bout de 45 jours, le résultat de l'opération est publié : il peut être un gain ou une perte.</div>
                 </div>
             </section>
-            ${state.offers.length ? tickerHtml() : ''}
-            <p class="inv-risk"><i class="fas fa-exclamation-triangle"></i> Investir comporte un risque de perte en capital. Les parts ne sont pas cotées sur un marché réglementé et peuvent être difficiles à revendre. N'investis que l'argent dont tu n'as pas besoin.</p>
-            ${state.offers.length ? `
+            ${state.ops.length ? tickerHtml() : ''}
+            <p class="inv-risk"><i class="fas fa-exclamation-triangle"></i> Participer à une opération comporte un risque de perte de tout ou partie de ta participation. Le résultat n'est pas garanti et l'argent reste engagé pendant les 45 jours. Ne participe qu'avec de l'argent dont tu n'as pas besoin.</p>
+            ${state.hasShop || state.role ? `<div class="inv-actions-row">
+                ${state.hasShop ? '<a class="btn-submit" href="trade.html?new=1"><i class="fas fa-plus"></i> Proposer une opération</a>' : ''}
+                ${state.role === 'admin' ? '<a class="btn-cancel" href="trade.html"><i class="fas fa-user-shield"></i> Gérer les opérations</a>' : ''}</div>` : ''}
+            ${state.ops.length ? `
                 <div class="inv-toolbar">
-                    <input type="search" id="invSearch" placeholder="Rechercher une boutique ou une ville" value="${esc(state.search)}" oninput="invSearch(this.value)" aria-label="Rechercher">
+                    <input type="search" id="invSearch" placeholder="Rechercher une opération, une boutique ou une ville" value="${esc(state.search)}" oninput="invSearch(this.value)" aria-label="Rechercher">
                     <select onchange="invSort(this.value)" aria-label="Trier">
-                        <option value="valuation" ${state.sort === 'valuation' ? 'selected' : ''}>Valorisation la plus haute</option>
-                        <option value="price" ${state.sort === 'price' ? 'selected' : ''}>Prix de la part le plus bas</option>
-                        <option value="rating" ${state.sort === 'rating' ? 'selected' : ''}>Meilleure note</option>
-                        <option value="remaining" ${state.sort === 'remaining' ? 'selected' : ''}>Le plus de parts disponibles</option>
+                        <option value="ending" ${state.sort === 'ending' ? 'selected' : ''}>Collecte qui se termine bientôt</option>
+                        <option value="remaining" ${state.sort === 'remaining' ? 'selected' : ''}>Le plus à financer</option>
+                        <option value="contribution" ${state.sort === 'contribution' ? 'selected' : ''}>Plus gros apport du vendeur</option>
+                        <option value="recent" ${state.sort === 'recent' ? 'selected' : ''}>Les plus récentes</option>
                     </select>
                 </div>
-                <div class="inv-grid">${list.length ? list.map(cardHtml).join('') : '<p class="inv-none">Aucune boutique ne correspond à ta recherche.</p>'}</div>`
+                <div class="inv-grid">${list.length ? list.map(cardHtml).join('') : '<p class="inv-none">Aucune opération ne correspond à ta recherche.</p>'}</div>`
             : `<div class="inv-empty"><i class="fas fa-seedling"></i>
-                <h3>Aucune boutique en bourse pour l'instant</h3>
-                <p>Les premières boutiques arrivent dès qu'elles remplissent les conditions et sont vérifiées par Ouenze.</p>
-                <p><strong>Tu es vendeur ?</strong> Avec 3,5 ★ et 75 commandes livrées, demande l'entrée en bourse depuis ton espace boutique.</p>
-                <a class="btn-submit" href="vendor-dashboard.html">Mon espace boutique</a></div>`}`;
+                <h3>Aucune opération ouverte pour l'instant</h3>
+                <p>Les premières opérations arrivent dès qu'elles sont vérifiées par Ouenze.</p>
+                <p><strong>Tu es vendeur ?</strong> Propose une opération : ce que tu achètes, chez qui, et ton apport.</p>
+                <a class="btn-submit" href="${state.hasShop ? 'trade.html?new=1' : 'vendor-dashboard.html'}">${state.hasShop ? 'Proposer une opération' : 'Mon espace boutique'}</a></div>`}`;
     }
 
-    // Indices du marché, calculés sur les offres ouvertes (aucun chiffre inventé)
+    // Indicateurs calculés sur les opérations visibles (aucun chiffre inventé)
     function tickerHtml() {
-        const offers = state.offers;
-        const cap = offers.reduce((s, o) => s + o.valuation, 0);
-        const available = offers.reduce((s, o) => s + o.remaining_shares * o.price_per_share, 0);
-        const avgRating = offers.reduce((s, o) => s + o.rating, 0) / offers.length;
+        const ops = state.ops;
+        const open = ops.filter(o => o.status === 'collecting');
+        const sought = open.reduce((s, o) => s + Math.max(0, n(o.goal_amount) - n(o.figures?.pledged)), 0);
+        const engaged = ops.filter(o => ['running', 'closed', 'failed'].includes(o.status))
+            .reduce((s, o) => s + n(o.figures?.pledged) + n(o.figures?.vendor_in), 0);
         return `<div class="inv-ticker">
-            <div><span>Boutiques cotées</span><strong>${num(offers.length)}</strong></div>
-            <div><span>Capitalisation</span><strong>${fcfa(cap)}</strong></div>
-            <div><span>Parts disponibles</span><strong>${fcfa(available)}</strong></div>
-            <div><span>Note moyenne</span><strong>${avgRating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ★</strong></div>
+            <div><span>Collectes ouvertes</span><strong>${num(open.length)}</strong></div>
+            <div><span>Reste à financer</span><strong>${fcfa(sought)}</strong></div>
+            <div><span>Opérations en cours</span><strong>${num(ops.filter(o => o.status === 'running').length)}</strong></div>
+            <div><span>Capital engagé</span><strong>${fcfa(engaged)}</strong></div>
         </div>`;
     }
 
-    function medalBadge(id) {
-        const t = window.OuenzeMedals?.get(id);
-        return t && t.id !== 'standard' ? `<span class="inv-medal ${t.id}">${t.emoji} ${t.name}</span>` : '';
+    function when(o) {
+        if (o.status === 'collecting' && o.collect_ends_at) return `Collecte : encore ${daysLeft(o.collect_ends_at)} j`;
+        if (o.status === 'running' && o.ends_at) return `Fin dans ${daysLeft(o.ends_at)} j`;
+        return `${o.duration_days} jours`;
     }
 
     function cardHtml(o) {
-        const sold = soldPart(o);
+        const f = o.figures || {};
+        const st = STATUS[o.status] || [o.status, ''];
+        const budget = n(o.goal_amount) + n(o.vendor_contribution);
         return `
-            <button class="inv-card" onclick="invOpen('${esc(o.offering_id)}')">
+            <button class="inv-card" onclick="invOpen('${esc(o.id)}')">
                 <div class="inv-card-head">
                     ${logoHtml(o.shop_name, o.shop_logo)}
-                    <div><strong>${esc(o.shop_name)}${medalBadge(o.medal)}</strong>
-                    <small><span class="inv-stars">${stars(o.rating)}</span> ${Number(o.rating).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} · ${num(o.delivered_orders)} commandes livrées${o.shop_city ? ' · ' + esc(o.shop_city) : ''}</small></div>
+                    <div><strong>${esc(o.shop_name)}<span class="inv-tag ${st[1]}">${esc(st[0])}</span></strong>
+                    <small>${o.shop_city ? esc(o.shop_city) + ' · ' : ''}${esc(when(o))}</small></div>
                 </div>
+                <span class="inv-op-title">${esc(o.title)}</span>
                 <div class="inv-figures">
-                    <div><span>Prix d'une part</span><strong>${fcfa(o.price_per_share)}</strong></div>
-                    <div><span>Valorisation</span><strong>${fcfa(o.valuation)}</strong></div>
+                    <div><span>Financement recherché</span><strong>${fcfa(o.goal_amount)}</strong></div>
+                    <div><span>Apport du vendeur</span><strong>${fcfa(o.vendor_contribution)}</strong></div>
                 </div>
-                <div class="inv-progress"><div style="width:${Math.min(100, sold / o.total_shares * 100)}%"></div></div>
-                <div class="inv-progress-label"><span>${pct(sold, o.total_shares, 0)} réservé</span><span>${num(o.remaining_shares)} parts dispo. sur ${num(o.total_shares)} (${Number(o.percent_offered).toLocaleString('fr-FR')} % du capital)</span></div>
+                <div class="inv-progress"><div style="width:${Math.min(100, n(f.pledged) / n(o.goal_amount) * 100)}%"></div></div>
+                <div class="inv-progress-label"><span>${pct(n(f.pledged), n(o.goal_amount), 0)} financé</span><span>${fcfa(f.pledged)} sur ${fcfa(o.goal_amount)} · apport vendeur ${pct(n(o.vendor_contribution), budget, 0)} du budget</span></div>
+                ${o.my_pledge ? `<div class="inv-progress-label"><span>Ta participation : <strong>${fcfa(o.my_pledge)}</strong></span></div>` : ''}
             </button>`;
     }
 
-    function invOpen(id) {
-        const o = state.offers.find(x => x.offering_id === id);
-        if (!o) return;
+    // ---------- Détail (même fenêtre que l'ancienne fiche boutique) ----------
+    async function invOpen(id) {
+        const o = state.ops.find(x => x.id === id);
         const modal = document.createElement('div');
         modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-card">
-                <button class="modal-close" onclick="this.closest('.modal').remove()" aria-label="Fermer">&times;</button>
-                <div class="inv-card-head">${logoHtml(o.shop_name, o.shop_logo)}
-                    <div><strong>${esc(o.shop_name)}</strong><small><span class="inv-stars">${stars(o.rating)}</span> ${o.total_ratings} avis · ${num(o.delivered_orders)} commandes livrées</small></div></div>
-                ${o.pitch ? `<p class="inv-pitch"><i class="fas fa-quote-left"></i> ${esc(o.pitch)}</p>` : ''}
-                <div class="inv-detail-figures">
-                    <div><span>Prix d'une part</span><strong>${fcfa(o.price_per_share)}</strong></div>
-                    <div><span>Valorisation de la boutique</span><strong>${fcfa(o.valuation)}</strong></div>
-                    <div><span>Part du capital en vente</span><strong>${Number(o.percent_offered).toLocaleString('fr-FR')} %</strong></div>
-                    <div><span>Parts encore disponibles</span><strong>${num(o.remaining_shares)}</strong></div>
-                    <div><span>Investisseurs</span><strong>${num(o.investors)}</strong></div>
-                    <div><span>Vérifiée par Ouenze</span><strong>${o.opened_at ? I.frDate(o.opened_at) : 'Oui'}</strong></div>
-                </div>
-                <div id="invReserve">${reserveFormHtml(o)}</div>
-            </div>`;
+        modal.id = 'invModal';
+        modal.innerHTML = `<div class="modal-card"><button class="modal-close" onclick="this.closest('.modal').remove()" aria-label="Fermer">&times;</button>
+            <p class="inv-none">Chargement…</p></div>`;
         modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+        document.querySelector('#invModal')?.remove();
         document.body.appendChild(modal);
-        invCalc();
+        const { data, error } = await window.supabase.rpc('trade_detail', { target: id });
+        const card = modal.querySelector('.modal-card');
+        if (error || !data) { card.innerHTML += `<p class="inv-none">${esc(error?.message || 'Opération introuvable.')}</p>`; return; }
+        const op = data.operation;
+        const f = data.figures;
+        const st = STATUS[op.status] || [op.status, ''];
+        const capital = n(f.pledged) + n(f.vendor_in);
+        const result = n(f.sales) - n(f.suppliers_paid) - n(f.expenses);
+        const started = ['running', 'closed', 'failed'].includes(op.status);
+        card.innerHTML = `
+            <button class="modal-close" onclick="this.closest('.modal').remove()" aria-label="Fermer">&times;</button>
+            <div class="inv-card-head">${logoHtml(op.shop_name, o?.shop_logo)}
+                <div><strong>${esc(op.shop_name)}<span class="inv-tag ${st[1]}">${esc(st[0])}</span></strong><small>Opération de ${op.duration_days} jours${op.ends_at ? ` · fin prévue le ${I.frDate(op.ends_at)}` : ''}</small></div></div>
+            <p class="inv-pitch"><strong>${esc(op.title)}</strong>${op.description ? `<br>${esc(op.description)}` : ''}</p>
+            <div class="inv-detail-figures">
+                <div><span>Financement recherché</span><strong>${fcfa(op.goal_amount)}</strong></div>
+                <div><span>Déjà engagé</span><strong>${fcfa(f.pledged)}</strong></div>
+                <div><span>Apport du vendeur</span><strong>${fcfa(op.vendor_contribution)}</strong></div>
+                <div><span>Achats fournisseurs prévus</span><strong>${fcfa(f.planned_purchases)}</strong></div>
+                ${op.expected_revenue ? `<div><span>Ventes prévues (estimation)</span><strong>${fcfa(op.expected_revenue)}</strong></div>` : ''}
+                <div><span>Participants</span><strong>${num(f.investors)}</strong></div>
+                ${started ? `
+                <div><span>Fournisseurs payés par Ouenze</span><strong>${fcfa(f.suppliers_paid)}</strong></div>
+                <div><span>Autres dépenses justifiées</span><strong>${fcfa(f.expenses)}</strong></div>
+                <div><span>Ventes validées</span><strong>${fcfa(f.sales)}</strong></div>
+                <div><span>${op.status === 'running' ? 'Résultat à ce jour' : 'Résultat final'}</span><strong class="${result >= 0 ? 'inv-pos' : 'inv-neg'}">${fcfa(result, true)}</strong></div>` : ''}
+            </div>
+            ${data.my_pledge ? `<p class="inv-rules">Ta participation : <strong>${fcfa(data.my_pledge)}</strong>${started && capital ? ` · ta part du capital : <strong>${pct(n(data.my_pledge), capital)}</strong>` : ''}</p>` : ''}
+            ${['closed', 'failed'].includes(op.status) ? `<p class="inv-rules"><i class="fas fa-balance-scale"></i> <strong>Répartition : règles en cours de validation.</strong> Le partage des gains ou des pertes et le versement du solde ne sont pas encore fixés. Aucun montant n'est dû ni retiré dans cette simulation.</p>` : ''}
+            <h4>Achats fournisseurs <small>(payés directement par Ouenze)</small></h4>
+            <ul class="inv-track">${data.suppliers.map(l => `<li><span>${esc(l.item)}<small>${esc(l.supplier_name)}${l.status === 'paid' ? ` · payé le ${I.frDate(l.paid_at)}` : ' · prévu'}</small></span><b>${fcfa(l.amount)}</b></li>`).join('')}</ul>
+            ${started ? `<h4>Suivi de l'argent</h4>
+                <ul class="inv-track">${data.entries.filter(e => e.kind !== 'note' && e.status === 'validated').map(e => `<li><span>${esc(e.label)}<small>${esc(KIND[e.kind] || e.kind)} · ${I.frDate(e.created_at)}</small></span>
+                    <b class="${e.kind === 'sale' || e.kind === 'vendor_contribution' ? 'in' : 'out'}">${e.kind === 'sale' || e.kind === 'vendor_contribution' ? '+' : '−'}${fcfa(e.amount)}</b></li>`).join('') || '<li><span>Aucun mouvement validé pour l\'instant.</span></li>'}</ul>` : ''}
+            <div id="invReserve">${pledgeFormHtml(op, f, data)}</div>
+            ${op.is_owner || op.role === 'admin' ? `<div class="inv-actions-row"><a class="btn-cancel" href="trade.html?op=${encodeURIComponent(op.id)}"><i class="fas fa-cog"></i> ${op.is_owner ? 'Déclarer dépenses et ventes' : 'Gérer l\'opération'}</a></div>` : ''}`;
     }
 
-    function reserveFormHtml(o) {
-        if (!o.remaining_shares) return '<p class="inv-none">Toutes les parts sont réservées.</p>';
-        if (!state.user) {
-            return `<p class="inv-none">Connecte-toi pour réserver des parts.</p>
-                <button class="btn-submit" onclick="this.closest('.modal').remove();openLoginModal()">Se connecter</button>`;
-        }
-        const max = o.remaining_shares;
+    function pledgeFormHtml(op, f, data) {
+        if (op.status !== 'collecting') return '';
+        if (op.is_owner) return '<p class="inv-none">Tu participes avec ton apport de vendeur.</p>';
+        const left = n(op.goal_amount) - n(f.pledged);
+        if (left <= 0) return '<p class="inv-none">Financement complet : l\'opération va bientôt démarrer.</p>';
         return `
-            <div class="form-group"><label for="invQty">Nombre de parts</label>
+            <div class="form-group"><label for="invQty">Montant de ta participation (FCFA)</label>
                 <div class="inv-qty">
-                    <input type="number" id="invQty" inputmode="numeric" min="1" max="${max}" step="1" value="${Math.min(10, max)}" oninput="invCalc()">
-                    <button type="button" onclick="invSetQty(${Math.min(100, max)})">${num(Math.min(100, max))}</button>
-                    <button type="button" onclick="invSetQty(${max})">Max</button>
+                    <input type="number" id="invQty" inputmode="numeric" min="1" max="${left}" step="500" value="${Math.min(10000, left)}">
+                    <button type="button" onclick="invSetQty(${Math.min(25000, left)})">${num(Math.min(25000, left))}</button>
+                    <button type="button" onclick="invSetQty(${left})">Max</button>
                 </div></div>
-            <div class="inv-calc" id="invCalc" data-price="${o.price_per_share}" data-max="${max}"></div>
+            <p class="auth-note">Il reste ${fcfa(left)} à financer.</p>
+            <label class="inv-ack"><input type="checkbox" id="invRisk"><span>Je comprends que je peux <b>perdre tout ou partie</b> de ma participation, que le résultat n'est pas garanti et que mon argent reste engagé pendant les 45 jours.</span></label>
             <div class="form-error" id="invError" role="alert"></div>
-            <button class="btn-submit" id="invSubmit" onclick="invReserve('${esc(o.offering_id)}')"><i class="fas fa-handshake"></i> Réserver ces parts</button>
-            <p class="auth-note">Réservation sans paiement immédiat. Les parts sont à toi une fois le paiement Mobile Money confirmé. Tu peux annuler tant que tu n'as pas payé.</p>`;
+            <button class="btn-submit" id="invSubmit" onclick="invReserve('${esc(op.id)}')"><i class="fas fa-handshake"></i> Participer (simulation)</button>
+            <p class="auth-note">Simulation : rien n'est payé. ${data.my_pledge ? 'Tu peux encore retirer ta participation tant que la collecte est ouverte.' : ''}</p>
+            ${data.my_pledge ? `<button class="inv-link-btn" onclick="invWithdraw('${esc(op.id)}')">Retirer ma participation</button>` : ''}`;
     }
 
-    function invSetQty(n) {
+    function invSetQty(v) {
         const input = document.getElementById('invQty');
-        if (input) { input.value = n; invCalc(); }
-    }
-
-    function invCalc() {
-        const el = document.getElementById('invCalc');
-        const qty = Math.floor(Number(document.getElementById('invQty')?.value) || 0);
-        if (!el) return;
-        const price = Number(el.dataset.price);
-        el.innerHTML = `Montant : <strong>${fcfa(qty * price)}</strong><br>
-            Tu détiendrais <strong>${pct(qty, I.SHARES_PER_COMPANY, 2)}</strong> de la boutique (${num(qty)} part${qty > 1 ? 's' : ''} sur ${num(I.SHARES_PER_COMPANY)}).`;
+        if (input) input.value = v;
     }
 
     async function invReserve(id) {
-        const qty = Math.floor(Number(document.getElementById('invQty')?.value) || 0);
-        const max = Number(document.getElementById('invCalc')?.dataset.max) || 0;
+        const amount = Math.floor(Number(document.getElementById('invQty')?.value) || 0);
         const err = m => { const e = document.getElementById('invError'); e.textContent = m; e.style.display = m ? 'block' : 'none'; };
-        if (qty < 1) return err('Indique au moins 1 part.');
-        if (qty > max) return err(`Il ne reste que ${num(max)} parts.`);
+        if (amount < 1) return err('Indique un montant.');
+        if (!document.getElementById('invRisk')?.checked) return err('Coche la case sur les risques pour continuer.');
         const btn = document.getElementById('invSubmit');
         btn.disabled = true;
-        btn.textContent = 'Réservation…';
-        const { error } = await window.supabase.rpc('reserve_shares', { offering: id, qty });
-        if (error) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-handshake"></i> Réserver ces parts';
-            return err(error.message || 'Réservation impossible, réessaie.');
-        }
-        const o = state.offers.find(x => x.offering_id === id);
-        document.getElementById('invReserve').innerHTML = `
-            <div class="inv-success"><i class="fas fa-check-circle"></i>
-                <p><strong>${num(qty)} parts de ${esc(o?.shop_name || '')} réservées</strong> pour ${fcfa(qty * (o?.price_per_share || 0))}.<br>
-                Le paiement Mobile Money en ligne arrive bientôt : en attendant, l'équipe Ouenze te contacte pour le règlement. Les parts passent dans ton portefeuille dès que le paiement est confirmé.</p>
-                <a class="btn-submit" href="portfolio.html">Voir mon portefeuille</a></div>`;
+        const { error } = await window.supabase.rpc('trade_pledge', { target: id, amount, risk_ack: true });
+        btn.disabled = false;
+        if (error) return err(error.message || 'Participation impossible, réessaie.');
         await load();
         render();
+        invOpen(id);
+    }
+
+    async function invWithdraw(id) {
+        const { error } = await window.supabase.rpc('trade_withdraw_pledge', { target: id });
+        if (error) { const e = document.getElementById('invError'); if (e) { e.textContent = error.message; e.style.display = 'block'; } return; }
+        await load();
+        render();
+        invOpen(id);
     }
 
     function invSearch(v) {
         state.search = v;
         const grid = document.querySelector('.inv-grid');
         if (grid) {
-            const list = sorted(state.offers);
-            grid.innerHTML = list.length ? list.map(cardHtml).join('') : '<p class="inv-none">Aucune boutique ne correspond à ta recherche.</p>';
+            const list = sorted(state.ops);
+            grid.innerHTML = list.length ? list.map(cardHtml).join('') : '<p class="inv-none">Aucune opération ne correspond à ta recherche.</p>';
         }
     }
 
@@ -200,17 +232,10 @@
     }
 
     async function load() {
-        const { data, error } = await window.supabase.rpc('market_offerings');
+        const { data, error } = await window.supabase.rpc('trade_list', { scope: 'open' });
         state.missing = I.isMissing(error);
-        if (error && !state.missing) console.error('❌ Marché :', error);
-        state.offers = (data || []).map(o => ({
-            ...o,
-            rating: Number(o.rating) || 0,
-            total_shares: Number(o.total_shares) || 0,
-            remaining_shares: Math.max(0, Number(o.remaining_shares) || 0),
-            price_per_share: Number(o.price_per_share) || 0,
-            valuation: Number(o.valuation) || 0
-        }));
+        if (error && !state.missing) console.error('❌ Trade :', error);
+        state.ops = data || [];
     }
 
     async function init() {
@@ -218,15 +243,22 @@
             box().innerHTML = '<div class="inv-empty"><p>Service indisponible. Recharge la page.</p></div>';
             return;
         }
-        if (!I.OPEN) { box().innerHTML = I.comingSoon(); return; }
+        if (!await I.tradeAccess()) { box().innerHTML = I.comingSoon(); return; }
         state.user = await I.currentUser();
+        if (!state.user) { box().innerHTML = I.simulationBanner() + I.loginBox('Connecte-toi pour essayer Ouenze Trade'); return; }
+        const [role, shops] = await Promise.all([
+            window.supabase.rpc('my_team_role'),
+            window.supabase.from('shops').select('id').eq('owner_id', state.user.id).limit(1)
+        ]);
+        state.role = role.error ? null : role.data;
+        state.hasShop = !!(shops.data || []).length;
         await load();
         render();
-        const id = new URLSearchParams(location.search).get('offre');
+        const id = new URLSearchParams(location.search).get('op');
         if (id) invOpen(id);
     }
 
-    Object.assign(window, { invOpen, invCalc, invSetQty, invReserve, invSearch, invSort });
+    Object.assign(window, { invOpen, invSetQty, invReserve, invWithdraw, invSearch, invSort });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();

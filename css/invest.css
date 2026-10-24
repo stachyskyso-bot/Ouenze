@@ -912,3 +912,26 @@ body.invest-body {
 .inv-soon h3 { margin: 0 0 8px; font-size: 20px; }
 .inv-soon p { max-width: 420px; margin: 0 auto 18px; color: var(--gray-500, #64748b); line-height: 1.5; }
 .inv-soon .btn-primary { display: inline-block; padding: 12px 22px; border-radius: 30px; background: var(--primary, #1e40af); color: #fff; text-decoration: none; font-weight: 700; }
+
+/* Mes commandes : réponse après « Renvoyer mon code » */
+.inv-code-note { display: block; max-width: 220px; font-size: 12px; color: var(--gray-700, #334155); text-align: right; }
+
+/* ---------- Trade (simulation) ---------- */
+.inv-sim { background: rgba(251, 191, 36, 0.14); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 12px; padding: 9px 12px; font-size: 13px; margin: 0 0 14px; }
+.inv-card .inv-op-title { display: block; font-size: 15px; font-weight: 700; margin: 10px 0 2px; color: inherit; }
+.inv-op-desc { font-size: 13px; opacity: .8; margin: 0 0 8px; }
+.inv-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 6px; vertical-align: middle; background: rgba(59, 130, 246, .18); color: #93c5fd; }
+.inv-tag.wait { background: rgba(251, 191, 36, .18); color: #fcd34d; }
+.inv-tag.ok { background: rgba(16, 185, 129, .18); color: #6ee7b7; }
+.inv-tag.ko { background: rgba(239, 68, 68, .18); color: #fca5a5; }
+.inv-track { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13px; }
+.inv-track li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(141, 162, 192, .14); }
+.inv-track small { display: block; opacity: .7; font-size: 12px; }
+.inv-track b { white-space: nowrap; }
+.inv-track .in { color: #6ee7b7; }
+.inv-track .out { color: #fca5a5; }
+.inv-rules { font-size: 13px; background: rgba(59, 130, 246, .12); border-radius: 12px; padding: 10px 12px; margin: 10px 0; }
+.inv-ack { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin: 10px 0; }
+.inv-ack input { margin-top: 3px; }
+.inv-actions-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.inv-actions-row a { width: auto; text-decoration: none; }

@@ -26,7 +26,7 @@
             { id: 'AIRTEL_CD', method: 'mobile_money_cod', name: 'Airtel Money', hint: '', logo: 'airtel', color: '#e40000', text: '#fff', prefix: '' }
         ],
         ALL: [
-            { id: 'CARD', method: 'card', name: 'Carte bancaire', hint: 'Visa, Mastercard, carte prépayée', logo: 'VISA', color: '#1a1f71', text: '#fff' },
+            { id: 'CARD', method: 'card', name: 'Carte bancaire', hint: 'Visa, Mastercard, carte prépayée', logo: '<svg viewBox="0 0 48 32" width="34" height="23" aria-hidden="true"><rect x="1" y="1" width="46" height="30" rx="5" fill="#1e40af"/><rect x="1" y="7" width="46" height="5" fill="#0f172a"/><rect x="6" y="18" width="9" height="7" rx="1.5" fill="#fbbf24"/><rect x="20" y="21" width="20" height="2.5" rx="1" fill="#93c5fd"/></svg>', color: '#eff6ff', text: '#1e40af' },
             { id: 'PAYPAL', method: 'paypal', name: 'PayPal', hint: '', logo: 'PayPal', color: '#003087', text: '#fff' }
         ]
     };

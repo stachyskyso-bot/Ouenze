@@ -688,3 +688,58 @@
 .rp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .rp-actions > * { width: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 .rp-msg { color: var(--danger); font-size: 13px; }
+
+/* ---------- Espace équipe (equipe.html) ---------- */
+.tm-tabs { flex-wrap: wrap; }
+.tm-count { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 11px; }
+.tm-search { display: flex; gap: 8px; margin-bottom: 12px; }
+.tm-search input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 12px; font: inherit; font-size: 15px; }
+.tm-search button { width: auto; }
+.tm-order { margin-bottom: 12px; border-left: 4px solid transparent; }
+.tm-order.tm-todo { border-left-color: var(--warning, #f59e0b); }
+.tm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.tm-head strong { display: block; font-size: 16px; }
+.tm-head small { color: var(--gray-500); font-size: 12px; }
+.tm-total { font-weight: 800; color: var(--primary); white-space: nowrap; }
+.tm-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.tm-tag { font-size: 12px; padding: 3px 9px; border-radius: 20px; background: #f1f5f9; color: #334155; }
+.tm-tag.ok { background: #dcfce7; color: #166534; }
+.tm-tag.warn { background: #fef3c7; color: #92400e; }
+.tm-hint { font-size: 13px; color: var(--gray-500); margin: 4px 0 8px; }
+.tm-call { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 10px; }
+.tm-call a { width: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.tm-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.tm-fields label { font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 4px; }
+.tm-fields input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 15px; }
+.tm-fields .tm-wide { grid-column: 1 / -1; }
+.tm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tm-actions button { width: auto; display: inline-flex; align-items: center; gap: 6px; }
+.tm-danger-text { color: var(--danger) !important; }
+.tm-history-btn { background: none; border: none; padding: 10px 0 0; font: inherit; font-size: 12px; color: var(--gray-500); cursor: pointer; text-align: left; }
+.tm-history ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; }
+.tm-history li { padding: 6px 0; border-top: 1px solid #f1f5f9; }
+.tm-msg { font-size: 13px; margin: 8px 0 0; }
+.tm-msg.ok { color: var(--success); }
+.tm-msg.err { color: var(--danger); }
+.tm-refresh { text-align: center; font-size: 12px; color: var(--gray-500); }
+.tm-team-add input#tmWho { width: 100%; box-sizing: border-box; margin: 8px 0; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 12px; font: inherit; font-size: 15px; }
+.tm-role { display: grid; gap: 8px; margin-bottom: 10px; }
+.tm-role label { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 12px; cursor: pointer; }
+.tm-role span { display: flex; flex-direction: column; }
+.tm-role small { color: var(--gray-500); font-size: 12px; }
+.tm-member { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.tm-member > div { flex: 1; min-width: 0; }
+.tm-member strong { display: block; }
+.tm-member small { color: var(--gray-500); font-size: 12px; word-break: break-word; }
+.tm-member button { width: auto; }
+.tm-avatar { width: 40px; height: 40px; border-radius: 50%; background: #dbeafe; color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tm-dialog { position: fixed; inset: 0; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 5000; }
+.tm-dialog-card { background: #fff; border-radius: 18px; padding: 20px; width: 100%; max-width: 400px; }
+.tm-dialog-card h3 { margin: 0 0 6px; font-size: 18px; }
+.tm-dialog-card p { font-size: 14px; color: #475569; margin: 0 0 10px; }
+.tm-dialog-card input { width: 100%; box-sizing: border-box; padding: 11px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 15px; }
+.tm-dialog-err { color: var(--danger) !important; min-height: 1em; }
+.tm-dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.tm-dialog-actions button { width: auto; }
+.tm-danger { background: var(--danger) !important; }
+@media (max-width: 520px) { .tm-fields { grid-template-columns: 1fr; } }

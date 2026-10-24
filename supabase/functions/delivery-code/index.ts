@@ -3,8 +3,9 @@
 //
 // action "send" : { order_id }
 //   Appelée par le LIVREUR de la commande (juste après « Prendre la course », ou
-//   « Renvoyer le code »), ou par un admin. Le code est lu côté serveur et envoyé au
-//   téléphone de livraison du client : le livreur ne le voit jamais.
+//   « Renvoyer le code »), par le CLIENT (« Renvoyer mon code » dans Mes commandes)
+//   ou par un admin. Le code est lu côté serveur et envoyé au téléphone de livraison
+//   du client : le livreur ne le voit jamais.
 //   Au plus 3 envois par code, 2 minutes minimum entre deux envois.
 //
 // Canaux (chacun s'active dès que ses secrets sont renseignés) :
@@ -94,11 +95,11 @@ Deno.serve(async req => {
 
     const admin = createClient(url, serviceKey);
     const { data: order } = await admin.from('orders')
-        .select('id, order_number, status, deliverer_id, delivery_info').eq('id', payload.order_id).maybeSingle();
+        .select('id, order_number, status, client_id, deliverer_id, delivery_info').eq('id', payload.order_id).maybeSingle();
     if (!order) return json({ error: 'Commande introuvable' }, 404);
 
     const isAdmin = !!(await admin.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle()).data;
-    if (order.deliverer_id !== user.id && !isAdmin) return json({ error: 'Accès refusé' }, 403);
+    if (order.deliverer_id !== user.id && order.client_id !== user.id && !isAdmin) return json({ error: 'Accès refusé' }, 403);
     if (!['courier_assigned', 'in_transit', 'picked_up'].includes(order.status)) {
         return json({ error: 'Le code n\'est envoyé que pendant la course' }, 409);
     }
@@ -108,7 +109,7 @@ Deno.serve(async req => {
 
     // Compteur remis à zéro quand un nouveau code a été créé (nouveau livreur)
     const previous = dc.sent_at && new Date(dc.sent_at) >= new Date(dc.created_at) ? Number(dc.sends) || 0 : 0;
-    if (previous >= MAX_SENDS) return json({ error: `Code déjà envoyé ${MAX_SENDS} fois. Le client le retrouve dans ses notifications Ouenze.` }, 429);
+    if (previous >= MAX_SENDS) return json({ error: `Code déjà envoyé ${MAX_SENDS} fois. Il est aussi dans les notifications Ouenze du client.` }, 429);
     if (previous > 0 && Date.now() - Date.parse(dc.sent_at) < MIN_GAP_MS) {
         return json({ error: 'Code envoyé il y a moins de 2 minutes : patiente un peu.' }, 429);
     }

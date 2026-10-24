@@ -354,8 +354,8 @@
                 <button class="btn-sm btn-share" onclick="openShareShop('${id}')">
                     <i class="fas fa-share-alt"></i> Partager ma boutique
                 </button>
-                <button class="btn-sm btn-market" onclick="openListing('${id}')">
-                    <i class="fas fa-chart-line"></i> Entrer en bourse
+                <button class="btn-sm btn-market" onclick="location.href='trade.html?new=1&shop=${encodeURIComponent(id)}'">
+                    <i class="fas fa-chart-line"></i> Proposer une opération Trade
                 </button>
                 <button class="btn-sm btn-manage" onclick="openManageShop('${id}')">
                     <i class="fas fa-cog"></i> Gérer

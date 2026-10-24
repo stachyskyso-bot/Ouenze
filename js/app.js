@@ -636,7 +636,7 @@
                         <p>Le marché du Congo, chez vous. Des boutiques de confiance, des livreurs notés et un paiement Mobile Money sécurisé.</p>
                     </div>
                     <nav><h4>Acheter</h4><a href="index.html">Accueil</a><a href="index.html#categories">Catégories</a><a href="autour.html">Boutiques autour de moi</a><a href="activities.html">Mes commandes</a><a href="tracking.html">Suivi livraison</a></nav>
-                    <nav><h4>Vendre et livrer</h4><a href="vendor-register.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Investir</a></nav>
+                    <nav><h4>Vendre et livrer</h4><a href="vendor-register.html">Devenir vendeur</a><a href="delivery-register.html">Devenir livreur</a><a href="invest.html">Trade</a></nav>
                     <nav><h4>Ouenze</h4><a href="help.html">Aide</a><a href="about.html">À propos</a><a href="privacy.html">Confidentialité</a></nav>
                 </div>
                 <div class="sf-bottom">© ${new Date().getFullYear()} Ouenze · Marketplace Congo-Brazzaville et RDC</div>`;
@@ -2408,10 +2408,19 @@
             </nav>`);
         modal.classList.add('profile-modal');
         // Administration : liens vers les pages admin (sans dépendre des emails)
-        window.supabase.rpc('is_admin').then(({ data }) => {
+        // Espace équipe : agents et admins (my_team_role, migration 20261030 ; sinon is_admin)
+        window.supabase.rpc('my_team_role').then(async ({ data: role, error }) => {
+            if (error) role = (await window.supabase.rpc('is_admin')).data ? 'admin' : null;
             const list = modal.querySelector('.pf-list');
-            if (!data || !list) return;
+            if (!role || !list) return;
+            if (role === 'agent') {
+                list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Équipe Ouenze</div>
+                    ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes à appeler')}</nav>`);
+                return;
+            }
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
+                ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes et équipe')}
+                ${row('trade.html', 'fa-chart-line', 'Ouenze Trade : gérer les opérations (simulation)')}
                 ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
