@@ -122,6 +122,7 @@
                 <p class="as-line"><b>${esc(o.name || '—')}</b>${o.email ? ' · ' + esc(o.email) : ''}${o.phone ? ' · ' + esc(o.phone) : ''}</p>
                 <p class="as-line">Dernière connexion : <b>${ago(o.last_login)}</b>${o.last_login ? ` (${date(o.last_login)})` : ''} · inscrit le ${date(o.joined)}</p>
                 ${tel ? `<a class="btn-submit tm-wa as-call" href="https://wa.me/${tel}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler</a>` : ''}
+                ${s.owner_id ? `<a class="btn-cancel as-call" href="admin-search.html?u=${encodeURIComponent(s.owner_id)}"><i class="fas fa-id-card"></i> Fiche complète du vendeur</a>` : ''}
             </div>
 
             <div class="as-kpis">

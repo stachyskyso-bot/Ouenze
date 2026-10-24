@@ -14,6 +14,7 @@
 
     const LINKS = [
         { href: 'admin.html', icon: 'fa-tachometer-alt', label: 'Tableau de bord', admin: true },
+        { href: 'admin-search.html', icon: 'fa-search', label: 'Rechercher', admin: true },
         { href: 'equipe.html', icon: 'fa-headset', label: 'Commandes', count: 'to_call' },
         { href: 'admin-shops.html', icon: 'fa-store', label: 'Boutiques', admin: true },
         { href: 'admin-vendors.html', icon: 'fa-user-tie', label: 'Vendeurs', admin: true, count: 'vendor_apps' },
@@ -53,6 +54,10 @@
         if (error || !role) return;
         document.body.classList.add('admin-mode');
         render(role, null);
+        // Sous le nom, dans l'en-tête : le rôle d'équipe plutôt que « Client »
+        const showRole = () => document.querySelectorAll('.user-info small').forEach(el => { el.textContent = role === 'admin' ? 'Admin' : 'Équipe'; });
+        showRole();
+        setTimeout(showRole, 1500);
         if (role !== 'admin') return;
         const refresh = async () => {
             const { data } = await window.supabase.rpc('admin_overview');

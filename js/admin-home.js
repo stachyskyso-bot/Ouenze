@@ -41,10 +41,15 @@
     function render(d) {
         const live = d.orders_mode === 'live';
         box().innerHTML = `
+            <form class="ah-search" action="admin-search.html" role="search">
+                <i class="fas fa-search"></i>
+                <input name="q" placeholder="Rechercher un client, vendeur, livreur, une boutique ou une commande">
+                <button>Rechercher</button>
+            </form>
             <div class="ah-mode ${live ? 'live' : 'test'}">
                 <i class="fas ${live ? 'fa-circle' : 'fa-flask'}"></i>
                 ${live ? '<b>Commandes ouvertes au public</b>' : `<b>Mode ${d.orders_mode === 'test' ? 'test (admins seulement)' : 'test ouvert'}</b> : les commandes sont marquées TEST`}
-                · frais de livraison ${(Number(d.delivery_rate) * 100).toLocaleString('fr-FR')} %
+                ${d.delivery_rate != null && !isNaN(Number(d.delivery_rate)) ? `· frais de livraison ${(Number(d.delivery_rate) * 100).toLocaleString('fr-FR')} %` : ''}
             </div>
 
             <h3 class="ah-h">À traiter</h3>

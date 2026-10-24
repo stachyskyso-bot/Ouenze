@@ -2439,6 +2439,7 @@
             }
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
                 ${row('admin.html', 'fa-tachometer-alt', 'Tableau de bord admin')}
+                ${row('admin-search.html', 'fa-search', 'Rechercher : clients, vendeurs, livreurs, commandes')}
                 ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes et équipe')}
                 ${row('trade.html', 'fa-chart-line', 'Ouenze Trade : gérer les opérations (simulation)')}
                 ${row('admin-shops.html', 'fa-store', 'Boutiques : suspendre, supprimer, activité')}
