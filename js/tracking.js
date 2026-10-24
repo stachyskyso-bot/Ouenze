@@ -14,6 +14,9 @@
 (function () {
     'use strict';
 
+    // Numéro pour WhatsApp : chiffres avec indicatif (06… → 24206…)
+    const waNum = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 9 && d.startsWith('0') ? '242' + d : d; };
+
     const STEPS = [
         { key: 'paid', icon: 'fa-receipt', label: 'Commande envoyée', text: 'Ouenze t\'appelle pour confirmer ton adresse. Tu paies à la livraison.' },
         { key: 'accepted', icon: 'fa-store', label: 'Acceptée par le vendeur', text: 'Le vendeur prépare ta commande.' },
@@ -151,7 +154,7 @@
         courierCard.innerHTML = idx >= 2 && c ? `
             <div class="trk-courier-avatar">${esc((c.name || '?').charAt(0))}</div>
             <div class="trk-courier-info"><strong>${esc(c.name)}</strong><span>${c.vehicle === 'voiture' ? 'Voiture' : 'Moto'} · ${esc(c.plate || '')}${c.rating ? ` · ⭐ ${esc(c.rating)}` : ''}</span></div>
-            ${c.phone && idx < 5 ? `<a class="trk-call" href="tel:${esc(c.phone.replace(/\s/g, ''))}" aria-label="Appeler le livreur"><i class="fas fa-phone"></i></a>` : ''}` : '';
+            ${c.phone && idx < 5 ? `<a class="trk-call" href="https://wa.me/${waNum(c.phone)}" target="_blank" rel="noopener" aria-label="Appeler le livreur sur WhatsApp"><i class="fab fa-whatsapp"></i></a>` : ''}` : '';
         courierCard.style.display = courierCard.innerHTML ? '' : 'none';
 
         const eta = document.getElementById('trkEta');

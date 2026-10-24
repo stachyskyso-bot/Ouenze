@@ -18,6 +18,8 @@
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const digits = p => String(p || '').replace(/\D/g, '');
+    // Numéro pour WhatsApp : chiffres avec indicatif (06… → 24206…)
+    const waNum = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 9 && d.startsWith('0') ? '242' + d : d; };
     const box = () => document.getElementById('adminApp');
 
     function message(html) {
@@ -39,9 +41,9 @@
             <p class="rp-reason"><b>${esc(REASONS[r.reason] || r.reason)}</b>${r.order_number ? ` · commande ${esc(r.order_number)}` : ''}
                 · ${new Date(r.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</p>
             ${r.details ? `<blockquote class="rp-details">${esc(r.details)}</blockquote>` : ''}
-            <p class="rp-meta">Signalé par ${esc(r.reporter_name || 'un utilisateur')}${rtel ? ` · <a href="tel:+${rtel}">${esc(r.reporter_phone)}</a>` : ''}
+            <p class="rp-meta">Signalé par ${esc(r.reporter_name || 'un utilisateur')}${rtel ? ` · <a href="https://wa.me/${waNum(rtel)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler ${esc(r.reporter_phone)}</a>` : ''}
                 ${Number(r.target_total) > 1 ? ` · <b class="rp-count">${r.target_total} signalements au total</b>` : ''}</p>
-            ${tel ? `<p class="rp-meta">Livreur : <a href="tel:+${tel}">${esc(r.courier_phone)}</a> · <a href="https://wa.me/${tel}" target="_blank" rel="noopener">WhatsApp</a></p>` : ''}
+            ${tel ? `<p class="rp-meta">Livreur : <a href="https://wa.me/${waNum(tel)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler ${esc(r.courier_phone)}</a></p>` : ''}
             <input class="rp-note" id="rpN-${id}" value="${esc(r.admin_note || '')}" placeholder="Note interne (ce que tu as fait)">
             <div class="rp-actions">
                 ${r.status === 'open' ? `

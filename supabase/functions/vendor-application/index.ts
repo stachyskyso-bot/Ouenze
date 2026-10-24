@@ -123,7 +123,7 @@ Deno.serve(async req => {
 <p style="margin:0 0 16px;"><strong>${esc(app.full_name)}</strong> souhaite vendre sur Ouenze. Contacte cette personne, puis valide ou refuse la demande.</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:12px;">
   ${row('Nom', esc(app.full_name))}
-  ${row('Téléphone', `<a href="tel:${esc(tel)}">${esc(app.phone)}</a>`)}
+  ${row('Téléphone', `<a href="https://wa.me/${esc(tel.replace(/\D/g, '').replace(/^0(\d{8})$/, '2420$1'))}">${esc(app.phone)}</a> (WhatsApp)`)}
   ${row('WhatsApp', app.whatsapp ? `<a href="https://wa.me/${esc(wa)}">${esc(app.whatsapp)}</a>` : '')}
   ${row('Email', `<a href="mailto:${esc(app.email)}">${esc(app.email)}</a>`)}
   ${row('Ville', esc([app.district, app.city].filter(Boolean).join(', ')))}

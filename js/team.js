@@ -25,6 +25,8 @@
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const digits = p => String(p || '').replace(/\D/g, '');
+    // Numéro pour WhatsApp : chiffres avec indicatif (06… → 24206…)
+    const waNum = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 9 && d.startsWith('0') ? '242' + d : d; };
     const fcfa = n => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} FCFA`;
     const when = d => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     const box = () => document.getElementById('teamApp');
@@ -87,10 +89,9 @@
             </div>
             ${needsLink && !finished ? '<p class="tm-hint"><i class="fas fa-link"></i> Envoie le lien de paiement au client pendant l\'appel.</p>' : ''}
             <div class="tm-call">
-                ${tel ? `<a class="btn-submit tm-wa" href="https://wa.me/${tel}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp ${esc(o.phone)}</a>
-                <a class="btn-cancel" href="tel:+${tel}"><i class="fas fa-phone"></i> Appel normal</a>` : '<span class="tm-hint">Pas de numéro</span>'}
+                ${tel ? `<a class="btn-submit tm-wa" href="https://wa.me/${waNum(tel)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler ${esc(o.phone)}</a>` : '<span class="tm-hint">Pas de numéro</span>'}
             </div>
-            ${tel ? '<p class="tm-hint tm-wa-hint">WhatsApp ouvre la discussion : appuie sur l\'icône d\'appel en haut. Si le client n\'a pas WhatsApp, utilise l\'appel normal.</p>' : ''}
+            ${tel ? '<p class="tm-hint tm-wa-hint">Le bouton ouvre WhatsApp : appuie ensuite sur l\'icône d\'appel en haut de la discussion.</p>' : ''}
             ${finished ? `<p class="tm-hint">${esc(o.city || '')}${o.district ? ', ' + esc(o.district) : ''}</p>` : `
             <div class="tm-fields">
                 <label>Quartier *<input id="tmD-${id}" maxlength="60" value="${esc(o.district || '')}" placeholder="Ex : Moungali"></label>

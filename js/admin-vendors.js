@@ -17,6 +17,8 @@
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const digits = p => String(p || '').replace(/[^\d+]/g, '');
+    // Numéro pour WhatsApp : chiffres avec indicatif (06… → 24206…)
+    const waNum = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 9 && d.startsWith('0') ? '242' + d : d; };
     const box = () => document.getElementById('adminApp');
 
     function message(html) {
@@ -69,7 +71,6 @@
         const a = applications.find(x => String(x.id) === String(id));
         if (!a) { message('<i class="fas fa-search"></i><h3>Demande introuvable</h3><button class="btn-submit" onclick="avTab(\'all\')">Voir toutes les demandes</button>'); return; }
         history.replaceState(null, '', 'admin-vendors.html?id=' + encodeURIComponent(a.id));
-        const wa = digits(a.whatsapp || a.phone).replace(/^\+/, '');
         const rows = [
             ['Nom', a.full_name], ['Email', a.email], ['Téléphone', a.phone], ['WhatsApp', a.whatsapp || a.phone],
             ['Ville', [a.district, a.city].filter(Boolean).join(', ')], ['Activité', a.business_name], ['Produits', a.category],
@@ -86,8 +87,7 @@
                     <span class="adm-badge ${esc(a.status)}">${STATUS[a.status] || esc(a.status)}</span>
                 </div>
                 <div class="av-contact">
-                    <a class="btn-submit" href="tel:${esc(digits(a.phone))}"><i class="fas fa-phone"></i> Appeler</a>
-                    <a class="btn-submit av-wa" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                    <a class="btn-submit av-wa" href="https://wa.me/${esc(waNum(a.whatsapp || a.phone))}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler</a>
                     <a class="btn-cancel" href="mailto:${esc(a.email)}"><i class="fas fa-envelope"></i> Email</a>
                 </div>
                 <dl class="dl-recap">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>

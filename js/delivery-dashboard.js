@@ -163,14 +163,13 @@
 
     // Contacts du vendeur et du client (visibles tant que la course est en cours)
     function contactHtml(role, icon, name, sub, phone, email) {
-        const tel = String(phone || '').replace(/[^\d+]/g, '');
-        const wa = tel.replace(/^\+/, '');
+        const d = String(phone || '').replace(/\D/g, '');
+        const wa = d.length === 9 && d.startsWith('0') ? '242' + d : d;   // 06… → 24206…
         return `<div class="course-contact">
                 <div><i class="fas ${icon}"></i> <b>${esc(role)}</b> · ${esc(name || '—')}${sub ? `<br><small>${esc(sub)}</small>` : ''}
                     <br><small>${phone ? esc(phone) : 'Téléphone non renseigné'}${email ? ' · ' + esc(email) : ''}</small></div>
                 <div class="notif-actions">
-                    ${tel ? `<a class="notif-btn" href="tel:${esc(tel)}"><i class="fas fa-phone"></i> Appeler</a>
-                    <a class="notif-btn" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+                    ${wa ? `<a class="notif-btn ok" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler</a>` : ''}
                     ${email ? `<a class="notif-btn" href="mailto:${esc(email)}"><i class="fas fa-envelope"></i> Email</a>` : ''}
                 </div>
             </div>`;
