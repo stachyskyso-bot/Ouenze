@@ -174,8 +174,20 @@
     }
  
     // ============ INITIALISATION ============
+    // Frais de livraison : pourcentage réglé par Ouenze (RPC delivery_rate, 10 % par défaut).
+    // La base recalcule toujours les frais au moment de la commande.
+    let deliveryRate = 0.10;
+    function loadDeliveryRate() {
+        window.supabase?.rpc?.('delivery_rate').then(({ data, error }) => {
+            const r = Number(data);
+            if (!error && Number.isFinite(r) && r >= 0 && r <= 0.5) deliveryRate = r;
+        }).catch(() => { /* on garde 10 % */ });
+    }
+    const ratePercent = () => (deliveryRate * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+
     async function initApp() {
         console.log('🚀 Initialisation...');
+        loadDeliveryRate();
         handleOAuthReturnError();
  
         if (!window.supabase || !window.supabase.auth) {
@@ -714,7 +726,7 @@
             <section class="home-trust home-only">
                 <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
                 <div><i class="fas fa-shield-alt"></i><span><b>Paiement à la livraison</b><small>Mobile Money</small></span></div>
-                <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">7j/7</a></small></span></div>
+                <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">Aide et contact</a></small></span></div>
                 <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
             </section>
 
@@ -1774,7 +1786,7 @@
     // Panier : articles groupés par boutique (une commande par boutique), puis le total
     function showCart() {
         const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-        const fees = Math.round(subtotal * 0.10);
+        const fees = Math.round(subtotal * deliveryRate);
         const byShop = new Map();
         cart.forEach((item, idx) => {
             const key = String(item.shopId || '');
@@ -1790,7 +1802,7 @@
                 <div class="cart-shop"><div class="cart-shop-name"><i class="fas fa-store"></i> ${escapeHtml(g.name)}</div>${g.rows.join('')}</div>`).join('')}</div>
             <div class="cart-summary">
                 <div><span>Sous-total</span><span>${formatPrice(subtotal)} FCFA</span></div>
-                <div><span>Livraison (10 %)</span><span>${formatPrice(fees)} FCFA</span></div>
+                <div><span>Livraison (${ratePercent()} %)</span><span>${formatPrice(fees)} FCFA</span></div>
                 <div class="cart-grand"><span>Total</span><strong>${formatPrice(subtotal + fees)} FCFA</strong></div>
                 <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Commander</a>
                 ${byShop.size > 1 ? `<p class="cart-note"><i class="fas fa-info-circle"></i> ${byShop.size} boutiques : chacune confirme sa partie de la commande.</p>` : ''}

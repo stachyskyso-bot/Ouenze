@@ -225,6 +225,15 @@
     function teamHtml() {
         return `
             <div class="dl-card tm-team-add">
+                <strong><i class="fas fa-sliders-h"></i> Réglages : frais de livraison</strong>
+                <p class="tm-hint">Pourcentage du montant des articles, ajouté à chaque commande. Il s'applique aux nouvelles commandes.</p>
+                <div class="tm-search" style="margin:8px 0 0;">
+                    <input id="tmRate" type="number" min="0" max="50" step="0.5" inputmode="decimal" value="${state.rate != null ? (state.rate * 100).toLocaleString('en-US', { maximumFractionDigits: 2 }) : ''}" aria-label="Pourcentage">
+                    <button class="btn-submit" onclick="tmSetRate()">Enregistrer</button>
+                </div>
+                <p class="tm-msg" id="tmM-rate" hidden></p>
+            </div>
+            <div class="dl-card tm-team-add">
                 <strong><i class="fas fa-user-plus"></i> Ajouter un membre</strong>
                 <p class="tm-hint">La personne doit d'abord se connecter une fois sur Ouenze (avec son numéro ou son email).</p>
                 <input id="tmWho" placeholder="Numéro (06 123 45 67) ou email">
@@ -243,8 +252,19 @@
     }
 
     async function loadMembers() {
-        const { data, error } = await rpc('team_list');
+        const [{ data, error }, rate] = await Promise.all([rpc('team_list'), rpc('delivery_rate')]);
         state.members = error ? [] : data || [];
+        state.rate = rate.error ? null : Number(rate.data);
+    }
+
+    async function tmSetRate() {
+        const v = Number(String(document.getElementById('tmRate')?.value || '').replace(',', '.'));
+        if (!Number.isFinite(v) || v < 0 || v > 50) return flash('rate', 'Choisis un pourcentage entre 0 et 50.', false);
+        if (!await ask({ title: `Frais de livraison à ${v.toLocaleString('fr-FR')} % ?`, text: 'Les nouvelles commandes utiliseront ce pourcentage.', ok: 'Enregistrer' })) return;
+        const { data, error } = await rpc('set_delivery_rate', { percent: v });
+        if (error) return flash('rate', /set_delivery_rate|schema cache/i.test(error.message) ? 'Exécute d\'abord la migration 20261102_delivery_rate.sql.' : error.message, false);
+        state.rate = Number(data);
+        flash('rate', `Enregistré : ${(state.rate * 100).toLocaleString('fr-FR')} % pour les nouvelles commandes.`, true);
     }
 
     async function tmAdd() {
@@ -294,7 +314,7 @@
         state.timer = setInterval(() => { if (!document.hidden && !document.querySelector('.tm-dialog')) refresh(); }, 60000);
     }
 
-    Object.assign(window, { tmTab, tmSearch, tmConfirm, tmNote, tmPaid, tmPayLink, tmCancel, tmHistory, tmAdd, tmRemove });
+    Object.assign(window, { tmTab, tmSearch, tmConfirm, tmNote, tmPaid, tmPayLink, tmSetRate, tmCancel, tmHistory, tmAdd, tmRemove });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();

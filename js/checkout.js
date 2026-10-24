@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    const DELIVERY_RATE = 0.10;              // frais de livraison : 10 % du sous-total
+    let DELIVERY_RATE = 0.10;                // frais de livraison : réglé par Ouenze (RPC delivery_rate), 10 % par défaut
     // Moyens de paiement proposés sous le numéro
     const PAYMENTS = {
         CG: [
@@ -117,7 +117,7 @@
         return `
             <div class="co-totals">
                 <div><span>Sous-total</span><span>${fcfa(t.subtotal)}</span></div>
-                <div><span>Livraison (${Math.round(DELIVERY_RATE * 100)} %)</span><span>${fcfa(t.fees)}</span></div>
+                <div><span>Livraison (${(DELIVERY_RATE * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %)</span><span>${fcfa(t.fees)}</span></div>
                 <div class="co-grand"><span>Total</span><span>${fcfa(t.total)}</span></div>
             </div>`;
     }
@@ -413,6 +413,10 @@
             return;
         }
         cart = loadCart();
+        try {
+            const { data: rate, error: rateError } = await window.supabase.rpc('delivery_rate');
+            if (!rateError && Number.isFinite(Number(rate)) && Number(rate) >= 0 && Number(rate) <= 0.5) DELIVERY_RATE = Number(rate);
+        } catch (e) { /* on garde 10 % */ }
         const { data } = await window.supabase.auth.getSession();
         user = data?.session?.user || null;
         if (!user) {

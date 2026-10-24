@@ -362,7 +362,7 @@
     }
 
     async function courierDeliver(orderId) {
-        const code = await dialog({ title: 'Code de remise', text: 'Demande au client son code à 4 chiffres (il l\'a reçu dans ses notifications), puis saisis-le ici.', input: true, ok: 'Valider la livraison' });
+        const code = await dialog({ title: 'Code de remise', text: 'Demande au client son code à 4 chiffres (reçu par SMS et dans ses notifications), puis saisis-le ici.', input: true, ok: 'Valider la livraison' });
         if (code === null) return;
         if (!code) { await say('Code manquant', 'Saisis le code à 4 chiffres donné par le client.'); return; }
         if (await act(() => rpc('courier_step', { target_order: orderId, step: 'delivered', client_code: code }))) {
