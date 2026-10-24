@@ -185,6 +185,34 @@
     }
     const ratePercent = () => (deliveryRate * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 
+    // Rôle d'équipe : 'admin', 'agent' ou null.
+    // my_team_role (migration 20261030) ; si elle n'est pas encore installée, is_admin.
+    async function teamRole() {
+        if (!window.supabase?.rpc) return null;
+        try {
+            const { data, error } = await window.supabase.rpc('my_team_role');
+            if (!error) return data || null;
+            const { data: isAdmin } = await window.supabase.rpc('is_admin');
+            return isAdmin ? 'admin' : null;
+        } catch (e) { return null; }
+    }
+    window.ouenzeTeamRole = teamRole;
+
+    // Page d'accueil : l'équipe arrive sur son interface. « Voir le site » (index.html?site=1)
+    // permet ensuite de parcourir la boutique normalement pendant toute la session.
+    async function sendTeamToTheirSpace() {
+        const params = new URLSearchParams(window.location.search);
+        try {
+            if (params.get('site') === '1') { sessionStorage.setItem('ouenzeSiteView', '1'); return false; }
+            if (sessionStorage.getItem('ouenzeSiteView') === '1') return false;
+        } catch (e) { return false; }
+        if (params.get('shop') || params.get('q')) return false;
+        const role = await teamRole();
+        if (role === 'admin') { window.location.replace('admin.html'); return true; }
+        if (role === 'agent') { window.location.replace('equipe.html'); return true; }
+        return false;
+    }
+
     async function initApp() {
         console.log('🚀 Initialisation...');
         loadDeliveryRate();
@@ -216,6 +244,7 @@
         // Lien direct vers une boutique : index.html?shop=<id> (bouton « Voir en ligne »)
         // Pages de contenu (À propos, Aide…) : seulement l'en-tête, pas de vitrine
         if (!document.getElementById('appContainer')) return;
+        if (currentUser && await sendTeamToTheirSpace()) return;
  
         const params = new URLSearchParams(window.location.search);
         const shopParam = params.get('shop');
@@ -273,7 +302,7 @@
 
             // Équipe Ouenze : directement sur son interface (admin → tableau de bord, agent → commandes)
             try {
-                const { data: role } = await window.supabase.rpc('my_team_role');
+                const role = await teamRole();
                 if (role === 'admin') { window.location.href = 'admin.html'; return; }
                 if (role === 'agent') { window.location.href = 'equipe.html'; return; }
             } catch (e) { /* fonction absente : comportement habituel */ }

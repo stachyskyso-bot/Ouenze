@@ -21,7 +21,7 @@
         { href: 'admin-deliverers.html', icon: 'fa-motorcycle', label: 'Livreurs', admin: true, count: 'courier_apps' },
         { href: 'admin-reports.html', icon: 'fa-flag', label: 'Signalements', admin: true, count: 'reports' },
         { href: 'trade.html', icon: 'fa-chart-line', label: 'Trade', admin: true, count: 'trade_total' },
-        { href: 'index.html', icon: 'fa-eye', label: 'Voir le site', external: true }
+        { href: 'index.html?site=1', icon: 'fa-eye', label: 'Voir le site', external: true }
     ];
 
     function render(role, counts) {
@@ -50,8 +50,10 @@
         if (!window.supabase?.rpc) return;
         const { data: session } = await window.supabase.auth.getSession();
         if (!session?.session) return;
-        const { data: role, error } = await window.supabase.rpc('my_team_role');
-        if (error || !role) return;
+        let { data: role, error } = await window.supabase.rpc('my_team_role');
+        // Migration 20261030 pas encore exécutée : on reconnaît au moins les admins
+        if (error) role = (await window.supabase.rpc('is_admin')).data ? 'admin' : null;
+        if (!role) return;
         document.body.classList.add('admin-mode');
         render(role, null);
         // Sous le nom, dans l'en-tête : le rôle d'équipe plutôt que « Client »
