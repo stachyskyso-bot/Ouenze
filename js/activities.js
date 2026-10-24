@@ -200,7 +200,7 @@
     }
 
     async function actCancel(orderId) {
-        if (!confirm('Annuler cette commande ? Le vendeur ne l\'a pas encore acceptée.')) return;
+        if (!(await uiConfirm('Annuler cette commande ? Le vendeur ne l\'a pas encore acceptée.', 'Annuler la commande', true))) return;
         const { error } = await window.supabase.rpc('cancel_my_order', { target_order: orderId });
         if (error) { alert(error.message || 'Annulation impossible.'); return; }
         await load();

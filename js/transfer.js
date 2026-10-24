@@ -80,7 +80,7 @@
 
     async function acceptTransfer() {
         const btn = document.getElementById('acceptBtn');
-        if (!confirm('Confirmer : cette boutique passe sur ton compte ?')) return;
+        if (!(await uiConfirm('Confirmer : cette boutique passe sur ton compte ?', 'Confirmer'))) return;
         btn.disabled = true;
         btn.textContent = 'Transfert en cours…';
         const { data, error } = await call({ action: 'accept', token });

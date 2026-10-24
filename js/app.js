@@ -1688,7 +1688,6 @@
     // Ajoute un produit (ou une de ses versions) au panier. Renvoie true si c'est fait.
     function addToCart(productId, variantKey = null, quantity = 1) {
         if (!currentUser) {
-            alert('Connecte-toi pour ajouter au panier');
             openLoginModal();
             return false;
         }
