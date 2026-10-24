@@ -35,6 +35,8 @@
         report: { icon: 'fa-flag', tone: 'ko', group: 'orders' },
         trade: { icon: 'fa-chart-line', tone: 'info', group: 'orders' },
         order_paid: { icon: 'fa-wallet', tone: 'ok', group: 'orders' },
+        shop_suspended: { icon: 'fa-store-slash', tone: 'ko', group: 'orders' },
+        shop_restored: { icon: 'fa-store', tone: 'ok', group: 'orders' },
         shop_review: { icon: 'fa-star', tone: 'star', group: 'reviews' },
         courier_review: { icon: 'fa-star', tone: 'star', group: 'reviews' }
     };

@@ -9,6 +9,9 @@
  
 (function () {
     'use strict';
+
+    // Numéro pour WhatsApp : chiffres avec indicatif (06… → 24206…)
+    const waNum = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 9 && d.startsWith('0') ? '242' + d : d; };
  
     if (window.__VD_LOADED__) return;
     window.__VD_LOADED__ = true;
@@ -125,7 +128,7 @@
         }
  
         dashUser = data.user;
-        dashShops = (Array.isArray(data.shops) ? data.shops : []).filter(s => !s.archived_at && s.is_active !== false);
+        dashShops = (Array.isArray(data.shops) ? data.shops : []).filter(s => !s.archived_at);
         pendingTransfers = {};
         try {
             const { data: transfers, error: tError } = await window.supabase
@@ -320,7 +323,8 @@
                     </div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
                         ${shop.is_verified ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:20px;">✓ Vérifiée</span>' : ''}
-                        ${shop.is_active === false ? '<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Désactivée</span>' : ''}
+                        ${shop.suspended_at ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Suspendue par Ouenze${shop.suspended_reason ? ' : ' + escapeHtml(shop.suspended_reason) : ''}</span>`
+                            : shop.is_active === false ? '<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;">Désactivée</span>' : ''}
                     </div>
                 </div>
  
@@ -562,7 +566,7 @@
                 ${o.payment_status === 'test' ? '<p class="vo-test">Commande de TEST : rien n\'a été payé, ne rien expédier.</p>' : ''}
                 <ul class="vo-items">${items.map(i => `<li><span>${i.quantity} × ${escapeHtml(i.name)}${i.variant ? ` <small>(${escapeHtml(i.variant)})</small>` : ''}</span><span>${formatNumber(i.total)} FCFA</span></li>`).join('')}</ul>
                 <div class="vo-money"><span>Total articles <strong>${formatNumber(o.subtotal)} FCFA</strong></span><span>Tu reçois <strong>${formatNumber(net)} FCFA</strong> <small>(commission ${(rate * 100).toLocaleString('fr-FR')} %)</small></span></div>
-                <p class="vo-client"><i class="fas fa-user"></i> ${escapeHtml(o.client_name)}${where ? ` · <i class="fas fa-map-marker-alt"></i> ${escapeHtml(where)}` : ''}${o.client_phone ? ` · <a href="tel:${escapeHtml(o.client_phone)}"><i class="fas fa-phone"></i> ${escapeHtml(o.client_phone)}</a>` : ''}</p>
+                <p class="vo-client"><i class="fas fa-user"></i> ${escapeHtml(o.client_name)}${where ? ` · <i class="fas fa-map-marker-alt"></i> ${escapeHtml(where)}` : ''}${o.client_phone ? ` · <a href="https://wa.me/${waNum(o.client_phone)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler ${escapeHtml(o.client_phone)}</a>` : ''}</p>
                 ${o.landmark && o.status !== 'pending' ? `<p class="vo-client"><i class="fas fa-flag"></i> ${escapeHtml(o.landmark)}</p>` : ''}
                 ${o.status === 'refused' && o.notes ? `<p class="vo-client">Motif du refus : ${escapeHtml(o.notes)}</p>` : ''}
                 <div class="vo-actions">

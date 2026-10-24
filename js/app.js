@@ -270,6 +270,13 @@
             closeModal();
             updateHeaderUI();
             await loadUserData();
+
+            // Équipe Ouenze : directement sur son interface (admin → tableau de bord, agent → commandes)
+            try {
+                const { data: role } = await window.supabase.rpc('my_team_role');
+                if (role === 'admin') { window.location.href = 'admin.html'; return; }
+                if (role === 'agent') { window.location.href = 'equipe.html'; return; }
+            } catch (e) { /* fonction absente : comportement habituel */ }
  
             if (currentUserType === 'vendeur') {
                 window.location.href = 'vendor-dashboard.html';
@@ -2431,12 +2438,15 @@
                 return;
             }
             list.insertAdjacentHTML('beforebegin', `<nav class="pf-list pf-admin"><div class="pf-admin-title">Administration</div>
+                ${row('admin.html', 'fa-tachometer-alt', 'Tableau de bord admin')}
+                ${row('admin-search.html', 'fa-search', 'Rechercher : clients, vendeurs, livreurs, commandes')}
                 ${row('equipe.html', 'fa-headset', 'Espace équipe : commandes et équipe')}
                 ${row('trade.html', 'fa-chart-line', 'Ouenze Trade : gérer les opérations (simulation)')}
-                ${row('admin-vendors.html', 'fa-store', 'Demandes vendeurs')}
+                ${row('admin-shops.html', 'fa-store', 'Boutiques : suspendre, supprimer, activité')}
+                ${row('admin-vendors.html', 'fa-user-tie', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
-                ${row('admin-market.html', 'fa-landmark', 'Bourse')}</nav>`);
+</nav>`);
         });
     }
  
