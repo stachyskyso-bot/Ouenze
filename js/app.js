@@ -207,10 +207,32 @@
             if (sessionStorage.getItem('ouenzeSiteView') === '1') return false;
         } catch (e) { return false; }
         if (params.get('shop') || params.get('q')) return false;
-        const role = await teamRole();
-        if (role === 'admin') { window.location.replace('admin.html'); return true; }
-        if (role === 'agent') { window.location.replace('equipe.html'); return true; }
+        // Rôle mémorisé sur ce téléphone : un client ne patiente pas à chaque ouverture ;
+        // la vérification se fait en arrière-plan et redirige si le rôle a changé.
+        const key = 'ouenze_role_' + (currentUser?.id || '');
+        let saved = null;
+        try { saved = localStorage.getItem(key); } catch (e) { /* stockage bloqué */ }
+        const go = role => {
+            if (role === 'admin') { window.location.replace('admin.html'); return true; }
+            if (role === 'agent') { window.location.replace('equipe.html'); return true; }
+            return false;
+        };
+        const check = teamRole().then(role => {
+            try { localStorage.setItem(key, role || 'none'); } catch (e) { /* stockage bloqué */ }
+            return role;
+        });
+        if (saved === null) return go(await check);
+        if (saved !== 'none') return go(saved);
+        check.then(role => { if (role) go(role); });
         return false;
+    }
+
+    async function sessionUser() {
+        try {
+            const { data, error } = await window.supabase.auth.getSession();
+            if (!error) return data?.session?.user || null;   // visiteur : pas de requête en plus
+        } catch (e) { /* on demande au serveur */ }
+        return fetchCurrentUser();
     }
 
     async function initApp() {
@@ -222,13 +244,21 @@
             console.error('❌ Client Supabase introuvable (vérifier supabase-config.js)');
         }
  
+        // Accueil (vitrine) : la session est lue sur le téléphone, sans attendre le réseau ;
+        // le profil et les commandes arrivent pendant que la vitrine s'affiche.
+        // Autres pages : comme avant, tout est chargé avant de continuer.
+        const fastHome = !!document.getElementById('appContainer');
         try {
-            currentUser = await fetchCurrentUser();
+            currentUser = fastHome ? await sessionUser() : await fetchCurrentUser();
             if (currentUser) {
-                currentProfile = await fetchProfile(currentUser.id);
-                currentUserType = currentProfile?.user_type || 'client';
-                console.log('👤 Connecté:', currentUser.email, '—', currentUserType);
-                await loadUserData();
+                const profileJob = (async () => {
+                    currentProfile = await fetchProfile(currentUser.id);
+                    currentUserType = currentProfile?.user_type || 'client';
+                    console.log('👤 Connecté:', currentUser.email, '—', currentUserType);
+                    await loadUserData();
+                })();
+                if (fastHome) profileJob.then(() => updateHeaderUI()).catch(e => console.error('❌ Profil:', e));
+                else await profileJob;
             } else {
                 console.log('👤 Non connecté');
             }
@@ -938,13 +968,19 @@
     }
 
     // Produit complet (versions, toutes les photos) : chargé à l'ouverture de la fiche ou à l'ajout au panier
-    async function ensureFullProduct(id) {
+    const productJobs = new Map();   // une seule requête à la fois par produit
+    function ensureFullProduct(id) {
         const p = productsCache[id];
-        if (p && !p._light) return p;
-        let { data, error } = await window.supabase.from('products').select('*, shops(name)').eq('id', id).maybeSingle();
-        if (error) ({ data, error } = await window.supabase.from('products').select('*').eq('id', id).maybeSingle());
-        if (data) { productsCache[id] = data; return data; }
-        return null;
+        if (p && !p._light) return Promise.resolve(p);
+        if (productJobs.has(id)) return productJobs.get(id);
+        const job = (async () => {
+            let { data, error } = await window.supabase.from('products').select('*, shops(name)').eq('id', id).maybeSingle();
+            if (error) ({ data, error } = await window.supabase.from('products').select('*').eq('id', id).maybeSingle());
+            if (data) { productsCache[id] = data; return data; }
+            return null;
+        })().catch(() => null).finally(() => productJobs.delete(id));
+        productJobs.set(id, job);
+        return job;
     }
 
     // Bouton rond « + » des cartes produit (couleur : celle de la boutique sur sa page)
@@ -966,6 +1002,27 @@
         document.querySelectorAll('.hdr-icon .fa-shopping-cart, .tabbar .fa-shopping-cart').forEach(el => {
             el.classList.remove('cart-shake'); void el.offsetWidth; el.classList.add('cart-shake');
         });
+    }
+
+    const prefetching = new Set();
+    function prefetchProduct(id) {
+        const p = productsCache[id];
+        if (!p || !p._light || prefetching.has(id)) return;
+        prefetching.add(id);
+        ensureFullProduct(id).finally(() => prefetching.delete(id));
+    }
+    function bindPrefetch() {
+        if (document.body.dataset.prefetch) return;
+        document.body.dataset.prefetch = '1';
+        const idOf = e => e.target.closest?.('[data-pid]')?.dataset.pid;
+        document.addEventListener('pointerdown', e => { const id = idOf(e); if (id) prefetchProduct(id); }, { passive: true, capture: true });
+        let hoverTimer = null;
+        document.addEventListener('pointerover', e => {
+            if (e.pointerType !== 'mouse') return;
+            const id = idOf(e);
+            clearTimeout(hoverTimer);
+            if (id) hoverTimer = setTimeout(() => prefetchProduct(id), 120);
+        }, { passive: true });
     }
 
     function quickAdd(id, btn) {
@@ -1203,11 +1260,47 @@
         watchCovers(box);
     }
 
+    const FEED_TTL = 3 * 60 * 1000;
+    const FEED_KEY = 'ouenze_feed_v1';
+    // Catalogue léger gardé 3 minutes (mémoire, puis session du navigateur sans les photos)
+    function cachedFeed() {
+        const city = currentCity();
+        if (homeFeed && homeFeed.city === city && Date.now() - homeFeed.at < FEED_TTL) return homeFeed;
+        try {
+            const c = JSON.parse(sessionStorage.getItem(FEED_KEY) || 'null');
+            if (!c || c.city !== city || Date.now() - c.at > FEED_TTL || !Array.isArray(c.list)) return null;
+            const list = c.list.map(p => {
+                const old = productsCache[p.id];
+                if (old) return old;
+                productsCache[p.id] = { ...p, photos: [] };
+                return productsCache[p.id];
+            });
+            return { list, trend: new Map(c.trend || []), city, at: c.at };
+        } catch (e) { return null; }
+    }
+    function saveFeed(feed) {
+        try {
+            const light = feed.list.filter(p => p._light).map(({ photos, ...rest }) => rest);
+            if (light.length !== feed.list.length) return;   // ancien mode (produits complets) : pas de copie
+            sessionStorage.setItem(FEED_KEY, JSON.stringify({ city: feed.city, at: feed.at, list: light, trend: [...feed.trend] }));
+        } catch (e) { /* stockage plein : tant pis */ }
+    }
+
     async function loadHomeFeed(shopsReady) {
         const box = document.getElementById('forYou');
         if (!box) return;
+        bindPrefetch();
+        const cached = cachedFeed();
+        if (cached) {
+            homeFeed = cached;
+            renderHomeFeed();
+            return;
+        }
         try {
             const [feed] = await Promise.all([loadFeed(), Promise.resolve(shopsReady).catch(() => null)]);
+            feed.city = currentCity();
+            feed.at = Date.now();
+            saveFeed(feed);
             if (!document.getElementById('forYou')) return;   // l'utilisateur a changé de page
             homeFeed = feed;
             renderHomeFeed();
@@ -1394,7 +1487,7 @@
         const out = light ? p._out : productStock(p) <= 0 && Number(p.stock) !== 0;
         const img = photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy" class="loaded">`
             : (light && p._hasPhoto ? `<img data-cover="${id}" alt="${escapeHtml(p.name)}">` : '<i class="fas fa-image"></i>');
-        return `<div class="home-product" style="--i:${Math.min(i, 11)}" role="button" tabindex="0" onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
+        return `<div class="home-product" data-pid="${id}" style="--i:${Math.min(i, 11)}" role="button" tabindex="0" onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
             <div class="home-product-img">${img}
                 ${rankNo ? `<span class="trend-rank">#${rankNo}</span>` : ''}
                 ${reason ? `<span class="fy-reason">${escapeHtml(reason)}</span>` : versions > 1 ? `<span class="product-card-tag">${versions} versions</span>` : ''}
@@ -1575,10 +1668,17 @@
     }
 
     // Accueil : les mieux notées de la ville (les 8 meilleures s'affichent en vedette)
+    let shopsLoaded = { city: null, at: 0 };
     async function loadShops() {
+        const city = currentCity();
+        if (shopsLoaded.city === city && Date.now() - shopsLoaded.at < FEED_TTL && shopsCache.length) {
+            renderFeaturedShops();
+            return;
+        }
         try {
             await loadShopMedals();
             await fetchShops(q => q.order('rating', { ascending: false, nullsFirst: false }).limit(24));
+            shopsLoaded = { city, at: Date.now() };
             renderFeaturedShops();
         } catch (error) {
             console.error('❌ Erreur boutiques:', error);
@@ -2132,14 +2232,29 @@
             options.every(o => v.values?.[o.name] === detailSelection[o.name])) || null;
     }
  
-    function openProductDetail(productId) {
+    // fill = true : remplir la fiche déjà ouverte (squelette) au lieu d'en ouvrir une nouvelle
+    function openProductDetail(productId, fill) {
         const p = productsCache[productId];
         if (!p) return;
-        // Carte de l'accueil (catalogue léger) : on charge d'abord le produit complet
+        // Carte de l'accueil (catalogue léger) : la fiche s'ouvre tout de suite avec ce qu'on sait
+        // (photo, nom, prix), et se complète dès que le produit complet arrive
         if (p._light) {
+            const photo = safeUrl(p.photos?.[0] || '');
+            const sheet = openModal(`<div id="productDetail" data-pid="${escapeHtml(p.id)}">
+                <div class="pd-layout pd-loading">
+                    <div class="pd-gallery"><div class="pd-main-photo">${photo ? `<img src="${photo}" alt="">` : ''}</div></div>
+                    <div class="pd-info">
+                        <h3 class="pd-name">${escapeHtml(p.name)}</h3>
+                        <div class="pd-price">${cardPrice(p)}</div>
+                        <div class="pd-sk"></div><div class="pd-sk short"></div><div class="pd-sk btn"></div>
+                    </div>
+                </div></div>`);
+            sheet.classList.add('product-modal');
             ensureFullProduct(productId).then(full => {
-                if (full && !full._light) openProductDetail(productId);
-                else showToast('Produit indisponible pour le moment.');
+                const box = document.getElementById('productDetail');
+                if (!box || box.dataset.pid !== String(productId)) return;   // fiche fermée entre-temps
+                if (full && !full._light) openProductDetail(productId, true);
+                else { closeModal(true); showToast('Produit indisponible pour le moment.'); }
             });
             return;
         }
@@ -2152,8 +2267,11 @@
         if (def && def.values) productOptions(p).forEach(o => { if (def.values[o.name]) detailSelection[o.name] = def.values[o.name]; });
         // Une seule valeur possible pour une option : sélection automatique
         productOptions(p).forEach(o => { if (o.values.length === 1) detailSelection[o.name] = o.values[0]; });
-        const modal = openModal('<div id="productDetail"></div>');
-        modal.classList.add('product-modal');
+        // Fiche déjà ouverte (squelette) : on la remplit sans la refermer
+        if (!(fill === true && document.getElementById('productDetail'))) {
+            const modal = openModal('<div id="productDetail"></div>');
+            modal.classList.add('product-modal');
+        }
         renderProductDetail();
     }
  
@@ -2282,7 +2400,7 @@
                         const ph = x._light ? safeUrl(x.photos?.[0] || '') : productPhotos(x)[0];
                         const img = ph ? `<img src="${ph}" alt="" loading="lazy">`
                             : x._light && x._hasPhoto ? `<img data-cover="${escapeHtml(x.id)}" alt="">` : '<i class="fas fa-image"></i>';
-                        return `<button type="button" class="pd-similar-item" onclick="openProductDetail('${escapeHtml(x.id)}')">
+                        return `<button type="button" class="pd-similar-item" data-pid="${escapeHtml(x.id)}" onclick="openProductDetail('${escapeHtml(x.id)}')">
                             <span>${img}</span>
                             <strong>${escapeHtml(x.name)}</strong><b>${cardPrice(x)}</b></button>`;
                     }).join('')}</div>

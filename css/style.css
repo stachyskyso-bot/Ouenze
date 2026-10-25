@@ -5200,3 +5200,28 @@ body.admin-mode .site-footer { display: none; }
     .hp-foot .home-product-price { font-size: 14px; }
     .fy-reason { font-size: 10px; padding: 3px 7px; }
 }
+
+/* ---------- Fenêtres : apparition rapide (panneau qui monte sur téléphone) ---------- */
+.modal.active { animation: modalFade .18s ease-out; }
+.modal.active .modal-card { animation: modalPop .2s cubic-bezier(.2, .9, .3, 1); }
+@keyframes modalFade { from { background: rgba(0, 0, 0, 0); } }
+@keyframes modalPop { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 768px) {
+    .modal.active .modal-card { animation: sheetUp .24s cubic-bezier(.2, .9, .3, 1); }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+}
+
+/* Fiche produit pendant le chargement : photo, nom et prix tout de suite, le reste en gris animé */
+.pd-loading .pd-main-photo { background: var(--gray-100); min-height: 260px; }
+.pd-loading .pd-main-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pd-loading .pd-price { font-size: 24px; font-weight: 800; color: var(--primary); margin: 6px 0 14px; }
+.pd-sk {
+    height: 64px; border-radius: 12px; margin-bottom: 12px;
+    background: linear-gradient(90deg, var(--gray-100) 0%, #e8edf6 50%, var(--gray-100) 100%);
+    background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+}
+.pd-sk.short { height: 22px; width: 60%; }
+.pd-sk.btn { height: 46px; border-radius: 12px; }
+@media (prefers-reduced-motion: reduce) {
+    .modal.active, .modal.active .modal-card, .pd-sk { animation: none !important; }
+}
