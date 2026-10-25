@@ -1,3 +1,9 @@
+// Adresse email nettoyée : espaces, majuscules, virgule au lieu du point, point final
+function cleanEmail(raw) {
+    return String(raw || '').normalize('NFKC').replace(/^mailto:/i, '')
+        .replace(/\s+/g, '').replace(/,/g, '.').replace(/\.+$/, '').replace(/\.{2,}/g, '.').toLowerCase();
+}
+
 // ============================================================
 // DELIVERY-REGISTER.JS — Candidature livreur partenaire
 //
@@ -386,7 +392,8 @@
         const v = id => (document.getElementById(id)?.value || '').trim();
         if (v('dlWebsite')) return;  // robot
         const name = v('dlName');
-        const email = v('dlEmail').toLowerCase();
+        const email = cleanEmail(v('dlEmail'));
+        if (document.getElementById('dlEmail')) document.getElementById('dlEmail').value = email;
         const pw = document.getElementById('dlPassword').value;
         if (name.length < 2) return setError('Indique ton nom complet.', 'dlName');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return setError('Adresse email invalide.', 'dlEmail');
@@ -423,7 +430,8 @@
     }
 
     async function dlLogin() {
-        const email = (document.getElementById('dlLoginEmail').value || '').trim().toLowerCase();
+        const email = cleanEmail(document.getElementById('dlLoginEmail').value);
+        document.getElementById('dlLoginEmail').value = email;
         const password = document.getElementById('dlLoginPassword').value;
         if (!email || !password) return setError('Email et mot de passe requis.');
         const btn = document.getElementById('dlBtn');
