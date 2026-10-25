@@ -600,18 +600,16 @@
         return !city || (shop?.city || 'Brazzaville').toLowerCase() === city;
     }
 
-    // Boutiques connues (chargées une fois) pour filtrer les produits par ville
-    async function ensureShops() {
-        if (shopsCache.length) return;
-        const { data } = await window.supabase.from('shops').select('*, products(count)');
-        if (data && !shopsCache.length) shopsCache = data;
-    }
-
-    // Boutiques de la ville choisie (null = toutes les villes)
+    // Boutiques de la ville choisie (null = toutes les villes) : seulement id et ville, chargés une fois
+    let shopCityIndex = null;
     async function cityShopIds() {
         if (!currentCity()) return null;
-        await ensureShops();
-        const ids = shopsCache.filter(inCurrentCity).map(s => s.id);
+        if (!shopCityIndex) {
+            const { data, error } = await window.supabase.from('shops').select('id, city').limit(5000);
+            if (error) throw error;
+            shopCityIndex = data || [];
+        }
+        const ids = shopCityIndex.filter(inCurrentCity).map(s => s.id);
         return ids.length ? ids : ['00000000-0000-0000-0000-000000000000'];
     }
 
@@ -638,14 +636,6 @@
         return false;
     }
 
-    // Onglet « Boutiques » : liste de toutes les boutiques de l'accueil
-    function goShops() {
-        const list = document.getElementById('allShops');
-        if (list) list.scrollIntoView({ behavior: 'smooth' });
-        else if (document.getElementById('appContainer')) showHomePage().then(() => document.getElementById('allShops')?.scrollIntoView());
-        else window.location.href = 'index.html#boutiques';
-        return false;
-    }
 
     // Menu complet (mobile) : tous les liens de la barre de navigation et du menu déroulant
     function openSiteMenu() {
@@ -957,13 +947,41 @@
         return null;
     }
 
-    function quickAdd(id) {
+    // Bouton rond « + » des cartes produit (couleur : celle de la boutique sur sa page)
+    function addButton(id, versions, out, color) {
+        if (out) return '<span class="hp-out">Épuisé</span>';
+        const label = versions ? 'Choisir une version' : 'Ajouter au panier';
+        return `<button type="button" class="hp-add" aria-label="${label}" title="${label}" ${color ? `style="background:${color};"` : ''}
+            onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `quickAdd('${id}', this)`}"><i class="fas fa-plus"></i></button>`;
+    }
+
+    // Petit signe « ajouté » sur le bouton
+    function cartBump(btn) {
+        if (!btn) return;
+        const i = btn.querySelector('i');
+        btn.classList.remove('added'); void btn.offsetWidth; btn.classList.add('added');
+        if (i) i.className = 'fas fa-check';
+        clearTimeout(btn._bump);
+        btn._bump = setTimeout(() => { btn.classList.remove('added'); if (i) i.className = 'fas fa-plus'; }, 1400);
+        document.querySelectorAll('.hdr-icon .fa-shopping-cart, .tabbar .fa-shopping-cart').forEach(el => {
+            el.classList.remove('cart-shake'); void el.offsetWidth; el.classList.add('cart-shake');
+        });
+    }
+
+    function quickAdd(id, btn) {
         const p = productsCache[id];
         if (p && p._light) {
-            ensureFullProduct(id).then(full => { if (full) addToCart(id); else showToast('Produit indisponible.'); });
+            btn?.classList.add('busy');
+            ensureFullProduct(id).then(full => {
+                btn?.classList.remove('busy');
+                if (!full) { showToast('Produit indisponible.'); return; }
+                if (addToCart(id) === true) cartBump(btn);
+            });
             return false;
         }
-        return addToCart(id);
+        const ok = addToCart(id);
+        if (ok === true) cartBump(btn);
+        return ok;
     }
 
     async function showHomePage() {
@@ -1044,7 +1062,7 @@
             <section class="home-section home-only reveal" id="homeShops">
                 <div class="home-section-head"><h3>Boutiques en vedette</h3>
                     <span class="home-head-links"><a href="autour.html"><i class="fas fa-map-marker-alt"></i> Autour de moi</a>
-                    <a href="#" onclick="document.getElementById('allShops')?.scrollIntoView({behavior:'smooth'});return false;">Voir tout <i class="fas fa-chevron-right"></i></a></span></div>
+                    <a href="#" onclick="return showShopsPage()">Voir tout <i class="fas fa-chevron-right"></i></a></span></div>
                 <div class="home-shops" id="featuredShops">${'<div class="sk-card sk-shop"></div>'.repeat(4)}</div>
             </section>
 
@@ -1058,18 +1076,17 @@
 
             <div id="productResults"></div>
 
-            <section class="home-section" id="allShops">
-                <div class="home-section-head"><h3 id="allShopsTitle">Toutes les boutiques</h3></div>
-                <div class="ranking-bar">
-                    <div class="ranking-filters">
-                        <button class="sort-btn" data-sort="rating" onclick="setSort('rating')"><i class="fas fa-medal"></i> Les mieux notées</button>
-                        <button class="sort-btn" data-sort="sales" onclick="setSort('sales')"><i class="fas fa-fire"></i> Les plus vendues</button>
-                        <button class="sort-btn" data-sort="products" onclick="setSort('products')"><i class="fas fa-boxes"></i> Le plus de produits</button>
-                    </div>
-                </div>
-                <div id="shopsGrid" class="shops-grid">
-                    <div style="text-align:center;padding:60px;color:var(--gray-500);">Chargement…</div>
-                </div>
+            <section class="home-section search-only" id="allShops">
+                <div class="home-section-head"><h3 id="allShopsTitle">Boutiques</h3></div>
+                <div id="shopsGrid" class="shops-grid"></div>
+            </section>
+
+            <section class="home-section home-only reveal home-all-shops">
+                <button type="button" class="all-shops-cta" onclick="showShopsPage()">
+                    <span class="asc-ico"><i class="fas fa-store"></i></span>
+                    <span><b>Voir toutes les boutiques</b><small>Classées par note, ventes ou nouveauté</small></span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
             </section>`;
 
         revealIn(container);
@@ -1083,7 +1100,7 @@
             if (hash === '#categories') showCategories(); else showCategory(hash.slice(5));
         } else if (hash === '#boutiques') {
             history.replaceState(null, '', location.pathname + location.search);
-            document.getElementById('allShops')?.scrollIntoView();
+            showShopsPage();
         } else if (hash === '#favoris') {
             history.replaceState(null, '', location.pathname + location.search);
             showFavorites();
@@ -1384,11 +1401,11 @@
                 ${favBtn('product', p.id)}</div>
             <div class="home-product-body">
                 <div class="home-product-name">${escapeHtml(p.name)}</div>
-                <div class="home-product-price">${cardPrice(p)}</div>
                 ${shop ? `<div class="home-product-shop"><i class="fas fa-store"></i> ${escapeHtml(shop)}</div>` : ''}
-                <button type="button" class="home-product-btn" ${out ? 'disabled' : ''}
-                    onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `quickAdd('${id}')`}">
-                    <i class="fas fa-cart-plus"></i> ${out ? 'Épuisé' : versions ? 'Choisir' : 'Ajouter'}</button>
+                <div class="hp-foot">
+                    <div class="home-product-price">${cardPrice(p)}</div>
+                    ${addButton(id, versions, out)}
+                </div>
             </div>
         </div>`;
     }
@@ -1523,110 +1540,185 @@
         resetToHome();
     }
  
+    // ============ BOUTIQUES ============
+    // On ne charge jamais toutes les boutiques d'un coup : l'accueil en montre quelques-unes,
+    // la page « Boutiques » les charge 24 par 24, la recherche interroge la base.
+    // Colonnes légères (sans le design de la boutique, qui contient le carrousel)
+    const SHOP_COLS = 'id, name, logo_url, city, district, description, rating, total_ratings, total_sales, is_verified, is_active, archived_at, suspended_at, created_at';
+    const SHOPS_PAGE = 24;
+    const shopsView = { sort: 'rating', loaded: 0, done: false, list: [], seq: 0 };
+
+    // Filtre « ville choisie » (sans majuscules ; un seul « or » par requête, réservé à la recherche)
+    function cityFilter(query) {
+        const city = cleanSearch(currentCity());
+        if (!city) return query;
+        return query.ilike('city', city);
+    }
+
+    function visibleShop(s) { return s && s.is_active !== false && !s.archived_at && !s.suspended_at; }
+
+    function rememberShops(list) {
+        (list || []).forEach(s => {
+            const i = shopsCache.findIndex(x => x.id === s.id);
+            if (i >= 0) shopsCache[i] = { ...shopsCache[i], ...s }; else shopsCache.push(s);
+        });
+    }
+
+    // build(query) reçoit la requête et ajoute filtres, tri et pagination
+    async function fetchShops(build) {
+        let res = await build(cityFilter(window.supabase.from('shops').select(SHOP_COLS + ', products(count)')));
+        if (res.error) res = await build(cityFilter(window.supabase.from('shops').select('*, products(count)')));
+        if (res.error) throw res.error;
+        const list = (res.data || []).filter(visibleShop);
+        rememberShops(list);
+        return { list, raw: (res.data || []).length };
+    }
+
+    // Accueil : les mieux notées de la ville (les 8 meilleures s'affichent en vedette)
     async function loadShops() {
-        const grid = document.getElementById('shopsGrid');
-        if (!grid) return;
- 
         try {
-            const { data, error } = await window.supabase
-                .from('shops')
-                .select('*, products(count)');
-            if (error) throw error;
- 
-            shopsCache = data || [];
             await loadShopMedals();
-            renderShops();
+            await fetchShops(q => q.order('rating', { ascending: false, nullsFirst: false }).limit(24));
             renderFeaturedShops();
         } catch (error) {
             console.error('❌ Erreur boutiques:', error);
-            grid.innerHTML = `
-                <div style="text-align:center;padding:60px;color:var(--danger);">
-                    <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;"></i>
-                    <p>Erreur de chargement</p>
-                </div>`;
+            const box = document.getElementById('featuredShops');
+            if (box) box.innerHTML = '<p class="search-hint">Boutiques indisponibles pour le moment.</p>';
         }
     }
- 
+
     function productCountOf(shop) {
         return shop.products?.[0]?.count || 0;
     }
- 
-    function renderShops(filterText) {
+
+    function shopCardHtml(shop) {
+        const level = getShopLevel(shop);
+        const logo = safeUrl(shop.logo_url);
+        return `
+            <div class="shop-card" onclick="viewShopDetail('${escapeHtml(shop.id)}')">
+                ${favBtn('shop', shop.id, 'on-card')}
+                <div class="shop-logo-area">
+                    <div class="shop-logo-img">
+                        ${logo
+                            ? `<img src="${logo}" alt="" loading="lazy" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+                            : '<i class="fas fa-store" style="font-size:28px;"></i>'}
+                    </div>
+                    <div class="shop-name">${escapeHtml(shop.name)}</div>
+                    <div class="shop-rating">
+                        <div class="stars">${generateStars(shop.rating)}</div>
+                        <span>(${shop.total_ratings || 0})</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">
+                        <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
+                    </div>
+                    <div style="margin-top:6px;">
+                        <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span>
+                    </div>
+                </div>
+                <div class="shop-details">
+                    <div class="shop-metrics">
+                        <div class="metric"><div class="metric-value">${productCountOf(shop)}</div><div>Produits</div></div>
+                        <div class="metric"><div class="metric-value">${shop.total_sales || 0}</div><div>Ventes</div></div>
+                    </div>
+                    <button class="btn-visit-shop" style="margin-top:10px;width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:30px;cursor:pointer;font-size:11px;">
+                        <i class="fas fa-eye"></i> Voir la boutique
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    // Recherche : les boutiques qui correspondent (30 au plus), demandées à la base
+    async function renderShops(filterText) {
         const grid = document.getElementById('shopsGrid');
         if (!grid) return;
- 
-        document.querySelectorAll('.sort-btn').forEach(b =>
-            b.classList.toggle('active', b.dataset.sort === currentSort));
- 
         grid.style.display = currentSearchType === 'product' ? 'none' : '';
-        let list = shopsCache.filter(inCurrentCity);
-        const q = (filterText || '').toLowerCase().trim();
-        if (q) {
-            list = list.filter(s =>
-                (s.name || '').toLowerCase().includes(q) ||
-                (s.city || '').toLowerCase().includes(q) ||
-                (s.description || '').toLowerCase().includes(q));
+        const q = cleanSearch(filterText);
+        if (!q) { grid.innerHTML = ''; return; }
+        const seq = ++shopsView.seq;
+        grid.innerHTML = '<p class="search-hint">Recherche de boutiques…</p>';
+        try {
+            const { list } = await fetchShops(b => b.or(`name.ilike.%${q}%,description.ilike.%${q}%,city.ilike.%${q}%`)
+                .order('rating', { ascending: false, nullsFirst: false }).limit(30));
+            if (seq !== shopsView.seq) return;
+            grid.innerHTML = list.length ? list.map(shopCardHtml).join('')
+                : `<div style="text-align:center;padding:40px;color:var(--gray-500);"><i class="fas fa-store-slash" style="font-size:40px;margin-bottom:12px;"></i><p>Aucune boutique trouvée</p></div>`;
+        } catch (e) {
+            if (seq === shopsView.seq) grid.innerHTML = '<p class="search-hint">Recherche de boutiques indisponible pour le moment.</p>';
         }
- 
-        // « Les mieux notées » : Or d'abord, puis Argent, Bronze (avantage des médailles), puis la note
-        const sorters = {
-            rating: (a, b) => (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)),
-            sales: (a, b) => (b.total_sales || 0) - (a.total_sales || 0),
-            products: (a, b) => productCountOf(b) - productCountOf(a)
-        };
-        const city = currentCity().toLowerCase();
-        const sorter = sorters[currentSort] || sorters.rating;
-        list.sort(sorter);
- 
-        if (list.length === 0) {
-            grid.innerHTML = `
-                <div style="text-align:center;padding:60px;color:var(--gray-500);">
-                    <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
-                    <p>${city && !q ? `Pas encore de boutique à ${escapeHtml(currentCity())}` : 'Aucune boutique trouvée'}</p>
-                </div>`;
-            return;
-        }
- 
-        grid.innerHTML = list.map(shop => {
-            const level = getShopLevel(shop);
-            const logo = safeUrl(shop.logo_url);
-            return `
-                <div class="shop-card" onclick="viewShopDetail('${escapeHtml(shop.id)}')">
-                    ${favBtn('shop', shop.id, 'on-card')}
-                    <div class="shop-logo-area">
-                        <div class="shop-logo-img">
-                            ${logo
-                                ? `<img src="${logo}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-                                : '<i class="fas fa-store" style="font-size:28px;"></i>'}
-                        </div>
-                        <div class="shop-name">${escapeHtml(shop.name)}</div>
-                        <div class="shop-rating">
-                            <div class="stars">${generateStars(shop.rating)}</div>
-                            <span>(${shop.total_ratings || 0})</span>
-                        </div>
-                        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">
-                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(shop.city || 'Brazzaville')}
-                        </div>
-                        <div style="margin-top:6px;">
-                            <span class="level-badge ${level.class}">${level.emoji} ${level.name}</span>
-                        </div>
-                    </div>
-                    <div class="shop-details">
-                        <div class="shop-metrics">
-                            <div class="metric"><div class="metric-value">${productCountOf(shop)}</div><div>Produits</div></div>
-                            <div class="metric"><div class="metric-value">${shop.total_sales || 0}</div><div>Ventes</div></div>
-                        </div>
-                        <button class="btn-visit-shop" style="margin-top:10px;width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:30px;cursor:pointer;font-size:11px;">
-                            <i class="fas fa-eye"></i> Voir la boutique
-                        </button>
-                    </div>
-                </div>`;
-        }).join('');
     }
- 
+
+    // Page « Toutes les boutiques » : 24 par 24, triées par la base
+    function goShops() {
+        if (document.getElementById('appContainer')) { showShopsPage(); return false; }
+        window.location.href = 'index.html#boutiques';
+        return false;
+    }
+
+    function showShopsPage(sort) {
+        const container = document.getElementById('appContainer');
+        if (!container) { window.location.href = 'index.html#boutiques'; return false; }
+        if (sort) shopsView.sort = sort;
+        setTab(3);
+        clearInterval(carouselTimer);
+        clearInterval(heroTimer);
+        container.classList.remove('is-searching');
+        const city = currentCity();
+        const sorts = [['rating', 'fa-medal', 'Les mieux notées'], ['sales', 'fa-fire', 'Les plus vendues'], ['new', 'fa-bolt', 'Nouvelles boutiques']];
+        container.innerHTML = `
+            <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <span>Boutiques</span></nav>
+            <h2 class="page-title"><i class="fas fa-store"></i> ${city ? `Boutiques à ${escapeHtml(city)}` : 'Toutes les boutiques'}</h2>
+            <div class="ranking-bar"><div class="ranking-filters">
+                ${sorts.map(([k, icon, label]) => `<button class="sort-btn ${shopsView.sort === k ? 'active' : ''}" onclick="setSort('${k}')"><i class="fas ${icon}"></i> ${label}</button>`).join('')}
+                <a class="sort-btn" href="autour.html"><i class="fas fa-map-marker-alt"></i> Autour de moi</a>
+            </div></div>
+            <div id="shopsPageGrid" class="shops-grid">${'<div class="sk-card sk-shop"></div>'.repeat(8)}</div>
+            <div class="discover-more"><button type="button" id="shopsMore" class="discover-btn" onclick="loadMoreShops()" hidden>Voir plus de boutiques <i class="fas fa-chevron-down"></i></button></div>`;
+        window.scrollTo(0, 0);
+        Object.assign(shopsView, { loaded: 0, done: false, list: [] });
+        loadMoreShops();
+        return false;
+    }
+
+    async function loadMoreShops() {
+        const grid = document.getElementById('shopsPageGrid');
+        const more = document.getElementById('shopsMore');
+        if (!grid || shopsView.done) return;
+        const seq = ++shopsView.seq;
+        if (more) { more.disabled = true; more.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement…'; }
+        const order = { rating: ['rating', 'total_ratings'], sales: ['total_sales', 'rating'], new: ['created_at', 'rating'] }[shopsView.sort] || ['rating', 'total_ratings'];
+        try {
+            if (!shopsView.loaded) await loadShopMedals();
+            const from = shopsView.loaded;
+            const { list, raw } = await fetchShops(q => q
+                .order(order[0], { ascending: false, nullsFirst: false })
+                .order(order[1], { ascending: false, nullsFirst: false })
+                .order('id', { ascending: true })
+                .range(from, from + SHOPS_PAGE - 1));
+            if (seq !== shopsView.seq || !document.getElementById('shopsPageGrid')) return;
+            if (!from) grid.innerHTML = '';
+            shopsView.loaded += raw;
+            shopsView.done = raw < SHOPS_PAGE;
+            shopsView.list.push(...list);
+            grid.insertAdjacentHTML('beforeend', list.map(shopCardHtml).join(''));
+            if (!shopsView.list.length && shopsView.done) {
+                grid.innerHTML = `<div style="text-align:center;padding:60px;color:var(--gray-500);grid-column:1/-1;">
+                    <i class="fas fa-store-slash" style="font-size:48px;margin-bottom:16px;"></i>
+                    <p>${currentCity() ? `Pas encore de boutique à ${escapeHtml(currentCity())}` : 'Les premières boutiques arrivent bientôt.'}</p></div>`;
+            }
+        } catch (e) {
+            console.error('❌ Boutiques:', e);
+            if (!shopsView.loaded) grid.innerHTML = '<p class="search-hint">Boutiques indisponibles pour le moment.</p>';
+        }
+        if (more) {
+            more.disabled = false;
+            more.innerHTML = 'Voir plus de boutiques <i class="fas fa-chevron-down"></i>';
+            more.hidden = shopsView.done;
+        }
+    }
+
     function setSort(sort) {
-        currentSort = sort;
-        renderShops(document.getElementById('searchInput')?.value);
+        shopsView.sort = sort;
+        if (document.getElementById('shopsPageGrid')) showShopsPage(sort);
     }
  
     // ============ RECHERCHE (boutiques + produits) ============
@@ -1640,8 +1732,8 @@
         // Pendant une recherche, les blocs de l'accueil laissent la place aux résultats
         document.getElementById('appContainer')?.classList.toggle('is-searching', q.length > 0);
         const title = document.getElementById('allShopsTitle');
-        if (title) title.textContent = q ? `Boutiques pour « ${q} »` : 'Toutes les boutiques';
-        renderShops(q);
+        if (title) title.textContent = q ? `Boutiques pour « ${q} »` : 'Boutiques';
+        const shopsDone = renderShops(q);
         const box = document.getElementById('productResults');
         if (!box) return;
         if (currentSearchType === 'shop' || q.length < 2) {
@@ -1677,6 +1769,8 @@
             return;
         }
         // Des produits trouvés mais aucune boutique : on n'affiche pas le bloc « Aucune boutique »
+        await shopsDone;
+        if (seq !== searchSeq) return;
         const shopsGrid = document.getElementById('shopsGrid');
         const hasShops = !!shopsGrid?.querySelector('.shop-card');
         if (shopsGrid && !hasShops) shopsGrid.style.display = 'none';
@@ -1930,12 +2024,10 @@
                 </div>
                 <div class="product-card-body">
                     <div class="product-card-name" style="color:${d.productText};">${escapeHtml(p.name)}</div>
-                    <div class="product-card-price" style="color:${d.primary};">${productPriceLabel(p)}</div>
-                    ${productStock(p) <= 0 ? '<div class="product-card-out">Rupture de stock</div>' : ''}
-                    <button class="product-card-btn" style="background:${d.button};"
-                            onclick="event.stopPropagation();${versions.length ? `openProductDetail('${id}')` : `addToCart('${id}')`}">
-                        ${versions.length ? 'Choisir' : 'Ajouter'}
-                    </button>
+                    <div class="hp-foot">
+                        <div class="product-card-price" style="color:${d.primary};">${productPriceLabel(p)}</div>
+                        ${addButton(id, versions.length, productStock(p) <= 0 && Number(p.stock) !== 0, d.button)}
+                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -3264,6 +3356,8 @@
         removeCartItem,
         openTasteInfo,
         resetTaste,
+        showShopsPage,
+        loadMoreShops,
         toggleFavorite,
         showFavorites,
         goFavorites,
