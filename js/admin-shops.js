@@ -21,7 +21,7 @@
         telecom: 'Téléphone, internet', fees: 'Frais bancaires', taxes: 'Impôts', salaries: 'Salaires', other_expense: 'Autre dépense'
     };
     const IN_KINDS = ['sale_store', 'payout', 'contribution'];
-    const ACTION = { suspend: 'Suspendue', unsuspend: 'Réactivée', archive: 'Supprimée du site', restore: 'Restaurée' };
+    const ACTION = { suspend: 'Suspendue', unsuspend: 'Réactivée', archive: 'Supprimée du site', restore: 'Restaurée', appeal: 'Justification du vendeur', purge: 'Effacée définitivement' };
     const state = { tab: 'active', search: '', list: [], openId: null };
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -39,12 +39,21 @@
         return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
     }
     const date = iso => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    const dateTime = iso => iso ? new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+    // Temps restant avant l'effacement automatique
+    function timeLeft(iso) {
+        const ms = new Date(iso) - Date.now();
+        if (!(ms > 0)) return 'délai dépassé : effacement imminent';
+        const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+        return h >= 24 ? `${Math.floor(h / 24)} j ${h % 24} h restants` : h ? `${h} h ${m} min restantes` : `${m} min restantes`;
+    }
 
     function message(html) {
         box().innerHTML = `<div class="dl-card"><div class="dl-status">${html}</div></div>`;
     }
 
     function badge(s) {
+        if (s.purged_at) return '<span class="adm-badge rejected">Effacée</span>';
         if (s.archived_at) return '<span class="adm-badge rejected">Supprimée</span>';
         if (s.suspended_at) return '<span class="adm-badge suspended">Suspendue</span>';
         return '<span class="adm-badge approved">Active</span>';
@@ -99,8 +108,10 @@
         // Les versements d'Ouenze au vendeur viennent de ses ventes Ouenze : on ne les ajoute pas une seconde fois
         const inTotal = Number(st.sales_total) + Number(st.in_store) + Number(st.in_contribution);
         const outTotal = Number(st.out_expenses) + Number(st.out_withdrawal);
-        const actions = s.archived_at
-            ? '<button class="btn-submit" onclick="asAct(\'restore\')"><i class="fas fa-undo"></i> Restaurer la boutique</button>'
+        const actions = s.purged_at ? ''
+            : s.archived_at
+            ? `<button class="btn-submit" onclick="asAct('restore')"><i class="fas fa-undo"></i> Restaurer la boutique</button>
+               ${s.deletion_due_at ? '<button class="btn-cancel tm-danger-text" onclick="asAct(\'purge\')"><i class="fas fa-eraser"></i> Effacer maintenant</button>' : ''}`
             : `${s.suspended_at
                 ? '<button class="btn-submit" onclick="asAct(\'unsuspend\')"><i class="fas fa-play"></i> Réactiver</button>'
                 : '<button class="btn-cancel as-warn-btn" onclick="asAct(\'suspend\')"><i class="fas fa-pause"></i> Suspendre</button>'}
@@ -111,7 +122,14 @@
                 <div class="as-row-head"><h3 style="margin:0;">${esc(s.name)}</h3>${badge(s)}</div>
                 <small class="as-sub">${esc([s.district, s.city].filter(Boolean).join(', ') || '—')} · créée le ${date(s.created_at)}${Number(s.rating) ? ` · ${Number(s.rating).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ★` : ''}</small>
                 ${s.suspended_at ? `<p class="as-alert">Suspendue le ${date(s.suspended_at)} : ${esc(s.suspended_reason || '')}</p>` : ''}
-                ${s.archived_at ? `<p class="as-alert">Supprimée du site le ${date(s.archived_at)} : ${esc(s.archived_reason || '')}</p>` : ''}
+                ${s.purged_at ? `<p class="as-alert">Effacée définitivement le ${date(s.purged_at)}. Seul l'historique des commandes est gardé, anonyme.</p>`
+                    : s.archived_at ? `<p class="as-alert">Supprimée du site le ${date(s.archived_at)} : ${esc(s.archived_reason || '')}</p>
+                    ${s.deletion_due_at ? `<div class="del-box">
+                        <p><i class="fas fa-hourglass-half"></i> Effacement automatique le <b>${dateTime(s.deletion_due_at)}</b> (${timeLeft(s.deletion_due_at)}).</p>
+                        ${s.deletion_appeal
+                            ? `<p class="del-appeal-title"><i class="fas fa-comment-dots"></i> Justification du vendeur (${dateTime(s.deletion_appeal_at)}) :</p><blockquote>${esc(s.deletion_appeal)}</blockquote>
+                               <p class="del-hint">Restaure la boutique si la justification te convainc, sinon efface-la maintenant ou laisse le délai courir.</p>`
+                            : '<p class="del-hint">Le vendeur n\'a pas encore envoyé de justification.</p>'}</div>` : ''}` : ''}
                 <div class="as-actions">${actions}
                     ${s.archived_at || s.suspended_at ? '' : `<a class="btn-cancel" href="index.html?shop=${encodeURIComponent(s.id)}" target="_blank" rel="noopener"><i class="fas fa-eye"></i> Voir la boutique</a>`}</div>
                 <p class="tm-msg" id="asMsg" hidden></p>
@@ -173,7 +191,8 @@
     async function asAct(action) {
         const texts = {
             suspend: ['Suspendre cette boutique ?', 'Elle disparaît du site. Le vendeur est prévenu et ne peut pas la réactiver lui-même.\n\nMotif (envoyé au vendeur) :'],
-            archive: ['Supprimer cette boutique du site ?', 'Elle disparaît du site. Son historique (commandes, comptes, avis) est conservé et tu pourras la restaurer.\n\nMotif (envoyé au vendeur) :'],
+            archive: ['Supprimer cette boutique ?', 'Elle disparaît du site. Le vendeur a 72 heures pour se justifier ; tu peux la restaurer pendant ce délai. Ensuite, la boutique et ses produits sont effacés automatiquement (les commandes déjà passées restent, anonymes).\n\nMotif (envoyé au vendeur) :'],
+            purge: ['Effacer définitivement cette boutique maintenant ?', 'Produits, photos, design et comptabilité seront effacés. Les commandes déjà passées restent, anonymes. C\'est irréversible.'],
             unsuspend: ['Réactiver cette boutique ?', 'Elle redevient visible sur Ouenze.'],
             restore: ['Restaurer cette boutique ?', 'Elle revient sur Ouenze (sauf si elle est aussi suspendue).']
         }[action];
@@ -182,8 +201,10 @@
             reason = await uiPrompt(`${texts[0]}\n\n${texts[1]}`, '');
             if (reason === null) return;
             if (reason.trim().length < 3) { uiAlert('Indique un motif.'); return; }
-        } else if (!(await uiConfirm(`${texts[0]}\n\n${texts[1]}`, action === 'unsuspend' ? 'Réactiver' : 'Restaurer'))) return;
-        const { error } = await window.supabase.rpc('admin_shop_action', { target: state.openId, action, reason });
+        } else if (!(await uiConfirm(`${texts[0]}\n\n${texts[1]}`, { unsuspend: 'Réactiver', purge: 'Effacer' }[action] || 'Restaurer'))) return;
+        const { error } = action === 'purge'
+            ? await window.supabase.rpc('admin_shop_purge_now', { target: state.openId })
+            : await window.supabase.rpc('admin_shop_action', { target: state.openId, action, reason });
         if (error) {
             const el = document.getElementById('asMsg');
             if (el) { el.hidden = false; el.className = 'tm-msg err'; el.textContent = error.message; }

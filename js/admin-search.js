@@ -204,9 +204,63 @@
                     ${kpi('Avis laissés', num(d.reviews_written), 'sur des boutiques')}
                     ${kpi('Trade (simulation)', fcfa(d.trade?.amount), `${num(d.trade?.count)} participation(s)`)}
                 </div>
-            </section>`;
+            </section>
+            ${a.is_admin ? '' : '<section class="sr-section" id="srDeletion"></section>'}`;
         window.scrollTo(0, 0);
+        if (!a.is_admin) loadDeletion(id);
     }
+
+    // ============ SUPPRESSION DU COMPTE (72 heures pour se justifier) ============
+    function timeLeft(iso) {
+        const ms = new Date(iso) - Date.now();
+        if (!(ms > 0)) return 'délai dépassé : effacement imminent';
+        const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+        return h >= 24 ? `${Math.floor(h / 24)} j ${h % 24} h restants` : h ? `${h} h ${m} min restantes` : `${m} min restantes`;
+    }
+
+    async function loadDeletion(id) {
+        const el = document.getElementById('srDeletion');
+        if (!el) return;
+        const { data, error } = await rpc('admin_deletions');
+        if (error) { el.innerHTML = ''; return; }   // migration 20261107 pas encore exécutée
+        const del = (data || []).find(x => x.kind === 'account' && x.id === id);
+        el.innerHTML = `<h3 class="sr-h"><i class="fas fa-user-slash"></i> Compte</h3>
+            <div class="dl-card">${del ? `
+                <p class="as-alert">Compte supprimé : ${esc(del.reason || '')}</p>
+                <div class="del-box">
+                    <p><i class="fas fa-hourglass-half"></i> Effacement automatique le <b>${dateTime(del.due_at)}</b> (${timeLeft(del.due_at)}).</p>
+                    ${del.appeal
+                        ? `<p class="del-appeal-title"><i class="fas fa-comment-dots"></i> Justification (${dateTime(del.appeal_at)}) :</p><blockquote>${esc(del.appeal)}</blockquote>`
+                        : '<p class="del-hint">Pas encore de justification.</p>'}
+                </div>
+                <div class="as-actions">
+                    <button class="btn-submit" onclick="srAccount('${esc(id)}','restore')"><i class="fas fa-undo"></i> Rétablir le compte</button>
+                    <button class="btn-cancel tm-danger-text" onclick="srAccount('${esc(id)}','purge_now')"><i class="fas fa-eraser"></i> Effacer maintenant</button>
+                </div>` : `
+                <p class="del-hint">Supprimer ce compte : la personne est prévenue et a 72 heures pour se justifier. Sans décision de ta part, tout est ensuite effacé automatiquement (ses boutiques aussi). Les commandes déjà passées restent, anonymes.</p>
+                <div class="as-actions"><button class="btn-cancel tm-danger-text" onclick="srAccount('${esc(id)}','delete')"><i class="fas fa-user-times"></i> Supprimer le compte</button></div>`}
+                <p class="tm-msg" id="srDelMsg" hidden></p>
+            </div>`;
+    }
+
+    async function srAccount(id, action) {
+        let reason = null;
+        if (action === 'delete') {
+            reason = await uiPrompt('Supprimer ce compte ?\n\nLa personne a 72 heures pour se justifier, puis tout est effacé.\n\nMotif (envoyé à la personne) :', '');
+            if (reason === null) return;
+            if (reason.trim().length < 3) { uiAlert('Indique un motif.'); return; }
+        } else if (action === 'restore') {
+            if (!(await uiConfirm('Rétablir ce compte ? Ses boutiques supprimées avec le compte reviennent aussi.', 'Rétablir'))) return;
+        } else if (!(await uiConfirm('Effacer définitivement ce compte maintenant ?\n\nCoordonnées, boutiques, produits, favoris et préférences seront effacés et la personne ne pourra plus se connecter. C\'est irréversible.', 'Effacer'))) return;
+        const { error } = await rpc('admin_account_action', { target: id, action, reason });
+        if (error) {
+            const el = document.getElementById('srDelMsg');
+            if (el) { el.hidden = false; el.className = 'tm-msg err'; el.textContent = error.message; }
+            return;
+        }
+        showPerson(id);
+    }
+    window.srAccount = srAccount;
 
     // ============ FICHE COMMANDE ============
     async function showOrder(id) {

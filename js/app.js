@@ -312,14 +312,36 @@
     }
  
     // ============ AUTHENTIFICATION ============
+    // Adresse email nettoyée : espaces, majuscules, virgule au lieu du point, point final, « mailto: »
+    function cleanEmail(raw) {
+        return String(raw || '').normalize('NFKC').replace(/^mailto:/i, '')
+            .replace(/\s+/g, '').replace(/,/g, '.').replace(/\.+$/, '').replace(/\.{2,}/g, '.').toLowerCase();
+    }
+    const EMAIL_OK = /^[a-z0-9._%+'-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+    function emailProblem(email) {
+        if (!email) return 'Entre ton adresse email.';
+        if (!email.includes('@')) return 'Il manque le « @ » dans ton adresse email (exemple : nom@gmail.com).';
+        if (!EMAIL_OK.test(email)) return `« ${email} » n'est pas une adresse email valide. Vérifie qu'elle ressemble à nom@gmail.com, sans accent ni espace.`;
+        return '';
+    }
+    // Remet l'adresse nettoyée dans le champ, pour que la personne la voie
+    function readEmailField(id) {
+        const input = document.getElementById(id);
+        const email = cleanEmail(input?.value);
+        if (input && input.value !== email) input.value = email;
+        return email;
+    }
+
     async function doLogin() {
-        const email = document.getElementById('loginEmail')?.value.trim();
+        const email = readEmailField('loginEmail');
         const password = document.getElementById('loginPassword')?.value;
  
         if (!email || !password) {
             alert('Email et mot de passe requis');
             return;
         }
+        const bad = emailProblem(email);
+        if (bad) { alert(bad); document.getElementById('loginEmail')?.focus(); return; }
  
         try {
             const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
@@ -367,7 +389,7 @@
         if (signupInFlight) return;
         const val = id => document.getElementById(id)?.value.trim() || '';
         const fullName = val('signupName').replace(/\s+/g, ' ');
-        const email = val('signupEmail').toLowerCase();
+        const email = readEmailField('signupEmail');
         const password = document.getElementById('signupPassword')?.value || '';
         const password2 = document.getElementById('signupPassword2')?.value || '';
         // « Vendre » : le compte reste client ; la demande vendeur est validée par Ouenze (vendor-register.html)
@@ -379,7 +401,8 @@
         if (val('signupWebsite')) { closeModal(); return; }
  
         if (fullName.length < 2 || !/[A-Za-zÀ-ÿ]/.test(fullName)) return err('Indique ton nom complet.', 'signupName');
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return err('Adresse email invalide.', 'signupEmail');
+        const emailBad = emailProblem(email);
+        if (emailBad) return err(emailBad, 'signupEmail');
         const loc = readCountryFields('signup');
         if (loc.error) return err(loc.error, loc.field);
         const pwIssue = passwordProblem(password, email);
@@ -477,13 +500,15 @@
  
     async function requestPasswordReset() {
         const emailInput = document.getElementById('loginEmail');
-        const email = emailInput?.value.trim();
+        const email = readEmailField('loginEmail');
  
         if (!email) {
             alert("Entre d'abord ton adresse email dans le champ Email.");
             emailInput?.focus();
             return;
         }
+        const bad = emailProblem(email);
+        if (bad) { alert(bad); emailInput?.focus(); return; }
  
         try {
             const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
@@ -494,9 +519,13 @@
                 console.error('❌ Erreur récupération:', error);
                 const msg = error.message || '';
                 let hint = '';
-                if (/rate limit|too many|security purposes/i.test(msg)) {
+                if (/invalid format|validate email|invalid email/i.test(msg)) {
+                    alert(`L'adresse « ${email} » n'est pas acceptée. Vérifie qu'elle est bien écrite (exemple : nom@gmail.com).`);
+                    emailInput?.focus();
+                    return;
+                } else if (/rate limit|too many|security purposes/i.test(msg)) {
                     hint = '\n\nTrop de demandes récentes. Réessaie dans une heure.';
-                } else if (/sending|smtp|email/i.test(msg)) {
+                } else if (/sending|smtp|error sending/i.test(msg)) {
                     hint = "\n\nLe service d'envoi d'emails n'est pas configuré correctement.";
                 }
                 alert("Impossible d'envoyer l'email de récupération." + hint + '\n\nDétail : ' + msg);

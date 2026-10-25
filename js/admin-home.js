@@ -38,7 +38,29 @@
             </a>`).join('')}</div>`;
     }
 
-    function render(d) {
+    // Suppressions en cours : 72 heures pour se justifier (migration 20261107)
+    const dateTime = iso => new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    function timeLeft(iso) {
+        const ms = new Date(iso) - Date.now();
+        if (!(ms > 0)) return 'effacement imminent';
+        const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+        return h >= 24 ? `${Math.floor(h / 24)} j ${h % 24} h` : h ? `${h} h ${m} min` : `${m} min`;
+    }
+    function deletions(list) {
+        if (!list || !list.length) return '';
+        return `<h3 class="ah-h">Suppressions en cours (72 heures pour se justifier)</h3>
+            <div class="ah-todo">${list.map(x => {
+                const href = x.kind === 'shop' ? `admin-shops.html?id=${encodeURIComponent(x.id)}` : `admin-search.html?u=${encodeURIComponent(x.id)}`;
+                return `<a class="ah-todo-item ${x.appeal ? 'ah-appeal' : ''}" href="${href}">
+                    <span class="ah-todo-ico"><i class="fas ${x.appeal ? 'fa-comment-dots' : x.kind === 'shop' ? 'fa-store-slash' : 'fa-user-slash'}"></i></span>
+                    <span class="ah-todo-txt"><b>${x.kind === 'shop' ? 'Boutique' : 'Compte'} ${esc(x.name)}${x.appeal ? ' · justification à lire' : ''}</b>
+                        <small>Effacement le ${dateTime(x.due_at)} (${timeLeft(x.due_at)}) · ${esc(x.reason || '')}</small></span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>`;
+            }).join('')}</div>`;
+    }
+
+    function render(d, dels) {
         const live = d.orders_mode === 'live';
         box().innerHTML = `
             <form class="ah-search" action="admin-search.html" role="search">
@@ -54,6 +76,7 @@
 
             <h3 class="ah-h">À traiter</h3>
             ${todo(d)}
+            ${deletions(dels)}
 
             <h3 class="ah-h">Aujourd'hui et cette semaine</h3>
             <div class="ah-kpis">
@@ -86,14 +109,19 @@
     }
 
     async function load() {
-        const { data, error } = await window.supabase.rpc('admin_overview');
+        // Effacement des suppressions dont le délai est passé (en plus du passage automatique toutes les heures)
+        await window.supabase.rpc('purge_expired_deletions').then(() => null, () => null);
+        const [{ data, error }, dels] = await Promise.all([
+            window.supabase.rpc('admin_overview'),
+            window.supabase.rpc('admin_deletions').then(r => (r.error ? [] : r.data || []), () => [])
+        ]);
         if (error) {
             message(/admin_overview|schema cache|does not exist/i.test(error.message || '')
                 ? '<i class="fas fa-tools"></i><h3>Base de données à mettre à jour</h3><p>Exécute la migration 20261103_admin_overview.sql dans Supabase.</p>'
                 : '<p>Chargement impossible : ' + esc(error.message) + '</p>');
             return;
         }
-        render(data || {});
+        render(data || {}, dels);
     }
 
     async function init() {
