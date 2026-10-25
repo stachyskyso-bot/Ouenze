@@ -180,7 +180,7 @@
             if (parts.fav >= 1.2) reason = 'Dans tes favoris';
             else if (parts.cat >= 1.1 && cat) reason = 'cat:' + cat;
             else if (parts.shop >= 0.6 || favS.has(p.shop_id)) reason = 'Une boutique que tu aimes';
-            else if (parts.trend >= 0.45 && trend >= 2) reason = 'Tendance';
+            else if (parts.trend >= 0.45 && trend >= 2) reason = 'Populaire en ce moment';
             else if (parts.fresh >= 0.25) reason = 'Nouveau';
             return { p, cat, score, reason };
         });
@@ -257,6 +257,17 @@
         } catch (e) { /* hors ligne */ }
     }
 
+    // « Réinitialiser mes préférences » : on oublie les goûts (ici et sur le compte), pas les favoris
+    async function resetTaste() {
+        taste = emptyTaste();
+        store.set(TASTE_KEY, taste);
+        clearTimeout(syncTimer); syncTimer = null;
+        if (user && db()?.from) {
+            try { await db().from('user_taste').upsert({ user_id: user.id, taste: portable(), updated_at: new Date().toISOString() }); }
+            catch (e) { /* hors ligne : réessayé à la prochaine modification */ }
+        }
+    }
+
     async function init(currentUser) {
         user = currentUser && currentUser.id ? currentUser : null;
         if (!user || !db()?.from) return;
@@ -265,5 +276,5 @@
 
     document.addEventListener('visibilitychange', () => { if (document.hidden && syncTimer) pushTaste(); });
 
-    window.Ouenze4U = { init, track, rank, hasTaste, topCategories, recent, isFav, toggleFav, favIds, onFavChange, visitorId };
+    window.Ouenze4U = { init, track, resetTaste, rank, hasTaste, topCategories, recent, isFav, toggleFav, favIds, onFavChange, visitorId };
 })();

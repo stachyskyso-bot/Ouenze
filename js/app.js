@@ -1012,11 +1012,12 @@
                 </div>
             </section>
 
-            <section class="home-trust home-only reveal">
-                <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
-                <div><i class="fas fa-shield-alt"></i><span><b>Paiement à la livraison</b><small>Mobile Money</small></span></div>
-                <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">Aide et contact</a></small></span></div>
-                <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
+            <section class="home-section home-only" id="homeCategories">
+                <div class="home-section-head"><h3>Catégories populaires</h3></div>
+                <div class="home-cats">
+                    ${MARKET_CATEGORIES.map((c, i) => `<button type="button" class="home-cat" style="--i:${i}" onclick="showCategory('${c.key}')">
+                        <span class="home-cat-emoji">${c.emoji}</span><span>${c.label}</span></button>`).join('')}
+                </div>
             </section>
 
             <section class="home-section home-only fy-section" id="forYouSection">
@@ -1028,15 +1029,17 @@
                 <div class="h-row" id="forYou">${'<div class="sk-card"></div>'.repeat(6)}</div>
             </section>
 
-            <section class="home-section home-only reveal" id="homeCategories">
-                <div class="home-section-head"><h3>Catégories populaires</h3></div>
-                <div class="home-cats">
-                    ${MARKET_CATEGORIES.map((c, i) => `<button type="button" class="home-cat" style="--i:${i}" onclick="showCategory('${c.key}')">
-                        <span class="home-cat-emoji">${c.emoji}</span><span>${c.label}</span></button>`).join('')}
-                </div>
+            <section class="home-trust home-only reveal">
+                <div><i class="fas fa-truck"></i><span><b>Livraison rapide</b><small>Code de remise à la livraison</small></span></div>
+                <div><i class="fas fa-shield-alt"></i><span><b>Paiement à la livraison</b><small>Mobile Money</small></span></div>
+                <div><i class="fas fa-headset"></i><span><b>Support client</b><small><a href="help.html">Aide et contact</a></small></span></div>
+                <div><i class="fas fa-leaf"></i><span><b>Produits locaux</b><small>Et de qualité</small></span></div>
             </section>
 
             ${row('trending', 'fa-fire', 'Tendances', 'Les plus commandés en ce moment')}
+
+            ${row('newest', 'fa-bolt', 'Nouveautés', 'Tout juste arrivés sur Ouenze')}
+            ${row('favRow', 'fa-heart', 'Tes coups de cœur', '', '<a href="#" onclick="return goFavorites()">Tout voir <i class="fas fa-chevron-right"></i></a>')}
 
             <section class="home-section home-only reveal" id="homeShops">
                 <div class="home-section-head"><h3>Boutiques en vedette</h3>
@@ -1045,8 +1048,6 @@
                 <div class="home-shops" id="featuredShops">${'<div class="sk-card sk-shop"></div>'.repeat(4)}</div>
             </section>
 
-            ${row('newest', 'fa-bolt', 'Nouveautés', 'Tout juste arrivés sur Ouenze')}
-            ${row('favRow', 'fa-heart', 'Tes coups de cœur', '', '<a href="#" onclick="return goFavorites()">Tout voir <i class="fas fa-chevron-right"></i></a>')}
             ${row('recent', 'fa-history', 'Vus récemment', '')}
 
             <section class="home-section home-only reveal" id="homeProducts">
@@ -1139,10 +1140,41 @@
         };
     }
 
+    // Phrases courtes et naturelles (retour GRIOT)
+    const CAT_PHRASE = {
+        alimentaire: 'Pour tes repas', mode: 'Tu aimes la mode', maison: 'Pour ta maison',
+        beaute: 'Tu aimes la beauté', electronique: 'Tu aimes l\'électronique', sport: 'Tu aimes le sport',
+        bebes: 'Pour les tout-petits', auto: 'Pour ta voiture'
+    };
+    const CAT_WORD = {
+        alimentaire: 'les bons plats', mode: 'la mode', maison: 'la maison', beaute: 'la beauté',
+        electronique: 'l\'électronique', sport: 'le sport', bebes: 'les bébés', auto: 'l\'auto'
+    };
     function reasonLabel(r) {
         if (!r) return '';
-        if (r.startsWith('cat:')) { const l = catLabel(r.slice(4)); return l ? `Tu aimes ${l}` : ''; }
+        if (r.startsWith('cat:')) return CAT_PHRASE[r.slice(4)] || '';
         return r;
+    }
+
+    // « Pourquoi ces produits ? » : explication simple et bouton pour repartir de zéro
+    function openTasteInfo() {
+        openModal(`
+            <h3 style="margin-bottom:8px;"><i class="fas fa-magic" style="color:var(--primary)"></i> Tes recommandations</h3>
+            <p class="auth-sub" style="text-align:left;line-height:1.6;">La sélection « Pour toi » s'adapte aux produits que tu regardes, ajoutes au panier ou mets en favori.
+                Elle mélange aussi des nouveautés et des produits populaires pour te faire découvrir d'autres boutiques.</p>
+            <p class="auth-sub" style="text-align:left;line-height:1.6;">Ces préférences restent sur ton téléphone${currentUser ? ' et sur ton compte' : ''}. Elles ne sont ni vendues ni partagées.</p>
+            <button type="button" class="btn-submit" style="width:100%;margin-top:6px;" onclick="resetTaste()"><i class="fas fa-undo"></i> Réinitialiser mes préférences</button>
+            <p class="auth-sub" style="margin-top:10px;font-size:12px;">Tes favoris ne sont pas effacés. <a href="privacy.html">En savoir plus</a></p>`);
+        return false;
+    }
+
+    async function resetTaste() {
+        if (!F()) return;
+        if (!(await uiConfirm('Réinitialiser tes préférences ? La sélection « Pour toi » repartira de zéro.', 'Réinitialiser'))) return;
+        await F().resetTaste();
+        closeModal(true);
+        showToast('Préférences réinitialisées.');
+        if (document.getElementById('forYou') && homeFeed) renderHomeFeed();
     }
 
     function fillRow(id, list, opts = {}) {
@@ -1187,11 +1219,12 @@
         // Pour toi : les 12 premiers
         const top = ranked.slice(0, 12);
         fillRow('forYou', top.map(r => r.p), { reasons: top.map(r => reasonLabel(r.reason)) });
-        const cats = f ? f.topCategories(2).map(catLabel).filter(Boolean) : [];
+        const cats = f ? f.topCategories(2).map(k => CAT_WORD[k]).filter(Boolean) : [];
         const sub = document.getElementById('forYouSub');
-        if (sub) sub.textContent = cats.length
-            ? `Choisis d'après ce que tu aimes : ${cats.join(', ')}`
-            : 'Une sélection pour découvrir Ouenze. Plus tu explores, plus elle te ressemble.';
+        if (sub) sub.innerHTML = (cats.length
+            ? `D'après tes goûts : ${escapeHtml(cats.join(' et '))}, avec quelques découvertes.`
+            : 'Une sélection pour découvrir Ouenze. Plus tu explores, plus elle te ressemble.')
+            + ' <a href="#" class="fy-why" onclick="return openTasteInfo()">Pourquoi ?</a>';
         if (f) f.track('impression', { ids: top.slice(0, 8).map(r => r.p.id) });
 
         // Tendances : commandés sur 30 jours
@@ -1298,7 +1331,7 @@
         heroTimer = setInterval(() => {
             if (!document.getElementById('homeHero')) { clearInterval(heroTimer); return; }
             if (!document.hidden) goHero(heroIndex() + 1);
-        }, 5500);
+        }, 6500);
     }
 
     // Boutiques en vedette : médaille, puis note (la ville choisie d'abord)
@@ -2951,6 +2984,8 @@
             ${currentUserType === 'livreur' ? `<a class="btn-submit pf-main" href="delivery-dashboard.html"><i class="fas fa-motorcycle"></i> Mon espace livreur</a>` : ''}
             <nav class="pf-list">
                 ${row('activities.html', 'fa-receipt', 'Mes commandes et activités')}
+                ${row('index.html#favoris', 'fa-heart', 'Mes favoris', 'onclick="closeModal(true);return goFavorites();"')}
+                ${row('#', 'fa-magic', 'Mes recommandations', 'onclick="return openTasteInfo();"')}
                 ${row('notifications.html', 'fa-bell', 'Notifications')}
                 ${row('portfolio.html', 'fa-wallet', 'Mon portefeuille')}
                 ${currentUserType === 'client' ? row('vendor-register.html', 'fa-store', 'Devenir vendeur') + row('delivery-register.html', 'fa-motorcycle', 'Devenir livreur') : ''}
@@ -3227,6 +3262,8 @@
         addDetailToCart,
         changeCartQty,
         removeCartItem,
+        openTasteInfo,
+        resetTaste,
         toggleFavorite,
         showFavorites,
         goFavorites,
