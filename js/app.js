@@ -3325,6 +3325,7 @@
                 ${row('admin-vendors.html', 'fa-user-tie', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
+                ${row('admin-reserve.html', 'fa-piggy-bank', 'Réserves des livreurs (simulation)')}
 </nav>`);
         });
     }

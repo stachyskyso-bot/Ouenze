@@ -8,6 +8,7 @@
 //   • take_delivery()          → prendre une course (code de remise envoyé au client)
 //   • courier_step()           → colis récupéré · livrée (avec le code du client) · abandon
 //   • my_deliveries()          → mes courses en cours et terminées
+//   • my_reserve()             → réserve de garantie (migration 20261110, en simulation)
 // Les règles (niveau, zone, plafond) sont vérifiées par la base : l'écran ne fait qu'afficher.
 // ============================================================
 
@@ -26,7 +27,7 @@
         courier_assigned: 'À récupérer', in_transit: 'En route vers le client', picked_up: 'En route vers le client',
         delivered: 'Livrée', accepted: 'Rendue', cancelled: 'Annulée', refused: 'Refusée'
     };
-    const state = { profile: null, available: [], mine: [], tab: 'available', busy: false, timer: null, geoTimer: null };
+    const state = { profile: null, available: [], mine: [], reserve: null, tab: 'available', busy: false, timer: null, geoTimer: null };
     const app = () => document.getElementById('courierApp');
 
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -93,9 +94,10 @@
         }
         state.profile = profile;
         if (profile.status === 'approved') {
-            const [a, m] = await Promise.all([rpc('available_deliveries'), rpc('my_deliveries')]);
+            const [a, m, r] = await Promise.all([rpc('available_deliveries'), rpc('my_deliveries'), rpc('my_reserve')]);
             state.available = a.data || [];
             state.mine = m.data || [];
+            state.reserve = r.error ? null : r.data;   // migration 20261110 pas encore passée : pas d'onglet
         }
         render();
         keepPosition();
@@ -241,6 +243,57 @@
             </article>`).join('');
     }
 
+    // ---------- Réserve de garantie ----------
+    const KIND = { contribution: 'Mise en réserve', release: 'Rendu', debit: 'Retenue', debit_reversal: 'Retenue annulée', closure: 'Clôture : versé' };
+    const CLAIM = { loss: 'Perte', theft: 'Vol', fraud: 'Fraude', damage: 'Colis abîmé' };
+    const CLAIM_STATUS = { open: 'Ouverte : tu peux contester', contested: 'Contestée : Ouenze examine', upheld: 'Retenue', rejected: 'Écartée', cancelled: 'Annulée' };
+    const shortDate = iso => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    function reserveHtml(r) {
+        const bal = Number(r.balance) || 0, cap = Number(r.cap) || 30000;
+        const pct = Math.min(100, Math.round(bal / cap * 100));
+        const rate = Math.round((Number(r.rate) || 0.1) * 100);
+        const claims = (r.incidents || []);
+        return `
+            ${r.mode !== 'real' ? `<div class="rs-sim"><i class="fas fa-flask"></i> <b>Simulation</b> : rien n'est retenu sur tes gains pour l'instant. Ce tableau montre comment la réserve fonctionnera.</div>` : ''}
+            <div class="rs-card">
+                <div class="rs-balance"><span>Ma réserve</span><b>${fcfa(bal)}</b><small>sur ${fcfa(cap)} maximum</small></div>
+                <div class="rs-bar"><i style="width:${pct}%"></i></div>
+                <div class="rs-grid">
+                    <div><span>Encore bloqué</span><b>${fcfa(r.locked)}</b><small>${r.next_release ? 'prochain retour le ' + shortDate(r.next_release) : '—'}</small></div>
+                    <div><span>Réclamé</span><b>${fcfa(r.claimed)}</b><small>${Number(r.claimed) ? 'en attente de décision' : 'aucune réclamation'}</small></div>
+                </div>
+                <p class="rs-how"><i class="fas fa-info-circle"></i> À chaque course livrée, ${rate} % des frais de livraison vont dans ta réserve, ${100 - rate} % te sont versés.
+                    Chaque somme est rendue en entier après ${Number(r.hold_days) || 45} jours s'il n'y a aucune réclamation.
+                    ${bal >= cap ? '<b>Plafond atteint : tu reçois 100 % de tes courses.</b>' : `Au plafond de ${fcfa(cap)}, tu reçois 100 % de tes courses.`}
+                    La réserve n'est pas une commission : elle t'appartient et couvre seulement une perte, un vol, une fraude ou un dommage prouvé qui t'est imputable.</p>
+            </div>
+            ${claims.length ? `<h3 class="rs-h">Réclamations</h3>${claims.map(i => `
+                <article class="course rs-claim ${i.status}">
+                    <div class="course-top"><strong>${esc(CLAIM[i.kind] || i.kind)} · ${fcfa(i.amount)}</strong><span class="rs-tag">${esc(CLAIM_STATUS[i.status] || i.status)}</span></div>
+                    <p class="course-meta">Ouverte le ${shortDate(i.opened_at)}${i.status === 'open' ? ` · tu peux contester jusqu'au ${new Date(i.contest_deadline).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</p>
+                    <p><b>Ce qui est reproché :</b> ${esc(i.description)}</p>
+                    <p><b>Preuves :</b> ${esc(i.evidence)}</p>
+                    ${i.contest_text ? `<p><b>Ta réponse :</b> ${esc(i.contest_text)}</p>` : ''}
+                    ${i.decision_note ? `<p><b>Décision d'Ouenze :</b> ${esc(i.decision_note)}${Number(i.debited) ? ` (${fcfa(i.debited)} retenus)` : ''}</p>` : ''}
+                    ${['open', 'contested'].includes(i.status) && (i.status === 'contested' || new Date(i.contest_deadline) > new Date())
+                        ? `<button class="btn-submit rs-contest" onclick="courierContest('${esc(i.id)}')"><i class="fas fa-comment-dots"></i> ${i.contest_text ? 'Compléter ma réponse' : 'Contester'}</button>` : ''}
+                </article>`).join('')}` : ''}
+            <h3 class="rs-h">Mouvements</h3>
+            ${(r.entries || []).length ? `<ul class="rs-moves">${r.entries.map(e => `<li>
+                <span><b>${esc(KIND[e.kind] || e.kind)}</b><small>${shortDate(e.created_at)}${e.note ? ' · ' + esc(e.note) : ''}${e.kind === 'contribution' && e.available_at ? ` · rendu à partir du ${shortDate(e.available_at)}` : ''}</small></span>
+                <span class="${Number(e.amount) >= 0 ? 'rs-in' : 'rs-out'}">${Number(e.amount) >= 0 ? '+' : '−'}${fcfa(Math.abs(Number(e.amount)))}</span></li>`).join('')}</ul>`
+                : '<div class="notif-empty"><i class="fas fa-piggy-bank"></i><p>Ta réserve se remplira à chaque course livrée.</p></div>'}`;
+    }
+
+    async function courierContest(id) {
+        const text = await uiPrompt('Explique ta version : ce qui s\'est passé, qui a reçu le colis, tes preuves (photos, témoins…).', '');
+        if (text === null) return;
+        if (text.trim().length < 10) { await say('Réponse trop courte', 'Écris quelques phrases pour qu\'Ouenze comprenne ta version.'); return; }
+        if (await act(() => rpc('reserve_contest', { target: id, message: text.trim() }))) {
+            await say('Réponse envoyée', 'Ouenze va examiner ta contestation. Rien n\'est retenu avant la décision.');
+        }
+    }
+
     function levelsHtml(current) {
         return `<details class="courier-levels" ${state.levelsOpen ? 'open' : ''} ontoggle="courierLevels(this.open)">
             <summary><i class="fas fa-info-circle"></i> Comment monter de niveau ?</summary>
@@ -260,12 +313,16 @@
         const done = state.mine.filter(d => d.status === 'delivered');
         const allowed = state.available.filter(d => d.allowed).length;
         const tabs = { available: `Courses dispo${allowed ? ` (${allowed})` : ''}`, active: `En cours${active.length ? ` (${active.length})` : ''}`, history: 'Historique' };
+        if (state.reserve) {
+            const pending = (state.reserve.incidents || []).filter(i => i.status === 'open').length;
+            tabs.reserve = `Ma réserve${pending ? ` (${pending})` : ''}`;
+        }
         if (active.length && state.tab === 'available' && !state.tabChosen) state.tab = 'active';
         app().innerHTML = `
             ${headerHtml(p)}
             <div class="notif-filters" role="tablist">${Object.entries(tabs).map(([k, label]) =>
                 `<button role="tab" aria-selected="${state.tab === k}" class="${state.tab === k ? 'active' : ''}" onclick="courierTab('${k}')">${label}</button>`).join('')}</div>
-            <div class="course-list">${state.tab === 'available' ? availableHtml() : state.tab === 'active'
+            <div class="course-list">${state.tab === 'reserve' && state.reserve ? reserveHtml(state.reserve) : state.tab === 'available' ? availableHtml() : state.tab === 'active'
                 ? (active.length ? active.map(activeCard).join('') : '<div class="notif-empty"><i class="fas fa-route"></i><p>Aucune course en cours.</p></div>')
                 : historyHtml(done)}</div>
             ${levelsHtml(p.level)}`;
@@ -419,7 +476,7 @@
         state.timer = setInterval(() => { if (!document.hidden && !state.busy && state.profile?.status === 'approved') refresh(); }, 30000);
     }
 
-    Object.assign(window, { courierLevels: open => { state.levelsOpen = open; }, courierOnline: goOnline, courierOffline: goOffline, courierTake, courierStep, courierDeliver, courierRelease, courierTab, courierSendCode });
+    Object.assign(window, { courierContest, courierLevels: open => { state.levelsOpen = open; }, courierOnline: goOnline, courierOffline: goOffline, courierTake, courierStep, courierDeliver, courierRelease, courierTab, courierSendCode });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();

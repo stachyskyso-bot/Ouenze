@@ -154,3 +154,18 @@ body.admin-mode .as-note { margin: 16px 0 24px; }
 .del-hint { color: #64748b; font-size: 13px; }
 .ah-todo-item.ah-appeal { border-left-color: #1e40af !important; background: #eef2ff; }
 body.admin-mode .hdr-icon[aria-label="Favoris"] { display: none; }
+
+/* ---------- Réserves des livreurs (admin-reserve.html) ---------- */
+.rs-sim-admin { margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: #fff7e6; border: 1px solid #fde68a; color: #92400e; font-size: 14px; }
+.rs-list { display: grid; gap: 8px; }
+.rs-row { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.rs-row:hover { border-color: #c7d2fe; background: #f8faff; }
+.rs-line { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; font-size: 13px; color: #64748b; }
+.rs-line b { color: #0f172a; }
+.rs-settings summary { cursor: pointer; font-weight: 700; }
+.rs-settings[open] summary { margin-bottom: 10px; }
+.rs-claim-admin { padding: 12px 0; border-top: 1px solid #eef1f6; }
+.rs-claim-admin:first-of-type { border-top: none; }
+.rs-claim-admin p { margin: 4px 0; font-size: 14px; }
+.as-in { color: #15803d; }
+.as-out { color: #b91c1c; }

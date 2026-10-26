@@ -26,7 +26,8 @@
             ['admin-reports.html', 'fa-flag', d.reports, 'Signalement(s) ouvert(s)', 'Vendeurs ou livreurs signalés'],
             ['equipe.html', 'fa-wallet', d.to_pay, 'Livrée(s) non payée(s)', 'Relancer le paiement ou marquer payée'],
             ['trade.html', 'fa-chart-line', d.trade_review, 'Opération(s) Trade à vérifier', 'Simulation'],
-            ['trade.html', 'fa-receipt', d.trade_pending_lines, 'Justificatif(s) Trade à valider', 'Dépenses et ventes déclarées']
+            ['trade.html', 'fa-receipt', d.trade_pending_lines, 'Justificatif(s) Trade à valider', 'Dépenses et ventes déclarées'],
+            ['admin-reserve.html', 'fa-piggy-bank', d.reserve_todo, 'Réclamation(s) livreur à trancher', 'Réserve de garantie (simulation)']
         ];
         const open = items.filter(i => Number(i[2]) > 0);
         if (!open.length) return '<div class="dl-card ah-clear"><i class="fas fa-check-circle"></i> Rien à traiter pour le moment.</div>';
@@ -101,6 +102,7 @@
                 <a href="admin-shops.html"><i class="fas fa-store"></i> Boutiques</a>
                 <a href="admin-vendors.html"><i class="fas fa-user-tie"></i> Demandes vendeurs</a>
                 <a href="admin-deliverers.html"><i class="fas fa-motorcycle"></i> Livreurs</a>
+                <a href="admin-reserve.html"><i class="fas fa-piggy-bank"></i> Réserves des livreurs</a>
                 <a href="admin-reports.html"><i class="fas fa-flag"></i> Signalements</a>
                 <a href="trade.html"><i class="fas fa-chart-line"></i> Trade</a>
                 <a href="equipe.html" onclick="sessionStorage.setItem('tmTab','team')"><i class="fas fa-sliders-h"></i> Équipe et réglages</a>
@@ -112,6 +114,7 @@
     async function load() {
         // Effacement des suppressions dont le délai est passé (en plus du passage automatique toutes les heures)
         await window.supabase.rpc('purge_expired_deletions').then(() => null, () => null);
+        await window.supabase.rpc('reserve_release_due').then(() => null, () => null);
         const [{ data, error }, dels] = await Promise.all([
             window.supabase.rpc('admin_overview'),
             window.supabase.rpc('admin_deletions').then(r => (r.error ? [] : r.data || []), () => []),
@@ -125,7 +128,8 @@
                 : '<p>Chargement impossible : ' + esc(error.message) + '</p>');
             return;
         }
-        render(data || {}, dels);
+        const todoRes = await window.supabase.rpc('admin_reserve_todo').then(r => r, () => ({}));
+        render({ ...(data || {}), reserve_todo: Number(todoRes?.data) || 0 }, dels);
     }
 
     async function init() {
