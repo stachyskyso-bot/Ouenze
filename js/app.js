@@ -2521,7 +2521,21 @@
         watchCovers(box);
     }
  
+    // Toucher la photo d'une version (ex. le rouge à lèvres bleu) choisit cette version : prix, stock et bouton suivent.
+    // Si la photo est commune à plusieurs versions (ex. même couleur, tailles différentes),
+    // seules les caractéristiques qu'elles partagent sont choisies.
     function showProductPhoto(src) {
+        const p = detailProduct;
+        const owners = p ? productVariants(p).filter(v =>
+            (v.photos || []).some(x => safeUrl(x) === src) && v.values && typeof v.values === 'object') : [];
+        if (owners.length) {
+            const before = JSON.stringify(detailSelection);
+            productOptions(p).forEach(o => {
+                const vals = [...new Set(owners.map(v => v.values[o.name]).filter(Boolean))];
+                if (vals.length === 1) detailSelection[o.name] = vals[0];
+            });
+            if (JSON.stringify(detailSelection) !== before) detailQty = 1;
+        }
         renderProductDetail(src);
     }
  

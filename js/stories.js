@@ -85,7 +85,62 @@
     async function loadFeed() {
         const { data, error } = await sb().rpc('story_feed', { city: null });
         if (error) throw error;
-        return Array.isArray(data) ? data : [];
+        const rows = Array.isArray(data) ? data : [];
+        // Stories déjà aimées (clients connectés ; migration 20261112, absente = aucun cœur rempli)
+        if (rows.length && await isLoggedIn()) {
+            try {
+                const { data: liked } = await sb().rpc('my_story_likes', { ids: rows.map(r => r.id) });
+                const set = new Set((liked || []).map(x => typeof x === 'object' ? Object.values(x)[0] : x));
+                rows.forEach(r => { r.liked = set.has(r.id); });
+            } catch (e) { /* sans gravité */ }
+        }
+        return rows;
+    }
+
+    // ---------- J'aime ----------
+    function isLiked(it) {
+        if (it.kind === 'product') return !!window.Ouenze4U?.isFav?.('product', it.id);
+        return !!it.liked;
+    }
+
+    async function toggleLike(it, btn) {
+        if (!(await isLoggedIn())) {
+            closeViewer();
+            if (typeof window.openLoginModal === 'function') window.openLoginModal();
+            else if (window.uiAlert) window.uiAlert('Connecte-toi pour aimer les stories.');
+            return;
+        }
+        const was = isLiked(it);
+        const setUi = on => {
+            btn.classList.toggle('on', on);
+            btn.querySelector('i').className = (on ? 'fas' : 'far') + ' fa-heart';
+            btn.setAttribute('aria-pressed', String(on));
+        };
+        setUi(!was);
+        if (!was) burst();
+        try {
+            if (it.kind === 'product') {
+                await window.Ouenze4U?.toggleFav?.('product', it.id);
+            } else {
+                const { data, error } = await sb().rpc('toggle_story_like', { target: it.id });
+                if (error) throw error;
+                it.liked = !!data;
+                setUi(it.liked);
+            }
+        } catch (e) {
+            it.liked = was;
+            setUi(was);
+        }
+    }
+
+    // Grand cœur au centre de la story
+    function burst() {
+        const stage = viewer?.box.querySelector('.st-stage');
+        if (!stage) return;
+        const h = document.createElement('i');
+        h.className = 'fas fa-heart st-burst';
+        stage.appendChild(h);
+        setTimeout(() => h.remove(), 900);
     }
 
     function timeAgo(d) {
@@ -102,7 +157,7 @@
             const it = {
                 kind: 'story', id: r.id, type: r.media_type, url: r.media_url, caption: r.caption,
                 bg: r.bg_color, duration: r.duration_ms, productId: r.product_id, productName: r.product_name,
-                productPrice: r.product_price, at: r.created_at, viewed: !!r.viewed, shopId: r.shop_id
+                productPrice: r.product_price, at: r.created_at, viewed: !!r.viewed, shopId: r.shop_id, liked: !!r.liked
             };
             const key = r.author_kind === 'ouenze' ? 'ouenze' : 'shop:' + r.shop_id;
             if (!byShop.has(key)) {
@@ -461,8 +516,12 @@
         const actions = [];
         if (!it.preview && it.productId) actions.push(`<button type="button" class="st-cta" data-act="product"><i class="fas fa-shopping-bag"></i> Voir le produit</button>`);
         if (!it.preview && (g.shopId || it.shopId) && g.kind !== 'ouenze') actions.push(`<button type="button" class="st-cta ghost" data-act="shop"><i class="fas fa-store"></i> Boutique</button>`);
-        foot.innerHTML = caption + productLine + (actions.length ? `<div class="st-actions">${actions.join('')}</div>` : '');
+        const like = it.preview ? '' : `<button type="button" class="st-like ${isLiked(it) ? 'on' : ''}" aria-pressed="${isLiked(it)}"
+                aria-label="${it.kind === 'product' ? 'Ajouter aux favoris' : "J'aime"}"><i class="${isLiked(it) ? 'fas' : 'far'} fa-heart"></i></button>`;
+        foot.innerHTML = caption + productLine + `<div class="st-actions">${actions.join('')}${like}</div>`;
         foot.querySelectorAll('.st-cta').forEach(b => b.onclick = () => act(b.dataset.act, it, g));
+        const likeBtn = foot.querySelector('.st-like');
+        if (likeBtn) likeBtn.onclick = () => toggleLike(it, likeBtn);
 
         viewer.dur = dur;
         viewer.elapsed = 0;
@@ -763,8 +822,18 @@
         } catch (e) { /* on réessaiera plus tard */ }
     }
 
+    // Nombre de J'aime de mes stories (vendeur) ou de toutes (équipe) : { id: nombre }
+    async function likeCounts(ids) {
+        if (!ids?.length) return {};
+        try {
+            const { data, error } = await sb().rpc('story_like_counts', { ids });
+            if (error) return {};
+            return Object.fromEntries((data || []).map(r => [r.story_id, Number(r.likes) || 0]));
+        } catch (e) { return {}; }
+    }
+
     window.OuenzeStories = {
-        mountRow, setProducts, open, openShop, decorateLogo, compose, preview, remove, cleanFiles, timeAgo,
+        mountRow, setProducts, open, likeCounts, openShop, decorateLogo, compose, preview, remove, cleanFiles, timeAgo,
         close: () => closeViewer()
     };
 })();

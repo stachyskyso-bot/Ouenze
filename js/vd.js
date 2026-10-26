@@ -274,6 +274,8 @@
         } else {
             storiesError = '';
             myStories = Array.isArray(data) ? data : [];
+            const likes = await window.OuenzeStories.likeCounts(myStories.map(r => r.id));
+            myStories.forEach(r => { r.likes = likes[r.id] || 0; });
         }
         renderMyStories();
     }
@@ -303,7 +305,8 @@
             return `<div class="st-card ${r.active ? '' : 'off'}" role="button" tabindex="0" onclick="vdPreviewStory(${i})">
                 ${media}${state}
                 ${r.active ? `<button type="button" class="st-card-del" aria-label="Supprimer" onclick="event.stopPropagation();vdDeleteStory('${escapeHtml(r.id)}')"><i class="fas fa-trash"></i></button>` : ''}
-                <span class="st-card-info"><b><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''}</b>
+                <span class="st-card-info"><b><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''}
+                    · <i class="fas fa-heart st-heart"></i> ${Number(r.likes) || 0}</b>
                     ${dashShops.length > 1 ? `<small>${escapeHtml(r.shop_name || '')}</small>` : ''}
                     ${r.audience === 'fans' ? '<small><i class="fas fa-heart"></i> Mes fidèles</small>' : ''}
                     ${r.removed_reason ? `<small>Raison : ${escapeHtml(r.removed_reason)}</small>` : ''}</span>
