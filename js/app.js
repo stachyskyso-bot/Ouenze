@@ -205,7 +205,7 @@
             if (params.get('site') === '1') { sessionStorage.setItem('ouenzeSiteView', '1'); return false; }
             if (sessionStorage.getItem('ouenzeSiteView') === '1') return false;
         } catch (e) { return false; }
-        if (params.get('shop') || params.get('q') || location.hash) return false;
+        if (params.get('shop') || params.get('statut') || params.get('q') || location.hash) return false;
         return arrivingFromOutside();
     }
     function goToSpace(kind) {
@@ -302,7 +302,11 @@
         const params = new URLSearchParams(window.location.search);
         const shopParam = params.get('shop');
         const queryParam = params.get('q');
-        if (shopParam) {
+        const storyParam = params.get('statut');
+        if (storyParam) {
+            // Lien partagé par un vendeur : index.html?statut=<boutique>
+            viewShopDetail(storyParam).then(() => window.OuenzeStories?.openShop(storyParam));
+        } else if (shopParam) {
             viewShopDetail(shopParam);
         } else if (queryParam) {
             // Recherche lancée depuis une autre page : index.html?q=<texte>
@@ -1117,6 +1121,12 @@
             </section>`;
 
         container.innerHTML = `
+            <section class="home-section home-only st-section" id="storiesSection" hidden>
+                <div class="home-section-head"><h3>Stories des boutiques</h3>
+                    <span class="home-head-links"><a href="#" onclick="OuenzeStories.open(0);return false;">Voir tout <i class="fas fa-chevron-right"></i></a></span></div>
+                <div class="st-row" id="storiesRow" aria-label="Stories"></div>
+            </section>
+
             <section class="home-hero-row home-only">
                 <div class="home-hero" id="homeHero">
                     <div class="hero-slide active">
@@ -1201,6 +1211,11 @@
             </section>`;
 
         revealIn(container);
+        if (window.OuenzeStories) {
+            window.OuenzeStories.mountRow('storiesRow', {
+                city: currentCity(), canPost: currentUserType === 'vendor', avatar: currentProfile?.avatar_url, products: storyProducts()
+            });
+        }
         const shopsReady = loadShops();
         loadHomeFeed(shopsReady);
         await shopsReady;
@@ -1216,6 +1231,20 @@
             history.replaceState(null, '', location.pathname + location.search);
             showFavorites();
         }
+    }
+
+    // Produits récents avec photo, dans l'ordre « Pour toi » : le cercle « Nouveautés » des statuts
+    function storyProducts(ranked, ctx) {
+        if (!ranked) {
+            if (!homeFeed?.list?.length) return [];
+            ctx = rankContext(homeFeed.trend);
+            const f = F();
+            ranked = f ? f.rank(homeFeed.list, ctx) : homeFeed.list.map(p => ({ p }));
+        }
+        return ranked.map(r => r.p).filter(p => ctx.hasPhoto(p)).map(p => ({
+            id: p.id, name: p.name, price: p.price, shop_id: p.shop_id,
+            shop_name: p.shop_name || shopsCache.find(x => x.id === p.shop_id)?.name || '', created_at: p.created_at
+        }));
     }
 
     function scrollRow(id, dir) {
@@ -1416,6 +1445,7 @@
         showMoreDiscover();
 
         renderHeroSlides(ranked.filter(r => ctx.hasPhoto(r.p)).slice(0, 3));
+        window.OuenzeStories?.setProducts(storyProducts(ranked, ctx));
         revealIn(document.getElementById('appContainer'));
     }
 
@@ -2088,6 +2118,7 @@
                 <p class="report-link"><button type="button" onclick="openReport('vendor', null, '${escapeHtml(shop.id)}', '${escapeHtml(String(shop.name || '').replace(/'/g, ' '))}')">
                     <i class="fas fa-flag"></i> Signaler cette boutique</button></p>`;
             loadShopReviews(shop);
+            window.OuenzeStories?.decorateLogo(shop.id, container.querySelector('.shop-hero-logo'));
             currentShopCategoryFilter = '';
             renderShopProducts(currentShopProducts);
             startCarousel(carouselItems.length, d.carouselSpeed);
@@ -3323,6 +3354,7 @@
                 ${row('trade.html', 'fa-chart-line', 'Ouenze Trade : gérer les opérations (simulation)')}
                 ${row('admin-shops.html', 'fa-store', 'Boutiques : suspendre, supprimer, activité')}
                 ${row('admin-vendors.html', 'fa-user-tie', 'Demandes vendeurs')}
+                ${row('admin-stories.html', 'fa-circle-notch', 'Stories : publier pour Ouenze, modérer')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
                 ${row('admin-reserve.html', 'fa-piggy-bank', 'Réserves des livreurs (simulation)')}
