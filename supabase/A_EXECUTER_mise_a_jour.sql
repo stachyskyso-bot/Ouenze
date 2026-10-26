@@ -2893,37 +2893,41 @@ alter table public.orders add column if not exists service_fee numeric not null 
 alter table public.orders add column if not exists vendor_bonus numeric not null default 0;
 
 -- ---------- place_order : frais de service + livraison 300 / 500 ----------
+-- La fonction existante est complétée en place. Les recherches tolèrent les espaces et les fins de
+-- ligne Windows (texte collé depuis un PC) ; si un passage manque, rien n'est modifié.
 do $$
 declare
     def text;
-    pairs text[][] := array[
-        array['    fees numeric;' || chr(10),
-              '    fees numeric;' || chr(10) || '    comm numeric;' || chr(10) || '    nshops integer;' || chr(10) || '    fee_total numeric;' || chr(10)
-              || '    pool numeric;' || chr(10) || '    ngold integer;' || chr(10) || '    gi integer := 0;' || chr(10) || '    bonus numeric;' || chr(10)],
-        array['    -- Une commande par boutique' || chr(10) || '    for shop in',
-              '    -- Une commande par boutique ; livraison : 300 FCFA pour une boutique, 500 au total pour plusieurs (répartis)' || chr(10)
+    -- motif (expression régulière) → remplacement ; chaque motif doit être trouvé
+    pats text[][] := array[
+        array['fees\s+numeric\s*;',
+              'fees numeric;' || chr(10) || '    comm numeric;' || chr(10) || '    nshops integer;' || chr(10) || '    fee_total numeric;' || chr(10)
+              || '    pool numeric;' || chr(10) || '    ngold integer;' || chr(10) || '    gi integer := 0;' || chr(10) || '    bonus numeric;'],
+        array['for\s+shop\s+in\s',
+              '-- Livraison : 300 FCFA pour une boutique, 500 au total pour plusieurs (répartis)' || chr(10)
               || '    select count(distinct shop_id) into nshops from _cart;' || chr(10)
               || '    fee_total := public.delivery_total(nshops);' || chr(10)
               || '    -- Boutiques Or : 2 % de leurs articles reversés, partagés à parts égales entre elles' || chr(10)
               || '    select coalesce(sum(t.s * public.medal_vendor_share(t.m)), 0), count(*) filter (where public.medal_vendor_share(t.m) > 0)' || chr(10)
               || '      into pool, ngold' || chr(10)
               || '      from (select shop_id, sum(quantity * unit_price) as s, public.shop_medal(shop_id) as m from _cart group by shop_id) t;' || chr(10)
-              || '    pool := round(pool);' || chr(10) || '    for shop in'],
-        array['insert into public.orders (client_id, order_number, subtotal, delivery_fees, total,',
+              || '    pool := round(pool);' || chr(10) || '    for shop in '],
+        array['fees\s*:=\s*round\(\s*sub\s*\*\s*(public\.delivery_rate\(\)|0\.10?)\s*\)\s*;',
+              'fees := floor(fee_total / nshops) + case when n <= (fee_total - floor(fee_total / nshops) * nshops) then 1 else 0 end;'
+              || chr(10) || '        comm := round(sub * public.shop_fee_rate(shop.shop_id));'
+              || chr(10) || '        bonus := 0;'
+              || chr(10) || '        if ngold > 0 and public.medal_vendor_share(public.shop_medal(shop.shop_id)) > 0 then'
+              || chr(10) || '            gi := gi + 1;'
+              || chr(10) || '            bonus := floor(pool / ngold) + case when gi <= (pool - floor(pool / ngold) * ngold) then 1 else 0 end;'
+              || chr(10) || '        end if;'],
+        array['insert\s+into\s+public\.orders\s*\(\s*client_id\s*,\s*order_number\s*,\s*subtotal\s*,\s*delivery_fees\s*,\s*total\s*,',
               'insert into public.orders (client_id, order_number, subtotal, delivery_fees, service_fee, vendor_bonus, total,'],
-        array['values (uid, num, sub, fees, sub + fees,',
+        array['values\s*\(\s*uid\s*,\s*num\s*,\s*sub\s*,\s*fees\s*,\s*sub\s*\+\s*fees\s*,',
               'values (uid, num, sub, fees, comm, bonus, sub + comm + fees,'],
-        array['''delivery_fees'', fees, ''total'', sub + fees);',
-              '''delivery_fees'', fees, ''service_fee'', comm, ''vendor_bonus'', bonus, ''total'', sub + comm + fees);'],
-        array['grand := grand + sub + fees;', 'grand := grand + sub + comm + fees;']
+        array['''delivery_fees''\s*,\s*fees\s*,\s*''total''\s*,\s*sub\s*\+\s*fees\s*\)',
+              '''delivery_fees'', fees, ''service_fee'', comm, ''vendor_bonus'', bonus, ''total'', sub + comm + fees)'],
+        array['grand\s*:=\s*grand\s*\+\s*sub\s*\+\s*fees\s*;', 'grand := grand + sub + comm + fees;']
     ];
-    fee_line text := '        fees := floor(fee_total / nshops) + case when n <= (fee_total - floor(fee_total / nshops) * nshops) then 1 else 0 end;'
-                     || chr(10) || '        comm := round(sub * public.shop_fee_rate(shop.shop_id));'
-                     || chr(10) || '        bonus := 0;'
-                     || chr(10) || '        if ngold > 0 and public.medal_vendor_share(public.shop_medal(shop.shop_id)) > 0 then'
-                     || chr(10) || '            gi := gi + 1;'
-                     || chr(10) || '            bonus := floor(pool / ngold) + case when gi <= (pool - floor(pool / ngold) * ngold) then 1 else 0 end;'
-                     || chr(10) || '        end if;';
     i integer;
 begin
     select pg_get_functiondef('public.place_order(jsonb, jsonb, jsonb)'::regprocedure) into def;
@@ -2931,19 +2935,12 @@ begin
         raise notice 'place_order a déjà les nouveaux frais';
         return;
     end if;
-    -- Ancien calcul : 10 % écrit en dur, ou réglage delivery_rate
-    if position('fees := round(sub * public.delivery_rate());' in def) > 0 then
-        def := replace(def, 'fees := round(sub * public.delivery_rate());', ltrim(fee_line));
-    elsif position('fees := round(sub * 0.10);' in def) > 0 then
-        def := replace(def, 'fees := round(sub * 0.10);', ltrim(fee_line));
-    else
-        raise exception 'place_order : calcul des frais introuvable, mise à jour annulée';
-    end if;
-    for i in 1 .. array_length(pairs, 1) loop
-        if position(pairs[i][1] in def) = 0 then
-            raise exception 'place_order : passage % introuvable, mise à jour annulée', i;
+    def := replace(def, chr(13), '');   -- fins de ligne Windows
+    for i in 1 .. array_length(pats, 1) loop
+        if def !~ pats[i][1] then
+            raise exception 'place_order : passage % introuvable (%), mise à jour annulée', i, pats[i][1];
         end if;
-        def := replace(def, pairs[i][1], pairs[i][2]);
+        def := regexp_replace(def, pats[i][1], pats[i][2]);
     end loop;
     execute def;
 end $$;
