@@ -179,8 +179,8 @@ function setupCarouselUpload() {
             sdToast('Chargement…');
             for (const file of files) {
                 if (looksLikeImage(file)) {
-                    // Bannière : 1280 px de large suffisent et gardent l'enregistrement léger
-                    const src = await compressImage(file, 1280, 0.75).catch(() => null);
+                    // Bannière : 1600 px, net sur grand écran tout en gardant l'enregistrement léger
+                    const src = await compressImage(file, 1600, 0.8).catch(() => null);
                     if (src) carouselMedia.push({ type: 'image', src });
                     else alert(imageErrorText(file));
                 } else if (file.type.startsWith('video/')) {
@@ -1087,12 +1087,15 @@ function updatePreview() {
     let carouselHtml = '';
     if (carouselMedia.length > 0) {
         carouselHtml = `
-            <div style="height:${designConfig.carouselHeight}px;border-radius:${designConfig.carouselRadius}px;overflow:hidden;margin:12px 16px;position:relative;">
+            <div style="height:max(140px, min(${designConfig.carouselHeight}px, 62vw, 60vh));border-radius:${designConfig.carouselRadius}px;overflow:hidden;margin:12px 16px;position:relative;">
                 <div id="previewCarousel" style="height:100%;position:relative;">
                     ${carouselMedia.map((m, i) => `
                         ${m.type === 'image' 
-                            ? `<img src="${m.src}" class="carousel-slide" style="width:100%;height:100%;object-fit:cover;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;">`
-                            : `<video src="${m.src}" class="carousel-slide" muted autoplay loop playsinline style="width:100%;height:100%;object-fit:cover;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;"></video>`
+                            ? `<div class="carousel-slide" style="display:${i === 0 ? 'block' : 'none'};position:absolute;inset:0;overflow:hidden;background:#0f172a;">
+                                   <img src="${m.src}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(22px) brightness(.8);transform:scale(1.15);">
+                                   <img src="${m.src}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;">
+                               </div>`
+                            : `<video src="${m.src}" class="carousel-slide" muted autoplay loop playsinline style="width:100%;height:100%;object-fit:contain;background:#000;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;"></video>`
                         }
                     `).join('')}
                 </div>

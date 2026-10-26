@@ -2040,9 +2040,10 @@ body {
 .shop-carousel {
     position: relative;
     margin: 16px 16px 0;
-    height: min(var(--carousel-h, 300px), 56vw);
+    /* Hauteur choisie par le vendeur, adaptée à l'écran (jamais plus de 60 % de la hauteur visible) */
+    height: max(140px, min(var(--carousel-h, 300px), 62vw, 60vh));
     overflow: hidden;
-    background: var(--gray-100);
+    background: #0f172a;
     touch-action: pan-y;
 }
 
@@ -2063,13 +2064,23 @@ body {
     pointer-events: auto;
 }
 
+/* L'image est toujours visible en entier (pas de recadrage) ; le fond flou de la même photo
+   remplit l'espace restant, quel que soit l'appareil */
 .shop-carousel-slide img,
 .shop-carousel-slide video {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
+.shop-carousel-slide img.sc-fill {
+    object-fit: cover;
+    filter: blur(22px) brightness(0.8) saturate(1.1);
+    transform: scale(1.15);
+}
+.shop-carousel-slide video { background: #000; }
 
 .shop-carousel-nav {
     position: absolute;

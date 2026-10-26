@@ -2091,7 +2091,7 @@
                                     <div class="shop-carousel-slide ${i === 0 ? 'active' : ''}">
                                         ${m.type === 'video'
                                             ? `<video src="${m.src}" muted loop playsinline ${i === 0 ? 'autoplay' : ''} preload="metadata"></video>`
-                                            : `<img src="${m.src}" alt="" ${i === 0 ? '' : 'loading="lazy"'}>`}
+                                            : `<img class="sc-fill" src="${m.src}" alt="" aria-hidden="true" ${i === 0 ? '' : 'loading="lazy"'}><img class="sc-main" src="${m.src}" alt="" ${i === 0 ? '' : 'loading="lazy"'}>`}
                                     </div>`).join('')}
                             </div>
                             ${carouselItems.length > 1 ? `
