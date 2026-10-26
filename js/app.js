@@ -708,6 +708,16 @@
     function enhanceChrome() {
         const header = document.querySelector('.header');
         const top = header?.querySelector('.header-top');
+        // Flèche de retour (visible seulement dans une boutique)
+        if (top && document.getElementById('appContainer') && !top.querySelector('.hdr-back')) {
+            const back = document.createElement('button');
+            back.type = 'button';
+            back.className = 'hdr-back';
+            back.setAttribute('aria-label', 'Retour');
+            back.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            back.onclick = () => resetToHome();
+            top.prepend(back);
+        }
         // Ville
         if (top && !top.querySelector('.city-pick')) {
             const btn = document.createElement('button');
@@ -873,6 +883,7 @@
     async function showFavorites(tab) {
         const container = document.getElementById('appContainer');
         if (!container) { window.location.href = 'index.html#favoris'; return false; }
+        setShopView(false);
         const f = F();
         const kind = tab === 'shop' ? 'shop' : 'product';
         setTab(-1);
@@ -1073,6 +1084,7 @@
     async function showHomePage() {
         const container = document.getElementById('appContainer');
         if (!container) return;
+        setShopView(false);
         setTab(0);
         clearInterval(carouselTimer);
         clearInterval(heroTimer);
@@ -1552,6 +1564,7 @@
     function showCategories() {
         const container = document.getElementById('appContainer');
         if (!container) { window.location.href = 'index.html#categories'; return false; }
+        setShopView(false);
         setTab(1);
         clearInterval(carouselTimer);
         container.classList.remove('is-searching');
@@ -1571,6 +1584,7 @@
         const container = document.getElementById('appContainer');
         if (!cat) return;
         if (!container) { window.location.href = 'index.html#cat=' + key; return; }
+        setShopView(false);
         setTab(1);
         clearInterval(carouselTimer);
         container.classList.remove('is-searching');
@@ -1786,6 +1800,7 @@
     function showShopsPage(sort) {
         const container = document.getElementById('appContainer');
         if (!container) { window.location.href = 'index.html#boutiques'; return false; }
+        setShopView(false);
         if (sort) shopsView.sort = sort;
         setTab(3);
         clearInterval(carouselTimer);
@@ -1930,6 +1945,19 @@
     }
  
     // ============ VUE BOUTIQUE ============
+    // Dans une boutique, l'en-tête d'Ouenze se fait discret : ni barre de recherche ni liens,
+    // une flèche de retour (body.shop-view, voir style.css)
+    function setShopView(on) {
+        document.body.classList.toggle('shop-view', !!on);
+    }
+
+    // Couleur #rrggbb avec transparence (fond des bulles du menu)
+    function tint(hex, alpha) {
+        const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(String(hex || ''));
+        if (!m) return `rgba(30, 64, 175, ${alpha})`;
+        return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+    }
+
     async function viewShopDetail(shopId) {
         try {
             const { data: shop, error: shopError } = await window.supabase
@@ -1978,15 +2006,23 @@
             (products || []).forEach(p => { p.shop_name = shop.name; });
  
             const logo = safeUrl(shop.logo_url);
+            // Menu des catégories : horizontal, vertical à gauche ou à droite (ordinateur et tablette) ;
+            // sur téléphone, toujours des bulles qui défilent
+            const menuPos = ['vertical-left', 'vertical-right'].includes(ds.menu_position) ? ds.menu_position : 'horizontal';
+            const menuHtml = currentShopCategories.length ? `
+                <nav class="shop-menu" aria-label="Catégories de la boutique"
+                     style="--m-bg:${d.menuBg};--m-text:${d.menuText};--m-radius:${d.menuRadius}px;--m-tint:${tint(d.menuBg, 0.12)};">
+                    <button type="button" class="shop-cat-btn active" data-cat="" onclick="filterShopProducts('')">Tout</button>
+                    ${currentShopCategories.map(c => `
+                        <button type="button" class="shop-cat-btn" data-cat="${escapeHtml(c.id)}" onclick="filterShopProducts('${escapeHtml(c.id)}')">${escapeHtml(c.name)}</button>`).join('')}
+                </nav>` : '';
             const container = document.getElementById('appContainer');
+            setShopView(true);
             container.innerHTML = `
-                <button onclick="resetToHome()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px;margin-bottom:20px;">
-                    ← Retour
-                </button>
-                <div style="background:${d.bg};border-radius:20px;overflow:hidden;border:1px solid var(--gray-200);">
-                    <div style="background:linear-gradient(135deg,${d.primary},${d.primary}aa);padding:24px;color:${d.headerText};">
+                <div class="shop-page" style="background:${d.bg};">
+                    <div class="shop-hero" style="background:linear-gradient(135deg,${d.primary},${d.primary}aa);color:${d.headerText};">
                         <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-                            <div style="width:80px;height:80px;flex-shrink:0;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:32px;">
+                            <div class="shop-hero-logo" style="width:80px;height:80px;flex-shrink:0;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:32px;">
                                 ${logo ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain;">` : '<i class="fas fa-store" style="color:#1e40af"></i>'}
                             </div>
                             <div style="min-width:0;">
@@ -2027,18 +2063,12 @@
                             </div>
                         </div>` : ''}
  
-                    ${currentShopCategories.length ? `
-                        <div style="background:${d.menuBg};color:${d.menuText};border-radius:${d.menuRadius}px;padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;margin:16px 16px 0;">
-                            <button class="shop-cat-btn" data-cat="" onclick="filterShopProducts('')"
-                                    style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;font-weight:700;padding:4px 8px;">Tout</button>
-                            ${currentShopCategories.map(c => `
-                                <button class="shop-cat-btn" data-cat="${escapeHtml(c.id)}" onclick="filterShopProducts('${escapeHtml(c.id)}')"
-                                        style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:4px 8px;opacity:.85;">${escapeHtml(c.name)}</button>`).join('')}
-                        </div>` : ''}
- 
-                    <div style="padding:20px;">
-                        <h3 id="shopProductsTitle" style="margin:0 0 12px;color:${d.productText};">Produits (${currentShopProducts.length})</h3>
-                        <div id="shopProductsGrid"></div>
+                    <div class="shop-body menu-${menuPos} ${menuHtml ? '' : 'no-menu'}">
+                        ${menuHtml}
+                        <div class="shop-main">
+                            <h3 id="shopProductsTitle" style="margin:0 0 12px;color:${d.productText};">Produits (${currentShopProducts.length})</h3>
+                            <div id="shopProductsGrid"></div>
+                        </div>
                     </div>
                 </div>
                 <section class="shop-reviews" id="shopReviews" aria-label="Avis clients"></section>
@@ -2469,8 +2499,9 @@
             currentShopCategoryFilter = String(categoryId);
             document.querySelectorAll('.shop-cat-btn').forEach(b => {
                 const on = b.dataset.cat === currentShopCategoryFilter;
-                b.style.fontWeight = on ? '700' : '400';
-                b.style.opacity = on ? '1' : '.85';
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-pressed', String(on));
+                if (on && b.scrollIntoView && window.innerWidth <= 768) b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
             });
         }
         const q = (document.getElementById('shopProductSearch')?.value || '').toLowerCase().trim();
