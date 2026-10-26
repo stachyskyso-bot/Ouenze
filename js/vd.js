@@ -354,7 +354,10 @@
             box.innerHTML = '<p class="st-empty">Aucune story ces 7 derniers jours. Publie ta première photo ou vidéo !</p>';
             return;
         }
-        const shown = myStories.map((r, i) => ({ r, i })).filter(x => !activeShop || x.r.shop_id === activeShop);
+        // En ligne : de la plus ancienne à la plus récente (ordre de lecture des clients) ; puis l'historique, récent d'abord
+        const time = r => new Date(r.created_at).getTime();
+        const shown = myStories.map((r, i) => ({ r, i })).filter(x => !activeShop || x.r.shop_id === activeShop)
+            .sort((a, b) => (b.r.active - a.r.active) || (a.r.active ? time(a.r) - time(b.r) : time(b.r) - time(a.r)));
         if (!shown.length) {
             box.innerHTML = '<p class="st-empty">Aucune story pour cette boutique ces 7 derniers jours.</p>';
             return;
@@ -398,9 +401,15 @@
         });
     }
 
+    // Comme le client : toutes les stories en ligne de la boutique, de la plus ancienne à la plus récente,
+    // en commençant par celle touchée (une story expirée ou retirée s'affiche seule)
     function vdPreviewStory(i) {
         const r = myStories?.[i];
-        if (r) window.OuenzeStories?.preview([r], r.shop_name || 'Ma story');
+        if (!r || !window.OuenzeStories) return;
+        if (!r.active) { window.OuenzeStories.preview([r], r.shop_name || 'Ma story'); return; }
+        const seq = myStories.filter(x => x.active && x.shop_id === r.shop_id)
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        window.OuenzeStories.preview(seq, r.shop_name || 'Mes stories', seq.indexOf(r));
     }
 
     async function vdDeleteStory(id) {
