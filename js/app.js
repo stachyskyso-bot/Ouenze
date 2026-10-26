@@ -190,32 +190,53 @@
 
     // Page d'accueil : l'équipe arrive sur son interface. « Voir le site » (index.html?site=1)
     // permet ensuite de parcourir la boutique normalement pendant toute la session.
-    async function sendTeamToTheirSpace() {
+    // Chaque type de compte a son accueil : admin → tableau de bord, agent → Espace équipe,
+    // vendeur → espace vendeur, livreur → espace livreur, client → la boutique Ouenze.
+    // Seulement quand on ARRIVE sur Ouenze (lien, favori, appli) : en naviguant dans le site,
+    // ou après « Voir le site » (index.html?site=1), l'accueil reste la boutique.
+    const SPACE = { admin: 'admin.html', agent: 'equipe.html', vendeur: 'vendor-dashboard.html', livreur: 'delivery-dashboard.html' };
+    function arrivingFromOutside() {
+        try { return !document.referrer || new URL(document.referrer).origin !== location.origin; }
+        catch (e) { return true; }
+    }
+    function mayRedirectHome() {
         const params = new URLSearchParams(window.location.search);
         try {
             if (params.get('site') === '1') { sessionStorage.setItem('ouenzeSiteView', '1'); return false; }
             if (sessionStorage.getItem('ouenzeSiteView') === '1') return false;
         } catch (e) { return false; }
-        if (params.get('shop') || params.get('q')) return false;
-        // Rôle mémorisé sur ce téléphone : un client ne patiente pas à chaque ouverture ;
+        if (params.get('shop') || params.get('q') || location.hash) return false;
+        return arrivingFromOutside();
+    }
+    function goToSpace(kind) {
+        const url = SPACE[kind];
+        if (!url) return false;
+        window.location.replace(url);
+        return true;
+    }
+
+    async function sendTeamToTheirSpace() {
+        if (!mayRedirectHome()) return false;
+        // Rôle mémorisé sur ce téléphone : pas d'attente à chaque ouverture ;
         // la vérification se fait en arrière-plan et redirige si le rôle a changé.
         const key = 'ouenze_role_' + (currentUser?.id || '');
-        let saved = null;
-        try { saved = localStorage.getItem(key); } catch (e) { /* stockage bloqué */ }
-        const go = role => {
-            if (role === 'admin') { window.location.replace('admin.html'); return true; }
-            if (role === 'agent') { window.location.replace('equipe.html'); return true; }
-            return false;
-        };
+        const typeKey = 'ouenze_type_' + (currentUser?.id || '');
+        let saved = null, savedType = null;
+        try { saved = localStorage.getItem(key); savedType = localStorage.getItem(typeKey); } catch (e) { /* stockage bloqué */ }
         const check = teamRole().then(role => {
             try { localStorage.setItem(key, role || 'none'); } catch (e) { /* stockage bloqué */ }
             return role;
         });
-        if (saved === null) return go(await check);
-        if (saved !== 'none') return go(saved);
-        check.then(role => { if (role) go(role); });
+        if (saved === null) { if (goToSpace(await check)) return true; }
+        else if (saved !== 'none') return goToSpace(saved);
+        else check.then(role => { if (role) goToSpace(role); });
+        // Vendeur ou livreur : type mémorisé ; sinon on attend le profil (voir initApp)
+        if (savedType && goToSpace(savedType)) return true;
+        if (!savedType && currentProfile) return goToSpace(currentUserType);   // profil déjà arrivé
+        homeRedirectPending = !savedType;
         return false;
     }
+    let homeRedirectPending = false;
 
     async function sessionUser() {
         try {
@@ -243,6 +264,9 @@
                 const profileJob = (async () => {
                     currentProfile = await fetchProfile(currentUser.id);
                     currentUserType = currentProfile?.user_type || 'client';
+                    try { localStorage.setItem('ouenze_type_' + currentUser.id, currentUserType); } catch (e) { /* stockage bloqué */ }
+                    // Première ouverture sur ce téléphone : le type de compte vient d'arriver
+                    if (homeRedirectPending && document.getElementById('appContainer') && goToSpace(currentUserType)) return;
                     console.log('👤 Connecté:', currentUser.email, '—', currentUserType);
                     await loadUserData();
                 })();
