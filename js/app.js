@@ -232,11 +232,17 @@
         else check.then(role => { if (role) goToSpace(role); });
         // Vendeur ou livreur : type mémorisé ; sinon on attend le profil (voir initApp)
         if (savedType && goToSpace(savedType)) return true;
-        if (!savedType && currentProfile) return goToSpace(currentUserType);   // profil déjà arrivé
+        if (!savedType && currentProfile) return goToSpace(homeSpace());   // profil déjà arrivé
         homeRedirectPending = !savedType;
         return false;
     }
     let homeRedirectPending = false;
+
+    // Espace ouvert au lancement : choisi dans « Mon compte » (home_space), sinon le type de compte
+    function homeSpace() {
+        const h = currentProfile?.home_space;
+        return ['client', 'vendeur', 'livreur'].includes(h) ? h : currentUserType;
+    }
 
     async function sessionUser() {
         try {
@@ -264,13 +270,13 @@
                 const profileJob = (async () => {
                     currentProfile = await fetchProfile(currentUser.id);
                     currentUserType = currentProfile?.user_type || 'client';
-                    try { localStorage.setItem('ouenze_type_' + currentUser.id, currentUserType); } catch (e) { /* stockage bloqué */ }
+                    try { localStorage.setItem('ouenze_type_' + currentUser.id, homeSpace()); } catch (e) { /* stockage bloqué */ }
                     // Première ouverture sur ce téléphone : le type de compte vient d'arriver
-                    if (homeRedirectPending && document.getElementById('appContainer') && goToSpace(currentUserType)) return;
+                    if (homeRedirectPending && document.getElementById('appContainer') && goToSpace(homeSpace())) return;
                     console.log('👤 Connecté:', currentUser.email, '—', currentUserType);
                     await loadUserData();
                 })();
-                if (fastHome) profileJob.then(() => updateHeaderUI()).catch(e => console.error('❌ Profil:', e));
+                if (fastHome) profileJob.then(() => { updateHeaderUI(); showBackToSpace(); window.OuenzeStories?.setPoster(currentUserType === 'vendeur', currentProfile?.avatar_url); }).catch(e => console.error('❌ Profil:', e));
                 else await profileJob;
             } else {
                 console.log('👤 Non connecté');
@@ -1213,7 +1219,7 @@
         revealIn(container);
         if (window.OuenzeStories) {
             window.OuenzeStories.mountRow('storiesRow', {
-                city: currentCity(), canPost: currentUserType === 'vendor', avatar: currentProfile?.avatar_url, products: storyProducts()
+                city: currentCity(), canPost: currentUserType === 'vendeur', avatar: currentProfile?.avatar_url, products: storyProducts()
             });
         }
         const shopsReady = loadShops();
@@ -3318,6 +3324,65 @@
         }
     }
  
+    // « Mon compte » (js/account.js, chargé à la demande) : profil, espaces, mode client
+    let accountJob = null;
+    function loadAccountModule() {
+        if (window.OuenzeAccount) return Promise.resolve(window.OuenzeAccount);
+        accountJob = accountJob || new Promise((resolve, reject) => {
+            const sc = document.createElement('script');
+            sc.src = 'js/account.js';
+            sc.onload = () => resolve(window.OuenzeAccount);
+            sc.onerror = () => { accountJob = null; reject(new Error('Module compte indisponible')); };
+            document.head.appendChild(sc);
+        });
+        return accountJob;
+    }
+    function currentSpace() {
+        if (/delivery-dashboard\.html$/.test(location.pathname)) return 'livreur';
+        return 'client';
+    }
+    function openAccount(what) {
+        closeModal(true);
+        loadAccountModule().then(acc => {
+            if (what === 'edit') acc.editProfile(async () => {
+                currentProfile = await fetchProfile(currentUser.id);
+                updateHeaderUI();
+                showToast('Profil enregistré.');
+            });
+            else acc.open({ current: currentSpace() });
+        }).catch(e => showToast(e.message));
+        return false;
+    }
+
+    // Vendeur ou livreur en mode client : bouton pour revenir à son espace
+    function showBackToSpace() {
+        if (!document.getElementById('appContainer') || document.getElementById('acBackPill')) return;
+        let siteView = false, from = null;
+        try {
+            siteView = sessionStorage.getItem('ouenzeSiteView') === '1';
+            from = sessionStorage.getItem('ouenzeFromSpace');
+        } catch (e) { /* rien */ }
+        const space = ['vendeur', 'livreur'].includes(from) ? from
+            : (['vendeur', 'livreur'].includes(currentUserType) ? currentUserType : null);
+        if (!siteView || !space) return;
+        loadAccountModule().catch(() => {});   // styles du bouton
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.id = 'acBackPill';
+        b.className = 'ac-back-pill';
+        b.innerHTML = `<i class="fas fa-arrow-left"></i> Retour à mon espace ${space}`;
+        b.onclick = () => {
+            try { sessionStorage.removeItem('ouenzeSiteView'); sessionStorage.removeItem('ouenzeFromSpace'); } catch (e) { /* rien */ }
+            location.href = SPACE[space];
+        };
+        document.body.appendChild(b);
+        if (!document.getElementById('acCss')) {
+            const l = document.createElement('link');
+            l.id = 'acCss'; l.rel = 'stylesheet'; l.href = 'css/account.css';
+            document.head.appendChild(l);
+        }
+    }
+
     function showProfile() {
         if (!currentUser) {
             openLoginModal();
@@ -3337,6 +3402,8 @@
             ${currentUserType === 'vendeur' ? `<a class="btn-submit pf-main" href="vendor-dashboard.html"><i class="fas fa-store"></i> Mon espace vendeur</a>` : ''}
             ${currentUserType === 'livreur' ? `<a class="btn-submit pf-main" href="delivery-dashboard.html"><i class="fas fa-motorcycle"></i> Mon espace livreur</a>` : ''}
             <nav class="pf-list">
+                ${row('#', 'fa-user-edit', 'Modifier mon profil', 'onclick="return openAccount(\'edit\');"')}
+                ${row('#', 'fa-exchange-alt', 'Mes espaces : client, vendeur, livreur', 'onclick="return openAccount();"')}
                 ${row('activities.html', 'fa-receipt', 'Mes commandes et activités')}
                 ${row('index.html#favoris', 'fa-heart', 'Mes favoris', 'onclick="closeModal(true);return goFavorites();"')}
                 ${row('#', 'fa-magic', 'Mes recommandations', 'onclick="return openTasteInfo();"')}
@@ -3566,6 +3633,7 @@
  
     // ============ EXPORTS (utilisés par les onclick du HTML) ============
     Object.assign(window, {
+        openAccount,
         doLogin,
         doSignUp,
         logout,

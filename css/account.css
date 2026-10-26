@@ -1,0 +1,66 @@
+/* ============================================================
+   ACCOUNT.CSS — « Mon compte » (profil, espaces, boutique active)
+   ============================================================ */
+.ac-wrap [hidden] { display: none !important; }
+.ac-wrap { position: fixed; inset: 0; z-index: 4200; background: rgba(15,23,42,.55); display: flex; align-items: flex-end; justify-content: center; font-family: inherit; }
+@media (min-width: 600px) { .ac-wrap { align-items: center; } }
+.ac-sheet { position: relative; width: 100%; max-width: 460px; max-height: 94vh; overflow: auto; background: #fff; color: #1e293b; border-radius: 20px 20px 0 0; padding: 20px 18px calc(22px + env(safe-area-inset-bottom)); box-sizing: border-box; animation: acUp .25s ease both; }
+@media (min-width: 600px) { .ac-sheet { border-radius: 20px; } }
+@keyframes acUp { from { transform: translateY(30px); opacity: 0; } }
+.ac-x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: #f1f5f9; font-size: 20px; cursor: pointer; }
+.ac-sheet h3 { margin: 0 34px 4px 0; font-size: 19px; color: #1e40af; }
+.ac-sheet h4 { margin: 18px 0 6px; font-size: 14px; color: #0f172a; }
+.ac-loading { text-align: center; color: #64748b; padding: 24px 0; }
+.ac-err { color: #b91c1c; background: #fef2f2; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.ac-hint { margin: 0 0 8px; font-size: 12.5px; color: #64748b; }
+
+.ac-head { display: flex; gap: 14px; align-items: center; margin-right: 34px; }
+.ac-head h3 { margin: 0; color: #0f172a; }
+.ac-head small { display: block; color: #64748b; font-size: 13px; }
+.ac-avatar { width: 60px; height: 60px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 0 0 3px #fff, 0 0 0 5px #fbbf24; }
+.ac-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ac-avatar.big { width: 92px; height: 92px; font-size: 36px; }
+.ac-badge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: #fef3c7; color: #92400e; }
+.ac-edit { width: 100%; margin-top: 14px; padding: 11px; border-radius: 12px; border: 1.5px solid #c7d2fe; background: #eef2ff; color: #1e40af; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+
+.ac-spaces { display: grid; gap: 8px; }
+.ac-space { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 14px; }
+.ac-space.here { border-color: #1e40af; background: #eff6ff; }
+.ac-space-ico { width: 38px; height: 38px; border-radius: 12px; background: #f1f5f9; color: #1e40af; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ac-space-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ac-space-txt b { font-size: 14px; }
+.ac-space-txt small { font-size: 12px; color: #64748b; }
+.ac-here { font-size: 12px; font-weight: 700; color: #1e40af; }
+.ac-state { font-size: 12px; font-weight: 600; }
+.ac-state.wait { color: #b45309; }
+.ac-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 20px; border: 0; background: #1e40af; color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.ac-btn.ghost { background: #fff; color: #1e40af; border: 1.5px solid #1e40af; }
+.ac-link { background: none; border: 0; color: #1e40af; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; padding: 0; }
+
+.ac-shops { display: grid; gap: 8px; }
+.ac-shop { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border: 1.5px solid #e2e8f0; border-radius: 14px; background: #fff; font: inherit; font-size: 14px; font-weight: 600; color: #334155; cursor: pointer; text-align: left; }
+.ac-shop.on { border-color: #1e40af; background: #eff6ff; color: #1e40af; }
+.ac-shop.on::after { content: '\2713'; margin-left: auto; font-weight: 800; }
+.ac-shop-logo { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.ac-shop-logo img { width: 100%; height: 100%; object-fit: cover; background: #fff; }
+
+.ac-types { display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 12px; }
+.ac-type { flex: 1; border: 0; background: none; padding: 9px 6px; border-radius: 9px; font: inherit; font-size: 14px; font-weight: 600; color: #475569; cursor: pointer; }
+.ac-type.on { background: #fff; color: #1e40af; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.ac-msg { margin: 10px 0 0; padding: 9px 12px; border-radius: 10px; font-size: 13px; }
+.ac-msg.ok { background: #ecfdf5; color: #047857; }
+.ac-msg.err { background: #fef2f2; color: #b91c1c; }
+
+.ac-photo { display: flex; align-items: center; gap: 16px; margin: 12px 0 6px; }
+.ac-photo-btns { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.ac-photo-btns label { cursor: pointer; }
+.ac-l { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; color: #334155; }
+.ac-l input { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 400; }
+.ac-ro { margin-top: 6px; padding: 11px 12px; border-radius: 12px; background: #f8fafc; color: #64748b; font-weight: 400; font-size: 14px; }
+.ac-save { width: 100%; margin-top: 16px; border: 0; border-radius: 30px; padding: 13px; font: inherit; font-size: 15px; font-weight: 700; background: #1e40af; color: #fff; cursor: pointer; }
+.ac-save:disabled { opacity: .7; }
+
+/* Retour à son espace depuis le mode client */
+.ac-back-pill { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 900; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 30px; border: 0; background: #0f172a; color: #fff; font: inherit; font-size: 13px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer; white-space: nowrap; }
+.ac-back-pill i { color: #fbbf24; }
+@media (min-width: 900px) { .ac-back-pill { bottom: 24px; } }

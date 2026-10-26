@@ -374,3 +374,7 @@
 .rs-moves small { display: block; font-size: 12px; color: #64748b; }
 .rs-in { color: #15803d; font-weight: 700; white-space: nowrap; }
 .rs-out { color: #b91c1c; font-weight: 700; white-space: nowrap; }
+
+/* Mon compte (profil, espaces, mode client) */
+.courier-account { margin-left: auto; align-self: flex-start; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: rgba(255,255,255,.16); color: inherit; border-radius: 14px; padding: 8px 10px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.courier-account i { font-size: 22px; }

@@ -19,6 +19,8 @@
     // ============ ÉTAT ============
     let dashUser = null;
     let dashShops = [];
+    let dashUid = '';
+    let activeShop = '';        // boutique active ('' = toutes) : choisie dans « Mon compte » ou en haut du tableau de bord
     let medalInfo = {};
     let vendorOrders = [];      // commandes reçues (vendor_orders)
     let shopLocations = null;   // points de retrait (my_shop_locations)
@@ -122,10 +124,15 @@
             return false;
         }
  
+        // Vendeur validé dont l'espace principal est autre (livreur aussi, ou mode client) : accès conservé
         if (data.user?.user_type !== 'vendeur') {
-            window.location.href = 'index.html';
-            return false;
+            const { data: sp } = await window.supabase.rpc('my_spaces').then(r => r, () => ({}));
+            if (sp?.vendor !== 'approved') {
+                window.location.href = 'index.html';
+                return false;
+            }
         }
+        dashUid = sessionData.session.user.id;
  
         dashUser = data.user;
         dashShops = (Array.isArray(data.shops) ? data.shops : []).filter(s => !s.archived_at);
@@ -161,15 +168,63 @@
     }
  
     // ============ TABLEAU DE BORD ============
+    // ============ BOUTIQUE ACTIVE ============
+    const activeKey = () => 'ouenze_active_shop_' + dashUid;
+    function loadActiveShop() {
+        try { activeShop = localStorage.getItem(activeKey()) || ''; } catch (e) { activeShop = ''; }
+        if (!dashShops.some(s => s.id === activeShop) || dashShops.length < 2) activeShop = '';
+    }
+    function setActiveShop(id) {
+        activeShop = dashShops.some(s => s.id === id) ? id : '';
+        try { if (activeShop) localStorage.setItem(activeKey(), activeShop); else localStorage.removeItem(activeKey()); } catch (e) { /* rien */ }
+        showDashboard();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    const viewShops = () => activeShop ? dashShops.filter(s => s.id === activeShop) : dashShops;
+    const viewOrders = () => vendorOrders && activeShop ? vendorOrders.filter(o => o.shop_id === activeShop) : vendorOrders;
+
+    function shopSwitchHtml() {
+        if (dashShops.length < 2) return '';
+        const logo = s => {
+            const u = /^(https:\/\/|data:image\/)/.test(s.logo_url || '') ? escapeHtml(s.logo_url) : '';
+            return `<span class="vd-sw-logo">${u ? `<img src="${u}" alt="">` : escapeHtml((s.name || '?').trim().charAt(0).toUpperCase())}</span>`;
+        };
+        return `<div class="vd-shop-switch" role="tablist" aria-label="Boutique active">
+            <button type="button" class="${activeShop ? '' : 'on'}" onclick="vdSetShop('')"><span class="vd-sw-logo"><i class="fas fa-layer-group"></i></span>Toutes</button>
+            ${dashShops.map(s => `<button type="button" class="${activeShop === s.id ? 'on' : ''}" onclick="vdSetShop('${escapeHtml(s.id)}')">${logo(s)}${escapeHtml(s.name)}</button>`).join('')}
+        </div>`;
+    }
+
+    function vdAccount() {
+        if (!window.OuenzeAccount) { window.location.href = 'index.html'; return; }
+        window.OuenzeAccount.open({
+            current: 'vendeur',
+            shops: dashShops.map(s => ({ id: s.id, name: s.name, logo: s.logo_url })),
+            activeShop,
+            onShopChange: setActiveShop
+        });
+    }
+
+    // Photo et nom de l'en-tête (Mon compte)
+    function paintHeader(sp) {
+        const name = sp?.full_name || dashUser?.full_name || 'Vendeur';
+        const avatar = document.getElementById('userAvatar');
+        const nameEl = document.getElementById('userName');
+        const pic = /^(https:\/\/|data:image\/(jpeg|png|webp);base64,)/.test(sp?.avatar_url || '') ? sp.avatar_url : '';
+        if (avatar) avatar.innerHTML = pic ? `<img src="${escapeHtml(pic)}" alt="">` : escapeHtml(name.charAt(0).toUpperCase());
+        if (nameEl) nameEl.textContent = name;
+    }
+
     function showDashboard() {
         const container = document.getElementById('appContainer');
         if (!container) return;
  
-        const sum = key => dashShops.reduce((s, shop) => s + Number(shop[key] || 0), 0);
-        const orders = vendorOrders || [];
+        const shopsHere = viewShops();
+        const sum = key => shopsHere.reduce((s, shop) => s + Number(shop[key] || 0), 0);
+        const orders = viewOrders() || [];
         const pending = orders.filter(o => o.status === 'pending').length;
-        const firstShop = dashShops[0];
-        const best = dashShops.map(s => ({ s, tier: medalTier(s) })).sort((a, b) => b.tier.rank - a.tier.rank)[0];
+        const firstShop = shopsHere[0];
+        const best = shopsHere.map(s => ({ s, tier: medalTier(s) })).sort((a, b) => b.tier.rank - a.tier.rank)[0];
         const kpi = (icon, label, value, sub, tone) => `
             <div class="kpi ${tone || ''}"><span class="kpi-icon"><i class="fas ${icon}"></i></span>
                 <div><small>${label}</small><strong>${value}</strong>${sub ? `<em>${sub}</em>` : ''}</div></div>`;
@@ -188,6 +243,7 @@
                     ${side('accounting.html', 'fa-calculator', 'Comptabilité')}
                     ${side('notifications.html', 'fa-bell', 'Notifications <span class="nav-badge notif-count" hidden></span>')}
                     ${side('index.html', 'fa-globe-africa', 'Voir le marché')}
+                    ${side('#', 'fa-user-circle', 'Mon compte', 'onclick="vdAccount();return false;"')}
                     ${side('help.html', 'fa-question-circle', 'Aide')}
                 </aside>
 
@@ -197,10 +253,12 @@
                         ${best ? `<span class="vd-medal medal-${best.tier.id}">${best.tier.emoji} Vendeur ${escapeHtml(best.tier.name)}</span>` : ''}
                     </div>
 
+                    ${shopSwitchHtml()}
+
                     <div class="kpis">
                         ${kpi('fa-coins', "Chiffre d'affaires", `${formatNumber(sum('real_revenue'))} FCFA`, 'ventes livrées', 'blue')}
                         ${kpi('fa-receipt', 'Commandes', formatNumber(orders.length || sum('total_orders')), pending ? `<b>${pending} à accepter</b>` : 'à jour', pending ? 'gold' : '')}
-                        ${kpi('fa-box', 'Produits', formatNumber(sum('product_count')), `${dashShops.length} boutique${dashShops.length > 1 ? 's' : ''}`)}
+                        ${kpi('fa-box', 'Produits', formatNumber(sum('product_count')), activeShop ? escapeHtml(firstShop?.name || '') : `${dashShops.length} boutique${dashShops.length > 1 ? 's' : ''}`)}
                         ${kpi('fa-check-circle', 'Ventes livrées', formatNumber(sum('real_sales_count')), '', 'green')}
                     </div>
 
@@ -230,7 +288,7 @@
 
                     <section id="commandes" class="vo-section">${ordersHtml()}</section>
 
-                    <h2 id="boutiques" class="vd-section-title">Mes boutiques (${dashShops.length})</h2>
+                    <h2 id="boutiques" class="vd-section-title">${activeShop ? 'Ma boutique active' : `Mes boutiques (${dashShops.length})`}</h2>
                     ${dashShops.length === 0 ? `
                         <div class="stat-card" style="text-align:center;padding:40px;">
                             <i class="fas fa-store" style="font-size:48px;color:var(--gray-500);margin-bottom:16px;"></i>
@@ -238,7 +296,7 @@
                             <button class="btn-sm btn-primary" onclick="createNewShop()" style="padding:10px 24px;margin-top:16px;">
                                 <i class="fas fa-plus"></i> Créer ma première boutique
                             </button>
-                        </div>` : dashShops.map(renderShop).join('')}
+                        </div>` : shopsHere.map(renderShop).join('')}
                 </div>
             </div>`;
         renderMyStories();
@@ -249,16 +307,18 @@
     let storiesError = '';
 
     function storiesSectionHtml() {
-        const pick = dashShops.length > 1 ? `<select id="vdStoryShop" class="vd-st-shop" aria-label="Boutique">
-            ${dashShops.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('')}</select>` : '';
+        // Partage : un bouton par boutique quand le vendeur en a plusieurs
+        const share = viewShops().length > 1
+            ? viewShops().map(s => `<button type="button" class="btn-sm" onclick="vdShareStories('${escapeHtml(s.id)}')"><i class="fas fa-share-alt"></i> ${escapeHtml(s.name)}</button>`).join('')
+            : `<button type="button" class="btn-sm" onclick="vdShareStories()"><i class="fas fa-share-alt"></i> Partager mes stories</button>`;
         return `
             <section id="statuts" class="vd-card vd-stories">
                 <div class="vd-card-head"><h3><i class="fas fa-circle-notch"></i> Mes stories</h3><small>Photos, vidéos ou texte · 24 h en ligne</small></div>
                 <p class="vd-st-hint">Montre tes nouveautés et tes promos : tes stories s'affichent en haut de l'accueil de Ouenze,
                     d'abord chez les clients qui aiment ta boutique.</p>
-                <div class="vd-st-actions">${pick}
+                <div class="vd-st-actions">
                     <button type="button" class="btn-sm btn-primary" onclick="vdNewStory()"><i class="fas fa-plus"></i> Nouvelle story</button>
-                    <button type="button" class="btn-sm" onclick="vdShareStories()"><i class="fas fa-share-alt"></i> Partager mes stories</button>
+                    ${viewShops().length > 1 ? '<span class="vd-st-share-l">Partager :</span>' : ''}${share}
                 </div>
                 <div id="vdStoriesList" class="st-mine-list"><p class="st-empty">Chargement…</p></div>
             </section>`;
@@ -294,7 +354,12 @@
             box.innerHTML = '<p class="st-empty">Aucune story ces 7 derniers jours. Publie ta première photo ou vidéo !</p>';
             return;
         }
-        box.innerHTML = myStories.map((r, i) => {
+        const shown = myStories.map((r, i) => ({ r, i })).filter(x => !activeShop || x.r.shop_id === activeShop);
+        if (!shown.length) {
+            box.innerHTML = '<p class="st-empty">Aucune story pour cette boutique ces 7 derniers jours.</p>';
+            return;
+        }
+        box.innerHTML = shown.map(({ r, i }) => {
             const media = r.media_type === 'video'
                 ? `<video src="${escapeHtml(r.media_url || '')}" muted preload="metadata" playsinline></video>`
                 : r.media_type === 'text'
@@ -307,19 +372,30 @@
                 ${r.active ? `<button type="button" class="st-card-del" aria-label="Supprimer" onclick="event.stopPropagation();vdDeleteStory('${escapeHtml(r.id)}')"><i class="fas fa-trash"></i></button>` : ''}
                 <span class="st-card-info"><b><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''}
                     · <i class="fas fa-heart st-heart"></i> ${Number(r.likes) || 0}</b>
-                    ${dashShops.length > 1 ? `<small>${escapeHtml(r.shop_name || '')}</small>` : ''}
+                    ${dashShops.length > 1 ? `<small class="st-card-shop"><i class="fas fa-store"></i> ${escapeHtml(r.shop_name || '')}</small>` : ''}
                     ${r.audience === 'fans' ? '<small><i class="fas fa-heart"></i> Mes fidèles</small>' : ''}
                     ${r.removed_reason ? `<small>Raison : ${escapeHtml(r.removed_reason)}</small>` : ''}</span>
             </div>`;
         }).join('');
     }
 
-    async function vdNewStory() {
-        const shopId = document.getElementById('vdStoryShop')?.value || dashShops[0]?.id;
-        if (!shopId || !window.OuenzeStories) return;
+    async function shopProductList(shopId) {
         const { data } = await window.supabase.from('products').select('id, name')
             .eq('shop_id', shopId).neq('is_active', false).order('created_at', { ascending: false }).limit(300);
-        window.OuenzeStories.compose({ shopId, products: data || [], onDone: loadMyStories });
+        return data || [];
+    }
+
+    // shopId facultatif : boutique présélectionnée (sinon la première) ; le vendeur peut changer dans le formulaire
+    async function vdNewStory(shopId) {
+        shopId = shopId || activeShop || dashShops[0]?.id;
+        if (!shopId || !window.OuenzeStories) return;
+        window.OuenzeStories.compose({
+            shopId,
+            shops: dashShops.map(s => ({ id: s.id, name: s.name, logo: s.logo_url })),
+            products: await shopProductList(shopId),
+            loadProducts: shopProductList,
+            onDone: loadMyStories
+        });
     }
 
     function vdPreviewStory(i) {
@@ -337,9 +413,8 @@
         }
     }
 
-    async function vdShareStories() {
-        const shopId = document.getElementById('vdStoryShop')?.value || dashShops[0]?.id;
-        const shop = dashShops.find(s => s.id === shopId);
+    async function vdShareStories(shopId) {
+        const shop = dashShops.find(s => s.id === (shopId || activeShop || dashShops[0]?.id));
         if (!shop) return;
         const url = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}index.html?statut=${encodeURIComponent(shop.id)}`;
         const text = `Découvre les stories de ${shop.name} sur Ouenze`;
@@ -369,7 +444,7 @@
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         for (let i = 29; i >= 0; i--) days.push({ t: today.getTime() - i * 86400000, v: 0 });
-        (vendorOrders || []).filter(o => o.status === 'delivered').forEach(o => {
+        (viewOrders() || []).filter(o => o.status === 'delivered').forEach(o => {
             const d = new Date(o.created_at);
             d.setHours(0, 0, 0, 0);
             const slot = days.find(x => x.t === d.getTime());
@@ -646,9 +721,10 @@
 
     function ordersHtml() {
         if (vendorOrders === null) return '';
-        const todo = vendorOrders.filter(o => o.status === 'pending');
-        const active = vendorOrders.filter(o => ['accepted', 'courier_assigned', 'picked_up', 'in_transit'].includes(o.status));
-        const done = vendorOrders.filter(o => ['delivered', 'refused', 'cancelled'].includes(o.status));
+        const mine = viewOrders();
+        const todo = mine.filter(o => o.status === 'pending');
+        const active = mine.filter(o => ['accepted', 'courier_assigned', 'picked_up', 'in_transit'].includes(o.status));
+        const done = mine.filter(o => ['delivered', 'refused', 'cancelled'].includes(o.status));
         const lists = { todo, active, done };
         const list = lists[ordersTab] || todo;
         return `
@@ -1098,12 +1174,10 @@
             const ok = await loadVendorData();
             if (!ok) return;
  
-            const name = dashUser.full_name || 'Vendeur';
-            const avatar = document.getElementById('userAvatar');
-            const nameEl = document.getElementById('userName');
-            if (avatar) avatar.textContent = name.charAt(0).toUpperCase();
-            if (nameEl) nameEl.textContent = name;
- 
+            paintHeader(null);
+            window.supabase.rpc('my_spaces').then(({ data }) => { if (data) paintHeader(data); }, () => {});
+            window.addEventListener('ouenze:profile', e => paintHeader(e.detail));
+            loadActiveShop();
             showDashboard();
             // Lien de l'email « Nouvelle commande » : vendor-dashboard.html#commandes
             if (location.hash === '#commandes') document.getElementById('commandes')?.scrollIntoView({ behavior: 'smooth' });
@@ -1127,7 +1201,7 @@
     Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink,
         openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop,
         openListing, listingCalc, submitListing, voTab, voDecide, setPickup,
-        vdNewStory, vdPreviewStory, vdDeleteStory, vdShareStories });
+        vdNewStory, vdPreviewStory, vdDeleteStory, vdShareStories, vdAccount, vdSetShop: setActiveShop });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

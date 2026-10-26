@@ -126,6 +126,7 @@
                     <h2>${esc(p.full_name || 'Livreur')}</h2>
                     <strong class="courier-level">Niveau ${p.level} · ${esc(p.level_name)}</strong>
                 </div>
+                <button type="button" class="courier-account" onclick="openAccount()" aria-label="Mon compte"><i class="fas fa-user-circle"></i><span>Mon compte</span></button>
             </div>
             <div class="courier-stats">
                 <div><b>${p.deliveries}</b><span>livraisons</span></div>
