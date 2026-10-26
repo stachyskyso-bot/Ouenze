@@ -179,8 +179,8 @@ function setupCarouselUpload() {
             sdToast('Chargement…');
             for (const file of files) {
                 if (looksLikeImage(file)) {
-                    // Bannière : 1600 px de large suffisent, même sur grand écran
-                    const src = await compressImage(file, 1600, 0.8).catch(() => null);
+                    // Bannière : 1280 px de large suffisent et gardent l'enregistrement léger
+                    const src = await compressImage(file, 1280, 0.75).catch(() => null);
                     if (src) carouselMedia.push({ type: 'image', src });
                     else alert(imageErrorText(file));
                 } else if (file.type.startsWith('video/')) {
@@ -1302,13 +1302,17 @@ async function publishShopNow() {
         design: buildDesignPayload()
     };
     
+    const weight = shopWeight(shopData);
+    const tooHeavy = weightProblem(weight);
+    if (tooHeavy) { alert(tooHeavy); return; }
+
     try {
         const { data: insertedShop, error: shopError } = await window.supabase
             .from('shops').insert([shopData]).select().single();
         
         if (shopError) {
             console.error('❌', shopError);
-            alert(isDuplicateNameError(shopError) ? nameTakenMessage(name) : 'Erreur: ' + shopError.message);
+            alert(isDuplicateNameError(shopError) ? nameTakenMessage(name) : saveErrorText(shopError, weight));
             return;
         }
         
@@ -1366,6 +1370,35 @@ async function publishShopNow() {
     }
 }
 
+// ============ POIDS DE L'ENREGISTREMENT ============
+// Logo, carrousel et vidéos sont enregistrés avec la boutique : trop lourds, le serveur refuse.
+const MAX_SHOP_SAVE_BYTES = 4.5 * 1024 * 1024;
+const mb = n => (n / 1048576).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+function shopWeight(data) {
+    const total = new Blob([JSON.stringify(data)]).size;
+    const logo = (data.logo_url || '').length;
+    const media = (data.design?.carousel_media || []).map(m => ({ type: m.type, size: (m.src || '').length }));
+    return { total, logo, media };
+}
+function weightProblem(w) {
+    if (w.total <= MAX_SHOP_SAVE_BYTES) return '';
+    const heavy = [
+        w.logo > 700000 && `le logo (${mb(w.logo)} Mo)`,
+        ...w.media.filter(m => m.size > 700000).map((m, i) => `${m.type === 'video' ? 'une vidéo' : 'une image'} du carrousel (${mb(m.size)} Mo)`)
+    ].filter(Boolean);
+    return `Les images de la boutique sont trop lourdes (${mb(w.total)} Mo au total, maximum ${mb(MAX_SHOP_SAVE_BYTES)} Mo).`
+        + (heavy.length ? `\n\nLe plus lourd : ${heavy.join(', ')}.` : '')
+        + '\n\nRetire la vidéo ou une image du carrousel, ou choisis un logo plus léger, puis réessaie.';
+}
+function saveErrorText(error, w) {
+    const msg = String(error?.message || '');
+    if (!msg || /payload|too large|413|entity|failed to fetch|network|load failed/i.test(msg)) {
+        return `L'enregistrement n'a pas pu être envoyé (${mb(w.total)} Mo). Les images sont sans doute trop lourdes : retire la vidéo ou une image du carrousel, puis réessaie.`
+            + (msg ? `\n\nDétail : ${msg}` : '');
+    }
+    return 'Erreur : ' + msg + (error?.code ? ` (${error.code})` : '');
+}
+
 // ============ MISE À JOUR ============
 async function updateShopNow() {
     if (!editingShopId) { alert("Erreur"); return; }
@@ -1387,10 +1420,29 @@ async function updateShopNow() {
         design: buildDesignPayload()
     };
     
-    const { error } = await window.supabase
-        .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id);
-    
-    if (error) { alert(isDuplicateNameError(error) ? nameTakenMessage(name) : 'Erreur: ' + error.message); return; }
+    const weight = shopWeight(updates);
+    const tooHeavy = weightProblem(weight);
+    if (tooHeavy) { alert(tooHeavy); return; }
+
+    // .select : on vérifie que la boutique a bien été modifiée (sinon la base a refusé sans le dire)
+    let res;
+    try {
+        res = await window.supabase
+            .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id).select('id');
+    } catch (e) {
+        res = { error: e };
+    }
+    const { data: saved, error } = res;
+    if (error) {
+        console.error('❌ Mise à jour boutique:', error);
+        alert(isDuplicateNameError(error) ? nameTakenMessage(name) : saveErrorText(error, weight));
+        return;
+    }
+    if (!saved || !saved.length) {
+        alert("Le design n'a pas été enregistré : Ouenze n'a pas accepté la modification de cette boutique.\n\n"
+            + "Déconnecte-toi, reconnecte-toi avec le compte qui a créé la boutique, puis réessaie. Si ça continue, envoie une capture à l'équipe Ouenze.");
+        return;
+    }
 
     // Catégories et produits : ajoutés, modifiés ou retirés depuis la création
     const syncError = await syncCatalog(editingShopId);
@@ -1449,6 +1501,7 @@ async function syncCatalog(shopId) {
         } else {
             const { data, error } = await db.from('categories').insert({ shop_id: shopId, name }).select('id').single();
             if (error) return error.message;
+            if (!data?.id) return `la catégorie « ${name} » n'a pas été enregistrée`;
             catMap.set(String(cat.id), data.id);
             cat.id = data.id;
         }
@@ -1465,6 +1518,7 @@ async function syncCatalog(shopId) {
             row.slug = generateSlug(prod.name) + '-' + Date.now() + '-' + Math.random().toString(36).substring(7);
             const { data, error } = await db.from('products').insert(row).select('id').single();
             if (error) return error.message;
+            if (!data?.id) return `le produit « ${prod.name} » n'a pas été enregistré`;
             prod.id = data.id;
         }
     }

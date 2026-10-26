@@ -1012,12 +1012,12 @@
         return job;
     }
 
-    // Bouton rond « + » des cartes produit (couleur : celle de la boutique sur sa page)
+    // Bouton rond panier « + » des cartes produit (couleur : celle de la boutique sur sa page)
     function addButton(id, versions, out, color) {
         if (out) return '<span class="hp-out">Épuisé</span>';
         const label = versions ? 'Choisir une version' : 'Ajouter au panier';
         return `<button type="button" class="hp-add" aria-label="${label}" title="${label}" ${color ? `style="background:${color};"` : ''}
-            onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `quickAdd('${id}', this)`}"><i class="fas fa-plus"></i></button>`;
+            onclick="event.stopPropagation();${versions ? `openProductDetail('${id}')` : `quickAdd('${id}', this)`}"><i class="fas fa-cart-plus"></i></button>`;
     }
 
     // Petit signe « ajouté » sur le bouton
@@ -1027,7 +1027,7 @@
         btn.classList.remove('added'); void btn.offsetWidth; btn.classList.add('added');
         if (i) i.className = 'fas fa-check';
         clearTimeout(btn._bump);
-        btn._bump = setTimeout(() => { btn.classList.remove('added'); if (i) i.className = 'fas fa-plus'; }, 1400);
+        btn._bump = setTimeout(() => { btn.classList.remove('added'); if (i) i.className = 'fas fa-cart-plus'; }, 1400);
         document.querySelectorAll('.hdr-icon .fa-shopping-cart, .tabbar .fa-shopping-cart').forEach(el => {
             el.classList.remove('cart-shake'); void el.offsetWidth; el.classList.add('cart-shake');
         });
