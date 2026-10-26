@@ -650,7 +650,9 @@
     const CITIES = ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Nkayi', 'Ouesso', 'Kinshasa', 'Lubumbashi'];
     // Catégories du marché : recherche par mots-clés dans les produits (les catégories des boutiques sont libres)
     const MARKET_CATEGORIES = [
-        { key: 'alimentaire', label: 'Alimentaire', emoji: '<i class="fas fa-carrot"></i>', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka'] },
+        { key: 'alimentaire', label: 'Alimentaire', emoji: '<i class="fas fa-carrot"></i>', words: ['riz', 'banane', 'viande', 'poisson', 'poulet', 'huile', 'farine', 'fruit', 'légume', 'gâteau', 'pain', 'boisson', 'jus', 'manioc', 'foufou', 'saka',
+            'pizza', 'burger', 'crêpe', 'crepe', 'mikate', 'beignet', 'tacos', 'sandwich', 'shawarma', 'chawarma', 'frites', 'brochette', 'grillade', 'plat', 'sauce', 'soupe', 'salade', 'omelette', 'œuf', 'oeuf',
+            'café', 'thé', 'lait', 'yaourt', 'chocolat', 'glace', 'croissant', 'déjeuner', 'dîner', 'repas', 'menu', 'sucre', 'épice', 'eau', 'soda', 'bière', 'ndolé', 'pondu', 'liboké', 'maboké', 'plantain', 'alloco', 'attiéké', 'cake', 'biscuit', 'bonbon'] },
         { key: 'mode', label: 'Mode', emoji: '<i class="fas fa-tshirt"></i>', words: ['robe', 'chemise', 'pagne', 'wax', 'pantalon', 'jean', 'chaussure', 'basket', 'sac', 'montre', 't-shirt', 'veste'] },
         { key: 'maison', label: 'Maison', emoji: '<i class="fas fa-couch"></i>', words: ['canapé', 'matelas', 'lit', 'table', 'chaise', 'cuisine', 'casserole', 'drap', 'rideau', 'meuble', 'ventilateur'] },
         { key: 'beaute', label: 'Beauté et soins', emoji: '<i class="fas fa-spa"></i>', words: ['parfum', 'crème', 'savon', 'maquillage', 'mèche', 'perruque', 'lotion', 'shampoing', 'beurre de karité', 'sérum', 'skin', 'soin', 'gommage', 'masque', 'nettoyant', 'gel douche', 'déodorant', 'vernis', 'rouge à lèvres', 'gloss', 'baume à lèvres', 'lipstick', 'crayon', 'eyeliner', 'fard', 'fond de teint', 'mascara', 'éclaircissant', 'écran solaire', 'après-shampoing', 'huile de coco', 'tissage'] },
@@ -668,6 +670,7 @@
     function setCity(city) {
         try { city ? localStorage.setItem('ouenze_city', city) : localStorage.removeItem('ouenze_city'); } catch (e) { /* stockage bloqué */ }
         document.querySelectorAll('.city-pick-label').forEach(el => { el.textContent = city || 'Toutes les villes'; });
+        otherShopsJob = null;
         // Ville choisie : on n'affiche plus que ses boutiques et ses produits
         if (document.getElementById('appContainer')) {
             const search = document.getElementById('searchInput');
@@ -1259,8 +1262,8 @@
     }
 
     // Catalogue léger (product_feed, migration 20261106) ; sinon les 24 derniers produits complets
-    async function loadFeed() {
-        const city = currentCity() || null;
+    async function loadFeed(anyCity) {
+        const city = anyCity ? null : (currentCity() || null);
         const safe = pr => Promise.resolve(pr).then(r => r, e => ({ error: e }));
         const [feed, trendRes] = await Promise.all([
             safe(window.supabase.rpc('product_feed', { city, lim: 240 })),
@@ -1282,6 +1285,12 @@
                 productsCache[r.id] = p;
                 return p;
             });
+            // Rien dans la ville choisie : produits des autres villes, avec un message
+            if (!list.length && city) {
+                const all = await loadFeed(true);
+                all.fallback = all.list.length > 0;
+                return all;
+            }
             return { list, trend };
         }
         const list = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(24));
@@ -1364,14 +1373,14 @@
                 productsCache[p.id] = { ...p, photos: [] };
                 return productsCache[p.id];
             });
-            return { list, trend: new Map(c.trend || []), city, at: c.at };
+            return { list, trend: new Map(c.trend || []), city, at: c.at, fallback: !!c.fallback };
         } catch (e) { return null; }
     }
     function saveFeed(feed) {
         try {
             const light = feed.list.filter(p => p._light).map(({ photos, ...rest }) => rest);
             if (light.length !== feed.list.length) return;   // ancien mode (produits complets) : pas de copie
-            sessionStorage.setItem(FEED_KEY, JSON.stringify({ city: feed.city, at: feed.at, list: light, trend: [...feed.trend] }));
+            sessionStorage.setItem(FEED_KEY, JSON.stringify({ city: feed.city, at: feed.at, list: light, trend: [...feed.trend], fallback: !!feed.fallback }));
         } catch (e) { /* stockage plein : tant pis */ }
     }
 
@@ -1420,7 +1429,8 @@
         fillRow('forYou', top.map(r => r.p), { reasons: top.map(r => reasonLabel(r.reason)) });
         const cats = f ? f.topCategories(2).map(k => CAT_WORD[k]).filter(Boolean) : [];
         const sub = document.getElementById('forYouSub');
-        if (sub) sub.innerHTML = (cats.length
+        if (sub && homeFeed?.fallback) sub.innerHTML = `<span class="city-fallback-inline"><i class="fas fa-map-marker-alt"></i> Pas encore de produit à ${escapeHtml(currentCity())} : voici les produits des autres villes.</span> <a href="#" class="fy-why" onclick="setCity('');return false;">Toutes les villes</a>`;
+        else if (sub) sub.innerHTML = (cats.length
             ? `D'après tes goûts : ${escapeHtml(cats.join(' et '))}, avec quelques découvertes.`
             : 'Une sélection pour découvrir Ouenze. Plus tu explores, plus elle te ressemble.')
             + ' <a href="#" class="fy-why" onclick="return openTasteInfo()">Pourquoi ?</a>';
@@ -1550,6 +1560,7 @@
         </div>`;
     }
 
+    let otherShopsJob = null;
     function renderFeaturedShops() {
         const box = document.getElementById('featuredShops');
         if (!box) return;
@@ -1558,6 +1569,19 @@
         const list = shopsCache.filter(s => s.is_active !== false && !s.archived_at && !s.suspended_at && inCurrentCity(s))
             .sort((a, b) => (favS.has(b.id) - favS.has(a.id)) || (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0)))
             .slice(0, 8);
+        if (!list.length && city) {
+            // Rien dans la ville choisie : les meilleures boutiques des autres villes
+            const others = shopsCache.filter(s => visibleShop(s))
+                .sort((a, b) => (getShopLevel(b).rank - getShopLevel(a).rank) || ((b.rating || 0) - (a.rating || 0))).slice(0, 8);
+            if (others.length) {
+                box.innerHTML = `<p class="search-hint">Pas encore de boutique à ${escapeHtml(currentCity())}. Voici celles des autres villes.</p>` + others.map(featShopCard).join('');
+                return;
+            }
+            if (!otherShopsJob) {
+                otherShopsJob = fetchShops(q => q.order('rating', { ascending: false, nullsFirst: false }).limit(8), true)
+                    .then(() => { if (document.getElementById('featuredShops')) renderFeaturedShops(); }, () => {});
+            }
+        }
         if (!list.length) { box.innerHTML = `<p class="search-hint">${city ? `Pas encore de boutique à ${escapeHtml(currentCity())} : elles arrivent bientôt.` : 'Les premières boutiques arrivent bientôt.'}</p>`; return; }
         box.innerHTML = list.map(featShopCard).join('');
     }
@@ -1573,7 +1597,10 @@
         const photo = light ? safeUrl(p.photos?.[0] || '') : productPhotos(p)[0] || '';
         const id = escapeHtml(p.id);
         const versions = light ? p._versions : productVariants(p).length;
-        const shop = p.shops?.name || shopsCache.find(s => s.id === p.shop_id)?.name || '';
+        const shopRow = shopsCache.find(s => s.id === p.shop_id);
+        let shop = p.shops?.name || shopRow?.name || '';
+        const shopCity = p.shops?.city || shopRow?.city || '';
+        if (shop && shopCity && currentCity() && shopCity.toLowerCase() !== currentCity().toLowerCase()) shop += ' · ' + shopCity;
         const out = light ? p._out : !madeToOrder(p) && productStock(p) <= 0 && Number(p.stock) !== 0;
         const img = photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy" class="loaded">`
             : (light && p._hasPhoto ? `<img data-cover="${id}" alt="${escapeHtml(p.name)}">` : '<i class="fas fa-image"></i>');
@@ -1593,9 +1620,10 @@
         </div>`;
     }
 
-    async function fetchProducts(build) {
-        const ids = await cityShopIds();
-        let { data, error } = await build(cityScope(window.supabase.from('products').select('*, shops(name)'), ids));
+    async function fetchProducts(build, anyCity) {
+        const ids = anyCity ? null : await cityShopIds();
+        let { data, error } = await build(cityScope(window.supabase.from('products').select('*, shops(name, city)'), ids));
+        if (error) ({ data, error } = await build(cityScope(window.supabase.from('products').select('*, shops(name)'), ids)));
         if (error) ({ data, error } = await build(cityScope(window.supabase.from('products').select('*'), ids)));
         if (error) throw error;
         (data || []).forEach(p => { productsCache[p.id] = p; });
@@ -1637,7 +1665,7 @@
         setTab(1);
         clearInterval(carouselTimer);
         container.classList.remove('is-searching');
-        Object.assign(catView, { key, list: [], maxPrice: 0, inStock: false, sort: 'new' });
+        Object.assign(catView, { key, list: [], maxPrice: 0, inStock: false, sort: 'new', fallback: false });
         F()?.track('category', { cat: key });
         container.innerHTML = `
             <nav class="crumbs"><a href="#" onclick="return resetToHome()">Accueil</a> › <a href="#" onclick="return showCategories()">Catégories</a> › <span>${cat.label}</span></nav>
@@ -1661,14 +1689,25 @@
             const words = cat.words.length ? cat.words : others;
             const filter = words.map(w => `name.ilike.%${cleanSearch(w)}%,description.ilike.%${cleanSearch(w)}%`).join(',');
             // Beauté : aussi les produits remplis avec la fiche « Beauté et soins »
-            let list = key === 'beaute'
-                ? await fetchProducts(q => q.or(filter + ',beauty_info.not.is.null').limit(80)).catch(() => fetchProducts(q => q.or(filter).limit(80)))
-                : await fetchProducts(q => q.or(filter).limit(80));
-            if (!cat.words.length) {
-                // « Autres » : ce qui ne correspond à aucune catégorie
-                const all = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(120));
-                const known = new Set(list.map(p => p.id));
-                list = all.filter(p => !known.has(p.id));
+            // Beauté : aussi les fiches « Beauté et soins » ; Alimentaire : aussi les fiches alimentaires
+            const extra = key === 'beaute' ? ',beauty_info.not.is.null' : key === 'alimentaire' ? ',food_info.not.is.null' : '';
+            const load = async anyCity => {
+                let list = extra
+                    ? await fetchProducts(q => q.or(filter + extra).limit(80), anyCity).catch(() => fetchProducts(q => q.or(filter).limit(80), anyCity))
+                    : await fetchProducts(q => q.or(filter).limit(80), anyCity);
+                if (!cat.words.length) {
+                    // « Autres » : ce qui ne correspond à aucune catégorie
+                    const all = await fetchProducts(q => q.order('created_at', { ascending: false }).limit(120), anyCity);
+                    const known = new Set(list.map(p => p.id));
+                    list = all.filter(p => !known.has(p.id) && !p.food_info && !p.beauty_info);
+                }
+                return list;
+            };
+            let list = await load(false);
+            // Rien dans la ville choisie : on montre les autres villes plutôt qu'une page vide
+            if (!list.length && currentCity()) {
+                list = await load(true);
+                catView.fallback = list.length > 0;
             }
             if (catView.key !== key) return;
             catView.list = list;
@@ -1699,7 +1738,8 @@
             .filter(p => minPrice(p) <= limit && (!catView.inStock || madeToOrder(p) || productStock(p) > 0 || Number(p.stock) === 0))
             .sort(sorters[catView.sort] || sorters.new);
         const filters = document.getElementById('catFilters');
-        if (filters) filters.innerHTML = `
+        if (filters) filters.hidden = !catView.list.length;
+        if (filters && catView.list.length) filters.innerHTML = `
             <h4>Filtrer</h4>
             <label class="cat-filter">Prix maximum : <b>${formatPrice(limit)} FCFA</b>
                 <input type="range" min="0" max="${top || 0}" step="500" value="${limit}" oninput="catFilter('maxPrice', this.value)" ${top ? '' : 'disabled'}></label>
@@ -1710,8 +1750,17 @@
         const sort = document.getElementById('catSort');
         if (sort) sort.value = catView.sort;
         const box = document.getElementById('catProducts');
-        if (box) box.innerHTML = list.length ? list.map(homeProductCard).join('')
-            : '<p class="search-hint">Pas de produit avec ces filtres pour le moment.</p>';
+        const cat = MARKET_CATEGORIES.find(c => c.key === catView.key);
+        if (box) box.innerHTML = (catView.fallback ? cityFallbackHtml(`Pas encore de produit « ${cat?.label || ''} » à ${currentCity()}.`) : '')
+            + (list.length ? list.map((p, i) => homeProductCard(p, i)).join('')
+                : `<p class="search-hint">${catView.list.length ? 'Pas de produit avec ces filtres.' : 'Pas encore de produit dans cette catégorie : ils arrivent bientôt.'}</p>`);
+    }
+
+    // Ville choisie sans résultat : message + bouton « Voir toutes les villes »
+    function cityFallbackHtml(text) {
+        return `<div class="city-fallback"><i class="fas fa-map-marker-alt"></i>
+            <span>${escapeHtml(text)} Voici ce qu'on trouve dans les autres villes.</span>
+            <button type="button" onclick="setCity('')">Toutes les villes</button></div>`;
     }
 
     function catFilter(name, value) {
@@ -1750,9 +1799,10 @@
     }
 
     // build(query) reçoit la requête et ajoute filtres, tri et pagination
-    async function fetchShops(build) {
-        let res = await build(cityFilter(window.supabase.from('shops').select(SHOP_COLS + ', products(count)')));
-        if (res.error) res = await build(cityFilter(window.supabase.from('shops').select('*, products(count)')));
+    async function fetchShops(build, anyCity) {
+        const scope = q => (anyCity ? q : cityFilter(q));
+        let res = await build(scope(window.supabase.from('shops').select(SHOP_COLS + ', products(count)')));
+        if (res.error) res = await build(scope(window.supabase.from('shops').select('*, products(count)')));
         if (res.error) throw res.error;
         const list = (res.data || []).filter(visibleShop);
         rememberShops(list);
@@ -1939,15 +1989,23 @@
         box.innerHTML = '<p class="search-hint">Recherche de produits…</p>';
         const ql = q.toLowerCase();
         F()?.track('search', { q, cats: MARKET_CATEGORIES.filter(c => c.words.some(w => w.includes(ql) || ql.includes(w))).map(c => c.key) });
+        const searchIn = async ids => {
+            let res = await cityScope(window.supabase.from('products').select('*, shops(name, city)'), ids)
+                .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40);
+            if (res.error) {
+                // Sans relation déclarée products → shops : on cherche sans le nom de boutique
+                res = await cityScope(window.supabase.from('products').select('*'), ids)
+                    .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40);
+            }
+            return res;
+        };
         const ids = await cityShopIds();
-        let { data, error } = await cityScope(window.supabase
-            .from('products').select('*, shops(name)'), ids)
-            .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40);
-        if (error) {
-            // Sans relation déclarée products → shops : on cherche sans le nom de boutique
-            ({ data, error } = await cityScope(window.supabase
-                .from('products').select('*'), ids)
-                .or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(40));
+        let { data, error } = await searchIn(ids);
+        // Rien dans la ville choisie : on cherche dans toutes les villes
+        let fallback = false;
+        if (!error && !(data || []).length && ids) {
+            const all = await searchIn(null);
+            if (!all.error && (all.data || []).length) { data = all.data; fallback = true; }
         }
         if (seq !== searchSeq) return;  // une recherche plus récente a été lancée
         if (error) {
@@ -1968,6 +2026,7 @@
         const hasShops = !!shopsGrid?.querySelector('.shop-card');
         if (shopsGrid && !hasShops) shopsGrid.style.display = 'none';
         box.innerHTML = `
+            ${fallback ? cityFallbackHtml(`Rien pour « ${q} » à ${currentCity()} pour le moment.`) : ''}
             <h3 class="search-section-title">Produits (${list.length})</h3>
             <div class="shop-products-grid search-products">
                 ${list.map(p => {
@@ -1984,7 +2043,7 @@
                             <div class="product-card-name">${escapeHtml(p.name)}</div>
                             <div class="product-card-price" style="color:var(--primary);">${productPriceLabel(p)}</div>
                             <a class="product-card-shop" href="#" onclick="event.stopPropagation();viewShopDetail('${escapeHtml(p.shop_id)}');return false;">
-                                <i class="fas fa-store"></i> ${escapeHtml(p.shops?.name || 'Voir la boutique')}
+                                <i class="fas fa-store"></i> ${escapeHtml(p.shops?.name || 'Voir la boutique')}${fallback && p.shops?.city ? ` · ${escapeHtml(p.shops.city)}` : ''}
                             </a>
                         </div>
                     </div>`;
