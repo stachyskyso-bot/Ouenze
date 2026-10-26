@@ -1300,7 +1300,7 @@ a.share-native {
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: url("../favicon/logo-mark-192.webp") center / contain no-repeat;
+    background: url("../favicon/logo-mark-192.webp?v=2") center / contain no-repeat;
     color: #fbbf24;
     font-size: 15px;
 }
