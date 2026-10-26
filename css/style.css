@@ -2886,7 +2886,7 @@ body {
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: url("../favicon/logo-mark-192.webp") center / contain no-repeat;
+    background: url("../favicon/logo-mark-192.webp?v=2") center / contain no-repeat;
     color: var(--gold-soft);
     font-size: 16px;
 }
@@ -4593,7 +4593,7 @@ body {
     width: 30px;
     height: 30px;
     border-radius: 9px;
-    background: url("../favicon/logo-mark-192.webp") center / contain no-repeat;
+    background: url("../favicon/logo-mark-192.webp?v=2") center / contain no-repeat;
     color: var(--gold-soft);
     font-size: 14px;
 }
