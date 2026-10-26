@@ -105,7 +105,7 @@
         if (!window.L) return;
         map = L.map('trkMap', { zoomControl: false, attributionControl: true });
         // Tuiles haute définition ({r} = « @2x » sur téléphone) : carte nette et noms lisibles
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
         layers.toShop = L.polyline(routeToShop, { color: '#94a3b8', weight: 4, dashArray: '6 8' }).addTo(map);
         layers.toClient = L.polyline(routeToClient, { color: '#1e40af', weight: 5, opacity: 0.85 }).addTo(map);
         layers.done = L.polyline([], { color: '#16a34a', weight: 6 }).addTo(map);

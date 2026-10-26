@@ -29,8 +29,8 @@
     function initMap() {
         if (!window.L) { el('aroundMap').innerHTML = '<p class="around-nomap">Carte indisponible : recharge la page.</p>'; return; }
         state.map = L.map('aroundMap', { scrollWheelZoom: false }).setView(CENTER, 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO'
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(state.map);
         state.layer = L.layerGroup().addTo(state.map);
     }
