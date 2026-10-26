@@ -678,6 +678,9 @@
 
     function friendly(e) {
         const m = String(e?.message || e || '');
+        if (/could not find the function|schema cache|post_story|does not exist/i.test(m)) {
+            return "Les stories ne sont pas encore activées sur le serveur. L'équipe Ouenze doit lancer la mise à jour de la base (20261111_stories.sql).";
+        }
         if (/bucket not found|not found/i.test(m)) return "L'espace de stockage des stories n'est pas encore prêt. Préviens l'équipe Ouenze.";
         if (/row-level security|unauthorized|403/i.test(m)) return "Envoi du fichier refusé. Reconnecte-toi puis réessaie.";
         if (/payload too large|413|exceeded/i.test(m)) return 'Fichier trop lourd.';

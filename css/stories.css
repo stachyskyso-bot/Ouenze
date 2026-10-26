@@ -2,6 +2,9 @@
    STORIES.CSS — Statuts façon WhatsApp (rangée, visionneuse, publication)
    ============================================================ */
 
+/* Les éléments masqués restent masqués même avec un display défini plus bas */
+.st-compose [hidden], .st-viewer [hidden] { display: none !important; }
+
 /* ---------- Rangée de cercles ---------- */
 .st-section { padding-bottom: 4px !important; }
 .st-section .home-section-head h3 { font-weight: 800; }
