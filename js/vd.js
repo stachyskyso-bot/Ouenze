@@ -249,16 +249,18 @@
     let storiesError = '';
 
     function storiesSectionHtml() {
-        const pick = dashShops.length > 1 ? `<select id="vdStoryShop" class="vd-st-shop" aria-label="Boutique">
-            ${dashShops.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('')}</select>` : '';
+        // Partage : un bouton par boutique quand le vendeur en a plusieurs
+        const share = dashShops.length > 1
+            ? dashShops.map(s => `<button type="button" class="btn-sm" onclick="vdShareStories('${escapeHtml(s.id)}')"><i class="fas fa-share-alt"></i> ${escapeHtml(s.name)}</button>`).join('')
+            : `<button type="button" class="btn-sm" onclick="vdShareStories()"><i class="fas fa-share-alt"></i> Partager mes stories</button>`;
         return `
             <section id="statuts" class="vd-card vd-stories">
                 <div class="vd-card-head"><h3><i class="fas fa-circle-notch"></i> Mes stories</h3><small>Photos, vidéos ou texte · 24 h en ligne</small></div>
                 <p class="vd-st-hint">Montre tes nouveautés et tes promos : tes stories s'affichent en haut de l'accueil de Ouenze,
                     d'abord chez les clients qui aiment ta boutique.</p>
-                <div class="vd-st-actions">${pick}
+                <div class="vd-st-actions">
                     <button type="button" class="btn-sm btn-primary" onclick="vdNewStory()"><i class="fas fa-plus"></i> Nouvelle story</button>
-                    <button type="button" class="btn-sm" onclick="vdShareStories()"><i class="fas fa-share-alt"></i> Partager mes stories</button>
+                    ${dashShops.length > 1 ? '<span class="vd-st-share-l">Partager :</span>' : ''}${share}
                 </div>
                 <div id="vdStoriesList" class="st-mine-list"><p class="st-empty">Chargement…</p></div>
             </section>`;
@@ -307,19 +309,30 @@
                 ${r.active ? `<button type="button" class="st-card-del" aria-label="Supprimer" onclick="event.stopPropagation();vdDeleteStory('${escapeHtml(r.id)}')"><i class="fas fa-trash"></i></button>` : ''}
                 <span class="st-card-info"><b><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''}
                     · <i class="fas fa-heart st-heart"></i> ${Number(r.likes) || 0}</b>
-                    ${dashShops.length > 1 ? `<small>${escapeHtml(r.shop_name || '')}</small>` : ''}
+                    ${dashShops.length > 1 ? `<small class="st-card-shop"><i class="fas fa-store"></i> ${escapeHtml(r.shop_name || '')}</small>` : ''}
                     ${r.audience === 'fans' ? '<small><i class="fas fa-heart"></i> Mes fidèles</small>' : ''}
                     ${r.removed_reason ? `<small>Raison : ${escapeHtml(r.removed_reason)}</small>` : ''}</span>
             </div>`;
         }).join('');
     }
 
-    async function vdNewStory() {
-        const shopId = document.getElementById('vdStoryShop')?.value || dashShops[0]?.id;
-        if (!shopId || !window.OuenzeStories) return;
+    async function shopProductList(shopId) {
         const { data } = await window.supabase.from('products').select('id, name')
             .eq('shop_id', shopId).neq('is_active', false).order('created_at', { ascending: false }).limit(300);
-        window.OuenzeStories.compose({ shopId, products: data || [], onDone: loadMyStories });
+        return data || [];
+    }
+
+    // shopId facultatif : boutique présélectionnée (sinon la première) ; le vendeur peut changer dans le formulaire
+    async function vdNewStory(shopId) {
+        shopId = shopId || dashShops[0]?.id;
+        if (!shopId || !window.OuenzeStories) return;
+        window.OuenzeStories.compose({
+            shopId,
+            shops: dashShops.map(s => ({ id: s.id, name: s.name, logo: s.logo_url })),
+            products: await shopProductList(shopId),
+            loadProducts: shopProductList,
+            onDone: loadMyStories
+        });
     }
 
     function vdPreviewStory(i) {
@@ -337,9 +350,8 @@
         }
     }
 
-    async function vdShareStories() {
-        const shopId = document.getElementById('vdStoryShop')?.value || dashShops[0]?.id;
-        const shop = dashShops.find(s => s.id === shopId);
+    async function vdShareStories(shopId) {
+        const shop = dashShops.find(s => s.id === (shopId || dashShops[0]?.id));
         if (!shop) return;
         const url = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}index.html?statut=${encodeURIComponent(shop.id)}`;
         const text = `Découvre les stories de ${shop.name} sur Ouenze`;

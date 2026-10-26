@@ -613,15 +613,24 @@
 
     function compose(opts = {}) {
         closeComposer();
-        draft = { opts, type: 'image', file: null, blob: null, previewUrl: '', durationMs: null, bg: COLORS[0] };
+        const shops = (opts.shops || []).filter(x => x && x.id);
+        draft = { opts, shopId: opts.shopId || null, type: 'image', file: null, blob: null, previewUrl: '', durationMs: null, bg: COLORS[0] };
         const products = (opts.products || []).slice(0, 300);
+        const shopChip = (x, on) => `<button type="button" class="st-shop ${on ? 'active' : ''}" data-shop="${esc(x.id)}" aria-pressed="${on}">
+                <span class="st-shop-logo">${safeUrl(x.logo) ? `<img src="${safeUrl(x.logo)}" alt="">` : esc((x.name || '?').trim().charAt(0).toUpperCase())}</span>
+                <span>${esc(x.name)}</span>${on ? '<i class="fas fa-check-circle"></i>' : ''}</button>`;
+        // Boutique de la story : toujours affichée ; au choix si le vendeur en a plusieurs
+        const shopBlock = !opts.shopId ? '' : `<div class="st-l st-shop-l">${shops.length > 1 ? 'Publier pour quelle boutique ?' : 'Boutique'}
+                <div class="st-shops ${shops.length > 1 ? '' : 'single'}">${(shops.length ? shops : [{ id: opts.shopId, name: opts.shopName || 'Ma boutique' }])
+                    .map(x => shopChip(x, x.id === opts.shopId)).join('')}</div></div>`;
         const box = document.createElement('div');
         box.className = 'st-compose-wrap';
         box.innerHTML = `
             <div class="st-compose" role="dialog" aria-label="Nouvelle story">
                 <button type="button" class="st-x" aria-label="Fermer">&times;</button>
                 <h3><i class="fas fa-circle-notch"></i> Nouvelle story</h3>
-                <p class="st-sub">${opts.shopId ? `Visible 24 h par les clients, en haut de l'accueil et sur ta boutique.` : 'Story Ouenze : visible 24 h par tous les clients.'}</p>
+                <p class="st-sub">${opts.shopId ? `Visible 24 h par les clients, en haut de l'accueil et sur la page de la boutique.` : 'Story Ouenze : visible 24 h par tous les clients.'}</p>
+                ${shopBlock}
                 <div class="st-tabs">
                     <button type="button" data-type="image" class="active"><i class="fas fa-image"></i> Photo</button>
                     <button type="button" data-type="video"><i class="fas fa-video"></i> Vidéo</button>
@@ -639,10 +648,7 @@
                 <label class="st-l st-cap-l">Légende (facultatif)
                     <input type="text" class="st-cap" maxlength="250" placeholder="Ex. : Nouvelle collection, -20 % ce week-end">
                 </label>
-                ${products.length ? `<label class="st-l">Produit à mettre en avant (facultatif)
-                    <select class="st-prod"><option value="">Aucun</option>
-                        ${products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
-                    </select></label>` : ''}
+                <div class="st-prod-wrap">${productSelect(products)}</div>
                 ${opts.shopId ? `<div class="st-l">Qui peut le voir ?
                     <div class="st-aud">
                         <label><input type="radio" name="stAud" value="all" checked><span><b>Tout le monde</b><small>Tous les clients de Ouenze</small></span></label>
@@ -664,8 +670,50 @@
         });
         q('.st-textbox textarea').style.background = draft.bg;
         q('.st-publish').onclick = publish;
+        box.querySelectorAll('.st-shops:not(.single) .st-shop').forEach(b => b.onclick = () => chooseShop(b.dataset.shop));
         draft.box = box;
         setType('image');
+        updatePublishLabel();
+    }
+
+    function productSelect(products) {
+        return products.length ? `<label class="st-l">Produit à mettre en avant (facultatif)
+                    <select class="st-prod"><option value="">Aucun</option>
+                        ${products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+                    </select></label>` : '';
+    }
+
+    function shopName(id) {
+        const x = (draft?.opts.shops || []).find(s => s.id === id);
+        return x?.name || draft?.opts.shopName || '';
+    }
+
+    function updatePublishLabel() {
+        const btn = draft?.box.querySelector('.st-publish');
+        if (!btn || btn.disabled) return;
+        const name = draft.shopId ? shopName(draft.shopId) : '';
+        btn.innerHTML = `<i class="fas fa-paper-plane"></i> ${name ? `Publier sur ${esc(name)}` : 'Publier la story'}`;
+    }
+
+    // Autre boutique : la puce change et la liste des produits est celle de cette boutique
+    async function chooseShop(id) {
+        if (!draft || !id || id === draft.shopId) return;
+        draft.shopId = id;
+        const box = draft.box;
+        box.querySelectorAll('.st-shop').forEach(b => {
+            const on = b.dataset.shop === id;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', String(on));
+            b.querySelector('.fa-check-circle')?.remove();
+            if (on) b.insertAdjacentHTML('beforeend', '<i class="fas fa-check-circle"></i>');
+        });
+        updatePublishLabel();
+        const wrap = box.querySelector('.st-prod-wrap');
+        wrap.innerHTML = '';
+        if (typeof draft.opts.loadProducts === 'function') {
+            const list = await Promise.resolve(draft.opts.loadProducts(id)).catch(() => []);
+            if (draft?.shopId === id) wrap.innerHTML = productSelect((list || []).slice(0, 300));
+        }
     }
 
     function setType(type) {
@@ -780,7 +828,7 @@
             }
             if (uploaded) { url = uploaded.url; path = uploaded.path; }
             const { error } = await sb().rpc('post_story', {
-                target_shop: draft.opts.shopId || null, kind: draft.type, url, path,
+                target_shop: draft.shopId || null, kind: draft.type, url, path,
                 caption: caption || null, bg: draft.type === 'text' ? draft.bg : null,
                 product, aud, duration: draft.type === 'video' ? draft.durationMs : null
             });
@@ -793,7 +841,7 @@
             if (uploaded?.path) sb().storage.from('stories').remove([uploaded.path]).catch(() => {});
             setError(friendly(e));
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Publier la story';
+            updatePublishLabel();
         }
     }
 
