@@ -14,6 +14,9 @@ let editingProductId = null;
 let tempVariants = [];          // combinaisons : [{ key, values:{Option:valeur}, price, stock }]
 let tempVariantOptions = [];    // options : [{ name:'Couleur', values:['Noir','Blanc'] }]
 let tempProductPhotos = [];
+// Préparé à la commande (pas de stock) et personnalisation façon Glovo (migration 20261114)
+let tempMadeToOrder = false;
+let tempCustom = { remove: [], extras: [] };   // extras : [{ name, price, max }]
 let updateTimeout = null;
 let editingShopId = null;
 
@@ -179,8 +182,8 @@ function setupCarouselUpload() {
             sdToast('Chargement…');
             for (const file of files) {
                 if (looksLikeImage(file)) {
-                    // Bannière : 1280 px de large suffisent et gardent l'enregistrement léger
-                    const src = await compressImage(file, 1280, 0.75).catch(() => null);
+                    // Bannière : 1600 px, net sur grand écran tout en gardant l'enregistrement léger
+                    const src = await compressImage(file, 1600, 0.8).catch(() => null);
                     if (src) carouselMedia.push({ type: 'image', src });
                     else alert(imageErrorText(file));
                 } else if (file.type.startsWith('video/')) {
@@ -316,6 +319,8 @@ function openAddProductModal(productId = null) {
     editingProductId = productId;
     
     tempDefaultVersion = '';
+    tempMadeToOrder = false;
+    tempCustom = { remove: [], extras: [] };
     if (!productId) {
         tempVariants = [];
         tempVariantOptions = [];
@@ -328,10 +333,16 @@ function openAddProductModal(productId = null) {
                 || (product.variants || []).find(v => Number(v.price) === Number(product.basePrice))?.key || '';
             tempVariantOptions = (product.variantOptions || []).map(o => ({ name: o.name, values: [...o.values] }));
             tempProductPhotos = [...(product.photos || [])];
+            tempMadeToOrder = !!product.madeToOrder || !!product.food?.homemade;
+            tempCustom = {
+                remove: [...(product.custom?.remove || [])],
+                extras: (product.custom?.extras || []).map(x => ({ name: x.name, price: x.price, max: x.max || 1 }))
+            };
         }
     }
     
     renderProductForm();
+    renderCustomExtras();
     document.getElementById('modalTitle').innerText = productId ? 'Modifier le produit' : 'Ajouter un produit';
     document.getElementById('productModal').classList.add('active');
 }
@@ -366,11 +377,15 @@ function renderProductForm() {
                 <select id="defaultVersion" onchange="window.setDefaultVersion(this.value)"></select>
                 <small class="hint">C'est le prix d'une de tes versions : choisis laquelle le client voit en premier.</small>
             </div>
-            <div class="form-group" id="productStockGroup" style="${hasVariants ? 'display:none;' : ''}">
+            <div class="form-group" id="productStockGroup" style="${hasVariants || tempMadeToOrder ? 'display:none;' : ''}">
                 <label>Stock</label>
                 <input type="number" id="productStock" min="0" value="${product?.stock || 0}">
             </div>
         </div>
+        <label class="toggle-line mto-line">
+            <input type="checkbox" id="madeToOrder" ${tempMadeToOrder ? 'checked' : ''} onchange="window.toggleMadeToOrder(this.checked)">
+            <span><strong>Préparé à la commande</strong> — fait maison, cuisiné ou fabriqué quand le client commande : pas de stock, jamais « en rupture »</span>
+        </label>
         <div class="form-group">
             <label>Description</label>
             <textarea id="productDesc" rows="3">${escapeHtml(product?.description || '')}</textarea>
@@ -392,6 +407,25 @@ function renderProductForm() {
                 <div id="variantOptionsContainer"></div>
                 <button type="button" class="btn-sm" id="addOptionBtn" onclick="window.addVariantOption()">+ Ajouter une option</button>
                 <div id="variantCombosContainer" style="margin-top:12px;"></div>
+            </div>
+        </div>
+
+        <!-- ===== PERSONNALISATION (façon Glovo) ===== -->
+        <div class="form-section">
+            <label class="toggle-line">
+                <input type="checkbox" id="hasCustom" ${tempCustom.remove.length || tempCustom.extras.length ? 'checked' : ''} onchange="window.toggleCustom(this.checked)">
+                <span><strong>Le client peut personnaliser</strong> — retirer des ingrédients, ajouter des suppléments</span>
+            </label>
+            <div id="customSection" style="${tempCustom.remove.length || tempCustom.extras.length ? '' : 'display:none;'}">
+                <div class="form-group">
+                    <label>Ingrédients que le client peut retirer</label>
+                    <input type="text" id="customRemove" value="${escapeHtml(tempCustom.remove.join(', '))}" placeholder="Ex : Oignons, Piment, Mayonnaise">
+                    <small class="hint">Séparez par des virgules. Le client coche ce qu'il ne veut pas (gratuit).</small>
+                </div>
+                <label>Suppléments payants</label>
+                <div id="customExtras"></div>
+                <button type="button" class="btn-sm" onclick="window.addCustomExtra()">+ Ajouter un supplément</button>
+                <small class="hint" style="display:block;margin-top:6px;">Ex : Fromage 500 FCFA (jusqu'à 3), Œuf 200 FCFA. Le prix s'ajoute au prix du produit.</small>
             </div>
         </div>
 
@@ -429,13 +463,6 @@ function renderProductForm() {
                         <div class="form-group">
                             <label>Se conserve combien de jours ? *</label>
                             <input type="number" id="foodShelfLife" min="1" max="365" value="${food?.shelf_life_days || ''}" placeholder="Ex : 3">
-                        </div>
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <label class="toggle-line" style="margin:0;">
-                                <input type="checkbox" id="foodMadeToOrder" ${food?.made_to_order ? 'checked' : ''}>
-                                <span>Préparé à la commande</span>
-                            </label>
                         </div>
                     </div>
                 </div>
@@ -524,7 +551,7 @@ const OPTION_SUGGESTIONS = ['Couleur', 'Taille', 'Pointure', 'Capacité', 'Modè
 
 function toggleVariants(on) {
     document.getElementById('variantsSection').style.display = on ? '' : 'none';
-    document.getElementById('productStockGroup').style.display = on ? 'none' : '';
+    document.getElementById('productStockGroup').style.display = on || tempMadeToOrder ? 'none' : '';
     document.getElementById('basePriceGroup').style.display = on ? 'none' : '';
     document.getElementById('defaultVersionGroup').style.display = on ? '' : 'none';
     if (on && tempVariantOptions.length === 0) addVariantOption();
@@ -662,7 +689,7 @@ function renderVariantCombos() {
                         <div class="variant-name">${escapeHtml(v.key)}</div>
                         <div class="variant-inputs">
                             <label>Prix (FCFA)<input type="number" min="0" value="${v.price}" onchange="window.updateVariantField(${i}, 'price', this.value)"></label>
-                            <label>Stock<input type="number" min="0" value="${v.stock}" onchange="window.updateVariantField(${i}, 'stock', this.value)"></label>
+                            <label class="variant-stock-field" style="${tempMadeToOrder ? 'display:none;' : ''}">Stock<input type="number" min="0" value="${v.stock}" onchange="window.updateVariantField(${i}, 'stock', this.value)"></label>
                         </div>
                     </div>
                 </div>`).join('')}
@@ -814,6 +841,72 @@ function readBeautyForm() {
 function toggleHomemade(homemade) {
     document.getElementById('foodIndustrial').style.display = homemade ? 'none' : '';
     document.getElementById('foodHomemadeFields').style.display = homemade ? '' : 'none';
+    // Fait maison : préparé à la commande, pas de stock
+    if (homemade) {
+        const box = document.getElementById('madeToOrder');
+        if (box && !box.checked) { box.checked = true; toggleMadeToOrder(true); }
+    }
+}
+
+function toggleMadeToOrder(on) {
+    tempMadeToOrder = !!on;
+    const withVariants = document.getElementById('hasVariants')?.checked;
+    document.getElementById('productStockGroup').style.display = on || withVariants ? 'none' : '';
+    document.querySelectorAll('.variant-stock-field').forEach(el => { el.style.display = on ? 'none' : ''; });
+}
+
+// ---------- Personnalisation ----------
+const MAX_CUSTOM_ITEMS = 15;
+function readCustomRemove() {
+    return [...new Set((document.getElementById('customRemove')?.value || '').split(',')
+        .map(x => x.trim().replace(/\s+/g, ' ')).filter(Boolean).map(x => x.slice(0, 40)))].slice(0, MAX_CUSTOM_ITEMS);
+}
+function renderCustomExtras() {
+    const box = document.getElementById('customExtras');
+    if (!box) return;
+    box.innerHTML = tempCustom.extras.length ? tempCustom.extras.map((x, i) => `
+        <div class="custom-extra-row">
+            <input type="text" placeholder="Nom (ex : Fromage)" maxlength="40" value="${escapeHtml(x.name || '')}" onchange="window.updateCustomExtra(${i}, 'name', this.value)">
+            <label>Prix<input type="number" min="0" step="50" value="${escapeHtml(String(x.price ?? ''))}" onchange="window.updateCustomExtra(${i}, 'price', this.value)"></label>
+            <label>Jusqu'à<input type="number" min="1" max="10" value="${escapeHtml(String(x.max || 1))}" onchange="window.updateCustomExtra(${i}, 'max', this.value)"></label>
+            <button type="button" class="btn-sm btn-danger" aria-label="Supprimer" onclick="window.removeCustomExtra(${i})">✕</button>
+        </div>`).join('') : '<p class="hint">Aucun supplément pour l\'instant.</p>';
+}
+function toggleCustom(on) {
+    document.getElementById('customSection').style.display = on ? '' : 'none';
+    if (on) renderCustomExtras();
+}
+function addCustomExtra() {
+    if (tempCustom.extras.length >= MAX_CUSTOM_ITEMS) { alert(`${MAX_CUSTOM_ITEMS} suppléments au maximum`); return; }
+    tempCustom.extras.push({ name: '', price: '', max: 1 });
+    renderCustomExtras();
+}
+function updateCustomExtra(i, field, value) {
+    const x = tempCustom.extras[i];
+    if (!x) return;
+    if (field === 'name') x.name = String(value).trim().slice(0, 40);
+    else if (field === 'price') x.price = value === '' ? '' : Math.max(0, Math.round(Number(value) || 0));
+    else if (field === 'max') x.max = Math.min(10, Math.max(1, Math.round(Number(value) || 1)));
+}
+function removeCustomExtra(i) {
+    tempCustom.extras.splice(i, 1);
+    renderCustomExtras();
+}
+// Lit et valide la personnalisation. Renvoie { custom } ou { error }.
+function readCustomForm() {
+    if (!document.getElementById('hasCustom')?.checked) return { custom: null };
+    const remove = readCustomRemove();
+    const extras = [];
+    for (const x of tempCustom.extras) {
+        const name = (x.name || '').trim();
+        if (!name && (x.price === '' || x.price == null)) continue;   // ligne vide : ignorée
+        if (!name) return { error: 'Donnez un nom à chaque supplément' };
+        if (x.price === '' || !(Number(x.price) >= 0)) return { error: `Prix manquant pour le supplément « ${name} »` };
+        if (extras.some(e => e.name.toLowerCase() === name.toLowerCase())) return { error: `Le supplément « ${name} » est en double` };
+        extras.push({ name, price: Math.round(Number(x.price)), max: Math.min(10, Math.max(1, Number(x.max) || 1)) });
+    }
+    if (!remove.length && !extras.length) return { custom: null };
+    return { custom: { remove, extras } };
 }
 
 // Lit et valide la section alimentaire. Renvoie { food } ou { error }.
@@ -833,7 +926,7 @@ function readFoodForm() {
         const days = parseInt(v('foodShelfLife'));
         if (!days || days < 1 || days > 365) return { error: 'Indiquez combien de jours le produit fait maison se conserve (1 à 365).' };
         food.shelf_life_days = days;
-        food.made_to_order = !!document.getElementById('foodMadeToOrder')?.checked;
+        food.made_to_order = !!document.getElementById('madeToOrder')?.checked;   // case « Préparé à la commande » du produit
     } else {
         const expiry = v('foodExpiry');
         if (!expiry) return { error: 'La date de péremption est obligatoire pour un produit alimentaire industriel.' };
@@ -927,6 +1020,9 @@ function saveProduct() {
     if (foodError) { alert(foodError); return; }
     const { beauty, error: beautyError } = readBeautyForm();
     if (beautyError) { alert(beautyError); return; }
+    const { custom, error: customError } = readCustomForm();
+    if (customError) { alert(customError); return; }
+    const madeToOrder = !!document.getElementById('madeToOrder')?.checked;
 
     const productData = {
         id: editingProductId || Date.now(),
@@ -939,6 +1035,8 @@ function saveProduct() {
         variants,
         food,
         beauty,
+        madeToOrder,
+        custom,
         hadBeauty: !!(editingProductId && products.find(x => String(x.id) === String(editingProductId))?.hadBeauty)
     };
     
@@ -968,12 +1066,13 @@ function renderProductsList() {
         const category = categories.find(c => String(c.id) === String(p.categoryId));
         const hasVariants = (p.variants || []).length > 0;
         // Avec variantes, prix et stock se modifient version par version (bouton Modifier)
+        const made = p.madeToOrder || p.food?.homemade;
         const priceStock = hasVariants ? `
-                    <div class="product-variants-summary">${productPriceLabel(p)}<br><small>${p.stock} en stock</small></div>` : `
+                    <div class="product-variants-summary">${productPriceLabel(p)}<br><small>${made ? 'À la commande' : `${p.stock} en stock`}</small></div>` : `
                     <input type="number" class="product-price-input" value="${p.basePrice}"
                            onchange="window.updateProductField('${p.id}', 'price', parseFloat(this.value))" placeholder="Prix">
-                    <input type="number" class="product-stock-input" value="${p.stock}"
-                           onchange="window.updateProductField('${p.id}', 'stock', parseInt(this.value))" placeholder="Stock">`;
+                    ${made ? '<span class="product-mto-tag">À la commande</span>' : `<input type="number" class="product-stock-input" value="${p.stock}"
+                           onchange="window.updateProductField('${p.id}', 'stock', parseInt(this.value))" placeholder="Stock">`}`;
         return `
             <div class="product-item">
                 <div class="product-header">
@@ -988,6 +1087,7 @@ function renderProductsList() {
                 <div style="font-size:12px; color:var(--gray-500);">
                     Catégorie: ${escapeHtml(category?.name || 'Sans catégorie')} | ${productAllPhotos(p).length} photo(s)
                     ${hasVariants ? ` | ${p.variants.length} version(s) : ${escapeHtml((p.variantOptions || []).map(o => o.name).join(', '))}` : ''}
+                    ${p.custom ? ` | Personnalisable : ${(p.custom.remove || []).length} à retirer, ${(p.custom.extras || []).length} supplément(s)` : ''}
                 </div>
                 ${p.food ? `<div class="food-badge"><i class="fas fa-utensils"></i> ${escapeHtml(foodSummary(p.food))}</div>` : ''}
                 ${p.beauty ? `<div class="food-badge"><i class="fas fa-spa"></i> ${escapeHtml([BEAUTY_KINDS[p.beauty.kind]?.label, p.beauty.volume].filter(Boolean).join(' · '))}</div>` : ''}
@@ -1087,12 +1187,15 @@ function updatePreview() {
     let carouselHtml = '';
     if (carouselMedia.length > 0) {
         carouselHtml = `
-            <div style="height:${designConfig.carouselHeight}px;border-radius:${designConfig.carouselRadius}px;overflow:hidden;margin:12px 16px;position:relative;">
+            <div style="height:max(140px, min(${designConfig.carouselHeight}px, 62vw, 60vh));border-radius:${designConfig.carouselRadius}px;overflow:hidden;margin:12px 16px;position:relative;">
                 <div id="previewCarousel" style="height:100%;position:relative;">
                     ${carouselMedia.map((m, i) => `
                         ${m.type === 'image' 
-                            ? `<img src="${m.src}" class="carousel-slide" style="width:100%;height:100%;object-fit:cover;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;">`
-                            : `<video src="${m.src}" class="carousel-slide" muted autoplay loop playsinline style="width:100%;height:100%;object-fit:cover;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;"></video>`
+                            ? `<div class="carousel-slide" style="display:${i === 0 ? 'block' : 'none'};position:absolute;inset:0;overflow:hidden;background:#0f172a;">
+                                   <img src="${m.src}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(22px) brightness(.8);transform:scale(1.15);">
+                                   <img src="${m.src}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;">
+                               </div>`
+                            : `<video src="${m.src}" class="carousel-slide" muted autoplay loop playsinline style="width:100%;height:100%;object-fit:contain;background:#000;display:${i === 0 ? 'block' : 'none'};position:absolute;top:0;left:0;"></video>`
                         }
                     `).join('')}
                 </div>
@@ -1474,7 +1577,11 @@ function productRow(p, shopId, categoryId) {
         stock: p.stock || 0,
         product_type: p.food ? 'food' : 'standard',
         photos: p.photos || [],
-        variants: { options: p.variantOptions || [], items: p.variants || [] },
+        variants: {
+            options: p.variantOptions || [], items: p.variants || [],
+            ...(p.madeToOrder ? { made_to_order: true } : {}),
+            ...(p.custom ? { custom: p.custom } : {})
+        },
         food_info: p.food || null,
         // beauty_info n'est envoyé que s'il y a quelque chose à écrire (ou à effacer)
         ...(p.beauty || p.hadBeauty ? { beauty_info: p.beauty || null } : {})
@@ -1585,6 +1692,8 @@ async function loadShopForEditing(shopId) {
         variants: p.variants?.items || [],
         food: p.food_info || null,
         beauty: p.beauty_info || null,
+        madeToOrder: !!p.variants?.made_to_order,
+        custom: p.variants?.custom || null,
         hadBeauty: !!p.beauty_info
     }));
     
@@ -1796,6 +1905,11 @@ window.beautyVersions = beautyVersions;
 window.selectBeautyKind = selectBeautyKind;
 window.setDefaultVersion = setDefaultVersion;
 window.toggleHomemade = toggleHomemade;
+window.toggleMadeToOrder = toggleMadeToOrder;
+window.toggleCustom = toggleCustom;
+window.addCustomExtra = addCustomExtra;
+window.updateCustomExtra = updateCustomExtra;
+window.removeCustomExtra = removeCustomExtra;
 window.updatePreview = updatePreview;
 // Un seul envoi à la fois : un double clic créait deux boutiques identiques
 function oneAtATime(task, buttonId, busyLabel) {

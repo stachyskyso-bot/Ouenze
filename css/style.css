@@ -2040,9 +2040,10 @@ body {
 .shop-carousel {
     position: relative;
     margin: 16px 16px 0;
-    height: min(var(--carousel-h, 300px), 56vw);
+    /* Hauteur choisie par le vendeur, adaptée à l'écran (jamais plus de 60 % de la hauteur visible) */
+    height: max(140px, min(var(--carousel-h, 300px), 62vw, 60vh));
     overflow: hidden;
-    background: var(--gray-100);
+    background: #0f172a;
     touch-action: pan-y;
 }
 
@@ -2063,13 +2064,23 @@ body {
     pointer-events: auto;
 }
 
+/* L'image est toujours visible en entier (pas de recadrage) ; le fond flou de la même photo
+   remplit l'espace restant, quel que soit l'appareil */
 .shop-carousel-slide img,
 .shop-carousel-slide video {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
+.shop-carousel-slide img.sc-fill {
+    object-fit: cover;
+    filter: blur(22px) brightness(0.8) saturate(1.1);
+    transform: scale(1.15);
+}
+.shop-carousel-slide video { background: #000; }
 
 .shop-carousel-nav {
     position: absolute;
@@ -5307,3 +5318,19 @@ body.shop-view .header {
     .shop-main { padding: 14px 12px 18px; }
     #shopProductsGrid:not(.is-list) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
 }
+
+/* ---------- Fiche produit : préparé à la commande + personnalisation (façon Glovo) ---------- */
+.pd-stock.made { color: #b45309; font-weight: 600; }
+.pd-extra-note { display: block; font-size: 12px; font-weight: 500; color: #64748b; }
+.pd-custom { margin: 6px 0 4px; display: grid; gap: 14px; }
+.pd-custom-block .pd-option-name small { font-weight: 400; color: #64748b; margin-left: 4px; }
+.pd-chip.pd-remove.off { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.pd-chip.pd-remove.off i { text-decoration: none; margin-right: 2px; }
+.pd-extra { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 12px; margin-top: 8px; }
+.pd-extra.on { border-color: #1e40af; background: #eff6ff; }
+.pd-extra-name { display: flex; flex-direction: column; font-weight: 600; font-size: 14px; }
+.pd-extra-name small { font-weight: 500; color: #64748b; font-size: 12px; }
+.pd-extra-add { border: 1.5px solid; background: #fff; border-radius: 20px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.pd-extra .pd-qty.small button:disabled { opacity: .35; cursor: default; }
+.cart-item-custom, .co-custom { color: #b45309 !important; }
+.co-custom { display: block; }
