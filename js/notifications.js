@@ -91,13 +91,15 @@
             <span>${fcfa(i.total)}</span></li>`).join('');
         const rate = Number(o.commission_rate) || 0;
         const sub = Number(o.subtotal) || 0;
+        const bonus = Number(o.vendor_bonus) || 0;
         const place = [o.district, o.city].filter(Boolean).join(', ');
         return `<div class="notif-order">
             <ul>${items}</ul>
             <div class="notif-order-sum">
                 <span>Ventes</span><strong>${fcfa(sub)}</strong>
-                ${rate ? `<span>Commission Ouenze (${(rate * 100).toLocaleString('fr-FR')} %)</span><strong>− ${fcfa(sub * rate)}</strong>
-                <span>Tu recevras</span><strong class="ok">${fcfa(sub * (1 - rate))}</strong>` : ''}
+                ${bonus ? `<span>Bonus Or reversé par Ouenze</span><strong>+ ${fcfa(bonus)}</strong>` : ''}
+                <span>Tu recevras</span><strong class="ok">${fcfa(sub + bonus)}</strong>
+                ${rate ? `<span>Frais Ouenze payés par le client</span><strong>${(rate * 100).toLocaleString('fr-FR')} %</strong>` : ''}
             </div>
             ${place ? `<p class="notif-order-place"><i class="fas fa-map-marker-alt"></i> ${esc(place)}${o.client_name ? ` · ${esc(o.client_name)}` : ''}</p>` : ''}
         </div>`;

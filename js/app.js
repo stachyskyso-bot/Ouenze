@@ -174,16 +174,6 @@
     }
  
     // ============ INITIALISATION ============
-    // Frais de livraison : pourcentage réglé par Ouenze (RPC delivery_rate, 10 % par défaut).
-    // La base recalcule toujours les frais au moment de la commande.
-    let deliveryRate = 0.10;
-    function loadDeliveryRate() {
-        window.supabase?.rpc?.('delivery_rate').then(({ data, error }) => {
-            const r = Number(data);
-            if (!error && Number.isFinite(r) && r >= 0 && r <= 0.5) deliveryRate = r;
-        }).catch(() => { /* on garde 10 % */ });
-    }
-    const ratePercent = () => (deliveryRate * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 
     // Rôle d'équipe : 'admin', 'agent' ou null.
     // my_team_role (migration 20261030) ; si elle n'est pas encore installée, is_admin.
@@ -237,7 +227,6 @@
 
     async function initApp() {
         console.log('🚀 Initialisation...');
-        loadDeliveryRate();
         handleOAuthReturnError();
  
         if (!window.supabase || !window.supabase.auth) {
@@ -558,7 +547,7 @@
                     </a>`;
             const cartIcon = favIcon + `
                     <button type="button" class="hdr-icon" onclick="showCart()" aria-label="Panier">
-                        <span class="hdr-icon-glyph"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cartTotalQty()}</span></span>
+                        <span class="hdr-icon-glyph"><i class="fas fa-shopping-cart"></i><span class="cart-count" ${cartTotalQty() ? '' : 'hidden'}>${cartTotalQty()}</span></span>
                         <span class="hdr-icon-label">Panier</span>
                     </button>`;
             if (currentUser) {
@@ -2350,6 +2339,16 @@
         const main = activePhoto && photos.includes(activePhoto) ? activePhoto : photos[0];
  
         const price = variant ? Number(variant.price) : (options.length ? null : Number(p.price));
+        // Choix en cours (ex. la couleur sans la taille) : prix des versions qui correspondent
+        const matching = productVariants(p).filter(v =>
+            options.every(o => !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
+        const mPrices = matching.map(v => Number(v.price)).filter(n => n > 0);
+        const priceText = price !== null && price > 0 ? `${formatPrice(price)} FCFA`
+            : mPrices.length && Object.keys(detailSelection).length
+                ? (Math.min(...mPrices) === Math.max(...mPrices)
+                    ? `${formatPrice(mPrices[0])} FCFA`
+                    : `${formatPrice(Math.min(...mPrices))} – ${formatPrice(Math.max(...mPrices))} FCFA`)
+                : productPriceLabel(p);
         const stock = variant ? Number(variant.stock) || 0 : (options.length ? null : Number(p.stock) || 0);
         if (stock !== null && detailQty > Math.max(stock, 1)) detailQty = Math.max(stock, 1);
  
@@ -2394,7 +2393,7 @@
                     ${beauty?.brand ? `<div class="pd-brand">${escapeHtml(beauty.brand)}</div>` : ''}
                     <div class="pd-name-row"><h3 class="pd-name">${escapeHtml(p.name)}</h3>${favBtn('product', p.id, 'in-title')}</div>
                     <div class="pd-price" style="color:${d.primary};">
-                        ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
+                        ${priceText}
                     </div>
                     ${beautyTagsHtml(beauty, p)}
                     ${shop && shop.total_ratings ? `<div class="pd-rating"><span class="pd-stars">${generateStars(rating)}</span>
@@ -2519,8 +2518,11 @@
  
     function updateCartCount() {
         const count = cartTotalQty();
-        document.querySelectorAll('#cartCountHeader, .cart-count').forEach(el => {
-            el.textContent = count;
+        // Seulement les compteurs du panier (pas ceux des favoris ni des notifications)
+        document.querySelectorAll('#cartCountHeader, .cart-count:not(.fav-count):not(.notif-count)').forEach(el => {
+            el.textContent = count > 99 ? '99+' : count;
+            // Pastille sur l'icône : cachée quand le panier est vide (pas de « 0 » à côté des autres pastilles)
+            if (el.classList.contains('cart-count')) el.hidden = !count;
         });
     }
  
@@ -2627,9 +2629,15 @@
     }
 
     // Panier : articles groupés par boutique (une commande par boutique), puis le total
-    function showCart() {
+    // Frais (js/database.js, OuenzeFees) : frais de service selon la boutique + livraison 300 / 500 FCFA
+    function cartFees() {
+        if (window.OuenzeFees) return window.OuenzeFees.compute(cart);
         const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-        const fees = Math.round(subtotal * deliveryRate);
+        return { subtotal, service: 0, delivery: 0, total: subtotal, shops: 0, rateLabel: '' };
+    }
+
+    function showCart(refreshed) {
+        const t = cartFees();
         const byShop = new Map();
         cart.forEach((item, idx) => {
             const key = String(item.shopId || '');
@@ -2644,15 +2652,22 @@
             <div class="cart-list">${[...byShop.values()].map(g => `
                 <div class="cart-shop"><div class="cart-shop-name"><i class="fas fa-store"></i> ${escapeHtml(g.name)}</div>${g.rows.join('')}</div>`).join('')}</div>
             <div class="cart-summary">
-                <div><span>Sous-total</span><span>${formatPrice(subtotal)} FCFA</span></div>
-                <div><span>Livraison (${ratePercent()} %)</span><span>${formatPrice(fees)} FCFA</span></div>
-                <div class="cart-grand"><span>Total</span><strong>${formatPrice(subtotal + fees)} FCFA</strong></div>
+                <div><span>Sous-total</span><span>${formatPrice(t.subtotal)} FCFA</span></div>
+                <div><span>Frais de service Ouenze (${t.rateLabel})</span><span>${formatPrice(t.service)} FCFA</span></div>
+                <div><span>Livraison${t.shops > 1 ? ` (${t.shops} boutiques)` : ''}</span><span>${formatPrice(t.delivery)} FCFA</span></div>
+                <div class="cart-grand"><span>Total</span><strong>${formatPrice(t.total)} FCFA</strong></div>
                 <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Commander</a>
                 ${byShop.size > 1 ? `<p class="cart-note"><i class="fas fa-info-circle"></i> ${byShop.size} boutiques : chacune confirme sa partie de la commande.</p>` : ''}
             </div>`;
         const existing = document.getElementById('cartModalBody');
         if (existing) existing.innerHTML = html;
         else openModal(`<div id="cartModalBody">${html}</div>`).classList.add('cart-modal');
+        // Taux réels des boutiques du panier (médailles) : on recalcule une fois reçus
+        if (!refreshed && cart.length && window.OuenzeFees) {
+            window.OuenzeFees.load(cart.map(i => i.shopId)).then(ok => {
+                if (ok && document.getElementById('cartModalBody')) showCart(true);
+            });
+        }
     }
  
     function changeCartQty(idx, delta) {

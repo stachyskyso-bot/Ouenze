@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    let DELIVERY_RATE = 0.10;                // frais de livraison : réglé par Ouenze (RPC delivery_rate), 10 % par défaut
+    // Frais : js/database.js (OuenzeFees) — frais de service selon la boutique + livraison 300 / 500 FCFA ; la base fait foi
     // Moyens de paiement proposés sous le numéro
     const PAYMENTS = {
         CG: [
@@ -101,9 +101,9 @@
     }
 
     function totals() {
+        if (window.OuenzeFees) return window.OuenzeFees.compute(cart);
         const subtotal = cart.reduce((s, i) => s + (Number(i.price) || 0) * i.quantity, 0);
-        const fees = Math.round(subtotal * DELIVERY_RATE);
-        return { subtotal, fees, total: subtotal + fees };
+        return { subtotal, service: 0, delivery: 0, total: subtotal, shops: 1, rateLabel: '' };
     }
 
     function stepper() {
@@ -117,7 +117,8 @@
         return `
             <div class="co-totals">
                 <div><span>Sous-total</span><span>${fcfa(t.subtotal)}</span></div>
-                <div><span>Livraison (${(DELIVERY_RATE * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %)</span><span>${fcfa(t.fees)}</span></div>
+                <div><span>Frais de service Ouenze (${t.rateLabel})</span><span>${fcfa(t.service)}</span></div>
+                <div><span>Livraison${t.shops > 1 ? ` (${t.shops} boutiques)` : ''}</span><span>${fcfa(t.delivery)}</span></div>
                 <div class="co-grand"><span>Total</span><span>${fcfa(t.total)}</span></div>
             </div>`;
     }
@@ -413,10 +414,8 @@
             return;
         }
         cart = loadCart();
-        try {
-            const { data: rate, error: rateError } = await window.supabase.rpc('delivery_rate');
-            if (!rateError && Number.isFinite(Number(rate)) && Number(rate) >= 0 && Number(rate) <= 0.5) DELIVERY_RATE = Number(rate);
-        } catch (e) { /* on garde 10 % */ }
+        // Taux des boutiques du panier et montants de livraison
+        if (window.OuenzeFees) await window.OuenzeFees.load(cart.map(i => i.shopId));
         const { data } = await window.supabase.auth.getSession();
         user = data?.session?.user || null;
         if (!user) {

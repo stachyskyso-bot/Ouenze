@@ -60,6 +60,7 @@
             }).join('')}</div>`;
     }
 
+    let feesText = '300 / 500 FCFA';
     function render(d, dels) {
         const live = d.orders_mode === 'live';
         box().innerHTML = `
@@ -71,7 +72,7 @@
             <div class="ah-mode ${live ? 'live' : 'test'}">
                 <i class="fas ${live ? 'fa-circle' : 'fa-flask'}"></i>
                 ${live ? '<b>Commandes ouvertes au public</b>' : `<b>Mode ${d.orders_mode === 'test' ? 'test (admins seulement)' : 'test ouvert'}</b> : les commandes sont marquées TEST`}
-                ${d.delivery_rate != null && !isNaN(Number(d.delivery_rate)) ? `· frais de livraison ${(Number(d.delivery_rate) * 100).toLocaleString('fr-FR')} %` : ''}
+· frais de service 9 à 6 % selon la médaille · livraison ${feesText}
             </div>
 
             <h3 class="ah-h">À traiter</h3>
@@ -113,7 +114,10 @@
         await window.supabase.rpc('purge_expired_deletions').then(() => null, () => null);
         const [{ data, error }, dels] = await Promise.all([
             window.supabase.rpc('admin_overview'),
-            window.supabase.rpc('admin_deletions').then(r => (r.error ? [] : r.data || []), () => [])
+            window.supabase.rpc('admin_deletions').then(r => (r.error ? [] : r.data || []), () => []),
+            window.supabase.rpc('fee_quote', { shop_ids: [] }).then(r => {
+                if (!r.error && r.data) feesText = `${Number(r.data.delivery_single).toLocaleString('fr-FR')} FCFA (une boutique) / ${Number(r.data.delivery_multi).toLocaleString('fr-FR')} FCFA (plusieurs)`;
+            }, () => null)
         ]);
         if (error) {
             message(/admin_overview|schema cache|does not exist/i.test(error.message || '')

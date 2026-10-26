@@ -552,8 +552,10 @@
     function orderCardHtml(o) {
         const st = ORDER_STATUS[o.status] || [o.status, 'info'];
         const items = Array.isArray(o.items) ? o.items : [];
-        const rate = Number(o.commission_rate) || 0.22;
-        const net = Math.round(Number(o.subtotal) * (1 - rate));
+        // Frais Ouenze payés par le client en plus : le vendeur reçoit tout le prix des articles
+        const rate = Number(o.commission_rate) || 0.09;
+        const bonus = Number(o.vendor_bonus) || 0;
+        const net = Math.round(Number(o.subtotal) + bonus);
         const id = escapeHtml(o.order_id);
         const where = [o.district, o.city].filter(Boolean).join(', ');
         return `
@@ -565,7 +567,7 @@
                 </div>
                 ${o.payment_status === 'test' ? '<p class="vo-test">Commande de TEST : rien n\'a été payé, ne rien expédier.</p>' : ''}
                 <ul class="vo-items">${items.map(i => `<li><span>${i.quantity} × ${escapeHtml(i.name)}${i.variant ? ` <small>(${escapeHtml(i.variant)})</small>` : ''}</span><span>${formatNumber(i.total)} FCFA</span></li>`).join('')}</ul>
-                <div class="vo-money"><span>Total articles <strong>${formatNumber(o.subtotal)} FCFA</strong></span><span>Tu reçois <strong>${formatNumber(net)} FCFA</strong> <small>(commission ${(rate * 100).toLocaleString('fr-FR')} %)</small></span></div>
+                <div class="vo-money"><span>Total articles <strong>${formatNumber(o.subtotal)} FCFA</strong></span><span>Tu reçois <strong>${formatNumber(net)} FCFA</strong> <small>(100 % des articles${bonus ? ` + ${formatNumber(bonus)} FCFA de bonus Or` : ''} · frais de ${(rate * 100).toLocaleString('fr-FR')} % payés par le client)</small></span></div>
                 <p class="vo-client"><i class="fas fa-user"></i> ${escapeHtml(o.client_name)}${where ? ` · <i class="fas fa-map-marker-alt"></i> ${escapeHtml(where)}` : ''}${o.client_phone ? ` · <a href="https://wa.me/${waNum(o.client_phone)}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Appeler ${escapeHtml(o.client_phone)}</a>` : ''}</p>
                 ${o.landmark && o.status !== 'pending' ? `<p class="vo-client"><i class="fas fa-flag"></i> ${escapeHtml(o.landmark)}</p>` : ''}
                 ${o.status === 'refused' && o.notes ? `<p class="vo-client">Motif du refus : ${escapeHtml(o.notes)}</p>` : ''}
@@ -639,24 +641,24 @@
                     <div>
                         <small>Programme Médailles</small>
                         <strong>Médaille ${tier.name}</strong>
-                        <span>Commission Ouenze : <b>${(tier.commission * 100).toLocaleString('fr-FR')} %</b></span>
+                        <span>Frais Ouenze payés par tes clients : <b>${(tier.commission * 100).toLocaleString('fr-FR')} %</b></span>
                     </div>
                 </div>
                 <ul class="medal-perks">${tier.perks.map(p => `<li><i class="fas fa-check"></i> ${p}</li>`).join('')}</ul>
                 ${next ? `
                     <div class="medal-next">
-                        <p>Pour passer <strong>${next.emoji} ${next.name}</strong> (commission ${(next.commission * 100).toLocaleString('fr-FR')} %) :</p>
+                        <p>Pour passer <strong>${next.emoji} ${next.name}</strong> (frais clients ${(next.commission * 100).toLocaleString('fr-FR')} %) :</p>
                         ${bar('Note des clients', rating, next.minRating, rating.toLocaleString('fr-FR', { maximumFractionDigits: 1 }))}
                         ${bar('Commandes livrées', orders, next.minOrders, orders.toLocaleString('fr-FR'))}
                         ${next.verified ? `<div class="medal-req ${verified ? 'ok' : ''}"><div><span>Boutique vérifiée sur place par Ouenze</span><strong>${verified ? 'Oui' : 'Pas encore'}</strong></div></div>` : ''}
                     </div>` : '<p class="medal-top">Tu as atteint le plus haut niveau. Garde ta note au-dessus de 4,5 pour le conserver.</p>'}
                 <details class="medal-table">
-                    <summary>Sur une vente de ${sale.toLocaleString('fr-FR')} FCFA, combien tu reçois ?</summary>
+                    <summary>Sur une vente de ${sale.toLocaleString('fr-FR')} FCFA, combien paie le client ?</summary>
                     <table>
-                        <thead><tr><th>Médaille</th><th>Ouenze</th><th>Toi</th></tr></thead>
-                        <tbody>${M.TIERS.map(t => { const sp = M.split(sale, t); return `<tr class="${t.id === tier.id ? 'current' : ''}"><td>${t.emoji} ${t.name}</td><td>${formatNumber(sp.ouenze)}</td><td><strong>${formatNumber(sp.vendor)}</strong></td></tr>`; }).join('')}</tbody>
+                        <thead><tr><th>Médaille</th><th>Frais client</th><th>Client paie*</th><th>Toi</th></tr></thead>
+                        <tbody>${M.TIERS.map(t => { const sp = M.split(sale, t); return `<tr class="${t.id === tier.id ? 'current' : ''}"><td>${t.emoji} ${t.name}</td><td>${(t.commission * 100).toLocaleString('fr-FR')} %</td><td>${formatNumber(sp.client)}</td><td><strong>${formatNumber(sp.vendor)}</strong></td></tr>`; }).join('')}</tbody>
                     </table>
-                    <p>Plus ta boutique est fiable et bien notée, moins Ouenze prend de commission et plus elle te rend visible.</p>
+                    <p>* sans la livraison, qui revient au livreur. Tu reçois toujours 100 % du prix de tes articles ; en Or, Ouenze te reverse en plus 2 % (partagés à parts égales s'il y a plusieurs boutiques Or dans la même commande).</p>
                 </details>
             </div>`;
     }

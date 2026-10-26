@@ -227,10 +227,13 @@
     function teamHtml() {
         return `
             <div class="dl-card tm-team-add">
-                <strong><i class="fas fa-sliders-h"></i> Réglages : frais de livraison</strong>
-                <p class="tm-hint">Pourcentage du montant des articles, ajouté à chaque commande. Il s'applique aux nouvelles commandes.</p>
-                <div class="tm-search" style="margin:8px 0 0;">
-                    <input id="tmRate" type="number" min="0" max="50" step="0.5" inputmode="decimal" value="${state.rate != null ? (state.rate * 100).toLocaleString('en-US', { maximumFractionDigits: 2 }) : ''}" aria-label="Pourcentage">
+                <strong><i class="fas fa-sliders-h"></i> Réglages : frais payés par le client</strong>
+                <p class="tm-hint"><b>Frais de service Ouenze</b> (sur le total des articles, selon la médaille de la boutique) :
+                    Standard 9 % · Bronze 8 % · Argent 7 % · Or 6 %. Le vendeur reçoit 100 % du prix de ses articles.</p>
+                <p class="tm-hint"><b>Livraison</b> (s'applique aux nouvelles commandes) :</p>
+                <div class="tm-fees">
+                    <label>Une boutique <input id="tmFeeSingle" type="number" min="0" max="100000" step="50" inputmode="numeric" value="${state.fees ? state.fees.delivery_single : ''}"> FCFA</label>
+                    <label>Plusieurs boutiques (au total) <input id="tmFeeMulti" type="number" min="0" max="100000" step="50" inputmode="numeric" value="${state.fees ? state.fees.delivery_multi : ''}"> FCFA</label>
                     <button class="btn-submit" onclick="tmSetRate()">Enregistrer</button>
                 </div>
                 <p class="tm-msg" id="tmM-rate" hidden></p>
@@ -254,19 +257,22 @@
     }
 
     async function loadMembers() {
-        const [{ data, error }, rate] = await Promise.all([rpc('team_list'), rpc('delivery_rate')]);
+        const [{ data, error }, fees] = await Promise.all([rpc('team_list'), rpc('fee_quote', { shop_ids: [] })]);
         state.members = error ? [] : data || [];
-        state.rate = rate.error ? null : Number(rate.data);
+        state.fees = fees.error ? null : fees.data;
     }
 
     async function tmSetRate() {
-        const v = Number(String(document.getElementById('tmRate')?.value || '').replace(',', '.'));
-        if (!Number.isFinite(v) || v < 0 || v > 50) return flash('rate', 'Choisis un pourcentage entre 0 et 50.', false);
-        if (!await ask({ title: `Frais de livraison à ${v.toLocaleString('fr-FR')} % ?`, text: 'Les nouvelles commandes utiliseront ce pourcentage.', ok: 'Enregistrer' })) return;
-        const { data, error } = await rpc('set_delivery_rate', { percent: v });
-        if (error) return flash('rate', /set_delivery_rate|schema cache/i.test(error.message) ? 'Exécute d\'abord la migration 20261102_delivery_rate.sql.' : error.message, false);
-        state.rate = Number(data);
-        flash('rate', `Enregistré : ${(state.rate * 100).toLocaleString('fr-FR')} % pour les nouvelles commandes.`, true);
+        const single = Number(document.getElementById('tmFeeSingle')?.value);
+        const multi = Number(document.getElementById('tmFeeMulti')?.value);
+        if (!Number.isFinite(single) || !Number.isFinite(multi) || single < 0 || multi < 0 || single > 100000 || multi > 100000) {
+            return flash('rate', 'Indique des montants entre 0 et 100 000 FCFA.', false);
+        }
+        if (!await ask({ title: `Livraison : ${single.toLocaleString('fr-FR')} FCFA (une boutique), ${multi.toLocaleString('fr-FR')} FCFA (plusieurs) ?`, text: 'Les nouvelles commandes utiliseront ces montants.', ok: 'Enregistrer' })) return;
+        const { data, error } = await rpc('set_delivery_fees', { single, multi });
+        if (error) return flash('rate', /set_delivery_fees|schema cache/i.test(error.message) ? 'Exécute d\'abord la migration 20261109_order_fees.sql.' : error.message, false);
+        state.fees = { ...(state.fees || {}), ...data };
+        flash('rate', `Enregistré : ${Number(data.delivery_single).toLocaleString('fr-FR')} FCFA pour une boutique, ${Number(data.delivery_multi).toLocaleString('fr-FR')} FCFA pour plusieurs.`, true);
     }
 
     async function tmAdd() {

@@ -66,6 +66,11 @@ function button(href, label) {
     return `<p style="text-align:center;margin:20px 0 6px;"><a href="${esc(href)}" style="display:inline-block;background:#1e40af;color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:30px;">${esc(label)}</a></p>`;
 }
 
+// Frais de service payés par le client (migration 20261109) : total − articles − livraison
+function serviceFee(order) {
+    return Math.max(0, Number(order.total || 0) - Number(order.subtotal || 0) - Number(order.delivery_fees || 0));
+}
+
 function itemsTable(items, order) {
     const rows = items.map(i => `<tr>
         <td style="padding:8px 6px;border-bottom:1px solid #e2e8f0;">${esc(i.product_name)}${i.variant_name ? ` <span style="color:#64748b;">(${esc(i.variant_name)})</span>` : ''}</td>
@@ -73,6 +78,7 @@ function itemsTable(items, order) {
         <td style="padding:8px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">${fcfa(i.total_price)}</td></tr>`).join('');
     return `<table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:12px;">${rows}
         <tr><td colspan="2" style="padding:8px 6px;color:#64748b;">Sous-total</td><td style="padding:8px 6px;text-align:right;">${fcfa(order.subtotal)}</td></tr>
+        ${serviceFee(order) > 0 ? `<tr><td colspan="2" style="padding:4px 6px;color:#64748b;">Frais de service Ouenze</td><td style="padding:4px 6px;text-align:right;">${fcfa(serviceFee(order))}</td></tr>` : ''}
         <tr><td colspan="2" style="padding:4px 6px;color:#64748b;">Livraison</td><td style="padding:4px 6px;text-align:right;">${fcfa(order.delivery_fees)}</td></tr>
         <tr><td colspan="2" style="padding:8px 6px;font-weight:bold;">Total</td><td style="padding:8px 6px;text-align:right;font-weight:bold;">${fcfa(order.total)}</td></tr></table>`;
 }
