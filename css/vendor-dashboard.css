@@ -1706,3 +1706,9 @@ a.share-native {
         display: none;
     }
 }
+
+/* ---------- Mes statuts ---------- */
+.vd-stories { margin-top: 18px; }
+.vd-st-hint { margin: 0 0 10px; font-size: 13px; color: #64748b; }
+.vd-st-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.vd-st-shop { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 14px; background: #fff; }

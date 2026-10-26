@@ -103,6 +103,7 @@
                 <a href="admin-vendors.html"><i class="fas fa-user-tie"></i> Demandes vendeurs</a>
                 <a href="admin-deliverers.html"><i class="fas fa-motorcycle"></i> Livreurs</a>
                 <a href="admin-reserve.html"><i class="fas fa-piggy-bank"></i> Réserves des livreurs</a>
+                <a href="admin-stories.html"><i class="fas fa-circle-notch"></i> Stories : Ouenze et modération</a>
                 <a href="admin-reports.html"><i class="fas fa-flag"></i> Signalements</a>
                 <a href="trade.html"><i class="fas fa-chart-line"></i> Trade</a>
                 <a href="equipe.html" onclick="sessionStorage.setItem('tmTab','team')"><i class="fas fa-sliders-h"></i> Équipe et réglages</a>

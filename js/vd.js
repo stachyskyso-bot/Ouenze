@@ -183,6 +183,7 @@
                     ${side('#vdTop', 'fa-th-large', 'Tableau de bord', 'class="active"')}
                     ${side('#commandes', 'fa-receipt', `Commandes${pending ? ` <b>${pending}</b>` : ''}`)}
                     ${side('#boutiques', 'fa-store', 'Mes boutiques')}
+                    ${firstShop ? side('#statuts', 'fa-circle-notch', 'Mes stories') : ''}
                     ${firstShop ? side('#', 'fa-palette', 'Design de ma boutique', `onclick="openShopDesigner('${escapeHtml(firstShop.id)}');return false;"`) : ''}
                     ${side('accounting.html', 'fa-calculator', 'Comptabilité')}
                     ${side('notifications.html', 'fa-bell', 'Notifications <span class="nav-badge notif-count" hidden></span>')}
@@ -225,6 +226,8 @@
                         <button onclick="window.location.href='accounting.html'"><i class="fas fa-calculator"></i> Comptabilité</button>
                     </div>
 
+                    ${firstShop && window.OuenzeStories ? storiesSectionHtml() : ''}
+
                     <section id="commandes" class="vo-section">${ordersHtml()}</section>
 
                     <h2 id="boutiques" class="vd-section-title">Mes boutiques (${dashShops.length})</h2>
@@ -238,6 +241,114 @@
                         </div>` : dashShops.map(renderShop).join('')}
                 </div>
             </div>`;
+        renderMyStories();
+    }
+
+    // ============ MES STATUTS (migration 20261111_stories.sql) ============
+    let myStories = null;       // null = pas encore chargé
+    let storiesError = '';
+
+    function storiesSectionHtml() {
+        const pick = dashShops.length > 1 ? `<select id="vdStoryShop" class="vd-st-shop" aria-label="Boutique">
+            ${dashShops.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('')}</select>` : '';
+        return `
+            <section id="statuts" class="vd-card vd-stories">
+                <div class="vd-card-head"><h3><i class="fas fa-circle-notch"></i> Mes stories</h3><small>Photos, vidéos ou texte · 24 h en ligne</small></div>
+                <p class="vd-st-hint">Montre tes nouveautés et tes promos : tes stories s'affichent en haut de l'accueil de Ouenze,
+                    d'abord chez les clients qui aiment ta boutique.</p>
+                <div class="vd-st-actions">${pick}
+                    <button type="button" class="btn-sm btn-primary" onclick="vdNewStory()"><i class="fas fa-plus"></i> Nouvelle story</button>
+                    <button type="button" class="btn-sm" onclick="vdShareStories()"><i class="fas fa-share-alt"></i> Partager mes stories</button>
+                </div>
+                <div id="vdStoriesList" class="st-mine-list"><p class="st-empty">Chargement…</p></div>
+            </section>`;
+    }
+
+    async function loadMyStories() {
+        if (!window.OuenzeStories) return;
+        const { data, error } = await window.supabase.rpc('my_stories');
+        if (error) {
+            storiesError = /my_stories|schema cache|does not exist/i.test(error.message || '')
+                ? 'Base de données à mettre à jour (migration 20261111_stories.sql).' : error.message;
+            myStories = [];
+        } else {
+            storiesError = '';
+            myStories = Array.isArray(data) ? data : [];
+        }
+        renderMyStories();
+    }
+
+    function storyLeft(r) {
+        const h = Math.max(0, (new Date(r.expires_at).getTime() - Date.now()) / 3600000);
+        return h >= 1 ? `encore ${Math.floor(h)} h` : `encore ${Math.max(1, Math.round(h * 60))} min`;
+    }
+
+    function renderMyStories() {
+        const box = document.getElementById('vdStoriesList');
+        if (!box) return;
+        if (myStories === null) return;
+        if (storiesError) { box.innerHTML = `<p class="st-empty">${escapeHtml(storiesError)}</p>`; return; }
+        if (!myStories.length) {
+            box.innerHTML = '<p class="st-empty">Aucune story ces 7 derniers jours. Publie ta première photo ou vidéo !</p>';
+            return;
+        }
+        box.innerHTML = myStories.map((r, i) => {
+            const media = r.media_type === 'video'
+                ? `<video src="${escapeHtml(r.media_url || '')}" muted preload="metadata" playsinline></video>`
+                : r.media_type === 'text'
+                    ? `<div class="st-card-text" style="background:${/^#[0-9a-f]{6}$/i.test(r.bg_color || '') ? r.bg_color : '#1e40af'}">${escapeHtml(r.caption || '')}</div>`
+                    : `<img src="${escapeHtml(r.media_url || '')}" alt="" loading="lazy">`;
+            const state = r.active ? `<span class="st-card-badge">${r.media_type === 'video' ? '<i class="fas fa-video"></i> ' : ''}${storyLeft(r)}</span>`
+                : `<span class="st-card-badge">${r.removed_reason ? 'Retiré par Ouenze' : (r.removed_at ? 'Supprimé' : 'Expiré')}</span>`;
+            return `<div class="st-card ${r.active ? '' : 'off'}" role="button" tabindex="0" onclick="vdPreviewStory(${i})">
+                ${media}${state}
+                ${r.active ? `<button type="button" class="st-card-del" aria-label="Supprimer" onclick="event.stopPropagation();vdDeleteStory('${escapeHtml(r.id)}')"><i class="fas fa-trash"></i></button>` : ''}
+                <span class="st-card-info"><b><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''}</b>
+                    ${dashShops.length > 1 ? `<small>${escapeHtml(r.shop_name || '')}</small>` : ''}
+                    ${r.audience === 'fans' ? '<small><i class="fas fa-heart"></i> Mes fidèles</small>' : ''}
+                    ${r.removed_reason ? `<small>Raison : ${escapeHtml(r.removed_reason)}</small>` : ''}</span>
+            </div>`;
+        }).join('');
+    }
+
+    async function vdNewStory() {
+        const shopId = document.getElementById('vdStoryShop')?.value || dashShops[0]?.id;
+        if (!shopId || !window.OuenzeStories) return;
+        const { data } = await window.supabase.from('products').select('id, name')
+            .eq('shop_id', shopId).neq('is_active', false).order('created_at', { ascending: false }).limit(300);
+        window.OuenzeStories.compose({ shopId, products: data || [], onDone: loadMyStories });
+    }
+
+    function vdPreviewStory(i) {
+        const r = myStories?.[i];
+        if (r) window.OuenzeStories?.preview([r], r.shop_name || 'Ma story');
+    }
+
+    async function vdDeleteStory(id) {
+        if (!(await uiConfirm('Supprimer cette story ? Les clients ne la verront plus.', 'Supprimer', true))) return;
+        try {
+            await window.OuenzeStories.remove(id);
+            await loadMyStories();
+        } catch (e) {
+            uiAlert(e.message || 'Suppression impossible');
+        }
+    }
+
+    async function vdShareStories() {
+        const shopId = document.getElementById('vdStoryShop')?.value || dashShops[0]?.id;
+        const shop = dashShops.find(s => s.id === shopId);
+        if (!shop) return;
+        const url = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}index.html?statut=${encodeURIComponent(shop.id)}`;
+        const text = `Découvre les stories de ${shop.name} sur Ouenze`;
+        if (navigator.share) {
+            try { await navigator.share({ title: shop.name, text, url }); return; } catch (e) { if (e?.name === 'AbortError') return; }
+        }
+        try {
+            await navigator.clipboard.writeText(url);
+            uiAlert('Lien copié : colle-le dans WhatsApp ou sur tes réseaux.');
+        } catch (e) {
+            uiPrompt('Copie ce lien :', url);
+        }
     }
 
     // Médaille d'une boutique (base, sinon règles locales)
@@ -993,6 +1104,12 @@
             showDashboard();
             // Lien de l'email « Nouvelle commande » : vendor-dashboard.html#commandes
             if (location.hash === '#commandes') document.getElementById('commandes')?.scrollIntoView({ behavior: 'smooth' });
+            if (dashShops.length && window.OuenzeStories) {
+                loadMyStories().then(() => {
+                    if (location.hash === '#statuts') document.getElementById('statuts')?.scrollIntoView({ behavior: 'smooth' });
+                });
+                window.OuenzeStories.cleanFiles();
+            }
             // Compteur de notifications non lues (migration 20261018 ; absente = pas de compteur)
             window.supabase.rpc('notifications_unread').then(({ data, error }) => {
                 const n = error ? 0 : Number(data) || 0;
@@ -1006,7 +1123,8 @@
  
     Object.assign(window, { createNewShop, openShopDesigner, viewShop, openShareShop, closeShareShop, nativeShareShop, copyShopLink,
         openManageShop, openTransferForm, submitTransfer, cancelTransfer, openCloseForm, submitCloseShop,
-        openListing, listingCalc, submitListing, voTab, voDecide, setPickup });
+        openListing, listingCalc, submitListing, voTab, voDecide, setPickup,
+        vdNewStory, vdPreviewStory, vdDeleteStory, vdShareStories });
  
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

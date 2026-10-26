@@ -20,6 +20,7 @@
         { href: 'admin-vendors.html', icon: 'fa-user-tie', label: 'Vendeurs', admin: true, count: 'vendor_apps' },
         { href: 'admin-deliverers.html', icon: 'fa-motorcycle', label: 'Livreurs', admin: true, count: 'courier_apps' },
         { href: 'admin-reserve.html', icon: 'fa-piggy-bank', label: 'Réserves', admin: true, count: 'reserve_todo' },
+        { href: 'admin-stories.html', icon: 'fa-circle-notch', label: 'Stories', admin: true },
         { href: 'admin-reports.html', icon: 'fa-flag', label: 'Signalements', admin: true, count: 'reports' },
         { href: 'trade.html', icon: 'fa-chart-line', label: 'Trade', admin: true, count: 'trade_total' },
         { href: 'index.html?site=1', icon: 'fa-eye', label: 'Voir le site', external: true }

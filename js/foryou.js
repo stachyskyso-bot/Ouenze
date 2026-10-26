@@ -210,6 +210,7 @@
     const keyOf = (kind, id) => `${kind}:${id}`;
     function favIds(kind) { return [...favs].filter(k => k.startsWith(kind + ':')).map(k => k.slice(kind.length + 1)); }
     function isFav(kind, id) { return favs.has(keyOf(kind, id)); }
+    function shopAffinity(id) { return Number(taste.s[id]) || 0; }
     function emit() { store.set(FAV_KEY, [...favs]); listeners.forEach(fn => { try { fn(); } catch (e) { /* écran fermé */ } }); }
     function onFavChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 
@@ -276,5 +277,5 @@
 
     document.addEventListener('visibilitychange', () => { if (document.hidden && syncTimer) pushTaste(); });
 
-    window.Ouenze4U = { init, track, resetTaste, rank, hasTaste, topCategories, recent, isFav, toggleFav, favIds, onFavChange, visitorId };
+    window.Ouenze4U = { init, track, resetTaste, rank, hasTaste, topCategories, recent, isFav, toggleFav, favIds, onFavChange, visitorId, shopAffinity };
 })();
