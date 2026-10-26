@@ -1424,11 +1424,16 @@ async function updateShopNow() {
     const tooHeavy = weightProblem(weight);
     if (tooHeavy) { alert(tooHeavy); return; }
 
-    // .select : on vérifie que la boutique a bien été modifiée (sinon la base a refusé sans le dire)
+    // Enregistrement par la fonction update_my_shop (migration 20261108) : elle vérifie que la boutique
+    // t'appartient. Sans cette fonction : modification directe, en vérifiant qu'elle a bien été faite.
     let res;
     try {
-        res = await window.supabase
-            .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id).select('id');
+        res = await window.supabase.rpc('update_my_shop', { target: editingShopId, fields: updates });
+        if (!res.error) res = { data: [{ id: res.data }], error: null };
+        else if (/update_my_shop|schema cache|PGRST202|does not exist/i.test(res.error.message || '') || res.error.code === 'PGRST202') {
+            res = await window.supabase
+                .from('shops').update(updates).eq('id', editingShopId).eq('owner_id', user.id).select('id');
+        }
     } catch (e) {
         res = { error: e };
     }
