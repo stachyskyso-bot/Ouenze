@@ -794,3 +794,7 @@
 @media (max-width: 520px) { .as-kpis { grid-template-columns: 1fr; } }
 .as-back { background: none; border: none; padding: 0 0 12px; color: var(--primary); font: inherit; font-weight: 600; cursor: pointer; }
 .as-call.btn-submit { background: #16a34a; }
+.tm-fees { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 6px; }
+.tm-fees label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #334155; }
+.tm-fees input { width: 140px; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; }
+.tm-fees .btn-submit { width: auto; }

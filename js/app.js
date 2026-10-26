@@ -174,16 +174,6 @@
     }
  
     // ============ INITIALISATION ============
-    // Frais de livraison : pourcentage réglé par Ouenze (RPC delivery_rate, 10 % par défaut).
-    // La base recalcule toujours les frais au moment de la commande.
-    let deliveryRate = 0.10;
-    function loadDeliveryRate() {
-        window.supabase?.rpc?.('delivery_rate').then(({ data, error }) => {
-            const r = Number(data);
-            if (!error && Number.isFinite(r) && r >= 0 && r <= 0.5) deliveryRate = r;
-        }).catch(() => { /* on garde 10 % */ });
-    }
-    const ratePercent = () => (deliveryRate * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 
     // Rôle d'équipe : 'admin', 'agent' ou null.
     // my_team_role (migration 20261030) ; si elle n'est pas encore installée, is_admin.
@@ -200,32 +190,53 @@
 
     // Page d'accueil : l'équipe arrive sur son interface. « Voir le site » (index.html?site=1)
     // permet ensuite de parcourir la boutique normalement pendant toute la session.
-    async function sendTeamToTheirSpace() {
+    // Chaque type de compte a son accueil : admin → tableau de bord, agent → Espace équipe,
+    // vendeur → espace vendeur, livreur → espace livreur, client → la boutique Ouenze.
+    // Seulement quand on ARRIVE sur Ouenze (lien, favori, appli) : en naviguant dans le site,
+    // ou après « Voir le site » (index.html?site=1), l'accueil reste la boutique.
+    const SPACE = { admin: 'admin.html', agent: 'equipe.html', vendeur: 'vendor-dashboard.html', livreur: 'delivery-dashboard.html' };
+    function arrivingFromOutside() {
+        try { return !document.referrer || new URL(document.referrer).origin !== location.origin; }
+        catch (e) { return true; }
+    }
+    function mayRedirectHome() {
         const params = new URLSearchParams(window.location.search);
         try {
             if (params.get('site') === '1') { sessionStorage.setItem('ouenzeSiteView', '1'); return false; }
             if (sessionStorage.getItem('ouenzeSiteView') === '1') return false;
         } catch (e) { return false; }
-        if (params.get('shop') || params.get('q')) return false;
-        // Rôle mémorisé sur ce téléphone : un client ne patiente pas à chaque ouverture ;
+        if (params.get('shop') || params.get('q') || location.hash) return false;
+        return arrivingFromOutside();
+    }
+    function goToSpace(kind) {
+        const url = SPACE[kind];
+        if (!url) return false;
+        window.location.replace(url);
+        return true;
+    }
+
+    async function sendTeamToTheirSpace() {
+        if (!mayRedirectHome()) return false;
+        // Rôle mémorisé sur ce téléphone : pas d'attente à chaque ouverture ;
         // la vérification se fait en arrière-plan et redirige si le rôle a changé.
         const key = 'ouenze_role_' + (currentUser?.id || '');
-        let saved = null;
-        try { saved = localStorage.getItem(key); } catch (e) { /* stockage bloqué */ }
-        const go = role => {
-            if (role === 'admin') { window.location.replace('admin.html'); return true; }
-            if (role === 'agent') { window.location.replace('equipe.html'); return true; }
-            return false;
-        };
+        const typeKey = 'ouenze_type_' + (currentUser?.id || '');
+        let saved = null, savedType = null;
+        try { saved = localStorage.getItem(key); savedType = localStorage.getItem(typeKey); } catch (e) { /* stockage bloqué */ }
         const check = teamRole().then(role => {
             try { localStorage.setItem(key, role || 'none'); } catch (e) { /* stockage bloqué */ }
             return role;
         });
-        if (saved === null) return go(await check);
-        if (saved !== 'none') return go(saved);
-        check.then(role => { if (role) go(role); });
+        if (saved === null) { if (goToSpace(await check)) return true; }
+        else if (saved !== 'none') return goToSpace(saved);
+        else check.then(role => { if (role) goToSpace(role); });
+        // Vendeur ou livreur : type mémorisé ; sinon on attend le profil (voir initApp)
+        if (savedType && goToSpace(savedType)) return true;
+        if (!savedType && currentProfile) return goToSpace(currentUserType);   // profil déjà arrivé
+        homeRedirectPending = !savedType;
         return false;
     }
+    let homeRedirectPending = false;
 
     async function sessionUser() {
         try {
@@ -237,7 +248,6 @@
 
     async function initApp() {
         console.log('🚀 Initialisation...');
-        loadDeliveryRate();
         handleOAuthReturnError();
  
         if (!window.supabase || !window.supabase.auth) {
@@ -254,6 +264,9 @@
                 const profileJob = (async () => {
                     currentProfile = await fetchProfile(currentUser.id);
                     currentUserType = currentProfile?.user_type || 'client';
+                    try { localStorage.setItem('ouenze_type_' + currentUser.id, currentUserType); } catch (e) { /* stockage bloqué */ }
+                    // Première ouverture sur ce téléphone : le type de compte vient d'arriver
+                    if (homeRedirectPending && document.getElementById('appContainer') && goToSpace(currentUserType)) return;
                     console.log('👤 Connecté:', currentUser.email, '—', currentUserType);
                     await loadUserData();
                 })();
@@ -558,7 +571,7 @@
                     </a>`;
             const cartIcon = favIcon + `
                     <button type="button" class="hdr-icon" onclick="showCart()" aria-label="Panier">
-                        <span class="hdr-icon-glyph"><i class="fas fa-shopping-cart"></i><span class="cart-count">${cartTotalQty()}</span></span>
+                        <span class="hdr-icon-glyph"><i class="fas fa-shopping-cart"></i><span class="cart-count" ${cartTotalQty() ? '' : 'hidden'}>${cartTotalQty()}</span></span>
                         <span class="hdr-icon-label">Panier</span>
                     </button>`;
             if (currentUser) {
@@ -2350,6 +2363,16 @@
         const main = activePhoto && photos.includes(activePhoto) ? activePhoto : photos[0];
  
         const price = variant ? Number(variant.price) : (options.length ? null : Number(p.price));
+        // Choix en cours (ex. la couleur sans la taille) : prix des versions qui correspondent
+        const matching = productVariants(p).filter(v =>
+            options.every(o => !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
+        const mPrices = matching.map(v => Number(v.price)).filter(n => n > 0);
+        const priceText = price !== null && price > 0 ? `${formatPrice(price)} FCFA`
+            : mPrices.length && Object.keys(detailSelection).length
+                ? (Math.min(...mPrices) === Math.max(...mPrices)
+                    ? `${formatPrice(mPrices[0])} FCFA`
+                    : `${formatPrice(Math.min(...mPrices))} – ${formatPrice(Math.max(...mPrices))} FCFA`)
+                : productPriceLabel(p);
         const stock = variant ? Number(variant.stock) || 0 : (options.length ? null : Number(p.stock) || 0);
         if (stock !== null && detailQty > Math.max(stock, 1)) detailQty = Math.max(stock, 1);
  
@@ -2394,7 +2417,7 @@
                     ${beauty?.brand ? `<div class="pd-brand">${escapeHtml(beauty.brand)}</div>` : ''}
                     <div class="pd-name-row"><h3 class="pd-name">${escapeHtml(p.name)}</h3>${favBtn('product', p.id, 'in-title')}</div>
                     <div class="pd-price" style="color:${d.primary};">
-                        ${price !== null ? `${formatPrice(price)} FCFA` : productPriceLabel(p)}
+                        ${priceText}
                     </div>
                     ${beautyTagsHtml(beauty, p)}
                     ${shop && shop.total_ratings ? `<div class="pd-rating"><span class="pd-stars">${generateStars(rating)}</span>
@@ -2519,8 +2542,11 @@
  
     function updateCartCount() {
         const count = cartTotalQty();
-        document.querySelectorAll('#cartCountHeader, .cart-count').forEach(el => {
-            el.textContent = count;
+        // Seulement les compteurs du panier (pas ceux des favoris ni des notifications)
+        document.querySelectorAll('#cartCountHeader, .cart-count:not(.fav-count):not(.notif-count)').forEach(el => {
+            el.textContent = count > 99 ? '99+' : count;
+            // Pastille sur l'icône : cachée quand le panier est vide (pas de « 0 » à côté des autres pastilles)
+            if (el.classList.contains('cart-count')) el.hidden = !count;
         });
     }
  
@@ -2627,9 +2653,15 @@
     }
 
     // Panier : articles groupés par boutique (une commande par boutique), puis le total
-    function showCart() {
+    // Frais (js/database.js, OuenzeFees) : frais de service selon la boutique + livraison 300 / 500 FCFA
+    function cartFees() {
+        if (window.OuenzeFees) return window.OuenzeFees.compute(cart);
         const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-        const fees = Math.round(subtotal * deliveryRate);
+        return { subtotal, service: 0, delivery: 0, total: subtotal, shops: 0, rateLabel: '' };
+    }
+
+    function showCart(refreshed) {
+        const t = cartFees();
         const byShop = new Map();
         cart.forEach((item, idx) => {
             const key = String(item.shopId || '');
@@ -2644,15 +2676,22 @@
             <div class="cart-list">${[...byShop.values()].map(g => `
                 <div class="cart-shop"><div class="cart-shop-name"><i class="fas fa-store"></i> ${escapeHtml(g.name)}</div>${g.rows.join('')}</div>`).join('')}</div>
             <div class="cart-summary">
-                <div><span>Sous-total</span><span>${formatPrice(subtotal)} FCFA</span></div>
-                <div><span>Livraison (${ratePercent()} %)</span><span>${formatPrice(fees)} FCFA</span></div>
-                <div class="cart-grand"><span>Total</span><strong>${formatPrice(subtotal + fees)} FCFA</strong></div>
+                <div><span>Sous-total</span><span>${formatPrice(t.subtotal)} FCFA</span></div>
+                <div><span>Frais de service Ouenze (${t.rateLabel})</span><span>${formatPrice(t.service)} FCFA</span></div>
+                <div><span>Livraison${t.shops > 1 ? ` (${t.shops} boutiques)` : ''}</span><span>${formatPrice(t.delivery)} FCFA</span></div>
+                <div class="cart-grand"><span>Total</span><strong>${formatPrice(t.total)} FCFA</strong></div>
                 <a class="btn-submit cart-checkout" href="checkout.html"><i class="fas fa-lock"></i> Commander</a>
                 ${byShop.size > 1 ? `<p class="cart-note"><i class="fas fa-info-circle"></i> ${byShop.size} boutiques : chacune confirme sa partie de la commande.</p>` : ''}
             </div>`;
         const existing = document.getElementById('cartModalBody');
         if (existing) existing.innerHTML = html;
         else openModal(`<div id="cartModalBody">${html}</div>`).classList.add('cart-modal');
+        // Taux réels des boutiques du panier (médailles) : on recalcule une fois reçus
+        if (!refreshed && cart.length && window.OuenzeFees) {
+            window.OuenzeFees.load(cart.map(i => i.shopId)).then(ok => {
+                if (ok && document.getElementById('cartModalBody')) showCart(true);
+            });
+        }
     }
  
     function changeCartQty(idx, delta) {
@@ -3286,6 +3325,7 @@
                 ${row('admin-vendors.html', 'fa-user-tie', 'Demandes vendeurs')}
                 ${row('admin-reports.html', 'fa-flag', 'Signalements')}
                 ${row('admin-deliverers.html', 'fa-motorcycle', 'Candidatures livreurs')}
+                ${row('admin-reserve.html', 'fa-piggy-bank', 'Réserves des livreurs (simulation)')}
 </nav>`);
         });
     }

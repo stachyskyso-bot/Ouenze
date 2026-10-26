@@ -19,6 +19,7 @@
         { href: 'admin-shops.html', icon: 'fa-store', label: 'Boutiques', admin: true },
         { href: 'admin-vendors.html', icon: 'fa-user-tie', label: 'Vendeurs', admin: true, count: 'vendor_apps' },
         { href: 'admin-deliverers.html', icon: 'fa-motorcycle', label: 'Livreurs', admin: true, count: 'courier_apps' },
+        { href: 'admin-reserve.html', icon: 'fa-piggy-bank', label: 'Réserves', admin: true, count: 'reserve_todo' },
         { href: 'admin-reports.html', icon: 'fa-flag', label: 'Signalements', admin: true, count: 'reports' },
         { href: 'trade.html', icon: 'fa-chart-line', label: 'Trade', admin: true, count: 'trade_total' },
         { href: 'index.html?site=1', icon: 'fa-eye', label: 'Voir le site', external: true }
@@ -62,8 +63,11 @@
         setTimeout(showRole, 1500);
         if (role !== 'admin') return;
         const refresh = async () => {
-            const { data } = await window.supabase.rpc('admin_overview');
-            if (data) render(role, { ...data, trade_total: (Number(data.trade_review) || 0) + (Number(data.trade_pending_lines) || 0) });
+            const [{ data }, todo] = await Promise.all([
+                window.supabase.rpc('admin_overview'),
+                window.supabase.rpc('admin_reserve_todo').then(r => r, () => ({}))
+            ]);
+            if (data) render(role, { ...data, reserve_todo: Number(todo?.data) || 0, trade_total: (Number(data.trade_review) || 0) + (Number(data.trade_pending_lines) || 0) });
         };
         refresh();
         setInterval(() => { if (!document.hidden) refresh(); }, 60000);

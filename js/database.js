@@ -256,24 +256,24 @@ console.log('   - getCurrentUser:', typeof getCurrentUser);
 window.OuenzeMedals = (function () {
     const TIERS = [
         {
-            id: 'standard', name: 'Standard', emoji: '<i class="fas fa-store" style="color:#64748b"></i>', rank: 0, commission: 0.22,
+            id: 'standard', name: 'Standard', emoji: '<i class="fas fa-store" style="color:#64748b"></i>', rank: 0, commission: 0.09,
             minRating: 0, minOrders: 0, verified: false,
-            perks: ['Fonctionnement normal de la boutique', 'Commission Ouenze 22 %']
+            perks: ['Fonctionnement normal de la boutique', 'Frais de service payés par tes clients : 9 %']
         },
         {
-            id: 'bronze', name: 'Bronze', emoji: '<i class="fas fa-medal" style="color:#b45309"></i>', rank: 1, commission: 0.2175,
+            id: 'bronze', name: 'Bronze', emoji: '<i class="fas fa-medal" style="color:#b45309"></i>', rank: 1, commission: 0.08,
             minRating: 3.5, minOrders: 10, verified: false,
-            perks: ['Badge Bronze visible', 'Commission réduite à 21,75 %', 'Statistiques de base', 'Peut apparaître dans les sélections Ouenze']
+            perks: ['Badge Bronze visible', 'Frais réduits à 8 % pour tes clients', 'Statistiques de base', 'Peut apparaître dans les sélections Ouenze']
         },
         {
-            id: 'silver', name: 'Argent', emoji: '<i class="fas fa-medal" style="color:#94a3b8"></i>', rank: 2, commission: 0.215,
+            id: 'silver', name: 'Argent', emoji: '<i class="fas fa-medal" style="color:#94a3b8"></i>', rank: 2, commission: 0.07,
             minRating: 4, minOrders: 50, verified: false,
-            perks: ['Tout Bronze', 'Commission réduite à 21,5 %', 'Meilleure visibilité dans les résultats', 'Statistiques avancées', 'Mises en avant occasionnelles']
+            perks: ['Tout Bronze', 'Frais réduits à 7 % pour tes clients', 'Meilleure visibilité dans les résultats', 'Statistiques avancées', 'Mises en avant occasionnelles']
         },
         {
-            id: 'gold', name: 'Or', emoji: '<i class="fas fa-medal" style="color:#d4a017"></i>', rank: 3, commission: 0.21,
+            id: 'gold', name: 'Or', emoji: '<i class="fas fa-medal" style="color:#d4a017"></i>', rank: 3, commission: 0.08, vendorShare: 0.02,
             minRating: 4.5, minOrders: 150, verified: true,
-            perks: ['Tout Argent', 'Commission réduite à 21 %', 'Priorité dans le classement et la recherche', 'Badge premium très visible', 'Mises en avant gratuites', 'Accès prioritaire aux nouvelles fonctions', 'Support vendeur prioritaire']
+            perks: ['Tout Argent', 'Frais clients 8 %, dont 2 % reversés à toi (partagés si plusieurs boutiques Or dans la commande)', 'Priorité dans le classement et la recherche', 'Badge premium très visible', 'Mises en avant gratuites', 'Accès prioritaire aux nouvelles fonctions', 'Support vendeur prioritaire']
         }
     ];
     const byId = Object.fromEntries(TIERS.map(t => [t.id, t]));
@@ -291,11 +291,13 @@ window.OuenzeMedals = (function () {
         return TIERS[(byId[tier?.id || tier]?.rank ?? 0) + 1] || null;
     }
 
-    // Partage d'une vente entre Ouenze et le vendeur
+    // Partage d'une vente : les frais Ouenze sont payés par le client en plus du prix ;
+    // le vendeur reçoit 100 % du prix de ses articles, + 2 % s'il est Or (seul dans la commande)
     function split(amount, tier) {
         const t = byId[tier?.id || tier] || TIERS[0];
-        const ouenze = Math.round(amount * t.commission);
-        return { ouenze, vendor: amount - ouenze, rate: t.commission };
+        const fee = Math.round(amount * t.commission);
+        const share = Math.round(amount * (t.vendorShare || 0));
+        return { client: amount + fee, fee, ouenze: fee - share, vendor: amount + share, rate: t.commission };
     }
 
     function get(id) {
@@ -303,4 +305,53 @@ window.OuenzeMedals = (function () {
     }
 
     return { TIERS, compute, next, split, get };
+})();
+
+
+// ============================================================
+// FRAIS DE COMMANDE (migration 20261109) — la base fait foi au moment de commander
+//   frais de service = taux de la boutique (médaille : 9, 8, 7 ou 6 %) × total de ses articles
+//   livraison = 300 FCFA pour une boutique, 500 FCFA au total pour plusieurs (répartis)
+// ============================================================
+window.OuenzeFees = (function () {
+    const DEFAULT_RATE = 0.09;
+    const state = { single: 300, multi: 500, rates: {} };
+
+    // Taux des boutiques du panier et montants de livraison (une requête, en silence si indisponible)
+    async function load(shopIds) {
+        const ids = [...new Set((shopIds || []).filter(Boolean).map(String))];
+        try {
+            const { data, error } = await window.supabase.rpc('fee_quote', { shop_ids: ids });
+            if (error || !data) return false;
+            if (Number.isFinite(Number(data.delivery_single))) state.single = Number(data.delivery_single);
+            if (Number.isFinite(Number(data.delivery_multi))) state.multi = Number(data.delivery_multi);
+            Object.entries(data.rates || {}).forEach(([k, v]) => { if (Number.isFinite(Number(v))) state.rates[k] = Number(v); });
+            return true;
+        } catch (e) { return false; }
+    }
+
+    function rateOf(shopId) { return state.rates[String(shopId)] ?? DEFAULT_RATE; }
+
+    // items : [{ shopId, price, quantity }]
+    function compute(items) {
+        const byShop = new Map();
+        (items || []).forEach(i => {
+            const k = String(i.shopId || 'inconnue');
+            byShop.set(k, (byShop.get(k) || 0) + (Number(i.price) || 0) * (Number(i.quantity) || 0));
+        });
+        const shops = [...byShop.entries()].map(([shopId, subtotal]) => {
+            const rate = rateOf(shopId);
+            return { shopId, subtotal, rate, service: Math.round(subtotal * rate) };
+        });
+        const subtotal = shops.reduce((s, x) => s + x.subtotal, 0);
+        const service = shops.reduce((s, x) => s + x.service, 0);
+        const delivery = !shops.length ? 0 : shops.length === 1 ? state.single : state.multi;
+        const rates = [...new Set(shops.map(x => x.rate))];
+        return {
+            subtotal, service, delivery, total: subtotal + service + delivery, shops: shops.length,
+            rateLabel: rates.length === 1 ? `${(rates[0] * 100).toLocaleString('fr-FR')} %` : 'selon la boutique'
+        };
+    }
+
+    return { load, compute, rateOf, state };
 })();

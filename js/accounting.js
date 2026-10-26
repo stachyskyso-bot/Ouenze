@@ -111,9 +111,10 @@
 
     // ============ OPÉRATIONS → ÉCRITURES ============
     // Une vente Ouenze = une commande livrée (toutes les lignes de la boutique regroupées).
-    // La commission Ouenze dépend de la médaille de la boutique (taux actuel).
-    function commissionRate(shopId) {
-        return window.OuenzeMedals?.get(state.medals[shopId] || 'standard').commission ?? 0.22;
+    // Les frais Ouenze sont payés par le client en plus du prix (migration 20261109) :
+    // rien n'est retenu sur les ventes du vendeur.
+    function commissionRate() {
+        return 0;
     }
 
     function salesOperations(sales) {
@@ -256,7 +257,7 @@
                 ${kpi('Charges', fcfa(r.totalCharges), r.purchases ? `dont achats ${fcfa(r.purchases)}` : 'dépenses de la période', 'orange')}
                 ${kpi('Résultat', fcfa(r.result, true), r.result >= 0 ? 'Bénéfice' : 'Perte', r.result >= 0 ? 'green' : 'red')}
                 ${kpi('Trésorerie', fcfa(cash), `caisse ${fcfa(solde('571'))} · Mobile Money ${fcfa(solde('521'))}`, cash < 0 ? 'red' : '')}
-                ${kpi('À recevoir d\'Ouenze', fcfa(owed), 'ventes livrées, commission déduite')}
+                ${kpi('À recevoir d\'Ouenze', fcfa(owed), 'ventes livrées (100 % du prix des articles)')}
             </div>
             ${cash < 0 ? `<p class="acc-hint"><i class="fas fa-info-circle"></i> Trésorerie négative : tu as noté plus de dépenses que d'entrées. Ajoute ton <strong>apport personnel</strong> de départ ou les <strong>versements reçus d'Ouenze</strong>.</p>` : ''}
             <div class="acc-charts">
@@ -416,13 +417,13 @@
             <div class="acc-card acc-result">
                 <div class="acc-row"><span>Marge commerciale <small>(ventes − achats de marchandises)</small></span><strong>${fcfa(r.margin, true)}</strong></div>
                 <div class="acc-row total big ${r.result >= 0 ? 'green' : 'red'}"><span>Résultat net — ${r.result >= 0 ? 'bénéfice' : 'perte'}</span><strong>${fcfa(r.result, true)}</strong></div>
-                <p class="acc-note">Période : ${PERIODS[state.period]}. Commission Ouenze calculée au taux de ta médaille actuelle (${medalNote()}). Les frais de livraison sont payés par le client : ils n'apparaissent pas dans tes comptes.</p>
+                <p class="acc-note">Période : ${PERIODS[state.period]}. Tes ventes Ouenze comptent pour 100 % du prix des articles : les frais Ouenze (${medalNote()}) et la livraison sont payés par le client en plus, ils n'apparaissent pas dans tes comptes.</p>
             </div>`;
     }
 
     function medalNote() {
         const M = window.OuenzeMedals;
-        if (!M) return '22 %';
+        if (!M) return '9 %';
         const shops = state.shopId === 'all' ? state.shops : state.shops.filter(s => s.id === state.shopId);
         return shops.map(s => { const t = M.get(state.medals[s.id]); return `${shops.length > 1 ? esc(s.name) + ' : ' : ''}${t.emoji} ${t.name} ${(t.commission * 100).toLocaleString('fr-FR')} %`; }).join(', ');
     }

@@ -278,7 +278,7 @@
                 <div class="as-row-head"><h2 style="margin:0;">${esc(o.order_number)}</h2>${pill(st)}</div>
                 <p class="sr-muted">Passée le ${dateTime(o.created_at)} · mise à jour ${dateTime(o.updated_at)}${o.payment_status === 'test' ? ' · <b>commande de TEST</b>' : ''}</p>
                 <div class="sr-kpis">
-                    ${kpi('Total', fcfa(o.total), `articles ${fcfa(o.subtotal)} + livraison ${fcfa(o.delivery_fees)}`)}
+                    ${kpi('Total', fcfa(o.total), `articles ${fcfa(o.subtotal)}${Number(o.total) - Number(o.subtotal) - Number(o.delivery_fees) > 0 ? ` + frais de service ${fcfa(Number(o.total) - Number(o.subtotal) - Number(o.delivery_fees))}` : ''} + livraison ${fcfa(o.delivery_fees)}`)}
                     ${kpi('Paiement', esc(PAY[o.payment_status] || o.payment_status || '—'), esc(pay) + (di.payment_ref ? ` · réf. ${esc(di.payment_ref)}` : ''))}
                     ${kpi('Livraison', esc([di.district, di.city].filter(Boolean).join(', ') || '—'), [di.landmark && esc(di.landmark), di.call_confirmed ? 'adresse confirmée' : 'adresse non confirmée'].filter(Boolean).join(' · '))}
                     ${kpi('Code de remise', d.code ? `${num(d.code.sends)} envoi(s)` : '—', d.code ? `${num(d.code.attempts)} essai(s) du livreur` : 'pas encore de livreur')}
