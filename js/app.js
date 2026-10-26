@@ -1294,7 +1294,7 @@
             catOf,
             priceOf: p => (p._light ? p.price : minPrice(p)),
             hasPhoto: p => (p._light ? p._hasPhoto : productPhotos(p).length > 0),
-            inStock: p => (p._light ? !p._out : !(productStock(p) <= 0 && Number(p.stock) !== 0)),
+            inStock: p => (p._light ? !p._out : (madeToOrder(p) || !(productStock(p) <= 0 && Number(p.stock) !== 0))),
             shopScore: p => {
                 const s = shopsCache.find(x => x.id === p.shop_id);
                 if (!s) return 0;
@@ -1574,7 +1574,7 @@
         const id = escapeHtml(p.id);
         const versions = light ? p._versions : productVariants(p).length;
         const shop = p.shops?.name || shopsCache.find(s => s.id === p.shop_id)?.name || '';
-        const out = light ? p._out : productStock(p) <= 0 && Number(p.stock) !== 0;
+        const out = light ? p._out : !madeToOrder(p) && productStock(p) <= 0 && Number(p.stock) !== 0;
         const img = photo ? `<img src="${photo}" alt="${escapeHtml(p.name)}" loading="lazy" class="loaded">`
             : (light && p._hasPhoto ? `<img data-cover="${id}" alt="${escapeHtml(p.name)}">` : '<i class="fas fa-image"></i>');
         return `<div class="home-product" data-pid="${id}" style="--i:${Math.min(i, 11)}" role="button" tabindex="0" onclick="openProductDetail('${id}')" onkeydown="if(event.key==='Enter')openProductDetail('${id}')">
@@ -1696,7 +1696,7 @@
             shop: (a, b) => shopRank(b.shop_id) - shopRank(a.shop_id)
         };
         const list = catView.list
-            .filter(p => minPrice(p) <= limit && (!catView.inStock || productStock(p) > 0 || Number(p.stock) === 0))
+            .filter(p => minPrice(p) <= limit && (!catView.inStock || madeToOrder(p) || productStock(p) > 0 || Number(p.stock) === 0))
             .sort(sorters[catView.sort] || sorters.new);
         const filters = document.getElementById('catFilters');
         if (filters) filters.innerHTML = `
@@ -2235,7 +2235,7 @@
                     <div class="product-card-name" style="color:${d.productText};">${escapeHtml(p.name)}</div>
                     <div class="hp-foot">
                         <div class="product-card-price" style="color:${d.primary};">${productPriceLabel(p)}</div>
-                        ${addButton(id, versions.length, productStock(p) <= 0 && Number(p.stock) !== 0, d.button)}
+                        ${addButton(id, versions.length, !madeToOrder(p) && productStock(p) <= 0 && Number(p.stock) !== 0, d.button)}
                     </div>
                 </div>
             </div>`;
@@ -2259,6 +2259,48 @@
         return [...new Set([...own, ...fromVersions].map(safeUrl).filter(Boolean))];
     }
  
+    // Préparé à la commande (fait maison, cuisiné…) : jamais en rupture (migration 20261114)
+    function madeToOrder(p) {
+        return !!(p && (p.variants?.made_to_order || p.food_info?.homemade));
+    }
+
+    // Personnalisation proposée par le vendeur : ingrédients à retirer, suppléments payants
+    function productCustom(p) {
+        const c = p?.variants?.custom;
+        if (!c || typeof c !== 'object') return null;
+        const remove = (Array.isArray(c.remove) ? c.remove : []).map(x => String(x || '').trim()).filter(Boolean).slice(0, 30);
+        const extras = (Array.isArray(c.extras) ? c.extras : [])
+            .filter(x => x && String(x.name || '').trim())
+            .map(x => ({ name: String(x.name).trim(), price: Math.max(0, Number(x.price) || 0), max: Math.min(10, Math.max(1, Number(x.max) || 1)) }))
+            .slice(0, 30);
+        return remove.length || extras.length ? { remove, extras } : null;
+    }
+
+    // Choix du client → { remove:[…], extras:[{name, qty}] } ou null ; prix des suppléments ; libellé lisible
+    function customChoice(p, sel) {
+        const offer = productCustom(p);
+        if (!offer || !sel) return null;
+        const remove = offer.remove.filter(n => sel.remove?.has(n));
+        const extras = offer.extras.filter(x => (sel.extras?.[x.name] || 0) > 0)
+            .map(x => ({ name: x.name, qty: Math.min(x.max, sel.extras[x.name]) }));
+        return remove.length || extras.length ? { remove, extras } : null;
+    }
+    function customExtraPrice(p, choice) {
+        const offer = productCustom(p);
+        if (!offer || !choice) return 0;
+        return (choice.extras || []).reduce((s, e) => {
+            const x = offer.extras.find(o => o.name === e.name);
+            return s + (x ? x.price * e.qty : 0);
+        }, 0);
+    }
+    function customLabel(choice) {
+        if (!choice) return '';
+        return [
+            (choice.remove || []).map(n => 'sans ' + n.toLowerCase()).join(', '),
+            (choice.extras || []).map(e => `+ ${e.name}${e.qty > 1 ? ' ×' + e.qty : ''}`).join(', ')
+        ].filter(Boolean).join(' · ');
+    }
+
     function productStock(p) {
         const versions = productVariants(p);
         return versions.length ? versions.reduce((s, v) => s + (Number(v.stock) || 0), 0) : Number(p?.stock) || 0;
@@ -2333,6 +2375,7 @@
     const detailShops = {};        // boutiques chargées pour la fiche (vendeur, note, médaille)
     let detailSelection = {};      // { Couleur: 'Noir', Capacité: '128 Go' }
     let detailQty = 1;
+    let detailCustom = { remove: new Set(), extras: {} };   // personnalisation en cours dans la fiche
  
     function selectedVariant() {
         const options = productOptions(detailProduct);
@@ -2371,6 +2414,7 @@
         detailProduct = p;
         detailQty = 1;
         detailSelection = {};
+        detailCustom = { remove: new Set(), extras: {} };
         // Version par défaut choisie par le vendeur : présélectionnée (son prix s'affiche)
         const def = productVariants(p).find(v => v.is_default);
         if (def && def.values) productOptions(p).forEach(o => { if (def.values[o.name]) detailSelection[o.name] = def.values[o.name]; });
@@ -2392,6 +2436,10 @@
         const options = productOptions(p);
         const variant = selectedVariant();
         const complete = !options.length || !!variant;
+        // Personnalisation (façon Glovo) : ingrédients retirés, suppléments
+        const offer = productCustom(p);
+        const choice = customChoice(p, detailCustom);
+        const extraPrice = customExtraPrice(p, choice);
         const beauty = p.beauty_info && typeof p.beauty_info === 'object' ? p.beauty_info : null;
  
         // Photos : celles de la version choisie d'abord
@@ -2404,18 +2452,23 @@
         const matching = productVariants(p).filter(v =>
             options.every(o => !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
         const mPrices = matching.map(v => Number(v.price)).filter(n => n > 0);
-        const priceText = price !== null && price > 0 ? `${formatPrice(price)} FCFA`
+        const priceText = price !== null && price > 0 ? `${formatPrice(price + extraPrice)} FCFA${extraPrice ? ` <small class="pd-extra-note">dont ${formatPrice(extraPrice)} FCFA de suppléments</small>` : ''}`
             : mPrices.length && Object.keys(detailSelection).length
                 ? (Math.min(...mPrices) === Math.max(...mPrices)
                     ? `${formatPrice(mPrices[0])} FCFA`
                     : `${formatPrice(Math.min(...mPrices))} – ${formatPrice(Math.max(...mPrices))} FCFA`)
                 : productPriceLabel(p);
-        const stock = variant ? Number(variant.stock) || 0 : (options.length ? null : Number(p.stock) || 0);
+        // Stock : préparé à la commande = jamais limité ; sans versions, 0 = stock non suivi (même règle que la base)
+        const made = madeToOrder(p);
+        const stock = made ? null
+            : variant ? Number(variant.stock) || 0
+            : (options.length ? null : (Number(p.stock) > 0 ? Number(p.stock) : null));
         if (stock !== null && detailQty > Math.max(stock, 1)) detailQty = Math.max(stock, 1);
+
  
         // Une valeur est grisée si aucune version en stock ne la combine avec les choix déjà faits
         const isAvailable = (optName, value) => productVariants(p).some(v =>
-            v.values?.[optName] === value && Number(v.stock) > 0 &&
+            v.values?.[optName] === value && (made || Number(v.stock) > 0) &&
             options.every(o => o.name === optName || !detailSelection[o.name] || v.values?.[o.name] === detailSelection[o.name]));
  
         // Vendeur : boutique en cache (accueil, vue boutique) ; sinon chargée une fois puis réaffichée
@@ -2431,7 +2484,8 @@
         const shopLogo = safeUrl(shop?.logo_url);
         const rating = Number(shop?.rating) || 0;
         const buyLabel = !complete ? `Choisis ${escapeHtml(options.filter(o => !detailSelection[o.name]).map(o => o.name.toLowerCase()).join(' et '))}`
-                       : stock === 0 ? 'Indisponible' : 'Ajouter au panier';
+                       : stock === 0 ? 'Indisponible'
+                       : price ? `Ajouter · ${formatPrice((price + extraPrice) * detailQty)} FCFA` : 'Ajouter au panier';
         // Produits de la même boutique (déjà chargés)
         const similar = Object.values(productsCache)
             .filter(x => x.id !== p.id && x.shop_id === p.shop_id && x.is_active !== false).slice(0, 8);
@@ -2484,8 +2538,11 @@
                             </div>
                         </div>`).join('')}
 
-                    <div class="pd-stock ${stock === 0 ? 'out' : ''}">
-                        ${stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock} disponible${stock > 1 ? 's' : ''})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
+                    ${offer ? customHtml(offer, d) : ''}
+
+                    <div class="pd-stock ${stock === 0 ? 'out' : ''} ${made ? 'made' : ''}">
+                        ${made ? '<i class="fas fa-utensils"></i> Préparé à la commande'
+                            : stock === null ? '' : stock > 0 ? `<i class="fas fa-check-circle"></i> En stock (${stock} disponible${stock > 1 ? 's' : ''})` : '<i class="fas fa-times-circle"></i> Rupture de stock'}
                     </div>
 
                     <div class="pd-buy">
@@ -2530,6 +2587,49 @@
     // Toucher la photo d'une version (ex. le rouge à lèvres bleu) choisit cette version : prix, stock et bouton suivent.
     // Si la photo est commune à plusieurs versions (ex. même couleur, tailles différentes),
     // seules les caractéristiques qu'elles partagent sont choisies.
+    function customHtml(offer, d) {
+        return `<div class="pd-custom">
+            ${offer.remove.length ? `<div class="pd-custom-block">
+                <div class="pd-option-name">Retirer des ingrédients <small>gratuit</small></div>
+                <div class="pd-chips">${offer.remove.map(n => {
+                    const off = detailCustom.remove.has(n);
+                    return `<button type="button" class="pd-chip pd-remove ${off ? 'off' : ''}" data-name="${escapeHtml(n)}" aria-pressed="${off}"
+                        onclick="toggleCustomRemove(this.dataset.name)">${off ? '<i class="fas fa-times"></i> Sans ' : ''}${escapeHtml(n)}</button>`;
+                }).join('')}</div></div>` : ''}
+            ${offer.extras.length ? `<div class="pd-custom-block">
+                <div class="pd-option-name">Ajouter des suppléments</div>
+                ${offer.extras.map(x => {
+                    const q = detailCustom.extras[x.name] || 0;
+                    return `<div class="pd-extra ${q ? 'on' : ''}">
+                        <span class="pd-extra-name">${escapeHtml(x.name)}<small>+ ${formatPrice(x.price)} FCFA${x.max > 1 ? ` · jusqu'à ${x.max}` : ''}</small></span>
+                        ${x.max > 1 || q ? `<span class="pd-qty small">
+                            <button type="button" data-name="${escapeHtml(x.name)}" onclick="changeCustomExtra(this.dataset.name, -1)" aria-label="Moins" ${q ? '' : 'disabled'}>−</button>
+                            <span>${q}</span>
+                            <button type="button" data-name="${escapeHtml(x.name)}" onclick="changeCustomExtra(this.dataset.name, 1)" aria-label="Plus" ${q >= x.max ? 'disabled' : ''}>+</button></span>`
+                        : `<button type="button" class="pd-extra-add" style="color:${d.primary};border-color:${d.primary};" data-name="${escapeHtml(x.name)}" onclick="changeCustomExtra(this.dataset.name, 1)">Ajouter</button>`}
+                    </div>`;
+                }).join('')}</div>` : ''}
+        </div>`;
+    }
+
+    function currentDetailPhoto() {
+        return document.querySelector('.pd-main-photo img')?.getAttribute('src');
+    }
+
+    function toggleCustomRemove(name) {
+        if (detailCustom.remove.has(name)) detailCustom.remove.delete(name);
+        else detailCustom.remove.add(name);
+        renderProductDetail(currentDetailPhoto());
+    }
+
+    function changeCustomExtra(name, delta) {
+        const x = productCustom(detailProduct)?.extras.find(e => e.name === name);
+        if (!x) return;
+        const q = Math.min(x.max, Math.max(0, (detailCustom.extras[name] || 0) + delta));
+        if (q) detailCustom.extras[name] = q; else delete detailCustom.extras[name];
+        renderProductDetail(currentDetailPhoto());
+    }
+
     function showProductPhoto(src) {
         const p = detailProduct;
         const owners = p ? productVariants(p).filter(v =>
@@ -2554,7 +2654,8 @@
  
     function changeDetailQty(delta) {
         const variant = selectedVariant();
-        const max = variant ? Number(variant.stock) || 0 : (productOptions(detailProduct).length ? 99 : Number(detailProduct?.stock) || 0);
+        const max = madeToOrder(detailProduct) ? 99
+            : variant ? Number(variant.stock) || 0 : (productOptions(detailProduct).length ? 99 : Number(detailProduct?.stock) || 0);
         detailQty = Math.min(Math.max(1, detailQty + delta), Math.max(max, 1));
         renderProductDetail(document.querySelector('.pd-main-photo img')?.getAttribute('src'));
     }
@@ -2564,7 +2665,7 @@
         if (!p) return;
         const variant = selectedVariant();
         if (productOptions(p).length && !variant) return;
-        if (addToCart(p.id, variant?.key || null, detailQty)) closeModal();
+        if (addToCart(p.id, variant?.key || null, detailQty, customChoice(p, detailCustom))) closeModal();
     }
  
     // Filtre de la vue boutique : catégorie (menu) + texte (barre de recherche)
@@ -2602,7 +2703,7 @@
     }
  
     // Ajoute un produit (ou une de ses versions) au panier. Renvoie true si c'est fait.
-    function addToCart(productId, variantKey = null, quantity = 1) {
+    function addToCart(productId, variantKey = null, quantity = 1, custom = null) {
         if (!currentUser) {
             openLoginModal();
             return false;
@@ -2614,7 +2715,7 @@
             return false;
         }
         if (p._light) {
-            ensureFullProduct(productId).then(full => { if (full) addToCart(productId, variantKey, quantity); });
+            ensureFullProduct(productId).then(full => { if (full) addToCart(productId, variantKey, quantity, custom); });
             return false;
         }
         F()?.track('cart', { id: p.id, cat: catOf(p), shop: p.shop_id });
@@ -2631,9 +2732,12 @@
             return false;
         }
  
-        const stock = variant ? Number(variant.stock) || 0 : Number(p.stock) || 0;
-        const existing = cart.find(i => i.productId === p.id && (i.variantKey || null) === (variantKey || null));
-        const already = existing ? existing.quantity : 0;
+        const stock = madeToOrder(p) ? 0 : (variant ? Number(variant.stock) || 0 : Number(p.stock) || 0);
+        // Même produit, même version et même personnalisation = même ligne du panier
+        const customKey = custom ? JSON.stringify(custom) : '';
+        const existing = cart.find(i => i.productId === p.id && (i.variantKey || null) === (variantKey || null) && (i.customKey || '') === customKey);
+        const already = cart.filter(i => i.productId === p.id && (i.variantKey || null) === (variantKey || null))
+            .reduce((n, i) => n + i.quantity, 0);
         if (stock > 0 && already + quantity > stock) {
             alert(`Stock insuffisant : ${stock} disponible(s)${already ? `, dont ${already} déjà dans ton panier` : ''}.`);
             return false;
@@ -2646,7 +2750,10 @@
                 productId: p.id,
                 productName: p.name,
                 variantKey: variantKey || null,
-                price: Number(variant ? variant.price : p.price) || 0,
+                custom: custom || null,
+                customKey,
+                customLabel: customLabel(custom),
+                price: (Number(variant ? variant.price : p.price) || 0) + customExtraPrice(p, custom),
                 photo: (variant?.photos?.[0] && safeUrl(variant.photos[0])) || productPhotos(p)[0] || '',
                 quantity,
                 shopId: p.shop_id,
@@ -2655,7 +2762,8 @@
         }
         saveCart();
         // Après la fiche produit (qui se ferme), on demande la suite : valider ou continuer
-        const label = `${p.name}${variantKey ? ` (${variantKey})` : ''}`;
+        const extra = [variantKey, customLabel(custom)].filter(Boolean).join(' · ');
+        const label = `${p.name}${extra ? ` (${extra})` : ''}`;
         setTimeout(() => openCartChoice(label), 0);
         return true;
     }
@@ -2692,6 +2800,7 @@
                 <div class="cart-item-info">
                     <div class="cart-item-name">${escapeHtml(item.productName)}</div>
                     ${item.variantKey ? `<div class="cart-item-variant">${escapeHtml(item.variantKey)}</div>` : ''}
+                    ${item.customLabel ? `<div class="cart-item-variant cart-item-custom">${escapeHtml(item.customLabel)}</div>` : ''}
                     <div class="cart-item-price">${formatPrice(item.price)} FCFA</div>
                     <div class="pd-qty small">
                         <button onclick="changeCartQty(${idx}, -1)" aria-label="Moins">−</button>
@@ -2750,7 +2859,7 @@
         if (!item) return;
         const p = productsCache[item.productId];
         const variant = item.variantKey ? productVariants(p).find(v => v.key === item.variantKey) : null;
-        const stock = p ? (variant ? Number(variant.stock) || 0 : Number(p.stock) || 0) : 0;
+        const stock = p && !madeToOrder(p) ? (variant ? Number(variant.stock) || 0 : Number(p.stock) || 0) : 0;
         if (delta > 0 && stock > 0 && item.quantity + delta > stock) {
             showToast(`Stock maximum atteint (${stock})`);
             return;
@@ -3634,6 +3743,8 @@
     // ============ EXPORTS (utilisés par les onclick du HTML) ============
     Object.assign(window, {
         openAccount,
+        toggleCustomRemove,
+        changeCustomExtra,
         doLogin,
         doSignUp,
         logout,

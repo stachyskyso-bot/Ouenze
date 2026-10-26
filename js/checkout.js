@@ -164,7 +164,7 @@
                             <div class="co-item-img">${img ? `<img src="${img}" alt="">` : '<i class="fas fa-box"></i>'}</div>
                             <div class="co-item-info">
                                 <strong>${esc(i.productName)}</strong>
-                                ${i.variantKey ? `<small>${esc(i.variantKey)}</small>` : ''}
+                                ${i.variantKey ? `<small>${esc(i.variantKey)}</small>` : ''}${i.customLabel ? `<small class="co-custom">${esc(i.customLabel)}</small>` : ''}
                                 <span>${fcfa(i.price)}</span>
                             </div>
                             <div class="co-item-side">
@@ -188,7 +188,7 @@
             ${cart.map(i => {
                 const img = safeImg(i.photo);
                 return `<div class="co-aside-item"><span>${img ? `<img src="${img}" alt="">` : '<i class="fas fa-box"></i>'}<b>${i.quantity}</b></span>
-                    <div><strong>${esc(i.productName)}</strong>${i.variantKey ? `<small>${esc(i.variantKey)}</small>` : ''}</div>
+                    <div><strong>${esc(i.productName)}</strong>${i.variantKey ? `<small>${esc(i.variantKey)}</small>` : ''}${i.customLabel ? `<small class="co-custom">${esc(i.customLabel)}</small>` : ''}</div>
                     <em>${fcfa(i.price * i.quantity)}</em></div>`;
             }).join('')}
             ${totalsHtml()}
@@ -336,7 +336,8 @@
     // Ce qui part au serveur : identifiants, quantités, livraison, paiement (pas de prix)
     function orderPayload() {
         return {
-            items: cart.map(i => ({ product_id: i.productId, variant_key: i.variantKey || null, quantity: i.quantity })),
+            items: cart.map(i => ({ product_id: i.productId, variant_key: i.variantKey || null, quantity: i.quantity,
+                ...(i.custom ? { custom: i.custom } : {}) })),
             delivery: {
                 country_code: delivery.countryCode, country: F().COUNTRIES[delivery.countryCode].name,
                 city: delivery.city || null, phone: delivery.phone
