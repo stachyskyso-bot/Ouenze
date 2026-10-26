@@ -5157,9 +5157,9 @@ body.admin-mode .site-footer { display: none; }
 .hp-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 6px; }
 .hp-foot .home-product-price, .hp-foot .product-card-price { min-width: 0; margin: 0; }
 .hp-add {
-    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+    flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #2952d1, var(--primary)); color: #fff; font-size: 15px;
+    background: linear-gradient(135deg, #2952d1, var(--primary)); color: #fff; font-size: 16px;
     box-shadow: 0 6px 14px rgba(30, 64, 175, .28);
     transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
 }
@@ -5190,7 +5190,7 @@ body.admin-mode .site-footer { display: none; }
 .ranking-filters a.sort-btn { text-decoration: none; }
 
 @media (max-width: 768px) {
-    .hp-add { width: 34px; height: 34px; font-size: 13px; }
+    .hp-add { width: 36px; height: 36px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .hp-add.added, .cart-shake { animation: none !important; }
