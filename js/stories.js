@@ -273,6 +273,13 @@
         });
     }
 
+    // Le profil arrive après l'accueil : cercle « Votre story » pour les vendeurs
+    function setPoster(on, avatar) {
+        rowOpts.canPost = !!on;
+        rowOpts.avatar = avatar || rowOpts.avatar;
+        renderRow();
+    }
+
     // ---------- Boutique ----------
     async function shopGroup(shopId) {
         let g = groups.find(x => x.shopId === shopId);
@@ -881,7 +888,7 @@
     }
 
     window.OuenzeStories = {
-        mountRow, setProducts, open, likeCounts, openShop, decorateLogo, compose, preview, remove, cleanFiles, timeAgo,
+        mountRow, setProducts, setPoster, open, likeCounts, openShop, decorateLogo, compose, preview, remove, cleanFiles, timeAgo,
         close: () => closeViewer()
     };
 })();

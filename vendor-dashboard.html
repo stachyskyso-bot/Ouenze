@@ -22,11 +22,11 @@
 
 <div class="header">
     <div class="logo" onclick="window.location.href='index.html'"><h1>OUENZE</h1></div>
-    <div class="user-menu" onclick="window.location.href='index.html'">
+    <button type="button" class="user-menu" onclick="vdAccount()" aria-label="Mon compte">
         <div class="user-avatar" id="userAvatar">V</div>
-        <div><span id="userName">Vendeur</span><br><small>Tableau de bord</small></div>
-        <i class="fas fa-arrow-right" style="color: var(--gray-500);"></i>
-    </div>
+        <div><span id="userName">Vendeur</span><br><small>Mon compte</small></div>
+        <i class="fas fa-chevron-down" style="color: var(--gray-500);"></i>
+    </button>
 </div>
 
 <div class="container" id="appContainer"></div>
@@ -43,7 +43,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/place-picker.js"></script>
 <script src="js/stories.js"></script>
-<script src="js/vd.js?v=3"></script>
+<script src="js/account.js"></script>
+<script src="js/vd.js?v=4"></script>
 <script src="js/report.js"></script>
 </body>
 </html>
