@@ -26,6 +26,8 @@
                 : `<p>${esc(error.message)}</p>`);
         }
         state.list = Array.isArray(data) ? data : [];
+        const likes = await window.OuenzeStories.likeCounts(state.list.map(r => r.id));
+        state.list.forEach(r => { r.likes = likes[r.id] || 0; });
         render();
     }
 
@@ -41,7 +43,7 @@
             <span class="st-card-badge">${r.media_type === 'video' ? '<i class="fas fa-video"></i> ' : ''}${esc(status)}</span>
             ${r.active ? `<button type="button" class="st-card-del" title="${r.author_kind === 'ouenze' ? 'Supprimer' : 'Retirer'}" onclick="event.stopPropagation();asRemove(${i})"><i class="fas ${r.author_kind === 'ouenze' ? 'fa-trash' : 'fa-ban'}"></i></button>` : ''}
             <span class="st-card-info"><b>${esc(r.shop_name || '')}</b>
-                <small><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''}${r.audience === 'fans' ? ' · fidèles' : ''}</small>
+                <small><i class="fas fa-eye"></i> ${Number(r.views) || 0} vue${Number(r.views) > 1 ? 's' : ''} · <i class="fas fa-heart st-heart"></i> ${Number(r.likes) || 0}${r.audience === 'fans' ? ' · fidèles' : ''}</small>
                 ${r.product_name ? `<small><i class="fas fa-tag"></i> ${esc(r.product_name)}</small>` : ''}
                 ${r.removed_reason ? `<small>${esc(r.removed_reason)}</small>` : ''}</span>
         </div>`;
@@ -51,6 +53,7 @@
         const list = state.list.filter(r => state.filter === 'all' || (state.filter === 'ouenze') === (r.author_kind === 'ouenze'));
         const active = state.list.filter(r => r.active);
         const views = active.reduce((s, r) => s + Number(r.views || 0), 0);
+        const likes = active.reduce((s, r) => s + Number(r.likes || 0), 0);
         const shops = new Set(active.filter(r => r.shop_id).map(r => r.shop_id)).size;
         const tab = (key, label) => `<button type="button" class="${state.filter === key ? 'active' : ''}" onclick="asFilter('${key}')">${label}</button>`;
         box().innerHTML = `
@@ -58,6 +61,7 @@
                 <div><span>Stories en ligne</span><b>${active.length}</b><small>disparaissent après 24 h</small></div>
                 <div><span>Boutiques actives</span><b>${shops}</b><small>avec au moins une story</small></div>
                 <div><span>Vues</span><b>${views.toLocaleString('fr-FR')}</b><small>clients connectés</small></div>
+                <div><span>J'aime</span><b>${likes.toLocaleString('fr-FR')}</b><small>sur les stories en ligne</small></div>
             </div>
             <div class="as-st-bar">
                 <button type="button" class="btn-sm btn-primary" onclick="asNew()"><i class="fas fa-plus"></i> Publier une story Ouenze</button>
