@@ -595,8 +595,13 @@
                 const { error } = await window.supabase.rpc('set_shop_place', {
                     target_shop: shopId, new_lat: p.lat, new_lng: p.lng, new_district: p.district, new_address: p.address || null
                 });
-                if (error) return /set_shop_place|schema cache|does not exist/i.test(error.message || '')
-                    ? 'Base de données à mettre à jour (migration 20261022_delivery_map.sql).' : error.message;
+                if (error) {
+                    console.error('❌ set_shop_place :', error);
+                    // Fonction absente : mise à jour à lancer ; sinon le vrai message de la base
+                    return /could not find the function|schema cache/i.test(error.message || '')
+                        ? 'Base de données à mettre à jour : lance la migration 20261115_shop_place.sql dans Supabase.'
+                        : (error.message || 'Enregistrement impossible pour le moment.');
+                }
                 shopLocations = shopLocations || {};
                 shopLocations[shopId] = { shop_id: shopId, lat: p.lat, lng: p.lng, district: p.district, address: p.address };
                 showDashboard();

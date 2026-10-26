@@ -181,8 +181,8 @@
         if (window.L) {
             const has = o.lat != null && o.lng != null;
             st.map = L.map('ppMap').setView(has ? [o.lat, o.lng] : [CENTER.lat, CENTER.lng], has ? 17 : CENTER.zoom);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO'
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             }).addTo(st.map);
             st.map.on('click', e => placeMarker(e.latlng.lat, e.latlng.lng, true));
             if (has) placeMarker(o.lat, o.lng, false);
