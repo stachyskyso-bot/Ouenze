@@ -310,15 +310,16 @@
     // ---------- Visionneuse ----------
     function open(index) { if (groups[index]) openViewer(groups, index); }
 
-    function preview(items, title) {
+    // Aperçu (espace vendeur, admin) : stories dans l'ordre donné, en commençant à « start »
+    function preview(items, title, start) {
         const g = { key: 'preview', kind: 'preview', name: title || 'Aperçu', logo: '', items: items.map(r => ({
             kind: 'story', id: r.id, type: r.media_type, url: r.media_url, caption: r.caption, bg: r.bg_color,
             productId: r.product_id, productName: r.product_name, at: r.created_at, viewed: true, preview: true
         })) };
-        if (g.items.length) openViewer([g], 0);
+        if (g.items.length) openViewer([g], 0, Math.min(Math.max(0, Number(start) || 0), g.items.length - 1));
     }
 
-    function openViewer(list, gi) {
+    function openViewer(list, gi, start) {
         if (!list?.[gi]?.items?.length) return;
         closeViewer(true);
         const box = document.createElement('div');
@@ -350,7 +351,7 @@
         // Reprendre au premier statut non vu du groupe
         const m = seenMap();
         const firstNew = g.items.findIndex(it => !isSeen(it, m));
-        viewer.ii = firstNew > 0 ? firstNew : 0;
+        viewer.ii = Number.isInteger(start) ? start : (firstNew > 0 ? firstNew : 0);
 
         box.querySelector('.st-close').onclick = () => closeViewer();
         box.querySelector('.st-nav-prev').onclick = () => step(-1);
